@@ -1,498 +1,1095 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <!-- Optimized viewport for mobile apps -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>DakMitra</title>
-  
-  <!-- PWA Requirements -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#4f46e5" />
-  <link rel="apple-touch-icon" href="icon-192.png">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Optimized viewport for mobile apps -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>DakMitra</title>
 
-  <!-- SDKs -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"></script>
-  
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  
-  <style>
-    :root {
-      /* Modern Android Material Light Theme */
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --text: #0f172a;
-      --text-light: #64748b;
-      --border: #e2e8f0;
-      --input-bg: #f1f5f9;
-      --input-border: #cbd5e1;
-      --btn-secondary: #f1f5f9;
-      --btn-secondary-hover: #e2e8f0;
-      --success-bg: #dcfce7;
-      --success-text: #166534;
-      --success-border: #4ade80;
-      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
+    <!-- PWA Requirements -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#4f46e5" />
+    <link rel="apple-touch-icon" href="icon-192.png" />
 
-    [data-theme="dark"] {
-      /* Deep Modern Dark Theme */
-      --primary: #6366f1;
-      --primary-hover: #818cf8;
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --text: #f8fafc;
-      --text-light: #94a3b8;
-      --border: #334155;
-      --input-bg: #0f172a;
-      --input-border: #475569;
-      --btn-secondary: #334155;
-      --btn-secondary-hover: #475569;
-      --success-bg: #064e3b;
-      --success-text: #34d399;
-      --success-border: #059669;
-    }
+    <!-- SDKs -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"></script>
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Inter", sans-serif; -webkit-tap-highlight-color: transparent; }
-    
-    body {
-      background-color: var(--bg); color: var(--text); min-height: 100vh;
-      display: flex; flex-direction: column; transition: background-color 0.3s ease, color 0.3s ease;
-      overflow-x: hidden;
-    }
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 
-    /* --- APP BAR --- */
-    .app-bar {
-      display: flex; align-items: center; justify-content: space-between;
-      background: var(--card-bg); padding: 16px 20px;
-      box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 100;
-    }
-    .app-bar h1 { font-size: 20px; font-weight: 700; color: var(--primary); letter-spacing: -0.5px; }
-    .hamburger { background: none; border: none; font-size: 24px; color: var(--text); cursor: pointer; padding: 4px; }
+    <style>
+      :root {
+        /* Modern Android Material Light Theme */
+        --primary: #4f46e5;
+        --primary-hover: #4338ca;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-light: #64748b;
+        --border: #e2e8f0;
+        --input-bg: #f1f5f9;
+        --input-border: #cbd5e1;
+        --btn-secondary: #f1f5f9;
+        --btn-secondary-hover: #e2e8f0;
+        --success-bg: #dcfce7;
+        --success-text: #166534;
+        --success-border: #4ade80;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      }
+      /* --- THEME TOGGLE ANIMATION --- */
+      .theme-toggle-btn {
+        background: transparent;
+        border: none;
+        color: var(--text);
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.3s, transform 0.2s;
+      }
+      .theme-toggle-btn:active {
+        transform: scale(0.85) rotate(20deg);
+      }
+      .theme-toggle-btn svg {
+        width: 24px;
+        height: 24px;
+      }
 
-    /* --- SIDEBAR (DRAWER) --- */
-    .sidebar-overlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.5); z-index: 999;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-    }
-    .sidebar-overlay.show { opacity: 1; pointer-events: auto; }
-    
-    .sidebar {
-      position: fixed; top: 0; left: -300px; width: 280px; height: 100vh;
-      background: var(--card-bg); z-index: 1000;
-      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: var(--shadow-lg); display: flex; flex-direction: column;
-    }
-    .sidebar.open { left: 0; }
-    
-    .sidebar-header {
-      padding: 24px 20px; background: var(--bg); border-bottom: 1px solid var(--border);
-    }
-    .sidebar-avatar {
-      width: 48px; height: 48px; background: var(--primary); color: white;
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 20px; font-weight: 700; margin-bottom: 12px;
-    }
-    .sidebar-email { font-size: 14px; font-weight: 600; color: var(--text); word-break: break-all; }
-    .sidebar-stats { display: flex; gap: 12px; margin-top: 8px; font-size: 12px; color: var(--text-light); }
-    
-    .sidebar-nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
-    .sidebar-menu-item {
-      display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px;
-      background: none; border: none; font-size: 15px; font-weight: 500;
-      color: var(--text); border-radius: 12px; cursor: pointer; transition: 0.2s; text-align: left;
-    }
-    .sidebar-menu-item:hover, .sidebar-menu-item.active { background: var(--btn-secondary); color: var(--primary); }
-    .sidebar-menu-item.danger { color: #ef4444; margin-top: auto; }
-    .sidebar-menu-item.danger:hover { background: #fee2e2; }
+      .icon-moon {
+        display: block;
+      }
+      .icon-sun {
+        display: none;
+        color: #fbbf24;
+      }
 
-    /* --- MAIN CONTENT & VIEWS --- */
-    .container {
-      width: 100%; max-width: 800px; margin: 0 auto; padding: 20px;
-      flex: 1; display: flex; flex-direction: column;
-    }
-    .view-section { display: none; animation: fadeIn 0.3s ease; }
-    .view-section.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      [data-theme="dark"] .icon-moon {
+        display: none;
+      }
+      [data-theme="dark"] .icon-sun {
+        display: block;
+        animation: spinIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      [data-theme="light"] .icon-moon {
+        animation: dropIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
 
-    /* --- AUTH VIEW --- */
-    .auth-card {
-      background: var(--card-bg); border-radius: 20px; box-shadow: var(--shadow-md);
-      overflow: hidden; border: 1px solid var(--border); margin-top: 40px;
-    }
-    .auth-header { padding: 32px 24px 20px; text-align: center; }
-    .auth-header h2 { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-    
-    .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg); }
-    .tab-btn {
-      flex: 1; padding: 16px; background: none; border: none; font-size: 14px; font-weight: 600;
-      color: var(--text-light); cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent;
-    }
-    .tab-btn.active { color: var(--primary); background: var(--card-bg); border-bottom: 2px solid var(--primary); }
-    
-    .form-body { padding: 24px; }
-    .input-group { margin-bottom: 20px; }
-    .input-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-light); }
-    .input-group input {
-      width: 100%; padding: 14px 16px; background: var(--input-bg); color: var(--text);
-      border: 1px solid var(--input-border); border-radius: 12px; font-size: 15px; outline: none; transition: 0.2s;
-    }
-    .input-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15); }
-    
-    .btn {
-      display: inline-flex; justify-content: center; align-items: center; gap: 8px;
-      width: 100%; padding: 14px 20px; background: var(--primary); color: white;
-      border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s;
-    }
-    .btn:hover { background: var(--primary-hover); }
-    .btn:disabled { opacity: 0.7; cursor: not-allowed; }
-    .btn.secondary { background: var(--btn-secondary); color: var(--text); }
+      @keyframes spinIn {
+        0% {
+          transform: rotate(-90deg) scale(0.5);
+          opacity: 0;
+        }
+        100% {
+          transform: rotate(0) scale(1);
+          opacity: 1;
+        }
+      }
+      @keyframes dropIn {
+        0% {
+          transform: translateY(-10px) scale(0.5);
+          opacity: 0;
+        }
+        100% {
+          transform: translateY(0) scale(1);
+          opacity: 1;
+        }
+      }
+      [data-theme="dark"] {
+        /* Deep Modern Dark Theme */
+        --primary: #6366f1;
+        --primary-hover: #818cf8;
+        --bg: #0f172a;
+        --card-bg: #1e293b;
+        --text: #f8fafc;
+        --text-light: #94a3b8;
+        --border: #334155;
+        --input-bg: #0f172a;
+        --input-border: #475569;
+        --btn-secondary: #334155;
+        --btn-secondary-hover: #475569;
+        --success-bg: #064e3b;
+        --success-text: #34d399;
+        --success-border: #059669;
+      }
 
-    /* --- SEARCH SECTION (PROMINENT UI) --- */
-    .search-hero {
-      background: var(--card-bg); padding: 24px; border-radius: 20px;
-      box-shadow: var(--shadow-md); border: 1px solid var(--border); margin-bottom: 24px;
-    }
-    .search-hero h2 { font-size: 22px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
-    
-    .search-bar-modern {
-      display: flex; gap: 10px; flex-direction: column;
-    }
-    @media(min-width: 600px) { .search-bar-modern { flex-direction: row; } }
-    
-    .search-input-wrapper {
-      flex: 1; display: flex; align-items: center; background: var(--input-bg);
-      border: 2px solid var(--input-border); border-radius: 16px; padding: 4px 8px;
-      transition: 0.2s;
-    }
-    .search-input-wrapper:focus-within { border-color: var(--primary); background: var(--card-bg); }
-    .search-input-wrapper input {
-      flex: 1; border: none; background: transparent; padding: 12px 8px;
-      font-size: 16px; color: var(--text); outline: none;
-    }
-    .mic-btn {
-      background: #ef4444; color: white; border: none; width: 44px; height: 44px;
-      border-radius: 12px; display: flex; align-items: center; justify-content: center;
-      font-size: 20px; cursor: pointer; transition: 0.2s;
-    }
-    .mic-btn:hover { background: #dc2626; }
-    .search-action-btn { width: 100%; height: 56px; border-radius: 16px; font-size: 16px; }
-    @media(min-width: 600px) { .search-action-btn { width: 140px; } }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: "Inter", sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
 
-    /* --- TOOLBAR & RESULTS --- */
-    .results-toolbar {
-      display: flex; justify-content: space-between; align-items: center; 
-      margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
-    }
-    .toolbar-group { display: flex; gap: 8px; background: var(--card-bg); padding: 4px; border-radius: 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
-    .toolbar-btn {
-      padding: 8px 16px; font-size: 13px; font-weight: 600; border-radius: 8px;
-      background: transparent; color: var(--text-light); border: none; cursor: pointer; transition: 0.2s;
-    }
-    .toolbar-btn.active { background: var(--btn-secondary); color: var(--text); }
-    
-    .results-container-scroll {
-      max-height: 60vh; overflow-y: auto; border: 1px solid var(--border);
-      border-radius: 16px; background: var(--card-bg); box-shadow: var(--shadow-sm);
-    }
-    
-    .list-item { padding: 16px 20px; border-bottom: 1px solid var(--border); }
-    .list-item:last-child { border-bottom: none; }
-    .office-title { font-size: 16px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
-    .sub-office { font-size: 14px; color: var(--text-light); }
-    .list-empty { padding: 40px 20px; text-align: center; color: var(--text-light); font-size: 15px; }
-    
-    table.data-table { width: 100%; border-collapse: collapse; text-align: left; }
-    table.data-table th { background: var(--bg); padding: 14px 20px; font-size: 13px; font-weight: 600; color: var(--text-light); border-bottom: 1px solid var(--border); position: sticky; top: 0; }
-    table.data-table td { padding: 14px 20px; font-size: 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        transition: background-color 0.3s ease, color 0.3s ease;
+        overflow-x: hidden;
+      }
 
-    /* --- UPLOAD SECTION --- */
-    .upload-card {
-      background: var(--card-bg); padding: 32px 24px; border-radius: 20px;
-      box-shadow: var(--shadow-md); border: 1px solid var(--border); text-align: center;
-    }
-    .upload-card p { font-size: 14px; color: var(--text-light); margin: 12px 0 24px; line-height: 1.6; }
-    .file-upload-wrapper input[type="file"] {
-      padding: 12px; border: 2px dashed var(--input-border); border-radius: 16px;
-      background: var(--bg); color: var(--text); width: 100%; font-size: 14px; cursor: pointer; margin-bottom: 16px;
-    }
-    .file-upload-wrapper input[type="file"]::file-selector-button {
-      padding: 8px 16px; margin-right: 16px; background: var(--btn-secondary); color: var(--text);
-      border: 1px solid var(--border); border-radius: 8px; font-weight: 600; cursor: pointer;
-    }
+      /* --- APP BAR --- */
+      .app-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--card-bg);
+        padding: 16px 20px;
+        box-shadow: var(--shadow-sm);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      .app-bar h1 {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--primary);
+        letter-spacing: -0.5px;
+      }
+      .hamburger {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: var(--text);
+        cursor: pointer;
+        padding: 4px;
+      }
 
-    /* --- TOAST --- */
-    .toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: var(--text); color: var(--card-bg); padding: 14px 24px; border-radius: 30px;
-      font-size: 14px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 2000;
-      opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); pointer-events: none;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      /* --- SIDEBAR (DRAWER) --- */
+      .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+      .sidebar-overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+      }
 
-    .alert { padding: 12px 16px; border-radius: 12px; font-size: 13px; margin-bottom: 20px; display: none; }
-    .alert.error { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; display: block; }
-    .alert.success { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); display: block; }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: -300px;
+        width: 280px;
+        height: 100vh;
+        background: var(--card-bg);
+        z-index: 1000;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        flex-direction: column;
+      }
+      .sidebar.open {
+        left: 0;
+      }
 
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
-    
-    .hidden { display: none !important; }
-  </style>
-</head>
-<body>
+      .sidebar-header {
+        padding: 24px 20px;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+      }
+      .sidebar-avatar {
+        width: 48px;
+        height: 48px;
+        background: var(--primary);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      .sidebar-email {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        word-break: break-all;
+      }
+      .sidebar-stats {
+        display: flex;
+        gap: 12px;
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--text-light);
+      }
 
-  <!-- Toast Notification -->
-  <div id="toast" class="toast">Action Successful!</div>
+      .sidebar-nav {
+        padding: 16px 12px;
+        flex: 1;
+        overflow-y: auto;
+      }
+      .sidebar-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 14px 16px;
+        background: none;
+        border: none;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--text);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: 0.2s;
+        text-align: left;
+      }
+      .sidebar-menu-item:hover,
+      .sidebar-menu-item.active {
+        background: var(--btn-secondary);
+        color: var(--primary);
+      }
+      .sidebar-menu-item.danger {
+        color: #ef4444;
+        margin-top: auto;
+      }
+      .sidebar-menu-item.danger:hover {
+        background: #fee2e2;
+      }
 
-  <!-- AUTH VIEW (Shows only when logged out) -->
-  <div id="auth-view" class="container">
-    <div style="text-align: center; margin-top: 20px;">
-      <h1 style="font-size: 32px; font-weight: 800; color: var(--primary);">DakMitra</h1>
-      <p style="color: var(--text-light); margin-top: 8px;">The modern post office directory.</p>
+      /* --- MAIN CONTENT & VIEWS --- */
+      .container {
+        width: 100%;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .view-section {
+        display: none;
+        animation: fadeIn 0.3s ease;
+      }
+      .view-section.active {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* --- AUTH VIEW --- */
+      .auth-card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        margin-top: 40px;
+      }
+      .auth-header {
+        padding: 32px 24px 20px;
+        text-align: center;
+      }
+      .auth-header h2 {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 8px;
+      }
+
+      .tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg);
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 16px;
+        background: none;
+        border: none;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-light);
+        cursor: pointer;
+        transition: all 0.2s;
+        border-bottom: 2px solid transparent;
+      }
+      .tab-btn.active {
+        color: var(--primary);
+        background: var(--card-bg);
+        border-bottom: 2px solid var(--primary);
+      }
+
+      .form-body {
+        padding: 24px;
+      }
+      .input-group {
+        margin-bottom: 20px;
+      }
+      .input-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text-light);
+      }
+      .input-group input {
+        width: 100%;
+        padding: 14px 16px;
+        background: var(--input-bg);
+        color: var(--text);
+        border: 1px solid var(--input-border);
+        border-radius: 12px;
+        font-size: 15px;
+        outline: none;
+        transition: 0.2s;
+      }
+      .input-group input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+      }
+
+      .btn {
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 14px 20px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn:hover {
+        background: var(--primary-hover);
+      }
+      .btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+      .btn.secondary {
+        background: var(--btn-secondary);
+        color: var(--text);
+      }
+
+      /* --- SEARCH SECTION (PROMINENT UI) --- */
+      .search-hero {
+        background: var(--card-bg);
+        padding: 24px;
+        border-radius: 20px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border);
+        margin-bottom: 24px;
+      }
+      .search-hero h2 {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 16px;
+        color: var(--text);
+      }
+
+      .search-bar-modern {
+        display: flex;
+        gap: 10px;
+        flex-direction: column;
+      }
+      @media (min-width: 600px) {
+        .search-bar-modern {
+          flex-direction: row;
+        }
+      }
+
+      .search-input-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        background: var(--input-bg);
+        border: 2px solid var(--input-border);
+        border-radius: 16px;
+        padding: 4px 8px;
+        transition: 0.2s;
+      }
+      .search-input-wrapper:focus-within {
+        border-color: var(--primary);
+        background: var(--card-bg);
+      }
+      .search-input-wrapper input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: 12px 8px;
+        font-size: 16px;
+        color: var(--text);
+        outline: none;
+      }
+      .mic-btn {
+        background: #4447ef;
+        color: white;
+        border: none;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .mic-btn:hover {
+        background: #dc2626;
+      }
+      .search-action-btn {
+        width: 100%;
+        height: 56px;
+        border-radius: 16px;
+        font-size: 16px;
+      }
+      @media (min-width: 600px) {
+        .search-action-btn {
+          width: 140px;
+        }
+      }
+
+      /* --- TOOLBAR & RESULTS --- */
+      .results-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .toolbar-group {
+        display: flex;
+        gap: 8px;
+        background: var(--card-bg);
+        padding: 4px;
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border);
+      }
+      .toolbar-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text-light);
+        border: none;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .toolbar-btn.active {
+        background: var(--btn-secondary);
+        color: var(--text);
+      }
+
+      .results-container-scroll {
+        max-height: 60vh;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--card-bg);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .list-item {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .list-item:last-child {
+        border-bottom: none;
+      }
+      .office-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 4px;
+      }
+      .sub-office {
+        font-size: 14px;
+        color: var(--text-light);
+      }
+      .list-empty {
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--text-light);
+        font-size: 15px;
+      }
+
+      table.data-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+      }
+      table.data-table th {
+        background: var(--bg);
+        padding: 14px 20px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-light);
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+      }
+      table.data-table td {
+        padding: 14px 20px;
+        font-size: 14px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+      }
+
+      /* --- UPLOAD SECTION --- */
+      .upload-card {
+        background: var(--card-bg);
+        padding: 32px 24px;
+        border-radius: 20px;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--border);
+        text-align: center;
+      }
+      .upload-card p {
+        font-size: 14px;
+        color: var(--text-light);
+        margin: 12px 0 24px;
+        line-height: 1.6;
+      }
+      .file-upload-wrapper input[type="file"] {
+        padding: 12px;
+        border: 2px dashed var(--input-border);
+        border-radius: 16px;
+        background: var(--bg);
+        color: var(--text);
+        width: 100%;
+        font-size: 14px;
+        cursor: pointer;
+        margin-bottom: 16px;
+      }
+      .file-upload-wrapper input[type="file"]::file-selector-button {
+        padding: 8px 16px;
+        margin-right: 16px;
+        background: var(--btn-secondary);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      /* --- TOAST --- */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--text);
+        color: var(--card-bg);
+        padding: 14px 24px;
+        border-radius: 30px;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        z-index: 2000;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .alert {
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 13px;
+        margin-bottom: 20px;
+        display: none;
+      }
+      .alert.error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #f87171;
+        display: block;
+      }
+      .alert.success {
+        background: var(--success-bg);
+        color: var(--success-text);
+        border: 1px solid var(--success-border);
+        display: block;
+      }
+
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 10px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">Action Successful!</div>
+
+    <!-- AUTH VIEW (Shows only when logged out) -->
+    <div id="auth-view" class="container">
+      <div style="text-align: center; margin-top: 20px">
+        <h1 style="font-size: 32px; font-weight: 800; color: var(--primary)">
+          DakMitra
+        </h1>
+        <p style="color: var(--text-light); margin-top: 8px">
+          The modern post office directory.
+        </p>
+      </div>
+      <div class="auth-card">
+        <div class="tabs">
+          <button
+            type="button"
+            class="tab-btn active"
+            id="tab-signin"
+            onclick="switchTab('signin')"
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            class="tab-btn"
+            id="tab-signup"
+            onclick="switchTab('signup')"
+          >
+            Sign Up
+          </button>
+        </div>
+        <div class="form-body">
+          <div id="alert-box" class="alert"></div>
+          <div class="input-group">
+            <label>Email Address</label>
+            <input type="email" id="email" placeholder="name@example.com" />
+          </div>
+          <div class="input-group">
+            <label>Password</label>
+            <input
+              type="password"
+              id="password"
+              placeholder="At least 6 characters"
+            />
+          </div>
+          <button
+            type="button"
+            id="auth-btn"
+            class="btn"
+            onclick="handleAuth()"
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
     </div>
-    <div class="auth-card">
-      <div class="tabs">
-        <button type="button" class="tab-btn active" id="tab-signin" onclick="switchTab('signin')">Sign In</button>
-        <button type="button" class="tab-btn" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
-      </div>
-      <div class="form-body">
-        <div id="alert-box" class="alert"></div>
-        <div class="input-group">
-          <label>Email Address</label>
-          <input type="email" id="email" placeholder="name@example.com" />
-        </div>
-        <div class="input-group">
-          <label>Password</label>
-          <input type="password" id="password" placeholder="At least 6 characters" />
-        </div>
-        <button type="button" id="auth-btn" class="btn" onclick="handleAuth()">Sign In</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- DASHBOARD APP (Shows only when logged in) -->
-  <div id="dashboard-view" class="hidden">
-    
-    <!-- Top App Bar -->
-    <header class="app-bar">
-      <button class="hamburger" onclick="toggleSidebar()">☰</button>
-      <h1>DakMitra</h1>
-      <div style="width: 24px;"></div> <!-- Spacer for flex centering -->
-    </header>
+    <!-- DASHBOARD APP (Shows only when logged in) -->
+    <div id="dashboard-view" class="hidden">
+      <!-- Top App Bar -->
+      <header class="app-bar">
+        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <h1>DakMitra</h1>
 
-    <!-- Sidebar Drawer -->
-    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-avatar" id="avatar-letter">U</div>
-        <div class="sidebar-email" id="user-email-display">user@example.com</div>
-        <div class="sidebar-stats">
-          <span><strong id="stat-branches">0</strong> Branches</span>
-          <span><strong id="stat-suboffices">0</strong> Sub Offices</span>
+        <!-- New Animated Theme Toggle -->
+        <button
+          class="theme-toggle-btn"
+          onclick="toggleTheme()"
+          title="Toggle Theme"
+        >
+          <!-- Moon Icon -->
+          <svg
+            class="icon-moon"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
+            ></path>
+          </svg>
+          <!-- Sun Icon -->
+          <svg
+            class="icon-sun"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+            ></path>
+          </svg>
+        </button>
+      </header>
+
+      <!-- Sidebar Drawer -->
+      <div
+        id="sidebar-overlay"
+        class="sidebar-overlay"
+        onclick="toggleSidebar()"
+      ></div>
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-avatar" id="avatar-letter">U</div>
+          <div class="sidebar-email" id="user-email-display">
+            user@example.com
+          </div>
+          <div class="sidebar-stats">
+            <span><strong id="stat-branches">0</strong> Branches</span>
+            <span><strong id="stat-suboffices">0</strong> Sub Offices</span>
+          </div>
         </div>
-      </div>
-      <nav class="sidebar-nav">
-        <button class="sidebar-menu-item active" id="nav-search" onclick="switchDashboardView('search')">
-          🔍 Search Directory
-        </button>
-        <button class="sidebar-menu-item" id="nav-upload" onclick="switchDashboardView('upload')">
-          📤 Upload Data
-        </button>
-        <hr style="border-top: 1px solid var(--border); margin: 16px 0;">
-        <div style="padding: 0 16px; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--text-light);">THEME PREFERENCE</div>
-        <select id="theme-selector" onchange="changeTheme(this.value)" style="width: 88%; margin-left: 16px; padding: 10px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); color: var(--text); outline: none;">
-          <option value="system">System Theme</option>
-          <option value="light">Light Mode</option>
-          <option value="dark">Dark Mode</option>
-        </select>
-        
-        <button class="sidebar-menu-item hidden" id="install-app-btn" style="margin-top: 24px; background: var(--success-bg); color: var(--success-text);">
-          📱 Install DakMitra App
-        </button>
-        <button class="sidebar-menu-item danger" style="margin-top: 24px;" onclick="signOutApp()">
-          🚪 Sign Out
-        </button>
-      </nav>
-    </aside>
+        <nav class="sidebar-nav">
+          <button
+            class="sidebar-menu-item active"
+            id="nav-search"
+            onclick="switchDashboardView('search')"
+          >
+            🔍 Search Directory
+          </button>
+          <button
+            class="sidebar-menu-item"
+            id="nav-upload"
+            onclick="switchDashboardView('upload')"
+          >
+            📤 Upload Data
+          </button>
+          <hr style="border-top: 1px solid var(--border); margin: 16px 0" />
 
-    <!-- Main Dashboard Container -->
-    <main class="container">
-      
-      <!-- SEARCH VIEW (Default) -->
-      <section id="view-search" class="view-section active">
-        <div class="search-hero">
-          <h2>Find a Post Office</h2>
-          <div class="search-bar-modern">
-            <div class="search-input-wrapper">
-              <input type="text" id="search-input" placeholder="Type branch or sub office name..." autocomplete="off">
-              <button type="button" class="mic-btn" id="mic-btn" onclick="startVoiceSearch()" title="Voice Search">🎤</button>
+          <button
+            class="sidebar-menu-item hidden"
+            id="install-app-btn"
+            style="
+              margin-top: 24px;
+              background: var(--success-bg);
+              color: var(--success-text);
+            "
+          >
+            📱 Install DakMitra App
+          </button>
+          <button
+            class="sidebar-menu-item danger"
+            style="margin-top: 24px"
+            onclick="signOutApp()"
+          >
+            🚪 Sign Out
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Main Dashboard Container -->
+      <main class="container">
+        <!-- SEARCH VIEW (Default) -->
+        <section id="view-search" class="view-section active">
+          <div class="search-hero">
+            <h2>Search Address</h2>
+            <div class="search-bar-modern">
+              <div class="search-input-wrapper">
+                <input
+                  type="text"
+                  id="search-input"
+                  placeholder="Type address to search..."
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  class="mic-btn"
+                  id="mic-btn"
+                  onclick="startVoiceSearch()"
+                  title="Voice Search"
+                >
+                  🎤
+                </button>
+              </div>
+              <button
+                type="button"
+                class="btn search-action-btn"
+                onclick="triggerSearch()"
+              >
+                Search
+              </button>
             </div>
-            <button type="button" class="btn search-action-btn" onclick="triggerSearch()">Search</button>
           </div>
-        </div>
 
-        <div class="results-toolbar">
-          <div class="toolbar-group">
-            <button type="button" class="toolbar-btn active" id="view-list-btn" onclick="setViewMode('list')">List</button>
-            <button type="button" class="toolbar-btn" id="view-table-btn" onclick="setViewMode('table')">Table</button>
+          <div class="results-toolbar">
+            <div class="toolbar-group">
+              <button
+                type="button"
+                class="toolbar-btn active"
+                id="view-list-btn"
+                onclick="setViewMode('list')"
+              >
+                List
+              </button>
+              <button
+                type="button"
+                class="toolbar-btn"
+                id="view-table-btn"
+                onclick="setViewMode('table')"
+              >
+                Table
+              </button>
+            </div>
+            <div class="toolbar-group">
+              <button type="button" class="toolbar-btn" onclick="copyResults()">
+                📋 Copy
+              </button>
+              <button
+                type="button"
+                class="toolbar-btn"
+                style="color: var(--success-text)"
+                onclick="exportCSV()"
+              >
+                📥 CSV
+              </button>
+            </div>
           </div>
-          <div class="toolbar-group">
-            <button type="button" class="toolbar-btn" onclick="copyResults()">📋 Copy</button>
-            <button type="button" class="toolbar-btn" style="color: var(--success-text);" onclick="exportCSV()">📥 CSV</button>
+
+          <div class="results-container-scroll" id="results-display-area">
+            <ul class="list-container">
+              <li class="list-empty">Loading directory data...</li>
+            </ul>
           </div>
-        </div>
+        </section>
 
-        <div class="results-container-scroll" id="results-display-area">
-          <ul class="list-container"><li class="list-empty">Loading directory data...</li></ul>
-        </div>
-      </section>
-
-      <!-- UPLOAD VIEW (Hidden by default) -->
-      <section id="view-upload" class="view-section">
-        <div class="upload-card">
-          <h2 style="font-size: 22px; font-weight: 700;">Database Management</h2>
-          <p>Update the global directory. Select an Excel file (.xlsx, .xls).<br>Ensure the columns are exactly named <strong>Branch Office</strong> and <strong>Sub Office</strong>.</p>
-          <div class="file-upload-wrapper">
-            <input type="file" id="excel-file" accept=".xlsx, .xls" />
-            <button type="button" class="btn" id="upload-excel-btn" onclick="uploadExcel()">Upload to Database</button>
+        <!-- UPLOAD VIEW (Hidden by default) -->
+        <section id="view-upload" class="view-section">
+          <div class="upload-card">
+            <h2 style="font-size: 22px; font-weight: 700">
+              Database Management
+            </h2>
+            <p>
+              Update the global directory. Select an Excel file (.xlsx,
+              .xls).<br />Ensure the columns are exactly named
+              <strong>Branch Office</strong> and <strong>Sub Office</strong>.
+            </p>
+            <div class="file-upload-wrapper">
+              <input type="file" id="excel-file" accept=".xlsx, .xls" />
+              <button
+                type="button"
+                class="btn"
+                id="upload-excel-btn"
+                onclick="uploadExcel()"
+              >
+                Upload to Database
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
+    </div>
 
-    </main>
-  </div>
+    <script>
+      // --- SUPABASE & STATE ---
+      const SUPABASE_URL = "https://nvviolzdujgwkmnrnaww.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "sb_publishable_vwlbAzFCF0zMMqeiPWyu7Q_ruSZ1WwM";
+      const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+      );
 
-  <script>
-    // --- SUPABASE & STATE ---
-    const SUPABASE_URL = "https://nvviolzdujgwkmnrnaww.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_vwlbAzFCF0zMMqeiPWyu7Q_ruSZ1WwM";
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      let currentMode = "signin";
+      let cachedPostOffices = [];
+      let currentFilteredData = [];
+      let fuse;
+      let viewMode = "list";
 
-    let currentMode = "signin";
-    let cachedPostOffices = [];
-    let currentFilteredData = []; 
-    let fuse; 
-    let viewMode = 'list';
-
-    // --- UI CONTROLS (Sidebar & Views) ---
-    function toggleSidebar() {
-      document.getElementById('sidebar').classList.toggle('open');
-      document.getElementById('sidebar-overlay').classList.toggle('show');
-    }
-
-    function switchDashboardView(viewId) {
-      document.getElementById('view-search').classList.remove('active');
-      document.getElementById('view-upload').classList.remove('active');
-      document.getElementById('nav-search').classList.remove('active');
-      document.getElementById('nav-upload').classList.remove('active');
-      
-      document.getElementById('view-' + viewId).classList.add('active');
-      document.getElementById('nav-' + viewId).classList.add('active');
-      toggleSidebar(); // Close sidebar after clicking
-    }
-
-    function showToast(message) {
-      const toastEl = document.getElementById('toast');
-      toastEl.textContent = message;
-      toastEl.classList.add('show');
-      setTimeout(() => toastEl.classList.remove('show'), 3000);
-    }
-
-    // --- THEME LOGIC ---
-    function applyTheme(theme) {
-      if (theme === 'system') {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-      } else {
-        document.documentElement.setAttribute('data-theme', theme);
+      // --- UI CONTROLS (Sidebar & Views) ---
+      function toggleSidebar() {
+        document.getElementById("sidebar").classList.toggle("open");
+        document.getElementById("sidebar-overlay").classList.toggle("show");
       }
-      localStorage.setItem('app-theme', theme);
-      document.getElementById('theme-selector').value = theme;
-    }
-    function changeTheme(theme) { applyTheme(theme); }
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      if (localStorage.getItem('app-theme') === 'system') applyTheme('system');
-    });
-    applyTheme(localStorage.getItem('app-theme') || 'system');
 
-    // --- PWA INSTALLATION ---
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed: ', err));
+      function switchDashboardView(viewId) {
+        document.getElementById("view-search").classList.remove("active");
+        document.getElementById("view-upload").classList.remove("active");
+        document.getElementById("nav-search").classList.remove("active");
+        document.getElementById("nav-upload").classList.remove("active");
+
+        document.getElementById("view-" + viewId).classList.add("active");
+        document.getElementById("nav-" + viewId).classList.add("active");
+
+        // Explicitly close the sidebar instead of toggling it
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("show");
+      }
+
+      function showToast(message) {
+        const toastEl = document.getElementById("toast");
+        toastEl.textContent = message;
+        toastEl.classList.add("show");
+        setTimeout(() => toastEl.classList.remove("show"), 3000);
+      }
+
+      // --- THEME LOGIC ---
+      function applyTheme(theme) {
+        if (theme === "system") {
+          const prefersDark = window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches;
+          document.documentElement.setAttribute(
+            "data-theme",
+            prefersDark ? "dark" : "light"
+          );
+        } else {
+          document.documentElement.setAttribute("data-theme", theme);
+        }
+        localStorage.setItem("app-theme", theme);
+      }
+
+      function toggleTheme() {
+        const current = document.documentElement.getAttribute("data-theme");
+        const newTheme = current === "dark" ? "light" : "dark";
+        applyTheme(newTheme);
+      }
+
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", () => {
+          if (localStorage.getItem("app-theme") === "system")
+            applyTheme("system");
+        });
+
+      // On load, apply saved theme or fallback to light
+      const savedTheme = localStorage.getItem("app-theme") || "light";
+      applyTheme(savedTheme === "system" ? "light" : savedTheme);
+
+      // --- PWA INSTALLATION ---
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("./sw.js")
+            .catch((err) => console.log("SW failed: ", err));
+        });
+      }
+      let deferredPrompt;
+      const installBtn = document.getElementById("install-app-btn");
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.classList.remove("hidden");
       });
-    }
-    let deferredPrompt;
-    const installBtn = document.getElementById('install-app-btn');
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault(); deferredPrompt = e; installBtn.classList.remove('hidden'); 
-    });
-    installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') installBtn.classList.add('hidden');
-        deferredPrompt = null;
+      installBtn.addEventListener("click", async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === "accepted") installBtn.classList.add("hidden");
+          deferredPrompt = null;
+        }
+      });
+
+      // --- DATA FETCHING & STATS ---
+      async function fetchAllPostOffices() {
+        const { data, error } = await supabaseClient
+          .from("post_offices")
+          .select("*");
+        if (error) {
+          console.error("Error fetching post offices:", error);
+          document.getElementById(
+            "results-display-area"
+          ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Error loading data from server.</li></ul>`;
+          return;
+        }
+        cachedPostOffices = data || [];
+        currentFilteredData = cachedPostOffices;
+
+        const uniqueBranches = new Set(
+          cachedPostOffices.map((o) => o.branch_office)
+        ).size;
+        document.getElementById("stat-branches").textContent = uniqueBranches;
+        document.getElementById("stat-suboffices").textContent =
+          cachedPostOffices.length;
+
+        fuse = new Fuse(cachedPostOffices, {
+          keys: ["branch_office", "sub_office"],
+          threshold: 0.3,
+          ignoreLocation: true,
+        });
+        renderResults();
       }
-    });
 
-    // --- DATA FETCHING & STATS ---
-    async function fetchAllPostOffices() {
-      const { data, error } = await supabaseClient.from('post_offices').select('*');
-      if (error) {
-        console.error('Error fetching post offices:', error);
-        document.getElementById('results-display-area').innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Error loading data from server.</li></ul>`;
-        return;
+      // --- VIEW & RENDER LOGIC ---
+      function setViewMode(mode) {
+        viewMode = mode;
+        document
+          .getElementById("view-list-btn")
+          .classList.toggle("active", mode === "list");
+        document
+          .getElementById("view-table-btn")
+          .classList.toggle("active", mode === "table");
+        renderResults();
       }
-      cachedPostOffices = data || [];
-      currentFilteredData = cachedPostOffices; 
-      
-      const uniqueBranches = new Set(cachedPostOffices.map(o => o.branch_office)).size;
-      document.getElementById('stat-branches').textContent = uniqueBranches;
-      document.getElementById('stat-suboffices').textContent = cachedPostOffices.length;
 
-      fuse = new Fuse(cachedPostOffices, { keys: ['branch_office', 'sub_office'], threshold: 0.3, ignoreLocation: true });
-      renderResults();
-    }
-
-    // --- VIEW & RENDER LOGIC ---
-    function setViewMode(mode) {
-      viewMode = mode;
-      document.getElementById('view-list-btn').classList.toggle('active', mode === 'list');
-      document.getElementById('view-table-btn').classList.toggle('active', mode === 'table');
-      renderResults();
-    }
-
-    function triggerSearch() {
-      const searchInput = document.getElementById('search-input').value.trim();
-      if (!searchInput) { 
-          currentFilteredData = cachedPostOffices; 
-      } else {
+      function triggerSearch() {
+        const searchInput = document
+          .getElementById("search-input")
+          .value.trim();
+        if (!searchInput) {
+          currentFilteredData = cachedPostOffices;
+        } else {
           const results = fuse.search(searchInput);
-          currentFilteredData = results.map(result => result.item);
+          currentFilteredData = results.map((result) => result.item);
+        }
+        renderResults();
       }
-      renderResults();
-    }
 
-    function renderResults() {
-      const displayArea = document.getElementById('results-display-area');
-      
-      if (currentFilteredData.length === 0) {
+      function renderResults() {
+        const displayArea = document.getElementById("results-display-area");
+
+        if (currentFilteredData.length === 0) {
           displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No post offices found matching your search.</li></ul>`;
           return;
-      }
+        }
 
-      if (viewMode === 'list') {
+        if (viewMode === "list") {
           let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
-          currentFilteredData.forEach(office => {
-              html += `
+          currentFilteredData.forEach((office) => {
+            html += `
               <li class="list-item">
                   <div class="office-title">${office.branch_office}</div>
                   <div class="sub-office">Sub: ${office.sub_office}</div>
@@ -500,197 +1097,261 @@
           });
           html += `</ul>`;
           displayArea.innerHTML = html;
-      } else {
+        } else {
           let html = `<table class="data-table">
                         <thead><tr><th>Branch Office</th><th>Sub Office</th></tr></thead>
                         <tbody>`;
-          currentFilteredData.forEach(office => {
-              html += `<tr><td>${office.branch_office}</td><td>${office.sub_office}</td></tr>`;
+          currentFilteredData.forEach((office) => {
+            html += `<tr><td>${office.branch_office}</td><td>${office.sub_office}</td></tr>`;
           });
           html += `</tbody></table>`;
           displayArea.innerHTML = html;
+        }
       }
-    }
 
-    function copyResults() {
-      if (!currentFilteredData.length) return showToast("No data to copy!");
-      const text = currentFilteredData.map(r => `Branch: ${r.branch_office} | Sub: ${r.sub_office}`).join('\n');
-      navigator.clipboard.writeText(text).then(() => showToast("📋 List copied to clipboard!"));
-    }
+      function copyResults() {
+        if (!currentFilteredData.length) return showToast("No data to copy!");
+        const text = currentFilteredData
+          .map((r) => `Branch: ${r.branch_office} | Sub: ${r.sub_office}`)
+          .join("\n");
+        navigator.clipboard
+          .writeText(text)
+          .then(() => showToast("📋 List copied to clipboard!"));
+      }
 
-    function exportCSV() {
-      if (!currentFilteredData.length) return showToast("No data to export!");
-      let csv = "Branch Office,Sub Office\n";
-      currentFilteredData.forEach(row => {
-        csv += `"${row.branch_office || ''}","${row.sub_office || ''}"\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'DakMitra_Export.csv';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      showToast("📥 CSV Exported successfully!");
-    }
+      function exportCSV() {
+        if (!currentFilteredData.length) return showToast("No data to export!");
+        let csv = "Branch Office,Sub Office\n";
+        currentFilteredData.forEach((row) => {
+          csv += `"${row.branch_office || ""}","${row.sub_office || ""}"\n`;
+        });
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "DakMitra_Export.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast("📥 CSV Exported successfully!");
+      }
 
-    // --- EXCEL UPLOAD ---
-    async function uploadExcel() {
-      const fileInput = document.getElementById("excel-file");
-      const file = fileInput.files[0];
-      const uploadBtn = document.getElementById("upload-excel-btn");
+      // --- EXCEL UPLOAD ---
+      async function uploadExcel() {
+        const fileInput = document.getElementById("excel-file");
+        const file = fileInput.files[0];
+        const uploadBtn = document.getElementById("upload-excel-btn");
 
-      if (!file) { alert("Please select an Excel file first."); return; }
+        if (!file) {
+          alert("Please select an Excel file first.");
+          return;
+        }
 
-      const originalText = uploadBtn.textContent;
-      uploadBtn.textContent = "Uploading..."; uploadBtn.disabled = true;
+        const originalText = uploadBtn.textContent;
+        uploadBtn.textContent = "Uploading...";
+        uploadBtn.disabled = true;
 
-      const reader = new FileReader();
-      reader.onload = async function (e) {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: "array" });
-          const firstSheetName = workbook.SheetNames[0];
-          const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName]);
+        const reader = new FileReader();
+        reader.onload = async function (e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: "array" });
+            const firstSheetName = workbook.SheetNames[0];
+            const jsonData = XLSX.utils.sheet_to_json(
+              workbook.Sheets[firstSheetName]
+            );
 
-          if (jsonData.length === 0) { 
-              alert("The Excel file is empty."); 
-              uploadBtn.textContent = originalText; uploadBtn.disabled = false; return; 
-          }
+            if (jsonData.length === 0) {
+              alert("The Excel file is empty.");
+              uploadBtn.textContent = originalText;
+              uploadBtn.disabled = false;
+              return;
+            }
 
-          const { data: { session } } = await supabaseClient.auth.getSession();
-          const formattedData = jsonData.map((row) => ({
-            branch_office: row["Branch Office"], sub_office: row["Sub Office"], user_id: session.user.id,
-          }));
+            const {
+              data: { session },
+            } = await supabaseClient.auth.getSession();
+            const formattedData = jsonData.map((row) => ({
+              branch_office: row["Branch Office"],
+              sub_office: row["Sub Office"],
+              user_id: session.user.id,
+            }));
 
-          const { error } = await supabaseClient.from("post_offices").insert(formattedData);
+            const { error } = await supabaseClient
+              .from("post_offices")
+              .insert(formattedData);
 
-          if (error) { 
-              alert("Upload Error: " + error.message); 
-              uploadBtn.textContent = originalText; uploadBtn.disabled = false;
-          } else {
-            uploadBtn.textContent = "✅ Upload Successful!";
-            uploadBtn.style.backgroundColor = "#10b981"; 
-            setTimeout(() => {
+            if (error) {
+              alert("Upload Error: " + error.message);
+              uploadBtn.textContent = originalText;
+              uploadBtn.disabled = false;
+            } else {
+              uploadBtn.textContent = "✅ Upload Successful!";
+              uploadBtn.style.backgroundColor = "#10b981";
+              setTimeout(() => {
                 uploadBtn.textContent = originalText;
                 uploadBtn.style.backgroundColor = "var(--primary)";
                 uploadBtn.disabled = false;
-            }, 3000);
-            fileInput.value = ""; 
-            fetchAllPostOffices(); 
+              }, 3000);
+              fileInput.value = "";
+              fetchAllPostOffices();
+            }
+          } catch (err) {
+            console.error(err);
+            alert(
+              'Error reading Excel file. Ensure headers are exactly "Branch Office" and "Sub Office".'
+            );
+            uploadBtn.textContent = originalText;
+            uploadBtn.disabled = false;
           }
-        } catch (err) {
-          console.error(err);
-          alert('Error reading Excel file. Ensure headers are exactly "Branch Office" and "Sub Office".');
-          uploadBtn.textContent = originalText; uploadBtn.disabled = false;
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    }
+        };
+        reader.readAsArrayBuffer(file);
+      }
 
-    // --- VOICE SEARCH ---
-    function startVoiceSearch() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return alert("Sorry, your browser doesn't support voice search.");
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'en-IN'; recognition.interimResults = false; recognition.maxAlternatives = 1;
+      // --- VOICE SEARCH ---
+      function startVoiceSearch() {
+        const SpeechRecognition =
+          window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition)
+          return alert("Sorry, your browser doesn't support voice search.");
+        const recognition = new SpeechRecognition();
+        recognition.lang = "en-IN";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
 
-      const micBtn = document.getElementById('mic-btn');
-      const searchInput = document.getElementById('search-input');
+        const micBtn = document.getElementById("mic-btn");
+        const searchInput = document.getElementById("search-input");
 
-      recognition.onstart = function() {
-          micBtn.textContent = '🔴'; 
-          searchInput.placeholder = "Listening..."; searchInput.value = "";
-      };
-      recognition.onresult = function(event) {
-          searchInput.value = event.results[0][0].transcript.replace(/\.$/, ''); 
-          triggerSearch(); 
-      };
-      recognition.onerror = function(event) {
-          if (event.error === 'not-allowed') alert("Microphone access was denied.");
-      };
-      recognition.onend = function() {
-          micBtn.textContent = '🎤'; 
+        recognition.onstart = function () {
+          micBtn.textContent = "🔴";
+          searchInput.placeholder = "Listening...";
+          searchInput.value = "";
+        };
+        recognition.onresult = function (event) {
+          searchInput.value = event.results[0][0].transcript.replace(/\.$/, "");
+          triggerSearch();
+        };
+        recognition.onerror = function (event) {
+          if (event.error === "not-allowed")
+            alert("Microphone access was denied.");
+        };
+        recognition.onend = function () {
+          micBtn.textContent = "🎤";
           searchInput.placeholder = "Type branch or sub office name...";
-      };
-      recognition.start();
-    }
-
-    // --- AUTHENTICATION ---
-    function switchTab(mode) {
-      currentMode = mode;
-      const signinTab = document.getElementById("tab-signin");
-      const signupTab = document.getElementById("tab-signup");
-      const authBtn = document.getElementById("auth-btn");
-      hideAlert();
-      if (mode === "signin") {
-        signinTab.classList.add("active"); signupTab.classList.remove("active"); authBtn.textContent = "Sign In";
-      } else {
-        signupTab.classList.add("active"); signinTab.classList.remove("active"); authBtn.textContent = "Create Account";
+        };
+        recognition.start();
       }
-    }
 
-    function showAlert(message, type = "error") {
-      const box = document.getElementById("alert-box");
-      box.className = `alert ${type}`; box.textContent = message;
-    }
-    function hideAlert() {
-      const box = document.getElementById("alert-box");
-      box.className = "alert"; box.textContent = "";
-    }
-
-    async function handleAuth() {
-      hideAlert();
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value.trim();
-      if (!email || !password) return showAlert("Please fill in all fields.");
-
-      if (currentMode === "signup") {
-        const { error } = await supabaseClient.auth.signUp({ email, password });
-        if (error) showAlert(error.message); 
-        else { showAlert("Account created successfully! You can now sign in.", "success"); switchTab("signin"); }
-      } else {
-        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) showAlert(error.message); else checkUserSession();
+      // --- AUTHENTICATION ---
+      function switchTab(mode) {
+        currentMode = mode;
+        const signinTab = document.getElementById("tab-signin");
+        const signupTab = document.getElementById("tab-signup");
+        const authBtn = document.getElementById("auth-btn");
+        hideAlert();
+        if (mode === "signin") {
+          signinTab.classList.add("active");
+          signupTab.classList.remove("active");
+          authBtn.textContent = "Sign In";
+        } else {
+          signupTab.classList.add("active");
+          signinTab.classList.remove("active");
+          authBtn.textContent = "Create Account";
+        }
       }
-    }
 
-    async function signOutApp() {
-      await supabaseClient.auth.signOut(); 
-      document.getElementById('sidebar').classList.remove('open');
-      document.getElementById('sidebar-overlay').classList.remove('show');
+      function showAlert(message, type = "error") {
+        const box = document.getElementById("alert-box");
+        box.className = `alert ${type}`;
+        box.textContent = message;
+      }
+      function hideAlert() {
+        const box = document.getElementById("alert-box");
+        box.className = "alert";
+        box.textContent = "";
+      }
+
+      async function handleAuth() {
+        hideAlert();
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value.trim();
+        if (!email || !password) return showAlert("Please fill in all fields.");
+
+        if (currentMode === "signup") {
+          const { error } = await supabaseClient.auth.signUp({
+            email,
+            password,
+          });
+          if (error) showAlert(error.message);
+          else {
+            showAlert(
+              "Account created successfully! You can now sign in.",
+              "success"
+            );
+            switchTab("signin");
+          }
+        } else {
+          const { error } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (error) showAlert(error.message);
+          else checkUserSession();
+        }
+      }
+
+      async function signOutApp() {
+        await supabaseClient.auth.signOut();
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("show");
+        checkUserSession();
+      }
+
+      async function checkUserSession() {
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+
+        const authView = document.getElementById("auth-view");
+        const dashboardView = document.getElementById("dashboard-view");
+
+        if (session) {
+          authView.classList.add("hidden");
+          dashboardView.classList.remove("hidden");
+
+          const userEmail = session.user.email;
+          document.getElementById("user-email-display").textContent = userEmail;
+          document.getElementById("avatar-letter").textContent = userEmail
+            .charAt(0)
+            .toUpperCase();
+
+          switchDashboardView("search"); // Set default view
+          fetchAllPostOffices();
+        } else {
+          authView.classList.remove("hidden");
+          dashboardView.classList.add("hidden");
+          cachedPostOffices = [];
+          currentFilteredData = [];
+        }
+      }
+
+      // --- EVENT LISTENERS ---
+      document
+        .getElementById("search-input")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            triggerSearch();
+          }
+        });
+      document
+        .getElementById("search-input")
+        .addEventListener("input", function () {
+          triggerSearch();
+        });
+
+      // BOOTSTRAP APP
       checkUserSession();
-    }
-
-    async function checkUserSession() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      
-      const authView = document.getElementById("auth-view");
-      const dashboardView = document.getElementById("dashboard-view");
-      
-      if (session) {
-        authView.classList.add("hidden"); 
-        dashboardView.classList.remove("hidden");
-        
-        const userEmail = session.user.email;
-        document.getElementById("user-email-display").textContent = userEmail;
-        document.getElementById("avatar-letter").textContent = userEmail.charAt(0).toUpperCase();
-        
-        switchDashboardView('search'); // Set default view
-        fetchAllPostOffices();
-      } else {
-        authView.classList.remove("hidden"); 
-        dashboardView.classList.add("hidden");
-        cachedPostOffices = []; currentFilteredData = [];
-      }
-    }
-
-    // --- EVENT LISTENERS ---
-    document.getElementById('search-input').addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') { e.preventDefault(); triggerSearch(); }
-    });
-    document.getElementById('search-input').addEventListener('input', function() { triggerSearch(); });
-
-    // BOOTSTRAP APP
-    checkUserSession();
-  </script>
-</body>
+    </script>
+  </body>
 </html>
