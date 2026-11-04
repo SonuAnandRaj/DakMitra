@@ -1,6 +1,6 @@
 {
-  "name": "Post Office Directory",
-  "short_name": "PO Directory",
+  "name": "DakMitra",
+  "short_name": "DakMitra",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f1f5f9",
