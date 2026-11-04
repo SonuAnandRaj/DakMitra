@@ -648,6 +648,27 @@
         border: 1px solid var(--success-border);
         display: block;
       }
+      /* --- FOOTER --- */
+      .app-footer {
+        margin-top: auto; /* Automatically pushes footer to the bottom of the screen */
+        padding: 32px 16px 16px;
+        text-align: center;
+        border-top: 1px solid var(--border);
+      }
+      .app-footer p {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .app-footer .footer-subtext {
+        font-size: 12px;
+        color: var(--text-light);
+        margin-top: 6px;
+        font-weight: 500;
+      }
+      .app-footer strong {
+        color: var(--primary);
+      }
 
       ::-webkit-scrollbar {
         width: 6px;
@@ -973,6 +994,11 @@
             </div>
           </div>
         </section>
+        <!-- FOOTER -->
+        <footer class="app-footer">
+          <p>Developed with <span style="color: #ef4444;">♥</span> by <strong>Sonu Anand Raj</strong></p>
+          <p class="footer-subtext">DakMitra Directory PWA &copy; 2026</p>
+        </footer>
       </main>
     </div>
 
