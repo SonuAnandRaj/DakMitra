@@ -1235,9 +1235,9 @@
             applyTheme("system");
         });
 
-      // On load, apply saved theme or fallback to light
-      const savedTheme = localStorage.getItem("app-theme") || "light";
-      applyTheme(savedTheme === "system" ? "light" : savedTheme);
+      // On load, apply saved theme or fallback to system
+      const savedTheme = localStorage.getItem("app-theme") || "system";
+      applyTheme(savedTheme);
 
       // --- PWA INSTALLATION ---
       if ("serviceWorker" in navigator) {
