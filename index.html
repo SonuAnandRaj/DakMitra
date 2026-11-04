@@ -661,9 +661,62 @@
       .hidden {
         display: none !important;
       }
+      /* --- SPLASH SCREEN --- */
+      .splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: var(--bg);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.5s ease, visibility 0.5s ease;
+      }
+      .splash-screen.hidden-splash {
+        opacity: 0;
+        visibility: hidden;
+      }
+      .splash-content {
+        text-align: center;
+      }
+      .splash-title {
+        font-size: 42px;
+        font-weight: 800;
+        color: var(--primary);
+        letter-spacing: -1px;
+        margin-bottom: 24px;
+        animation: pulseText 1.2s infinite alternate ease-in-out;
+      }
+      .splash-spinner {
+        width: 44px;
+        height: 44px;
+        margin: 0 auto;
+        border: 4px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes pulseText {
+        0% { transform: scale(1); opacity: 0.8; }
+        100% { transform: scale(1.05); opacity: 1; }
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
     </style>
   </head>
   <body>
+    <!-- SPLASH SCREEN -->
+    <div id="splash-screen" class="splash-screen">
+      <div class="splash-content">
+        <h1 class="splash-title">DakMitra</h1>
+        <div class="splash-spinner"></div>
+      </div>
+    </div>
     <!-- Toast Notification -->
     <div id="toast" class="toast">Action Successful!</div>
 
@@ -1277,13 +1330,22 @@
         const password = document.getElementById("password").value.trim();
         if (!email || !password) return showAlert("Please fill in all fields.");
 
+        // Bring the splash screen back up while authenticating
+        const splashScreen = document.getElementById("splash-screen");
+        splashScreen.classList.remove("hidden-splash");
+
         if (currentMode === "signup") {
           const { error } = await supabaseClient.auth.signUp({
             email,
             password,
           });
-          if (error) showAlert(error.message);
-          else {
+          if (error) {
+            // Hide splash and show error
+            splashScreen.classList.add("hidden-splash");
+            showAlert(error.message);
+          } else {
+            // Hide splash and show success message
+            splashScreen.classList.add("hidden-splash");
             showAlert(
               "Account created successfully! You can now sign in.",
               "success"
@@ -1295,8 +1357,15 @@
             email,
             password,
           });
-          if (error) showAlert(error.message);
-          else checkUserSession();
+          if (error) {
+            // Hide splash and show error
+            splashScreen.classList.add("hidden-splash");
+            showAlert(error.message);
+          } else {
+            // On success, this moves to checkUserSession() 
+            // which will load the data and smoothly hide the splash screen!
+            checkUserSession();
+          }
         }
       }
 
@@ -1314,6 +1383,7 @@
 
         const authView = document.getElementById("auth-view");
         const dashboardView = document.getElementById("dashboard-view");
+        const splashScreen = document.getElementById("splash-screen");
 
         if (session) {
           authView.classList.add("hidden");
@@ -1326,13 +1396,18 @@
             .toUpperCase();
 
           switchDashboardView("search"); // Set default view
-          fetchAllPostOffices();
+          await fetchAllPostOffices(); // Wait for data to load
         } else {
           authView.classList.remove("hidden");
           dashboardView.classList.add("hidden");
           cachedPostOffices = [];
           currentFilteredData = [];
         }
+
+        // Add a slight delay to ensure a smooth transition, then hide splash screen
+        setTimeout(() => {
+          splashScreen.classList.add("hidden-splash");
+        }, 400);
       }
 
       // --- EVENT LISTENERS ---
