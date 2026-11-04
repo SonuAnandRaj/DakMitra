@@ -276,6 +276,13 @@
       table.data-table td { padding: 14px 20px; font-size: 14px; font-weight: 500; border-bottom: 1px solid var(--border); color: var(--text-light); transition: background 0.2s; }
       table.data-table tr:hover td { background: var(--btn-secondary); color: var(--text); }
 
+     /* --- SEARCH HIGHLIGHTING --- */
+     .highlight-text {
+        background-color: transparent;
+        color: var(--primary);
+        font-weight: 800;
+      }
+
       /* --- UPLOAD SECTION --- */
       .upload-card {
         background: var(--card-bg); padding: 32px 24px; border-radius: 20px;
@@ -727,7 +734,8 @@
           return;
         }
         cachedPostOffices = data || [];
-        currentFilteredData = cachedPostOffices;
+        // Structure the default data exactly like Fuse.js search results
+        currentFilteredData = cachedPostOffices.map(item => ({ item, matches: [] }));
 
         const uniqueBranches = new Set(
           cachedPostOffices.map((o) => o.branch_office)
@@ -740,6 +748,7 @@
           keys: ["branch_office", "sub_office"],
           threshold: 0.3,
           ignoreLocation: true,
+          includeMatches: true // This tells Fuse to return the exact letter positions
         });
         renderResults();
       }
@@ -761,12 +770,40 @@
           .getElementById("search-input")
           .value.trim();
         if (!searchInput) {
-          currentFilteredData = cachedPostOffices;
+          currentFilteredData = cachedPostOffices.map(item => ({ item, matches: [] }));
         } else {
-          const results = fuse.search(searchInput);
-          currentFilteredData = results.map((result) => result.item);
+          // Keep the full result array which includes the 'matches' metadata
+          currentFilteredData = fuse.search(searchInput);
         }
         renderResults();
+      }
+
+      // Helper function to highlight only the longest matched segment
+      function highlightText(text, matches, key) {
+        if (!text) return "";
+        if (!matches || matches.length === 0) return text;
+        const match = matches.find(m => m.key === key);
+        if (!match || !match.indices || match.indices.length === 0) return text;
+
+        // Find the single longest match segment to prevent stray letter highlights
+        let bestIndex = match.indices[0];
+        let maxLen = bestIndex[1] - bestIndex[0];
+        
+        for (let i = 1; i < match.indices.length; i++) {
+          const currentLen = match.indices[i][1] - match.indices[i][0];
+          if (currentLen > maxLen) {
+            maxLen = currentLen;
+            bestIndex = match.indices[i];
+          }
+        }
+
+        const [start, end] = bestIndex;
+        
+        let highlighted = text.substring(0, start);
+        highlighted += `<span class="highlight-text">${text.substring(start, end + 1)}</span>`;
+        highlighted += text.substring(end + 1);
+        
+        return highlighted;
       }
 
       function renderResults() {
@@ -779,11 +816,15 @@
 
         if (viewMode === "list") {
           let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
-          currentFilteredData.forEach((office) => {
+          currentFilteredData.forEach((result) => {
+            const office = result.item;
+            const branchHtml = highlightText(office.branch_office, result.matches, "branch_office");
+            const subHtml = highlightText(office.sub_office, result.matches, "sub_office");
+
             html += `
               <li class="list-item">
-                  <div class="office-title">${office.branch_office}</div>
-                  <div class="sub-office">Sub: ${office.sub_office}</div>
+                  <div class="office-title">${branchHtml}</div>
+                  <div class="sub-office">Sub: ${subHtml}</div>
               </li>`;
           });
           html += `</ul>`;
@@ -792,8 +833,12 @@
           let html = `<table class="data-table">
                         <thead><tr><th>Branch Office</th><th>Sub Office</th></tr></thead>
                         <tbody>`;
-          currentFilteredData.forEach((office) => {
-            html += `<tr><td>${office.branch_office}</td><td>${office.sub_office}</td></tr>`;
+          currentFilteredData.forEach((result) => {
+            const office = result.item;
+            const branchHtml = highlightText(office.branch_office, result.matches, "branch_office");
+            const subHtml = highlightText(office.sub_office, result.matches, "sub_office");
+
+            html += `<tr><td>${branchHtml}</td><td>${subHtml}</td></tr>`;
           });
           html += `</tbody></table>`;
           displayArea.innerHTML = html;
@@ -803,7 +848,7 @@
       function copyResults() {
         if (!currentFilteredData.length) return showToast("No data to copy!");
         const text = currentFilteredData
-          .map((r) => `Branch: ${r.branch_office} | Sub: ${r.sub_office}`)
+          .map((r) => `Branch: ${r.item.branch_office} | Sub: ${r.item.sub_office}`)
           .join("\n");
         navigator.clipboard
           .writeText(text)
@@ -814,7 +859,7 @@
         if (!currentFilteredData.length) return showToast("No data to export!");
         let csv = "Branch Office,Sub Office\n";
         currentFilteredData.forEach((row) => {
-          csv += `"${row.branch_office || ""}","${row.sub_office || ""}"\n`;
+          csv += `"${row.item.branch_office || ""}","${row.item.sub_office || ""}"\n`;
         });
         const blob = new Blob([csv], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
@@ -827,6 +872,7 @@
         showToast("📥 CSV Exported successfully!");
       }
 
+      
       // --- EXCEL UPLOAD ---
       async function uploadExcel() {
         const fileInput = document.getElementById("excel-file");
