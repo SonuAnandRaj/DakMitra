@@ -470,7 +470,9 @@
         box-shadow: var(--shadow-md);
         border: 1px solid var(--border);
         margin-bottom: 24px;
-        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease, border-width 0.3s ease;
+        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+          opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease,
+          border-width 0.3s ease;
         overflow: hidden;
         max-height: 400px;
       }
@@ -545,6 +547,23 @@
         background: transparent;
         transform: scale(1.15);
       }
+      .clear-btn {
+        background: transparent;
+        color: var(--text-light);
+        border: none;
+        width: 36px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        cursor: pointer;
+        transition: color 0.2s ease, transform 0.2s ease;
+      }
+      .clear-btn:hover {
+        color: var(--text);
+        transform: scale(1.15);
+      }
 
       .search-action-btn {
         width: 100%;
@@ -578,7 +597,7 @@
       .results-toolbar .toolbar-group:last-child {
         margin-left: auto;
       }
-      
+
       .toolbar-btn {
         padding: 8px 16px;
         font-size: 13px;
@@ -1023,7 +1042,6 @@
       <main class="container">
         <!-- SEARCH VIEW (Default) -->
         <section id="view-search" class="view-section active">
-          
           <div class="search-hero">
             <h2>Search Address</h2>
             <div class="search-bar-modern">
@@ -1034,6 +1052,16 @@
                   placeholder="Type address to search..."
                   autocomplete="off"
                 />
+                <!-- New Clear Button -->
+                <button
+                  type="button"
+                  id="clear-search-btn"
+                  class="clear-btn hidden"
+                  onclick="clearSearchInput()"
+                  title="Clear Search"
+                >
+                  ✕
+                </button>
                 <button
                   type="button"
                   class="mic-btn"
@@ -1074,11 +1102,7 @@
               </button>
             </div>
             <div class="toolbar-group">
-              <button
-                type="button"
-                class="toolbar-btn"
-                onclick="copyResults()"
-              >
+              <button type="button" class="toolbar-btn" onclick="copyResults()">
                 📋 Copy
               </button>
               <button
@@ -1296,7 +1320,16 @@
         }
         renderResults();
       }
+      function clearSearchInput() {
+        const searchInput = document.getElementById("search-input");
+        const clearBtn = document.getElementById("clear-search-btn");
 
+        searchInput.value = "";
+        clearBtn.classList.add("hidden");
+
+        triggerSearch(); // Resets the directory list
+        searchInput.focus(); // Keeps the keyboard open on mobile
+      }
       // Helper function to highlight only the longest matched segment
       function highlightText(text, matches, key) {
         if (!text) return "";
@@ -1507,6 +1540,9 @@
         };
         recognition.onresult = function (event) {
           searchInput.value = event.results[0][0].transcript.replace(/\.$/, "");
+          document
+            .getElementById("clear-search-btn")
+            .classList.remove("hidden"); // Shows clear button
           triggerSearch();
         };
         recognition.onerror = function (event) {
@@ -1638,11 +1674,16 @@
       // --- EVENT LISTENERS ---
       document
         .getElementById("search-input")
-        .addEventListener("keypress", function (e) {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            triggerSearch();
+        .addEventListener("input", function () {
+          const clearBtn = document.getElementById("clear-search-btn");
+
+          if (this.value.length > 0) {
+            clearBtn.classList.remove("hidden");
+          } else {
+            clearBtn.classList.add("hidden");
           }
+
+          triggerSearch();
         });
       document
         .getElementById("search-input")
@@ -1659,7 +1700,7 @@
 
         if (currentScroll > lastScrollTop && currentScroll > 20) {
           // Scrolling down the list: hide only the search box
-          searchHero.classList.add("collapsed");
+          searchHero.classsList.add("collapsed");
           resultsArea.classList.add("expanded");
         } else if (currentScroll < lastScrollTop) {
           // Scrolling up the list: show the search box
