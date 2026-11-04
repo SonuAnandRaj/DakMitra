@@ -518,6 +518,7 @@
       }
       .search-input-wrapper input {
         flex: 1;
+        min-width: 0; /* This is the magic rule! It forces the input to give up its space for the icons */
         border: none;
         background: transparent;
         padding: 12px 8px;
@@ -542,7 +543,7 @@
         font-size: 22px;
         cursor: pointer;
         transition: transform 0.2s ease;
-        margin-right: 8 px;
+        flex-shrink: 0; /* Keeps the mic perfectly sized and inside the box */
       }
       .mic-btn:hover {
         background: transparent;
@@ -560,7 +561,8 @@
         font-size: 16px;
         cursor: pointer;
         transition: color 0.2s ease, transform 0.2s ease;
-        margin-right: 8 px; /* Adds space between the clear and mic icons */
+        margin-right: 12px; /* Increased the gap for easier touch targets on Android */
+        flex-shrink: 0; /* Prevents the clear button from getting squished */
       }
       .clear-btn:hover {
         color: var(--text);
