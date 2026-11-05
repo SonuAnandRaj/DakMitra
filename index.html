@@ -1698,7 +1698,7 @@
         triggerSearch();
       });
 
-            let lastScrollTop = 0;
+                  let lastScrollTop = 0;
       const resultsArea = document.getElementById("results-display-area");
       const searchHero = document.querySelector(".search-hero");
 
@@ -1713,9 +1713,12 @@
           return;
         }
 
-        // PREVENT THE TRAP: Only allow collapsing if the list has at least 150px of extra hidden height.
-        // This guarantees a scrollbar will still exist AFTER the container expands.
-        if (!resultsArea.classList.contains("expanded") && (this.scrollHeight - this.clientHeight < 150)) {
+        // PREVENT THE TRAP (Fast Scroll Fix): 
+        // We calculate 75% of the user's actual screen height (75vh).
+        // If the total list height is smaller than this, NEVER hide the search bar.
+        // This guarantees the scrollbar will survive the expansion, even during a fast flick.
+        const safeExpandedHeight = window.innerHeight * 0.75; 
+        if (!resultsArea.classList.contains("expanded") && this.scrollHeight < safeExpandedHeight) {
           return; 
         }
 
@@ -1731,6 +1734,7 @@
         // Prevent negative values from mobile rubber-banding
         lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
       });
+
 
 
       // BOOTSTRAP APP
