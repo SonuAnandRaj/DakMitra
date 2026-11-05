@@ -1698,16 +1698,28 @@
         triggerSearch();
       });
 
-      let lastScrollTop = 0;
+            let lastScrollTop = 0;
       const resultsArea = document.getElementById("results-display-area");
       const searchHero = document.querySelector(".search-hero");
 
       resultsArea.addEventListener("scroll", function () {
-        // Prevent layout shifts if the list isn't long enough to scroll
-        if (this.scrollHeight <= this.clientHeight) return;
-
         let currentScroll = this.scrollTop;
 
+        // SAFETY NET: If we are at or near the very top, always bring the header back
+        if (currentScroll <= 10) {
+          searchHero.classList.remove("collapsed");
+          resultsArea.classList.remove("expanded");
+          lastScrollTop = currentScroll;
+          return;
+        }
+
+        // PREVENT THE TRAP: Only allow collapsing if the list has at least 150px of extra hidden height.
+        // This guarantees a scrollbar will still exist AFTER the container expands.
+        if (!resultsArea.classList.contains("expanded") && (this.scrollHeight - this.clientHeight < 150)) {
+          return; 
+        }
+
+        // Normal scroll hide/show logic
         if (currentScroll > lastScrollTop && currentScroll > 20) {
           searchHero.classList.add("collapsed");
           resultsArea.classList.add("expanded");
@@ -1716,8 +1728,10 @@
           resultsArea.classList.remove("expanded");
         }
         
+        // Prevent negative values from mobile rubber-banding
         lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
       });
+
 
       // BOOTSTRAP APP
       checkUserSession();
