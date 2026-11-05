@@ -1698,14 +1698,14 @@
         triggerSearch();
       });
 
-                  let lastScrollTop = 0;
+            let lastScrollTop = 0;
       const resultsArea = document.getElementById("results-display-area");
       const searchHero = document.querySelector(".search-hero");
 
       resultsArea.addEventListener("scroll", function () {
         let currentScroll = this.scrollTop;
 
-        // SAFETY NET: If we are at or near the very top, always bring the header back
+        // 1. TOP BOUNCE SAFETY: Always restore header if we hit the top
         if (currentScroll <= 10) {
           searchHero.classList.remove("collapsed");
           resultsArea.classList.remove("expanded");
@@ -1713,27 +1713,38 @@
           return;
         }
 
-        // PREVENT THE TRAP (Fast Scroll Fix): 
-        // We calculate 75% of the user's actual screen height (75vh).
-        // If the total list height is smaller than this, NEVER hide the search bar.
-        // This guarantees the scrollbar will survive the expansion, even during a fast flick.
-        const safeExpandedHeight = window.innerHeight * 0.75; 
-        if (!resultsArea.classList.contains("expanded") && this.scrollHeight < safeExpandedHeight) {
+        // 2. THE MATHEMATICAL HARD-BLOCK:
+        // Your expanded container is 65vh. If the total list height is less than 
+        // 65vh + a 50px safety buffer, do NOT let it collapse.
+        const requiredHeight = (window.innerHeight * 0.65) + 50;
+        if (!resultsArea.classList.contains("expanded") && this.scrollHeight < requiredHeight) {
           return; 
         }
 
-        // Normal scroll hide/show logic
+        // 3. Normal hide/show logic
         if (currentScroll > lastScrollTop && currentScroll > 20) {
           searchHero.classList.add("collapsed");
           resultsArea.classList.add("expanded");
+          
+          // 4. THE MOMENTUM RESCUE:
+          // If a fast flick bypasses the math and deletes the scrollbar,
+          // this catches the error on the exact next visual frame and rescues the UI.
+          requestAnimationFrame(() => {
+            if (resultsArea.scrollHeight <= resultsArea.clientHeight) {
+              searchHero.classList.remove("collapsed");
+              resultsArea.classList.remove("expanded");
+            }
+          });
+
         } else if (currentScroll < lastScrollTop) {
           searchHero.classList.remove("collapsed");
           resultsArea.classList.remove("expanded");
         }
         
-        // Prevent negative values from mobile rubber-banding
+        // Prevent negative values from iOS/Android rubber-banding
         lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
       });
+
 
 
 
