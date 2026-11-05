@@ -1685,37 +1685,24 @@
         }, 400);
       }
 
-      // --- EVENT LISTENERS ---
-      document
-        .getElementById("search-input")
-        .addEventListener("input", function () {
-          const clearBtn = document.getElementById("clear-search-btn");
+            // --- EVENT LISTENERS ---
+      document.getElementById("search-input").addEventListener("input", function () {
+        const clearBtn = document.getElementById("clear-search-btn");
+        
+        if (this.value.length > 0) {
+          clearBtn.classList.remove("hidden");
+        } else {
+          clearBtn.classList.add("hidden");
+        }
+        
+        triggerSearch();
+      });
 
-          if (this.value.length > 0) {
-            clearBtn.classList.remove("hidden");
-          } else {
-            clearBtn.classList.add("hidden");
-          }
-
-          triggerSearch();
-        });
-      document
-        .getElementById("search-input")
-        .addEventListener("input", function () {
-          triggerSearch();
-        });
-
-        let lastScrollTop = 0;
+      let lastScrollTop = 0;
       const resultsArea = document.getElementById("results-display-area");
       const searchHero = document.querySelector(".search-hero");
 
       resultsArea.addEventListener("scroll", function () {
-        let currentScroll = this.scrollTop;
-
-        if (currentScroll > lastScrollTop && currentScroll > 20) {
-          // Scrolling down the list: hide only the search box
-          searchHero.classList.add("collapsed");
-                resultsArea.addEventListener("scroll", function () {
         // Prevent layout shifts if the list isn't long enough to scroll
         if (this.scrollHeight <= this.clientHeight) return;
 
@@ -1731,7 +1718,6 @@
         
         lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
       });
-
 
       // BOOTSTRAP APP
       checkUserSession();
