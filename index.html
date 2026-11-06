@@ -1698,53 +1698,70 @@
         triggerSearch();
       });
 
-            let lastScrollTop = 0;
+      let lastScrollTop = 0;
+      let isAnimating = false; // Lock to prevent the browser's feedback loop
+      
       const resultsArea = document.getElementById("results-display-area");
       const searchHero = document.querySelector(".search-hero");
 
       resultsArea.addEventListener("scroll", function () {
+        if (isAnimating) return; // Ignore layout-shift scrolls triggered by our script
+
         let currentScroll = this.scrollTop;
 
-        // 1. TOP BOUNCE SAFETY: Always restore header if we hit the top
+        // 1. TOP BOUNCE SAFETY: Restore header smoothly if we hit the top
         if (currentScroll <= 10) {
+          isAnimating = true;
           searchHero.classList.remove("collapsed");
           resultsArea.classList.remove("expanded");
-          lastScrollTop = currentScroll;
+          this.style.paddingBottom = "0px"; // Clean up blanks
+          
+          setTimeout(() => { isAnimating = false; }, 100);
+          lastScrollTop = 0;
           return;
         }
 
-        // 2. THE MATHEMATICAL HARD-BLOCK:
-        // Your expanded container is 65vh. If the total list height is less than 
-        // 65vh + a 50px safety buffer, do NOT let it collapse.
-        const requiredHeight = (window.innerHeight * 0.65) + 50;
-        if (!resultsArea.classList.contains("expanded") && this.scrollHeight < requiredHeight) {
-          return; 
-        }
-
-        // 3. Normal hide/show logic
+        // 2. SCROLL DOWN (Hide search bar, expand list, auto-scroll)
         if (currentScroll > lastScrollTop && currentScroll > 20) {
-          searchHero.classList.add("collapsed");
-          resultsArea.classList.add("expanded");
-          
-          // 4. THE MOMENTUM RESCUE:
-          // If a fast flick bypasses the math and deletes the scrollbar,
-          // this catches the error on the exact next visual frame and rescues the UI.
-          requestAnimationFrame(() => {
-            if (resultsArea.scrollHeight <= resultsArea.clientHeight) {
-              searchHero.classList.remove("collapsed");
-              resultsArea.classList.remove("expanded");
-            }
-          });
+          if (!searchHero.classList.contains("collapsed")) {
+            isAnimating = true; // Lock the listener
 
-        } else if (currentScroll < lastScrollTop) {
-          searchHero.classList.remove("collapsed");
-          resultsArea.classList.remove("expanded");
+            // Instantly add massive blanks so the browser doesn't steal our scrollbar
+            this.style.paddingBottom = "70vh"; 
+
+            searchHero.classList.add("collapsed");
+            resultsArea.classList.add("expanded");
+
+            // Automatically scroll the list down slightly to offset the header disappearing
+            this.scrollTop = currentScroll + 50; 
+
+            // Unlock after layout shift completes
+            setTimeout(() => { isAnimating = false; }, 200); 
+          }
+        } 
+        
+        // 3. SCROLL UP (Show search bar, contract list, auto-scroll)
+        else if (currentScroll < lastScrollTop) {
+          if (searchHero.classList.contains("collapsed")) {
+            isAnimating = true; // Lock the listener
+
+            searchHero.classList.remove("collapsed");
+            resultsArea.classList.remove("expanded");
+            
+            // Instantly remove the blanks
+            this.style.paddingBottom = "0px"; 
+
+            // Automatically scroll the list up to offset the header pushing it down
+            this.scrollTop = Math.max(0, currentScroll - 50);
+
+            // Unlock after layout shift completes
+            setTimeout(() => { isAnimating = false; }, 200);
+          }
         }
         
-        // Prevent negative values from iOS/Android rubber-banding
-        lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+        // Update last position (prevent negative values from rubber-banding)
+        lastScrollTop = this.scrollTop <= 0 ? 0 : this.scrollTop;
       });
-
 
 
 
