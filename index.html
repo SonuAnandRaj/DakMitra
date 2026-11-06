@@ -2,11 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Optimized viewport for mobile apps -->
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <!-- Optimized viewport for mobile apps (Accessibility fixed) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DakMitra</title>
 
     <!-- PWA Requirements -->
@@ -28,13 +25,13 @@
     <style>
       :root {
         /* --- LIGHT THEME (Crisp & High Contrast) --- */
-        --primary: #4f46e5; /* Deep Indigo */
+        --primary: #4f46e5;
         --primary-hover: #4338ca;
-        --accent: #f59e0b; /* Complementary Amber/Gold */
-        --bg: #f8fafc; /* Soft Light Blue-Gray */
-        --card-bg: #ffffff; /* Pure White */
-        --text: #0f172a; /* Near-Black for main text */
-        --text-light: #475569; /* Medium Slate for subtext */
+        --accent: #f59e0b;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-light: #475569;
         --border: #e2e8f0;
         --input-bg: #f1f5f9;
         --input-border: #cbd5e1;
@@ -43,7 +40,7 @@
         --success-bg: #dcfce7;
         --success-text: #166534;
         --success-border: #4ade80;
-        --mic-bg: #ef4444; /* Vivid Red */
+        --mic-bg: #ef4444;
         --mic-hover: #dc2626;
         --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
@@ -54,13 +51,13 @@
 
       [data-theme="dark"] {
         /* --- DARK THEME (Deep OLED & Soft Neon) --- */
-        --primary: #818cf8; /* Bright Soft Indigo */
+        --primary: #818cf8;
         --primary-hover: #a5b4fc;
-        --accent: #fbbf24; /* Bright Vibrant Amber */
-        --bg: #090e17; /* Ultra-Deep Navy/Black */
-        --card-bg: #111827; /* Elevated Dark Gray */
-        --text: #f9fafb; /* High Contrast Off-White */
-        --text-light: #9ca3af; /* Soft Light Gray for subtext */
+        --accent: #fbbf24;
+        --bg: #090e17;
+        --card-bg: #111827;
+        --text: #f9fafb;
+        --text-light: #9ca3af;
         --border: #1f2937;
         --input-bg: #1f2937;
         --input-border: #374151;
@@ -69,7 +66,7 @@
         --success-bg: #064e3b;
         --success-text: #34d399;
         --success-border: #059669;
-        --mic-bg: #f87171; /* Softer Coral Red for eye comfort in dark mode */
+        --mic-bg: #f87171;
         --mic-hover: #ef4444;
       }
 
@@ -486,8 +483,7 @@
         max-height: 0;
         opacity: 0;
         margin-bottom: 0;
-        padding-top: 0;
-        padding-bottom: 0;
+        padding: 0;
         border-width: 0;
         box-shadow: none;
       }
@@ -524,7 +520,7 @@
       }
       .search-input-wrapper input {
         flex: 1;
-        min-width: 0; /* This is the magic rule! It forces the input to give up its space for the icons */
+        min-width: 0;
         border: none;
         background: transparent;
         padding: 12px 8px;
@@ -549,7 +545,7 @@
         font-size: 22px;
         cursor: pointer;
         transition: transform 0.2s ease;
-        flex-shrink: 0; /* Keeps the mic perfectly sized and inside the box */
+        flex-shrink: 0;
         margin-left: 12px;
       }
       .mic-btn:hover {
@@ -568,8 +564,8 @@
         font-size: 16px;
         cursor: pointer;
         transition: color 0.2s ease, transform 0.2s ease;
-        margin-right: 12px; /* Increased the gap for easier touch targets on Android */
-        flex-shrink: 0; /* Prevents the clear button from getting squished */
+        margin-right: 12px;
+        flex-shrink: 0;
       }
       .clear-btn:hover {
         color: var(--text);
@@ -644,13 +640,33 @@
         font-size: 16px;
         font-weight: 700;
         color: var(--text);
-        margin-bottom: 4px;
+        margin-bottom: 8px;
       }
-      .sub-office {
-        font-size: 14px;
+
+      /* --- BEAUTIFUL BADGES FOR RESULTS --- */
+      .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--input-bg);
         color: var(--text-light);
-        font-weight: 500;
+        margin-right: 8px;
+        margin-bottom: 4px;
+        border: 1px solid var(--border);
       }
+      .badge-primary {
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--primary);
+        border-color: rgba(79, 70, 229, 0.2);
+      }
+      [data-theme="dark"] .badge-primary {
+        background: rgba(129, 140, 248, 0.1);
+        color: var(--primary);
+        border-color: rgba(129, 140, 248, 0.2);
+      }
+
       .list-empty {
         padding: 40px 20px;
         text-align: center;
@@ -884,6 +900,27 @@
       .hidden {
         display: none !important;
       }
+
+      /* Mobile responsiveness for manual inputs */
+      .manual-entry-row {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+        align-items: flex-end;
+      }
+      @media (max-width: 600px) {
+        .manual-entry-row {
+          flex-direction: column;
+          align-items: stretch;
+          background: var(--bg);
+          padding: 16px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+        }
+        .manual-entry-row .btn {
+          margin-top: 10px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -904,7 +941,7 @@
           DakMitra
         </h1>
         <p style="color: var(--text-light); margin-top: 8px">
-          The modern post office directory.
+          The modern post office database.
         </p>
       </div>
       <div class="auth-card">
@@ -1009,8 +1046,8 @@
             user@example.com
           </div>
           <div class="sidebar-stats">
-            <span><strong id="stat-branches">0</strong> Branches</span>
-            <span><strong id="stat-suboffices">0</strong> Sub Offices</span>
+            <span><strong id="stat-addresses">0</strong> Addresses</span>
+            <span><strong id="stat-offices">0</strong> Offices</span>
           </div>
         </div>
         <nav class="sidebar-nav">
@@ -1019,7 +1056,7 @@
             id="nav-search"
             onclick="switchDashboardView('search')"
           >
-            🔍 Search Directory
+            🔍 Search Database
           </button>
           <button
             class="sidebar-menu-item"
@@ -1056,13 +1093,13 @@
         <!-- SEARCH VIEW (Default) -->
         <section id="view-search" class="view-section active">
           <div class="search-hero">
-            <h2>Search Address</h2>
+            <h2>Search Database</h2>
             <div class="search-bar-modern">
               <div class="search-input-wrapper">
                 <input
                   type="text"
                   id="search-input"
-                  placeholder="Type address to search..."
+                  placeholder="Type address, office, or Pin..."
                   autocomplete="off"
                 />
                 <!-- New Clear Button -->
@@ -1131,7 +1168,7 @@
 
           <div class="results-container-scroll" id="results-display-area">
             <ul class="list-container">
-              <li class="list-empty">Loading directory data...</li>
+              <li class="list-empty">Loading database...</li>
             </ul>
           </div>
         </section>
@@ -1145,54 +1182,7 @@
             </h2>
 
             <!-- Container for the rows -->
-            <div id="manual-entries-container">
-              <div
-                class="manual-entry-row"
-                style="
-                  display: flex;
-                  gap: 10px;
-                  margin-top: 16px;
-                  align-items: flex-end;
-                "
-              >
-                <div
-                  class="input-group"
-                  style="flex: 1; margin-bottom: 0; text-align: left"
-                >
-                  <label>Branch Office</label>
-                  <input
-                    type="text"
-                    class="manual-branch"
-                    placeholder="Branch name"
-                  />
-                </div>
-                <div
-                  class="input-group"
-                  style="flex: 1; margin-bottom: 0; text-align: left"
-                >
-                  <label>Sub Office</label>
-                  <input
-                    type="text"
-                    class="manual-sub"
-                    placeholder="Sub office name"
-                  />
-                </div>
-                <button
-                  type="button"
-                  class="btn"
-                  style="
-                    width: auto;
-                    background: var(--border);
-                    color: var(--text);
-                    padding: 14px;
-                  "
-                  onclick="this.parentElement.remove()"
-                  title="Remove row"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
+            <div id="manual-entries-container"></div>
 
             <!-- Action Buttons -->
             <div style="display: flex; gap: 12px; margin-top: 20px">
@@ -1216,12 +1206,13 @@
           </div>
           <div class="upload-card">
             <h2 style="font-size: 22px; font-weight: 700">
-              Database Management
+              Excel Upload
             </h2>
             <p>
-              Update the global directory. Select an Excel file (.xlsx,
+              Update the global database. Select an Excel file (.xlsx,
               .xls).<br />Ensure the columns are exactly named
-              <strong>Branch Office</strong> and <strong>Sub Office</strong>.
+              <strong>Address</strong>, <strong>Office</strong>, and
+              <strong>Pin</strong>.
             </p>
             <div class="file-upload-wrapper">
               <input type="file" id="excel-file" accept=".xlsx, .xls" />
@@ -1233,7 +1224,6 @@
               >
                 Upload to Database
               </button>
-              <!-- Add this new helper text and link below the button -->
               <p
                 style="
                   font-size: 13px;
@@ -1262,7 +1252,7 @@
             Developed with <span style="color: #ef4444">♥</span> by
             <strong>Sonu Anand Raj</strong>
           </p>
-          <p class="footer-subtext">DakMitra Directory PWA &copy; 2026</p>
+          <p class="footer-subtext">DakMitra Database PWA &copy; 2026</p>
         </footer>
       </main>
     </div>
@@ -1289,6 +1279,11 @@
         document.getElementById("sidebar-overlay").classList.toggle("show");
       }
 
+      function closeSidebar() {
+        document.getElementById("sidebar").classList.remove("open");
+        document.getElementById("sidebar-overlay").classList.remove("show");
+      }
+
       function switchDashboardView(viewId) {
         document.getElementById("view-search").classList.remove("active");
         document.getElementById("view-upload").classList.remove("active");
@@ -1298,9 +1293,7 @@
         document.getElementById("view-" + viewId).classList.add("active");
         document.getElementById("nav-" + viewId).classList.add("active");
 
-        // Explicitly close the sidebar instead of toggling it
-        document.getElementById("sidebar").classList.remove("open");
-        document.getElementById("sidebar-overlay").classList.remove("show");
+        closeSidebar();
       }
 
       function showToast(message) {
@@ -1339,7 +1332,6 @@
             applyTheme("system");
         });
 
-      // On load, apply saved theme or fallback to system
       const savedTheme = localStorage.getItem("app-theme") || "system";
       applyTheme(savedTheme);
 
@@ -1376,28 +1368,36 @@
           console.error("Error fetching post offices:", error);
           document.getElementById(
             "results-display-area"
-          ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Error loading data from server.</li></ul>`;
+          ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Error loading data from server. Ensure table columns are updated to "Address", "Office", and "Pin".</li></ul>`;
           return;
         }
+
+        if (!data || data.length === 0) {
+          document.getElementById(
+            "results-display-area"
+          ).innerHTML = `<ul class="list-container"><li class="list-empty">Database is currently empty.</li></ul>`;
+          document.getElementById("stat-addresses").textContent = "0";
+          document.getElementById("stat-offices").textContent = "0";
+          return;
+        }
+
         cachedPostOffices = data || [];
-        // Structure the default data exactly like Fuse.js search results
         currentFilteredData = cachedPostOffices.map((item) => ({
           item,
           matches: [],
         }));
 
-        const uniqueBranches = new Set(
-          cachedPostOffices.map((o) => o.branch_office)
-        ).size;
-        document.getElementById("stat-branches").textContent = uniqueBranches;
-        document.getElementById("stat-suboffices").textContent =
+        const uniqueAddresses = new Set(cachedPostOffices.map((o) => o.Address))
+          .size;
+        document.getElementById("stat-addresses").textContent = uniqueAddresses;
+        document.getElementById("stat-offices").textContent =
           cachedPostOffices.length;
 
         fuse = new Fuse(cachedPostOffices, {
-          keys: ["branch_office", "sub_office"],
+          keys: ["Address", "Office", "Pin"],
           threshold: 0.3,
           ignoreLocation: true,
-          includeMatches: true, // This tells Fuse to return the exact letter positions
+          includeMatches: true,
         });
         renderResults();
       }
@@ -1424,11 +1424,11 @@
             matches: [],
           }));
         } else {
-          // Keep the full result array which includes the 'matches' metadata
           currentFilteredData = fuse.search(searchInput);
         }
         renderResults();
       }
+
       function clearSearchInput() {
         const searchInput = document.getElementById("search-input");
         const clearBtn = document.getElementById("clear-search-btn");
@@ -1436,17 +1436,16 @@
         searchInput.value = "";
         clearBtn.classList.add("hidden");
 
-        triggerSearch(); // Resets the directory list
-        searchInput.focus(); // Keeps the keyboard open on mobile
+        triggerSearch();
+        searchInput.focus();
       }
-      // Helper function to highlight only the longest matched segment
+
       function highlightText(text, matches, key) {
         if (!text) return "";
         if (!matches || matches.length === 0) return text;
         const match = matches.find((m) => m.key === key);
         if (!match || !match.indices || match.indices.length === 0) return text;
 
-        // Find the single longest match segment to prevent stray letter highlights
         let bestIndex = match.indices[0];
         let maxLen = bestIndex[1] - bestIndex[0];
 
@@ -1470,6 +1469,14 @@
         return highlighted;
       }
 
+      function escapeForOnclick(str) {
+        if (!str) return "";
+        return String(str)
+          .replace(/\\/g, "\\\\")
+          .replace(/'/g, "\\'")
+          .replace(/"/g, "&quot;");
+      }
+
       function renderResults() {
         const displayArea = document.getElementById("results-display-area");
 
@@ -1478,40 +1485,41 @@
           return;
         }
 
-        // --- Updated renderResults() logic ---
         if (viewMode === "list") {
           let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
           currentFilteredData.forEach((result) => {
-            const office = result.item;
-            const branchHtml = highlightText(
-              office.branch_office,
+            const row = result.item;
+            const addressHtml = highlightText(
+              row.Address,
               result.matches,
-              "branch_office"
+              "address"
             );
-            const subHtml = highlightText(
-              office.sub_office,
+            const officeHtml = highlightText(
+              row.Office,
               result.matches,
-              "sub_office"
+              "office"
             );
+            const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+
+            const safeAddress = escapeForOnclick(row.Address);
+            const safeOffice = escapeForOnclick(row.Office);
+            const safePin = escapeForOnclick(row.Pin);
 
             html += `
       <li class="list-item" style="display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <div class="office-title">${branchHtml}</div>
-            <div class="sub-office">Sub: ${subHtml}</div>
+            <div class="office-title">${addressHtml}</div>
+            <div class="sub-office">
+              <span class="badge badge-primary">🏢 ${officeHtml}</span>
+              <span class="badge">📍 Pin: ${PinHtml || "N/A"}</span>
+            </div>
           </div>
           <div style="display: flex; gap: 4px;">
             <button onclick="updateRecord('${
-              office.id
-            }', '${office.branch_office.replace(
-              /'/g,
-              "\\'"
-            )}', '${office.sub_office.replace(
-              /'/g,
-              "\\'"
-            )}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
+              row.id
+            }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
             <button onclick="deleteRecord('${
-              office.id
+              row.id
             }')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
           </div>
       </li>`;
@@ -1520,36 +1528,36 @@
           displayArea.innerHTML = html;
         } else {
           let html = `<table class="data-table">
-                <thead><tr><th>Branch Office</th><th>Sub Office</th><th style="text-align: right;">Actions</th></tr></thead>
+                <thead><tr><th>Address</th><th>Office</th><th>Pin</th><th style="text-align: right;">Actions</th></tr></thead>
                 <tbody>`;
           currentFilteredData.forEach((result) => {
-            const office = result.item;
-            const branchHtml = highlightText(
-              office.branch_office,
+            const row = result.item;
+            const addressHtml = highlightText(
+              row.Address,
               result.matches,
-              "branch_office"
+              "address"
             );
-            const subHtml = highlightText(
-              office.sub_office,
+            const officeHtml = highlightText(
+              row.Office,
               result.matches,
-              "sub_office"
+              "office"
             );
+            const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+
+            const safeAddress = escapeForOnclick(row.Address);
+            const safeOffice = escapeForOnclick(row.Office);
+            const safePin = escapeForOnclick(row.Pin);
 
             html += `<tr>
-              <td>${branchHtml}</td>
-              <td>${subHtml}</td>
+              <td>${addressHtml}</td>
+              <td>${officeHtml}</td>
+              <td>${PinHtml || "-"}</td>
               <td style="text-align: right;">
                 <button onclick="updateRecord('${
-                  office.id
-                }', '${office.branch_office.replace(
-              /'/g,
-              "\\'"
-            )}', '${office.sub_office.replace(
-              /'/g,
-              "\\'"
-            )}')" class="toolbar-btn" style="padding: 4px 8px;">✎</button>
+                  row.id
+                }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 4px 8px;">✎</button>
                 <button onclick="deleteRecord('${
-                  office.id
+                  row.id
                 }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑</button>
               </td>
              </tr>`;
@@ -1563,7 +1571,8 @@
         if (!currentFilteredData.length) return showToast("No data to copy!");
         const text = currentFilteredData
           .map(
-            (r) => `Branch: ${r.item.branch_office} | Sub: ${r.item.sub_office}`
+            (r) =>
+              `Address: ${r.item.address} | Office: ${r.item.office} | Pin: ${r.item.Pin}`
           )
           .join("\n");
         navigator.clipboard
@@ -1573,10 +1582,10 @@
 
       function exportCSV() {
         if (!currentFilteredData.length) return showToast("No data to export!");
-        let csv = "Branch Office,Sub Office\n";
+        let csv = "Address,Office,Pin\n";
         currentFilteredData.forEach((row) => {
-          csv += `"${row.item.branch_office || ""}","${
-            row.item.sub_office || ""
+          csv += `"${row.item.Address || ""}","${row.item.Office || ""}","${
+            row.item.Pin || ""
           }"\n`;
         });
         const blob = new Blob([csv], { type: "text/csv" });
@@ -1626,8 +1635,9 @@
               data: { session },
             } = await supabaseClient.auth.getSession();
             const formattedData = jsonData.map((row) => ({
-              branch_office: row["Branch Office"],
-              sub_office: row["Sub Office"],
+              Address: row["Address"],
+              Office: row["Office"],
+              Pin: row["Pin"] ? String(row["Pin"]) : null,
               user_id: session.user.id,
             }));
 
@@ -1653,7 +1663,7 @@
           } catch (err) {
             console.error(err);
             alert(
-              'Error reading Excel file. Ensure headers are exactly "Branch Office" and "Sub Office".'
+              'Error reading Excel file. Ensure headers are exactly "Address", "Office", and "Pin".'
             );
             uploadBtn.textContent = originalText;
             uploadBtn.disabled = false;
@@ -1682,11 +1692,20 @@
           searchInput.value = "";
         };
         recognition.onresult = function (event) {
-          searchInput.value = event.results[0][0].transcript.replace(/\.$/, "");
-          document
-            .getElementById("clear-search-btn")
-            .classList.remove("hidden"); // Shows clear button
-          triggerSearch();
+          if (
+            event.results &&
+            event.results.length > 0 &&
+            event.results[0].length > 0
+          ) {
+            searchInput.value = event.results[0][0].transcript.replace(
+              /\.$/,
+              ""
+            );
+            document
+              .getElementById("clear-search-btn")
+              .classList.remove("hidden");
+            triggerSearch();
+          }
         };
         recognition.onerror = function (event) {
           if (event.error === "not-allowed")
@@ -1694,7 +1713,7 @@
         };
         recognition.onend = function () {
           micBtn.textContent = "🎤";
-          searchInput.placeholder = "Type branch or sub office name...";
+          searchInput.placeholder = "Type address, office, or Pin...";
         };
         recognition.start();
       }
@@ -1734,7 +1753,6 @@
         const password = document.getElementById("password").value.trim();
         if (!email || !password) return showAlert("Please fill in all fields.");
 
-        // Bring the splash screen back up while authenticating
         const splashScreen = document.getElementById("splash-screen");
         splashScreen.classList.remove("hidden-splash");
 
@@ -1744,11 +1762,9 @@
             password,
           });
           if (error) {
-            // Hide splash and show error
             splashScreen.classList.add("hidden-splash");
             showAlert(error.message);
           } else {
-            // Hide splash and show success message
             splashScreen.classList.add("hidden-splash");
             showAlert(
               "Account created successfully! You can now sign in.",
@@ -1762,12 +1778,9 @@
             password,
           });
           if (error) {
-            // Hide splash and show error
             splashScreen.classList.add("hidden-splash");
             showAlert(error.message);
           } else {
-            // On success, this moves to checkUserSession()
-            // which will load the data and smoothly hide the splash screen!
             checkUserSession();
           }
         }
@@ -1775,8 +1788,7 @@
 
       async function signOutApp() {
         await supabaseClient.auth.signOut();
-        document.getElementById("sidebar").classList.remove("open");
-        document.getElementById("sidebar-overlay").classList.remove("show");
+        closeSidebar();
         checkUserSession();
       }
 
@@ -1799,8 +1811,8 @@
             .charAt(0)
             .toUpperCase();
 
-          switchDashboardView("search"); // Set default view
-          await fetchAllPostOffices(); // Wait for data to load
+          switchDashboardView("search");
+          await fetchAllPostOffices();
         } else {
           authView.classList.remove("hidden");
           dashboardView.classList.add("hidden");
@@ -1808,7 +1820,6 @@
           currentFilteredData = [];
         }
 
-        // Add a slight delay to ensure a smooth transition, then hide splash screen
         setTimeout(() => {
           splashScreen.classList.add("hidden-splash");
         }, 400);
@@ -1830,25 +1841,23 @@
         });
 
       let lastScrollTop = 0;
-      let isAnimating = false; // Lock to prevent the browser's feedback loop
+      let isAnimating = false;
 
       const resultsArea = document.getElementById("results-display-area");
       const searchHero = document.querySelector(".search-hero");
 
       resultsArea.addEventListener("scroll", function () {
-        if (isAnimating) return; // Ignore layout-shift scrolls triggered during animation
+        if (isAnimating) return;
 
         let currentScroll = this.scrollTop;
 
-        // 1. TOP BOUNCE SAFETY: Restore header smoothly if we hit the absolute top
         if (currentScroll <= 10) {
           if (searchHero.classList.contains("collapsed")) {
             isAnimating = true;
             searchHero.classList.remove("collapsed");
             resultsArea.classList.remove("expanded");
-            this.style.maxHeight = ""; // Reset to CSS default
+            this.style.maxHeight = "";
 
-            // Lock for 350ms (safely covers your 0.3s CSS transition)
             setTimeout(() => {
               isAnimating = false;
             }, 350);
@@ -1857,7 +1866,6 @@
           return;
         }
 
-        // 2. SCROLL DOWN (Hide search bar, expand list)
         if (currentScroll > lastScrollTop && currentScroll > 20) {
           if (!searchHero.classList.contains("collapsed")) {
             isAnimating = true;
@@ -1865,9 +1873,7 @@
             searchHero.classList.add("collapsed");
             resultsArea.classList.add("expanded");
 
-            // The mathematical lock: Force the container to be at least 10px shorter than its content.
-            // This physically prevents the browser from deleting the scrollbar and resetting scrollTop to 0.
-            let maxVh = window.innerHeight * 0.7; // 70vh limit from your CSS
+            let maxVh = window.innerHeight * 0.7;
             let safeMaxHeight = Math.min(maxVh, this.scrollHeight - 10);
             this.style.maxHeight = safeMaxHeight + "px";
 
@@ -1875,18 +1881,12 @@
               isAnimating = false;
             }, 350);
           }
-        }
-
-        // 3. SCROLL UP (Show search bar, contract list)
-        // Added a 10px threshold (currentScroll < lastScrollTop - 10) so tiny finger jitters don't trigger this
-        else if (currentScroll < lastScrollTop - 10) {
+        } else if (currentScroll < lastScrollTop - 10) {
           if (searchHero.classList.contains("collapsed")) {
             isAnimating = true;
 
             searchHero.classList.remove("collapsed");
             resultsArea.classList.remove("expanded");
-
-            // Remove the inline height limit so it shrinks back naturally
             this.style.maxHeight = "";
 
             setTimeout(() => {
@@ -1895,30 +1895,40 @@
           }
         }
 
-        // Update last position (prevent negative values from rubber-banding)
         lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
       });
 
       // --- DYNAMIC MULTIPLE RECORDS ---
 
-      // Add a new row to the UI
-      function addInputRow() {
-        const container = document.getElementById("manual-entries-container");
-        const rowHTML = `
-    <div class="manual-entry-row" style="display: flex; gap: 10px; margin-top: 16px; align-items: flex-end;">
-      <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-        <input type="text" class="manual-branch" placeholder="Branch name" />
-      </div>
-      <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-        <input type="text" class="manual-sub" placeholder="Sub office name" />
-      </div>
-      <button type="button" class="btn" style="width: auto; background: #ef4444; padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
-    </div>
-  `;
-        container.insertAdjacentHTML("beforeend", rowHTML);
+      function getManualEntryRowHTML(showLabels = false) {
+        return `
+        <div class="manual-entry-row">
+          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+            ${showLabels ? "<label>Address</label>" : ""}
+            <input type="text" class="manual-address" placeholder="Address" />
+          </div>
+          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+            ${showLabels ? "<label>Office</label>" : ""}
+            <input type="text" class="manual-office" placeholder="Office name" />
+          </div>
+          <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+            ${showLabels ? "<label>Pin</label>" : ""}
+            <input type="text" class="manual-Pin" placeholder="e.g. 231305" />
+          </div>
+          <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
+        </div>
+        `;
       }
 
-      // Gather all rows and push to Supabase
+      // Initialize the first row
+      document.getElementById("manual-entries-container").innerHTML =
+        getManualEntryRowHTML(true);
+
+      function addInputRow() {
+        const container = document.getElementById("manual-entries-container");
+        container.insertAdjacentHTML("beforeend", getManualEntryRowHTML(false));
+      }
+
       async function submitMultipleRecords() {
         const rows = document.querySelectorAll(".manual-entry-row");
         const recordsToInsert = [];
@@ -1927,16 +1937,16 @@
           data: { session },
         } = await supabaseClient.auth.getSession();
 
-        // Loop through all rows to grab their values
         rows.forEach((row) => {
-          const branch = row.querySelector(".manual-branch").value.trim();
-          const sub = row.querySelector(".manual-sub").value.trim();
+          const address = row.querySelector(".manual-address").value.trim();
+          const office = row.querySelector(".manual-office").value.trim();
+          const Pin = row.querySelector(".manual-Pin").value.trim();
 
-          // Only add rows that have both fields filled out
-          if (branch && sub) {
+          if (address && office) {
             recordsToInsert.push({
-              branch_office: branch,
-              sub_office: sub,
+              Address: address,
+              Office: office,
+              Pin: Pin || null,
               user_id: session.user.id,
             });
           }
@@ -1950,7 +1960,6 @@
         btn.textContent = "Submitting...";
         btn.disabled = true;
 
-        // Insert the whole array at once
         const { error } = await supabaseClient
           .from("post_offices")
           .insert(recordsToInsert);
@@ -1959,46 +1968,43 @@
           alert("Error adding records: " + error.message);
         } else {
           showToast(`✅ ${recordsToInsert.length} records added successfully!`);
-
-          // Reset UI to a single empty row
-          document.getElementById("manual-entries-container").innerHTML = `
-      <div class="manual-entry-row" style="display: flex; gap: 10px; margin-top: 16px; align-items: flex-end;">
-        <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-          <label>Branch Office</label>
-          <input type="text" class="manual-branch" placeholder="Branch name" />
-        </div>
-        <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-          <label>Sub Office</label>
-          <input type="text" class="manual-sub" placeholder="Sub office name" />
-        </div>
-        <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
-      </div>
-    `;
-          fetchAllPostOffices(); // Refresh your table/list
+          document.getElementById("manual-entries-container").innerHTML =
+            getManualEntryRowHTML(true);
+          fetchAllPostOffices();
         }
 
         btn.textContent = "Submit All";
         btn.disabled = false;
       }
 
-      // 2. UPDATE Record
-      async function updateRecord(id, currentBranch, currentSub) {
-        // Using native prompts for quick editing. For a heavier app, replace with a custom Modal.
-        const newBranch = prompt("Edit Branch Office:", currentBranch);
-        if (newBranch === null) return; // User cancelled
+      async function updateRecord(
+        id,
+        currentAddress,
+        currentOffice,
+        currentPin
+      ) {
+        const newAddress = prompt("Edit Address:", currentAddress);
+        if (newAddress === null) return;
 
-        const newSub = prompt("Edit Sub Office:", currentSub);
-        if (newSub === null) return; // User cancelled
+        const newOffice = prompt("Edit Office:", currentOffice);
+        if (newOffice === null) return;
 
-        if (!newBranch.trim() || !newSub.trim()) {
-          return alert("Fields cannot be empty.");
+        const newPin = prompt(
+          "Edit Pin:",
+          currentPin === "null" || currentPin === "undefined" ? "" : currentPin
+        );
+        if (newPin === null) return;
+
+        if (!newAddress.trim() || !newOffice.trim()) {
+          return alert("Address and Office cannot be empty.");
         }
 
         const { error } = await supabaseClient
           .from("post_offices")
           .update({
-            branch_office: newBranch.trim(),
-            sub_office: newSub.trim(),
+            Address: newAddress.trim(),
+            Office: newOffice.trim(),
+            Pin: newPin.trim() || null,
           })
           .eq("id", id);
 
@@ -2006,16 +2012,13 @@
           alert("Error updating record: " + error.message);
         } else {
           showToast("✅ Record updated successfully!");
-          fetchAllPostOffices(); // Refresh UI
+          fetchAllPostOffices();
         }
       }
 
-      // 3. DELETE Record
       async function deleteRecord(id) {
         if (
-          !confirm(
-            "Are you sure you want to permanently delete this post office?"
-          )
+          !confirm("Are you sure you want to permanently delete this record?")
         )
           return;
 
@@ -2028,31 +2031,21 @@
           alert("Error deleting record: " + error.message);
         } else {
           showToast("🗑️ Record deleted.");
-          fetchAllPostOffices(); // Refresh UI
+          fetchAllPostOffices();
         }
       }
+
       // --- DOWNLOAD SAMPLE EXCEL TEMPLATE ---
       function downloadSampleExcel() {
-        // 1. Create a new workbook
         const wb = XLSX.utils.book_new();
-
-        // 2. Define the sample data with exact required headers
         const sampleData = [
-          { "Branch Office": "Gothani BO", "Sub Office": "Chopan SO" },
-          { "Branch Office": "Korachi BO", "Sub Office": "Amwar SO" },
-          { "Branch Office": "Sandwa BO", "Sub Office": "Kachhwa SO" },
+          { Address: "Gothani BO", Office: "Chopan SO", Pin: "231205" },
+          { Address: "Biraura BO", Office: "Bijaipur SO", Pin: "231305" },
+          { Address: "Sandwa BO", Office: "Kachhwa SO", Pin: "231501" },
         ];
-
-        // 3. Convert the JSON data to an Excel worksheet
         const ws = XLSX.utils.json_to_sheet(sampleData);
-
-        // 4. Adjust column widths for better visibility
-        ws["!cols"] = [{ wch: 25 }, { wch: 25 }];
-
-        // 5. Append the worksheet to the workbook
+        ws["!cols"] = [{ wch: 20 }, { wch: 20 }, { wch: 15 }];
         XLSX.utils.book_append_sheet(wb, ws, "DakMitra Template");
-
-        // 6. Trigger the download for the user
         XLSX.writeFile(wb, "DakMitra_Sample_Template.xlsx");
         showToast("📥 Sample Excel downloaded!");
       }
