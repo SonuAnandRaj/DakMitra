@@ -91,12 +91,11 @@
         overflow-x: hidden;
       }
 
-#dashboard-view:not(.hidden) {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
+      #dashboard-view:not(.hidden) {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
 
       /* --- BEAUTIFUL GRADIENT BRANDING --- */
       .app-bar h1,
@@ -747,13 +746,13 @@
 
       /* --- FOOTER --- */
       .app-footer {
-  margin-top: auto; 
-  margin-bottom: calc(24px + env(safe-area-inset-bottom)); 
-  padding: 32px 16px 16px;
-  text-align: center;
-  border-top: 1px solid var(--border);
-  background: var(--bg);
-}
+        margin-top: auto;
+        margin-bottom: calc(24px + env(safe-area-inset-bottom));
+        padding: 32px 16px 16px;
+        text-align: center;
+        border-top: 1px solid var(--border);
+        background: var(--bg);
+      }
 
       .app-footer p {
         font-size: 13px;
@@ -1140,18 +1139,81 @@
         <!-- UPLOAD VIEW (Hidden by default) -->
         <section id="view-upload" class="view-section">
           <!-- Manual Data Entry Card -->
-<div class="upload-card" style="margin-bottom: 24px;">
-  <h2 style="font-size: 22px; font-weight: 700;">Add Single Record</h2>
-  <div class="input-group" style="margin-top: 16px; text-align: left;">
-    <label>Branch Office</label>
-    <input type="text" id="manual-branch" placeholder="Enter branch office name" />
-  </div>
-  <div class="input-group" style="text-align: left;">
-    <label>Sub Office</label>
-    <input type="text" id="manual-sub" placeholder="Enter sub office name" />
-  </div>
-  <button type="button" class="btn" id="add-record-btn" onclick="addSingleRecord()">Add Record</button>
-</div>
+          <div class="upload-card" style="margin-bottom: 24px">
+            <h2 style="font-size: 22px; font-weight: 700">
+              Add Records Manually
+            </h2>
+
+            <!-- Container for the rows -->
+            <div id="manual-entries-container">
+              <div
+                class="manual-entry-row"
+                style="
+                  display: flex;
+                  gap: 10px;
+                  margin-top: 16px;
+                  align-items: flex-end;
+                "
+              >
+                <div
+                  class="input-group"
+                  style="flex: 1; margin-bottom: 0; text-align: left"
+                >
+                  <label>Branch Office</label>
+                  <input
+                    type="text"
+                    class="manual-branch"
+                    placeholder="Branch name"
+                  />
+                </div>
+                <div
+                  class="input-group"
+                  style="flex: 1; margin-bottom: 0; text-align: left"
+                >
+                  <label>Sub Office</label>
+                  <input
+                    type="text"
+                    class="manual-sub"
+                    placeholder="Sub office name"
+                  />
+                </div>
+                <button
+                  type="button"
+                  class="btn"
+                  style="
+                    width: auto;
+                    background: var(--border);
+                    color: var(--text);
+                    padding: 14px;
+                  "
+                  onclick="this.parentElement.remove()"
+                  title="Remove row"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 12px; margin-top: 20px">
+              <button
+                type="button"
+                class="btn"
+                style="background: var(--btn-secondary); color: var(--text)"
+                onclick="addInputRow()"
+              >
+                + Add Row
+              </button>
+              <button
+                type="button"
+                class="btn"
+                id="submit-multiple-btn"
+                onclick="submitMultipleRecords()"
+              >
+                Submit All
+              </button>
+            </div>
+          </div>
           <div class="upload-card">
             <h2 style="font-size: 22px; font-weight: 700">
               Database Management
@@ -1171,10 +1233,30 @@
               >
                 Upload to Database
               </button>
+              <!-- Add this new helper text and link below the button -->
+              <p
+                style="
+                  font-size: 13px;
+                  margin-top: 16px;
+                  color: var(--text-light);
+                "
+              >
+                Need a template?
+                <a
+                  href="#"
+                  onclick="downloadSampleExcel(); return false;"
+                  style="
+                    color: var(--primary);
+                    font-weight: 600;
+                    text-decoration: none;
+                  "
+                  >Download Sample Excel File</a
+                >
+              </p>
             </div>
           </div>
         </section>
-        <!-- FOOTER -->
+        <!-- FOOTER -->s
         <footer class="app-footer">
           <p>
             Developed with <span style="color: #ef4444">♥</span> by
@@ -1397,48 +1479,84 @@
         }
 
         // --- Updated renderResults() logic ---
-if (viewMode === "list") {
-  let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
-  currentFilteredData.forEach((result) => {
-    const office = result.item;
-    const branchHtml = highlightText(office.branch_office, result.matches, "branch_office");
-    const subHtml = highlightText(office.sub_office, result.matches, "sub_office");
+        if (viewMode === "list") {
+          let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
+          currentFilteredData.forEach((result) => {
+            const office = result.item;
+            const branchHtml = highlightText(
+              office.branch_office,
+              result.matches,
+              "branch_office"
+            );
+            const subHtml = highlightText(
+              office.sub_office,
+              result.matches,
+              "sub_office"
+            );
 
-    html += `
+            html += `
       <li class="list-item" style="display: flex; justify-content: space-between; align-items: center;">
           <div>
             <div class="office-title">${branchHtml}</div>
             <div class="sub-office">Sub: ${subHtml}</div>
           </div>
           <div style="display: flex; gap: 4px;">
-            <button onclick="updateRecord('${office.id}', '${office.branch_office.replace(/'/g, "\\'")}', '${office.sub_office.replace(/'/g, "\\'")}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
-            <button onclick="deleteRecord('${office.id}')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
+            <button onclick="updateRecord('${
+              office.id
+            }', '${office.branch_office.replace(
+              /'/g,
+              "\\'"
+            )}', '${office.sub_office.replace(
+              /'/g,
+              "\\'"
+            )}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
+            <button onclick="deleteRecord('${
+              office.id
+            }')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
           </div>
       </li>`;
-  });
-  html += `</ul>`;
-  displayArea.innerHTML = html;
-} else {
-  let html = `<table class="data-table">
+          });
+          html += `</ul>`;
+          displayArea.innerHTML = html;
+        } else {
+          let html = `<table class="data-table">
                 <thead><tr><th>Branch Office</th><th>Sub Office</th><th style="text-align: right;">Actions</th></tr></thead>
                 <tbody>`;
-  currentFilteredData.forEach((result) => {
-    const office = result.item;
-    const branchHtml = highlightText(office.branch_office, result.matches, "branch_office");
-    const subHtml = highlightText(office.sub_office, result.matches, "sub_office");
+          currentFilteredData.forEach((result) => {
+            const office = result.item;
+            const branchHtml = highlightText(
+              office.branch_office,
+              result.matches,
+              "branch_office"
+            );
+            const subHtml = highlightText(
+              office.sub_office,
+              result.matches,
+              "sub_office"
+            );
 
-    html += `<tr>
+            html += `<tr>
               <td>${branchHtml}</td>
               <td>${subHtml}</td>
               <td style="text-align: right;">
-                <button onclick="updateRecord('${office.id}', '${office.branch_office.replace(/'/g, "\\'")}', '${office.sub_office.replace(/'/g, "\\'")}')" class="toolbar-btn" style="padding: 4px 8px;">✎</button>
-                <button onclick="deleteRecord('${office.id}')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑</button>
+                <button onclick="updateRecord('${
+                  office.id
+                }', '${office.branch_office.replace(
+              /'/g,
+              "\\'"
+            )}', '${office.sub_office.replace(
+              /'/g,
+              "\\'"
+            )}')" class="toolbar-btn" style="padding: 4px 8px;">✎</button>
+                <button onclick="deleteRecord('${
+                  office.id
+                }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑</button>
               </td>
              </tr>`;
-  });
-  html += `</tbody></table>`;
-  displayArea.innerHTML = html;
-}
+          });
+          html += `</tbody></table>`;
+          displayArea.innerHTML = html;
+        }
       }
 
       function copyResults() {
@@ -1696,22 +1814,24 @@ if (viewMode === "list") {
         }, 400);
       }
 
-            // --- EVENT LISTENERS ---
-      document.getElementById("search-input").addEventListener("input", function () {
-        const clearBtn = document.getElementById("clear-search-btn");
-        
-        if (this.value.length > 0) {
-          clearBtn.classList.remove("hidden");
-        } else {
-          clearBtn.classList.add("hidden");
-        }
-        
-        triggerSearch();
-      });
+      // --- EVENT LISTENERS ---
+      document
+        .getElementById("search-input")
+        .addEventListener("input", function () {
+          const clearBtn = document.getElementById("clear-search-btn");
+
+          if (this.value.length > 0) {
+            clearBtn.classList.remove("hidden");
+          } else {
+            clearBtn.classList.add("hidden");
+          }
+
+          triggerSearch();
+        });
 
       let lastScrollTop = 0;
       let isAnimating = false; // Lock to prevent the browser's feedback loop
-      
+
       const resultsArea = document.getElementById("results-display-area");
       const searchHero = document.querySelector(".search-hero");
 
@@ -1727,9 +1847,11 @@ if (viewMode === "list") {
             searchHero.classList.remove("collapsed");
             resultsArea.classList.remove("expanded");
             this.style.maxHeight = ""; // Reset to CSS default
-            
+
             // Lock for 350ms (safely covers your 0.3s CSS transition)
-            setTimeout(() => { isAnimating = false; }, 350);
+            setTimeout(() => {
+              isAnimating = false;
+            }, 350);
           }
           lastScrollTop = currentScroll;
           return;
@@ -1738,7 +1860,7 @@ if (viewMode === "list") {
         // 2. SCROLL DOWN (Hide search bar, expand list)
         if (currentScroll > lastScrollTop && currentScroll > 20) {
           if (!searchHero.classList.contains("collapsed")) {
-            isAnimating = true; 
+            isAnimating = true;
 
             searchHero.classList.add("collapsed");
             resultsArea.classList.add("expanded");
@@ -1749,104 +1871,191 @@ if (viewMode === "list") {
             let safeMaxHeight = Math.min(maxVh, this.scrollHeight - 10);
             this.style.maxHeight = safeMaxHeight + "px";
 
-            setTimeout(() => { isAnimating = false; }, 350); 
+            setTimeout(() => {
+              isAnimating = false;
+            }, 350);
           }
-        } 
-        
+        }
+
         // 3. SCROLL UP (Show search bar, contract list)
         // Added a 10px threshold (currentScroll < lastScrollTop - 10) so tiny finger jitters don't trigger this
         else if (currentScroll < lastScrollTop - 10) {
           if (searchHero.classList.contains("collapsed")) {
-            isAnimating = true; 
+            isAnimating = true;
 
             searchHero.classList.remove("collapsed");
             resultsArea.classList.remove("expanded");
-            
-            // Remove the inline height limit so it shrinks back naturally
-            this.style.maxHeight = ""; 
 
-            setTimeout(() => { isAnimating = false; }, 350);
+            // Remove the inline height limit so it shrinks back naturally
+            this.style.maxHeight = "";
+
+            setTimeout(() => {
+              isAnimating = false;
+            }, 350);
           }
         }
-        
+
         // Update last position (prevent negative values from rubber-banding)
         lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
       });
 
-// --- DIRECT CRUD OPERATIONS ---
+      // --- DYNAMIC MULTIPLE RECORDS ---
 
-// 1. CREATE Record
-async function addSingleRecord() {
-  const branch = document.getElementById("manual-branch").value.trim();
-  const sub = document.getElementById("manual-sub").value.trim();
-  
-  if (!branch || !sub) return showToast("Please fill in both fields");
+      // Add a new row to the UI
+      function addInputRow() {
+        const container = document.getElementById("manual-entries-container");
+        const rowHTML = `
+    <div class="manual-entry-row" style="display: flex; gap: 10px; margin-top: 16px; align-items: flex-end;">
+      <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+        <input type="text" class="manual-branch" placeholder="Branch name" />
+      </div>
+      <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+        <input type="text" class="manual-sub" placeholder="Sub office name" />
+      </div>
+      <button type="button" class="btn" style="width: auto; background: #ef4444; padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
+    </div>
+  `;
+        container.insertAdjacentHTML("beforeend", rowHTML);
+      }
 
-  const btn = document.getElementById("add-record-btn");
-  btn.textContent = "Adding...";
-  btn.disabled = true;
+      // Gather all rows and push to Supabase
+      async function submitMultipleRecords() {
+        const rows = document.querySelectorAll(".manual-entry-row");
+        const recordsToInsert = [];
 
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  
-  const { error } = await supabaseClient
-    .from("post_offices")
-    .insert([{ branch_office: branch, sub_office: sub, user_id: session.user.id }]);
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
 
-  if (error) {
-    alert("Error adding record: " + error.message);
-  } else {
-    document.getElementById("manual-branch").value = "";
-    document.getElementById("manual-sub").value = "";
-    showToast("✅ Record added successfully!");
-    fetchAllPostOffices(); // Refresh UI
-  }
-  
-  btn.textContent = "Add Record";
-  btn.disabled = false;
-}
+        // Loop through all rows to grab their values
+        rows.forEach((row) => {
+          const branch = row.querySelector(".manual-branch").value.trim();
+          const sub = row.querySelector(".manual-sub").value.trim();
 
-// 2. UPDATE Record
-async function updateRecord(id, currentBranch, currentSub) {
-  // Using native prompts for quick editing. For a heavier app, replace with a custom Modal.
-  const newBranch = prompt("Edit Branch Office:", currentBranch);
-  if (newBranch === null) return; // User cancelled
-  
-  const newSub = prompt("Edit Sub Office:", currentSub);
-  if (newSub === null) return; // User cancelled
+          // Only add rows that have both fields filled out
+          if (branch && sub) {
+            recordsToInsert.push({
+              branch_office: branch,
+              sub_office: sub,
+              user_id: session.user.id,
+            });
+          }
+        });
 
-  if (!newBranch.trim() || !newSub.trim()) {
-    return alert("Fields cannot be empty.");
-  }
+        if (recordsToInsert.length === 0) {
+          return showToast("Please fill in at least one complete row.");
+        }
 
-  const { error } = await supabaseClient
-    .from("post_offices")
-    .update({ branch_office: newBranch.trim(), sub_office: newSub.trim() })
-    .eq("id", id);
+        const btn = document.getElementById("submit-multiple-btn");
+        btn.textContent = "Submitting...";
+        btn.disabled = true;
 
-  if (error) {
-    alert("Error updating record: " + error.message);
-  } else {
-    showToast("✅ Record updated successfully!");
-    fetchAllPostOffices(); // Refresh UI
-  }
-}
+        // Insert the whole array at once
+        const { error } = await supabaseClient
+          .from("post_offices")
+          .insert(recordsToInsert);
 
-// 3. DELETE Record
-async function deleteRecord(id) {
-  if (!confirm("Are you sure you want to permanently delete this post office?")) return;
+        if (error) {
+          alert("Error adding records: " + error.message);
+        } else {
+          showToast(`✅ ${recordsToInsert.length} records added successfully!`);
 
-  const { error } = await supabaseClient
-    .from("post_offices")
-    .delete()
-    .eq("id", id);
+          // Reset UI to a single empty row
+          document.getElementById("manual-entries-container").innerHTML = `
+      <div class="manual-entry-row" style="display: flex; gap: 10px; margin-top: 16px; align-items: flex-end;">
+        <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+          <label>Branch Office</label>
+          <input type="text" class="manual-branch" placeholder="Branch name" />
+        </div>
+        <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+          <label>Sub Office</label>
+          <input type="text" class="manual-sub" placeholder="Sub office name" />
+        </div>
+        <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
+      </div>
+    `;
+          fetchAllPostOffices(); // Refresh your table/list
+        }
 
-  if (error) {
-    alert("Error deleting record: " + error.message);
-  } else {
-    showToast("🗑️ Record deleted.");
-    fetchAllPostOffices(); // Refresh UI
-  }
-}
+        btn.textContent = "Submit All";
+        btn.disabled = false;
+      }
+
+      // 2. UPDATE Record
+      async function updateRecord(id, currentBranch, currentSub) {
+        // Using native prompts for quick editing. For a heavier app, replace with a custom Modal.
+        const newBranch = prompt("Edit Branch Office:", currentBranch);
+        if (newBranch === null) return; // User cancelled
+
+        const newSub = prompt("Edit Sub Office:", currentSub);
+        if (newSub === null) return; // User cancelled
+
+        if (!newBranch.trim() || !newSub.trim()) {
+          return alert("Fields cannot be empty.");
+        }
+
+        const { error } = await supabaseClient
+          .from("post_offices")
+          .update({
+            branch_office: newBranch.trim(),
+            sub_office: newSub.trim(),
+          })
+          .eq("id", id);
+
+        if (error) {
+          alert("Error updating record: " + error.message);
+        } else {
+          showToast("✅ Record updated successfully!");
+          fetchAllPostOffices(); // Refresh UI
+        }
+      }
+
+      // 3. DELETE Record
+      async function deleteRecord(id) {
+        if (
+          !confirm(
+            "Are you sure you want to permanently delete this post office?"
+          )
+        )
+          return;
+
+        const { error } = await supabaseClient
+          .from("post_offices")
+          .delete()
+          .eq("id", id);
+
+        if (error) {
+          alert("Error deleting record: " + error.message);
+        } else {
+          showToast("🗑️ Record deleted.");
+          fetchAllPostOffices(); // Refresh UI
+        }
+      }
+      // --- DOWNLOAD SAMPLE EXCEL TEMPLATE ---
+      function downloadSampleExcel() {
+        // 1. Create a new workbook
+        const wb = XLSX.utils.book_new();
+
+        // 2. Define the sample data with exact required headers
+        const sampleData = [
+          { "Branch Office": "Prayagraj H.O", "Sub Office": "Civil Lines" },
+          { "Branch Office": "Mirzapur H.O", "Sub Office": "Vindhyachal" },
+          { "Branch Office": "Patna G.P.O.", "Sub Office": "Ashok Rajpath" },
+        ];
+
+        // 3. Convert the JSON data to an Excel worksheet
+        const ws = XLSX.utils.json_to_sheet(sampleData);
+
+        // 4. Adjust column widths for better visibility
+        ws["!cols"] = [{ wch: 25 }, { wch: 25 }];
+
+        // 5. Append the worksheet to the workbook
+        XLSX.utils.book_append_sheet(wb, ws, "DakMitra Template");
+
+        // 6. Trigger the download for the user
+        XLSX.writeFile(wb, "DakMitra_Sample_Template.xlsx");
+        showToast("📥 Sample Excel downloaded!");
+      }
 
       // BOOTSTRAP APP
       checkUserSession();
