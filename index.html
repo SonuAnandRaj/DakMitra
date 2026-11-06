@@ -588,32 +588,110 @@
         margin-top: 16px;
         flex-wrap: wrap;
       }
-      /* --- ADVANCED FILTERS --- */
-      .advanced-filter-toggle {
-        background: transparent;
-        border: none;
-        color: var(--primary);
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        margin-top: 12px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        transition: 0.2s;
-        padding: 4px 8px;
-        border-radius: 8px;
-      }
+
       .advanced-filter-toggle:hover {
         background: var(--btn-secondary);
       }
-      .advanced-filters-panel {
-        display: flex;
-        gap: 12px;
-        margin-top: 12px;
-        flex-direction: column;
-        animation: fadeInDown 0.3s ease;
-      }
+/* --- SEARCH OPTIONS & ADVANCED FILTERS --- */
+.advanced-filter-toggle {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: 0.2s;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+.advanced-filter-toggle:hover {
+  background: var(--input-bg);
+}
+
+.advanced-filters-panel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 12px;
+  display: block; /* Forces strict vertical stacking of the top and bottom rows */
+  animation: fadeInDown 0.3s ease;
+  width: 100%;
+}
+
+/* Row 1: Radio Chips (Top Row) */
+.search-filters-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px; /* Creates clean spacing before the input fields */
+}
+.filter-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-light);
+  min-width: 70px;
+}
+.chips-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (min-width: 600px) {
+  .search-filters-row {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* Row 2: Secondary Inputs (Bottom Row) */
+.advanced-filters-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+@media (min-width: 600px) {
+  .advanced-filters-inputs {
+    flex-direction: row;
+  }
+}
+
+.filter-wrapper {
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  padding: 0 12px;
+  height: 48px;
+  flex: 1;
+  display: flex;
+  align-items: center; /* Centers the icon and text vertically */
+  min-width: 0;
+}
+.filter-wrapper input {
+  font-size: 14px;
+  border: none;
+  background: transparent;
+  outline: none;
+  flex: 1;
+  min-width: 0; /* Prevents the text input from breaking out of the box */
+  height: 100%;
+}
+.filter-icon {
+  font-size: 16px;
+  opacity: 0.7;
+  margin-right: 8px;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
       @media (min-width: 600px) {
         .advanced-filters-panel {
           flex-direction: row;
@@ -1220,104 +1298,104 @@
                 Search
               </button>
             </div>
-            <!-- NEW FILTER UI -->
-            <div class="search-filters">
-              <span
-                style="
-                  font-size: 13px;
-                  font-weight: 600;
-                  color: var(--text-light);
-                "
-                >Search in:</span
-              >
-              <label class="filter-chip">
-                <input
-                  type="radio"
-                  name="searchFilter"
-                  value="address"
-                  checked
-                  onchange="triggerSearch()"
-                />
-                <span>Address Only</span>
-              </label>
-              <label class="filter-chip">
-                <input
-                  type="radio"
-                  name="searchFilter"
-                  value="office"
-                  onchange="triggerSearch()"
-                />
-                <span>Office Only</span>
-              </label>
-              <label class="filter-chip">
-                <input
-                  type="radio"
-                  name="searchFilter"
-                  value="pin"
-                  onchange="triggerSearch()"
-                />
-                <span>Pin Only</span>
-              </label>
-              <label class="filter-chip">
-                <input
-                  type="radio"
-                  name="searchFilter"
-                  value="all"
-                  onchange="triggerSearch()"
-                />
-                <span>All Fields</span>
-              </label>
-            </div>
-            <!-- ADVANCED REFINE TOGGLE -->
+
+            <!-- UNIFIED OPTIONS TOGGLE -->
             <button
               type="button"
               class="advanced-filter-toggle"
               onclick="toggleAdvancedFilters()"
             >
-              ⚙️ Refine Search
+              ⚙️ Search Options
             </button>
 
             <div
               id="advanced-filters-panel"
               class="advanced-filters-panel hidden"
             >
-              <div class="search-input-wrapper filter-wrapper">
-                <span class="filter-icon">🏢</span>
-                <input
-                  type="text"
-                  id="filter-office"
-                  placeholder="Must be in Office..."
-                  oninput="toggleClearBtn('filter-office', 'clear-office-btn'); triggerSearch();"
-                  autocomplete="off"
-                />
-                <button
-                  type="button"
-                  id="clear-office-btn"
-                  class="clear-btn hidden"
-                  onclick="clearFilterInput('filter-office', 'clear-office-btn')"
-                  title="Clear Office Filter"
-                >
-                  ✕
-                </button>
+              <!-- PRIMARY FILTERS (Row 1) -->
+              <div class="search-filters-row">
+                <span class="filter-label">Search in:</span>
+                <div class="chips-container">
+                  <label class="filter-chip">
+                    <input
+                      type="radio"
+                      name="searchFilter"
+                      value="all"
+                      onchange="triggerSearch()"
+                    />
+                    <span>All</span>
+                  </label>
+                  <label class="filter-chip">
+                    <input
+                      type="radio"
+                      name="searchFilter"
+                      value="address"
+                      checked
+                      onchange="triggerSearch()"
+                    />
+                    <span>Address</span>
+                  </label>
+                  <label class="filter-chip">
+                    <input
+                      type="radio"
+                      name="searchFilter"
+                      value="office"
+                      onchange="triggerSearch()"
+                    />
+                    <span>Office</span>
+                  </label>
+                  <label class="filter-chip">
+                    <input
+                      type="radio"
+                      name="searchFilter"
+                      value="pin"
+                      onchange="triggerSearch()"
+                    />
+                    <span>Pin</span>
+                  </label>
+                </div>
               </div>
-              <div class="search-input-wrapper filter-wrapper">
-                <span class="filter-icon">📍</span>
-                <input
-                  type="text"
-                  id="filter-pin"
-                  placeholder="Must have Pin..."
-                  oninput="toggleClearBtn('filter-pin', 'clear-pin-btn'); triggerSearch();"
-                  autocomplete="off"
-                />
-                <button
-                  type="button"
-                  id="clear-pin-btn"
-                  class="clear-btn hidden"
-                  onclick="clearFilterInput('filter-pin', 'clear-pin-btn')"
-                  title="Clear Pin Filter"
-                >
-                  ✕
-                </button>
+
+              <!-- SECONDARY FILTERS (Row 2) -->
+              <div class="advanced-filters-inputs">
+                <div class="search-input-wrapper filter-wrapper">
+                  <span class="filter-icon">🏢</span>
+                  <input
+                    type="text"
+                    id="filter-office"
+                    placeholder="Must be in Office..."
+                    oninput="toggleClearBtn('filter-office', 'clear-office-btn'); triggerSearch();"
+                    autocomplete="off"
+                  />
+                  <button
+                    type="button"
+                    id="clear-office-btn"
+                    class="clear-btn hidden"
+                    onclick="clearFilterInput('filter-office', 'clear-office-btn')"
+                    title="Clear Office Filter"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div class="search-input-wrapper filter-wrapper">
+                  <span class="filter-icon">📍</span>
+                  <input
+                    type="text"
+                    id="filter-pin"
+                    placeholder="Must have Pin..."
+                    oninput="toggleClearBtn('filter-pin', 'clear-pin-btn'); triggerSearch();"
+                    autocomplete="off"
+                  />
+                  <button
+                    type="button"
+                    id="clear-pin-btn"
+                    class="clear-btn hidden"
+                    onclick="clearFilterInput('filter-pin', 'clear-pin-btn')"
+                    title="Clear Pin Filter"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             </div>
           </div>
