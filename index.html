@@ -1705,62 +1705,61 @@
       const searchHero = document.querySelector(".search-hero");
 
       resultsArea.addEventListener("scroll", function () {
-        if (isAnimating) return; // Ignore layout-shift scrolls triggered by our script
+        if (isAnimating) return; // Ignore layout-shift scrolls triggered during animation
 
         let currentScroll = this.scrollTop;
 
-        // 1. TOP BOUNCE SAFETY: Restore header smoothly if we hit the top
+        // 1. TOP BOUNCE SAFETY: Restore header smoothly if we hit the absolute top
         if (currentScroll <= 10) {
-          isAnimating = true;
-          searchHero.classList.remove("collapsed");
-          resultsArea.classList.remove("expanded");
-          this.style.paddingBottom = "0px"; // Clean up blanks
-          
-          setTimeout(() => { isAnimating = false; }, 100);
-          lastScrollTop = 0;
+          if (searchHero.classList.contains("collapsed")) {
+            isAnimating = true;
+            searchHero.classList.remove("collapsed");
+            resultsArea.classList.remove("expanded");
+            this.style.maxHeight = ""; // Reset to CSS default
+            
+            // Lock for 350ms (safely covers your 0.3s CSS transition)
+            setTimeout(() => { isAnimating = false; }, 350);
+          }
+          lastScrollTop = currentScroll;
           return;
         }
 
-        // 2. SCROLL DOWN (Hide search bar, expand list, auto-scroll)
+        // 2. SCROLL DOWN (Hide search bar, expand list)
         if (currentScroll > lastScrollTop && currentScroll > 20) {
           if (!searchHero.classList.contains("collapsed")) {
-            isAnimating = true; // Lock the listener
-
-            // Instantly add massive blanks so the browser doesn't steal our scrollbar
-            this.style.paddingBottom = "70vh"; 
+            isAnimating = true; 
 
             searchHero.classList.add("collapsed");
             resultsArea.classList.add("expanded");
 
-            // Automatically scroll the list down slightly to offset the header disappearing
-            this.scrollTop = currentScroll + 50; 
+            // The mathematical lock: Force the container to be at least 10px shorter than its content.
+            // This physically prevents the browser from deleting the scrollbar and resetting scrollTop to 0.
+            let maxVh = window.innerHeight * 0.7; // 70vh limit from your CSS
+            let safeMaxHeight = Math.min(maxVh, this.scrollHeight - 10);
+            this.style.maxHeight = safeMaxHeight + "px";
 
-            // Unlock after layout shift completes
-            setTimeout(() => { isAnimating = false; }, 200); 
+            setTimeout(() => { isAnimating = false; }, 350); 
           }
         } 
         
-        // 3. SCROLL UP (Show search bar, contract list, auto-scroll)
-        else if (currentScroll < lastScrollTop) {
+        // 3. SCROLL UP (Show search bar, contract list)
+        // Added a 10px threshold (currentScroll < lastScrollTop - 10) so tiny finger jitters don't trigger this
+        else if (currentScroll < lastScrollTop - 10) {
           if (searchHero.classList.contains("collapsed")) {
-            isAnimating = true; // Lock the listener
+            isAnimating = true; 
 
             searchHero.classList.remove("collapsed");
             resultsArea.classList.remove("expanded");
             
-            // Instantly remove the blanks
-            this.style.paddingBottom = "0px"; 
+            // Remove the inline height limit so it shrinks back naturally
+            this.style.maxHeight = ""; 
 
-            // Automatically scroll the list up to offset the header pushing it down
-            this.scrollTop = Math.max(0, currentScroll - 50);
-
-            // Unlock after layout shift completes
-            setTimeout(() => { isAnimating = false; }, 200);
+            setTimeout(() => { isAnimating = false; }, 350);
           }
         }
         
         // Update last position (prevent negative values from rubber-banding)
-        lastScrollTop = this.scrollTop <= 0 ? 0 : this.scrollTop;
+        lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
       });
 
 
