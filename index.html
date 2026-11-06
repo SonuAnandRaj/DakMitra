@@ -498,6 +498,7 @@
         gap: 10px;
         flex-direction: column;
       }
+
       @media (min-width: 600px) {
         .search-bar-modern {
           flex-direction: row;
@@ -579,6 +580,92 @@
         font-size: 16px;
         flex-shrink: 0;
       }
+      /* --- SEARCH FILTERS --- */
+      .search-filters {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+      }
+      /* --- ADVANCED FILTERS --- */
+      .advanced-filter-toggle {
+        background: transparent;
+        border: none;
+        color: var(--primary);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: 0.2s;
+        padding: 4px 8px;
+        border-radius: 8px;
+      }
+      .advanced-filter-toggle:hover {
+        background: var(--btn-secondary);
+      }
+      .advanced-filters-panel {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+        flex-direction: column;
+        animation: fadeInDown 0.3s ease;
+      }
+      @media (min-width: 600px) {
+        .advanced-filters-panel {
+          flex-direction: row;
+        }
+      }
+      .filter-wrapper {
+        border-width: 1px; /* Thinner border for a lighter, secondary look */
+        padding: 2px 12px;
+        flex: 1;
+      }
+      .filter-icon {
+        font-size: 16px;
+        margin-right: 6px;
+        opacity: 0.8;
+      }
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .filter-chip {
+        cursor: pointer;
+        display: inline-flex;
+      }
+
+      .filter-chip input {
+        display: none; /* Hide the native radio button */
+      }
+
+      .filter-chip span {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--btn-secondary);
+        color: var(--text-light);
+        border: 1px solid var(--border);
+        transition: all 0.2s ease;
+      }
+
+      .filter-chip input:checked + span {
+        background: var(--primary);
+        color: #ffffff;
+        border-color: var(--primary);
+        box-shadow: var(--shadow-sm);
+      }
       @media (min-width: 600px) {
         .search-action-btn {
           width: 140px;
@@ -643,28 +730,31 @@
         margin-bottom: 8px;
       }
 
-      /* --- BEAUTIFUL BADGES FOR RESULTS --- */
+      /* --- BEAUTIFUL BADGES FOR RESULTS (UPDATED) --- */
       .badge {
         display: inline-block;
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
+        padding: 6px 14px; /* Increased padding */
+        border-radius: 8px;
+        font-size: 15px; /* Increased from 12px to 15px */
+        font-weight: 700; /* Increased to bold */
         background: var(--input-bg);
-        color: var(--text-light);
+        color: var(--text); /* Changed from text-light for better contrast */
         margin-right: 8px;
         margin-bottom: 4px;
         border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm); /* Added a subtle shadow to make it pop */
       }
+
       .badge-primary {
-        background: rgba(79, 70, 229, 0.1);
+        background: rgba(79, 70, 229, 0.15); /* Slightly richer background */
         color: var(--primary);
-        border-color: rgba(79, 70, 229, 0.2);
+        border-color: var(--primary); /* Stronger border instead of faded */
       }
+
       [data-theme="dark"] .badge-primary {
-        background: rgba(129, 140, 248, 0.1);
+        background: rgba(129, 140, 248, 0.2);
         color: var(--primary);
-        border-color: rgba(129, 140, 248, 0.2);
+        border-color: var(--primary);
       }
 
       .list-empty {
@@ -690,11 +780,11 @@
         top: 0;
       }
       table.data-table td {
-        padding: 14px 20px;
-        font-size: 14px;
-        font-weight: 500;
+        padding: 16px 20px;
+        font-size: 15px; /* Increased from 14px */
+        font-weight: 600; /* Increased from 500 */
         border-bottom: 1px solid var(--border);
-        color: var(--text-light);
+        color: var(--text); /* Changed from text-light */
         transition: background 0.2s;
       }
       table.data-table tr:hover td {
@@ -704,9 +794,9 @@
 
       /* --- SEARCH HIGHLIGHTING --- */
       .highlight-text {
-        background-color: transparent;
-        color: var(--primary);
-        font-weight: 800;
+        background-color: transparent !important;
+        color: #ef4444 !important; /* The !important tag forces this to override table row colors */
+        font-weight: 900 !important;
       }
 
       /* --- UPLOAD SECTION --- */
@@ -941,7 +1031,7 @@
           DakMitra
         </h1>
         <p style="color: var(--text-light); margin-top: 8px">
-          The modern post office database.
+          The modern postal database.
         </p>
       </div>
       <div class="auth-card">
@@ -1130,6 +1220,106 @@
                 Search
               </button>
             </div>
+            <!-- NEW FILTER UI -->
+            <div class="search-filters">
+              <span
+                style="
+                  font-size: 13px;
+                  font-weight: 600;
+                  color: var(--text-light);
+                "
+                >Search in:</span
+              >
+              <label class="filter-chip">
+                <input
+                  type="radio"
+                  name="searchFilter"
+                  value="address"
+                  checked
+                  onchange="triggerSearch()"
+                />
+                <span>Address Only</span>
+              </label>
+              <label class="filter-chip">
+                <input
+                  type="radio"
+                  name="searchFilter"
+                  value="office"
+                  onchange="triggerSearch()"
+                />
+                <span>Office Only</span>
+              </label>
+              <label class="filter-chip">
+                <input
+                  type="radio"
+                  name="searchFilter"
+                  value="pin"
+                  onchange="triggerSearch()"
+                />
+                <span>Pin Only</span>
+              </label>
+              <label class="filter-chip">
+                <input
+                  type="radio"
+                  name="searchFilter"
+                  value="all"
+                  onchange="triggerSearch()"
+                />
+                <span>All Fields</span>
+              </label>
+            </div>
+            <!-- ADVANCED REFINE TOGGLE -->
+            <button
+              type="button"
+              class="advanced-filter-toggle"
+              onclick="toggleAdvancedFilters()"
+            >
+              ⚙️ Refine Search
+            </button>
+
+            <div
+              id="advanced-filters-panel"
+              class="advanced-filters-panel hidden"
+            >
+              <div class="search-input-wrapper filter-wrapper">
+                <span class="filter-icon">🏢</span>
+                <input
+                  type="text"
+                  id="filter-office"
+                  placeholder="Must be in Office..."
+                  oninput="toggleClearBtn('filter-office', 'clear-office-btn'); triggerSearch();"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  id="clear-office-btn"
+                  class="clear-btn hidden"
+                  onclick="clearFilterInput('filter-office', 'clear-office-btn')"
+                  title="Clear Office Filter"
+                >
+                  ✕
+                </button>
+              </div>
+              <div class="search-input-wrapper filter-wrapper">
+                <span class="filter-icon">📍</span>
+                <input
+                  type="text"
+                  id="filter-pin"
+                  placeholder="Must have Pin..."
+                  oninput="toggleClearBtn('filter-pin', 'clear-pin-btn'); triggerSearch();"
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  id="clear-pin-btn"
+                  class="clear-btn hidden"
+                  onclick="clearFilterInput('filter-pin', 'clear-pin-btn')"
+                  title="Clear Pin Filter"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="results-toolbar">
@@ -1205,14 +1395,11 @@
             </div>
           </div>
           <div class="upload-card">
-            <h2 style="font-size: 22px; font-weight: 700">
-              Excel Upload
-            </h2>
+            <h2 style="font-size: 22px; font-weight: 700">Excel Upload</h2>
             <p>
-              Update the global database. Select an Excel file (.xlsx,
-              .xls).<br />Ensure the columns are exactly named
-              <strong>Address</strong>, <strong>Office</strong>, and
-              <strong>Pin</strong>.
+              Update the master database. Select an Excel file (.xlsx, .xls).<br />Ensure
+              the columns are exactly named <strong>Address</strong>,
+              <strong>Office</strong>, and <strong>Pin</strong>.
             </p>
             <div class="file-upload-wrapper">
               <input type="file" id="excel-file" accept=".xlsx, .xls" />
@@ -1365,7 +1552,7 @@
           .from("post_offices")
           .select("*");
         if (error) {
-          console.error("Error fetching post offices:", error);
+          console.error("Error fetching address:", error);
           document.getElementById(
             "results-display-area"
           ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Error loading data from server. Ensure table columns are updated to "Address", "Office", and "Pin".</li></ul>`;
@@ -1396,7 +1583,9 @@
         fuse = new Fuse(cachedPostOffices, {
           keys: ["Address", "Office", "Pin"],
           threshold: 0.3,
-          ignoreLocation: true,
+          ignoreLocation: false, // Set to false so location matters
+          location: 0, // Expect matches to be at the very start (index 0)
+          distance: 100, // How quickly the score drops as the match moves right. Lower = stricter left-priority
           includeMatches: true,
         });
         renderResults();
@@ -1418,14 +1607,69 @@
         const searchInput = document
           .getElementById("search-input")
           .value.trim();
+        const filterVal = document.querySelector(
+          'input[name="searchFilter"]:checked'
+        ).value;
+
+        // 1. Grab the secondary filter values
+        const filterOffice = document
+          .getElementById("filter-office")
+          .value.trim()
+          .toLowerCase();
+        const filterPin = document
+          .getElementById("filter-pin")
+          .value.trim()
+          .toLowerCase();
+
+        // 2. Decide which columns Fuse should search based on primary filter
+        let keysToSearch = ["Address", "Office", "Pin"];
+        if (filterVal === "address") keysToSearch = ["Address"];
+        if (filterVal === "office") keysToSearch = ["Office"];
+        if (filterVal === "pin") keysToSearch = ["Pin"];
+
+        // 3. Run primary Fuse search (or return all if search is empty)
+        let baseData = [];
         if (!searchInput) {
-          currentFilteredData = cachedPostOffices.map((item) => ({
-            item,
-            matches: [],
-          }));
+          baseData = cachedPostOffices.map((item) => ({ item, matches: [] }));
         } else {
-          currentFilteredData = fuse.search(searchInput);
+          fuse = new Fuse(cachedPostOffices, {
+            keys: keysToSearch,
+            threshold: 0.3,
+            ignoreLocation: false,
+            location: 0,
+            distance: 100,
+            includeMatches: true,
+            getFn: (obj, path) => {
+              const value = obj[path];
+              return value === null || value === undefined ? "" : String(value);
+            },
+          });
+          baseData = fuse.search(searchInput);
         }
+
+        // 4. Apply Advanced "Must Have" Filters (if user typed anything in them)
+        if (filterOffice || filterPin) {
+          baseData = baseData.filter((result) => {
+            const row = result.item;
+            let keep = true;
+
+            if (filterOffice) {
+              const officeVal = row.Office
+                ? String(row.Office).toLowerCase()
+                : "";
+              if (!officeVal.includes(filterOffice)) keep = false;
+            }
+
+            if (filterPin) {
+              const pinVal = row.Pin ? String(row.Pin).toLowerCase() : "";
+              if (!pinVal.includes(filterPin)) keep = false;
+            }
+
+            return keep;
+          });
+        }
+
+        currentFilteredData = baseData;
         renderResults();
       }
 
@@ -1441,7 +1685,12 @@
       }
 
       function highlightText(text, matches, key) {
-        if (!text) return "";
+        // 1. Return empty if null or undefined
+        if (text === null || text === undefined) return "";
+
+        // 2. FORCE text to be a string (This fixes the Pin code crash)
+        text = String(text);
+
         if (!matches || matches.length === 0) return text;
         const match = matches.find((m) => m.key === key);
         if (!match || !match.indices || match.indices.length === 0) return text;
@@ -1481,7 +1730,7 @@
         const displayArea = document.getElementById("results-display-area");
 
         if (currentFilteredData.length === 0) {
-          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No post offices found matching your search.</li></ul>`;
+          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No address found matching your search.</li></ul>`;
           return;
         }
 
@@ -1492,12 +1741,12 @@
             const addressHtml = highlightText(
               row.Address,
               result.matches,
-              "address"
+              "Address"
             );
             const officeHtml = highlightText(
               row.Office,
               result.matches,
-              "office"
+              "Office"
             );
             const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
@@ -1532,15 +1781,17 @@
                 <tbody>`;
           currentFilteredData.forEach((result) => {
             const row = result.item;
+
+            // CORRECTED: Keys are now capitalized to match the list view and your database
             const addressHtml = highlightText(
               row.Address,
               result.matches,
-              "address"
+              "Address"
             );
             const officeHtml = highlightText(
               row.Office,
               result.matches,
-              "office"
+              "Office"
             );
             const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
@@ -1566,7 +1817,6 @@
           displayArea.innerHTML = html;
         }
       }
-
       function copyResults() {
         if (!currentFilteredData.length) return showToast("No data to copy!");
         const text = currentFilteredData
@@ -2049,7 +2299,32 @@
         XLSX.writeFile(wb, "DakMitra_Sample_Template.xlsx");
         showToast("📥 Sample Excel downloaded!");
       }
+      function toggleAdvancedFilters() {
+        document
+          .getElementById("advanced-filters-panel")
+          .classList.toggle("hidden");
+      }
+      function toggleClearBtn(inputId, btnId) {
+        const input = document.getElementById(inputId);
+        const clearBtn = document.getElementById(btnId);
 
+        if (input.value.length > 0) {
+          clearBtn.classList.remove("hidden");
+        } else {
+          clearBtn.classList.add("hidden");
+        }
+      }
+
+      function clearFilterInput(inputId, btnId) {
+        const input = document.getElementById(inputId);
+        const clearBtn = document.getElementById(btnId);
+
+        input.value = "";
+        clearBtn.classList.add("hidden");
+
+        triggerSearch();
+        input.focus();
+      }
       // BOOTSTRAP APP
       checkUserSession();
     </script>
