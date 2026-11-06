@@ -1139,6 +1139,19 @@
 
         <!-- UPLOAD VIEW (Hidden by default) -->
         <section id="view-upload" class="view-section">
+          <!-- Manual Data Entry Card -->
+<div class="upload-card" style="margin-bottom: 24px;">
+  <h2 style="font-size: 22px; font-weight: 700;">Add Single Record</h2>
+  <div class="input-group" style="margin-top: 16px; text-align: left;">
+    <label>Branch Office</label>
+    <input type="text" id="manual-branch" placeholder="Enter branch office name" />
+  </div>
+  <div class="input-group" style="text-align: left;">
+    <label>Sub Office</label>
+    <input type="text" id="manual-sub" placeholder="Enter sub office name" />
+  </div>
+  <button type="button" class="btn" id="add-record-btn" onclick="addSingleRecord()">Add Record</button>
+</div>
           <div class="upload-card">
             <h2 style="font-size: 22px; font-weight: 700">
               Database Management
@@ -1383,51 +1396,49 @@
           return;
         }
 
-        if (viewMode === "list") {
-          let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
-          currentFilteredData.forEach((result) => {
-            const office = result.item;
-            const branchHtml = highlightText(
-              office.branch_office,
-              result.matches,
-              "branch_office"
-            );
-            const subHtml = highlightText(
-              office.sub_office,
-              result.matches,
-              "sub_office"
-            );
+        // --- Updated renderResults() logic ---
+if (viewMode === "list") {
+  let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
+  currentFilteredData.forEach((result) => {
+    const office = result.item;
+    const branchHtml = highlightText(office.branch_office, result.matches, "branch_office");
+    const subHtml = highlightText(office.sub_office, result.matches, "sub_office");
 
-            html += `
-              <li class="list-item">
-                  <div class="office-title">${branchHtml}</div>
-                  <div class="sub-office">Sub: ${subHtml}</div>
-              </li>`;
-          });
-          html += `</ul>`;
-          displayArea.innerHTML = html;
-        } else {
-          let html = `<table class="data-table">
-                        <thead><tr><th>Branch Office</th><th>Sub Office</th></tr></thead>
-                        <tbody>`;
-          currentFilteredData.forEach((result) => {
-            const office = result.item;
-            const branchHtml = highlightText(
-              office.branch_office,
-              result.matches,
-              "branch_office"
-            );
-            const subHtml = highlightText(
-              office.sub_office,
-              result.matches,
-              "sub_office"
-            );
+    html += `
+      <li class="list-item" style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div class="office-title">${branchHtml}</div>
+            <div class="sub-office">Sub: ${subHtml}</div>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button onclick="updateRecord('${office.id}', '${office.branch_office.replace(/'/g, "\\'")}', '${office.sub_office.replace(/'/g, "\\'")}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
+            <button onclick="deleteRecord('${office.id}')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
+          </div>
+      </li>`;
+  });
+  html += `</ul>`;
+  displayArea.innerHTML = html;
+} else {
+  let html = `<table class="data-table">
+                <thead><tr><th>Branch Office</th><th>Sub Office</th><th style="text-align: right;">Actions</th></tr></thead>
+                <tbody>`;
+  currentFilteredData.forEach((result) => {
+    const office = result.item;
+    const branchHtml = highlightText(office.branch_office, result.matches, "branch_office");
+    const subHtml = highlightText(office.sub_office, result.matches, "sub_office");
 
-            html += `<tr><td>${branchHtml}</td><td>${subHtml}</td></tr>`;
-          });
-          html += `</tbody></table>`;
-          displayArea.innerHTML = html;
-        }
+    html += `<tr>
+              <td>${branchHtml}</td>
+              <td>${subHtml}</td>
+              <td style="text-align: right;">
+                <button onclick="updateRecord('${office.id}', '${office.branch_office.replace(/'/g, "\\'")}', '${office.sub_office.replace(/'/g, "\\'")}')" class="toolbar-btn" style="padding: 4px 8px;">✎</button>
+                <button onclick="deleteRecord('${office.id}')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑</button>
+              </td>
+             </tr>`;
+  });
+  html += `</tbody></table>`;
+  displayArea.innerHTML = html;
+}
       }
 
       function copyResults() {
@@ -1762,7 +1773,80 @@
         lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
       });
 
+// --- DIRECT CRUD OPERATIONS ---
 
+// 1. CREATE Record
+async function addSingleRecord() {
+  const branch = document.getElementById("manual-branch").value.trim();
+  const sub = document.getElementById("manual-sub").value.trim();
+  
+  if (!branch || !sub) return showToast("Please fill in both fields");
+
+  const btn = document.getElementById("add-record-btn");
+  btn.textContent = "Adding...";
+  btn.disabled = true;
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  
+  const { error } = await supabaseClient
+    .from("post_offices")
+    .insert([{ branch_office: branch, sub_office: sub, user_id: session.user.id }]);
+
+  if (error) {
+    alert("Error adding record: " + error.message);
+  } else {
+    document.getElementById("manual-branch").value = "";
+    document.getElementById("manual-sub").value = "";
+    showToast("✅ Record added successfully!");
+    fetchAllPostOffices(); // Refresh UI
+  }
+  
+  btn.textContent = "Add Record";
+  btn.disabled = false;
+}
+
+// 2. UPDATE Record
+async function updateRecord(id, currentBranch, currentSub) {
+  // Using native prompts for quick editing. For a heavier app, replace with a custom Modal.
+  const newBranch = prompt("Edit Branch Office:", currentBranch);
+  if (newBranch === null) return; // User cancelled
+  
+  const newSub = prompt("Edit Sub Office:", currentSub);
+  if (newSub === null) return; // User cancelled
+
+  if (!newBranch.trim() || !newSub.trim()) {
+    return alert("Fields cannot be empty.");
+  }
+
+  const { error } = await supabaseClient
+    .from("post_offices")
+    .update({ branch_office: newBranch.trim(), sub_office: newSub.trim() })
+    .eq("id", id);
+
+  if (error) {
+    alert("Error updating record: " + error.message);
+  } else {
+    showToast("✅ Record updated successfully!");
+    fetchAllPostOffices(); // Refresh UI
+  }
+}
+
+// 3. DELETE Record
+async function deleteRecord(id) {
+  if (!confirm("Are you sure you want to permanently delete this post office?")) return;
+
+  const { error } = await supabaseClient
+    .from("post_offices")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    alert("Error deleting record: " + error.message);
+  } else {
+    showToast("🗑️ Record deleted.");
+    fetchAllPostOffices(); // Refresh UI
+  }
+}
 
       // BOOTSTRAP APP
       checkUserSession();
