@@ -178,40 +178,6 @@
           opacity: 1;
         }
       }
-      /* --- BOTTOM NAVIGATION --- */
-      .bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: var(--card-bg);
-        border-top: 1px solid var(--border);
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
-        z-index: 900;
-        box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
-        max-width: 800px;
-        left: 50%;
-        transform: translateX(-50%);
-      }
-
-      .bottom-nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        background: transparent;
-        border: none;
-        color: var(--text-light);
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        flex: 1;
-        padding: 8px 0;
-        transition: color 0.2s ease, transform 0.1s;
-      }
 
       .bottom-nav-item:active {
         transform: scale(0.95);
@@ -227,12 +193,92 @@
         transition: stroke 0.2s, fill 0.2s;
       }
 
-      /* Update your existing .app-footer class to increase the margin-bottom */
+      /* --- FLOATING MODERN BOTTOM NAVIGATION --- */
+      .bottom-nav {
+        position: fixed;
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%);
+        width: calc(100% - 32px);
+        max-width: 420px; /* Keeps it compact on desktop */
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        z-index: 900;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+          0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+        /* Adds a native-app glassmorphism effect if the background has slight transparency */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+      }
+
+      .bottom-nav-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        color: var(--text-light);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 10px 16px;
+        border-radius: 100px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .bottom-nav-item svg {
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Hide text smoothly for inactive icons */
+      .bottom-nav-item span {
+        max-width: 0;
+        overflow: hidden;
+        opacity: 0;
+        white-space: nowrap;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Active State Styling */
+      .bottom-nav-item.active {
+        background: rgba(79, 70, 229, 0.12);
+        color: var(--primary);
+      }
+
+      /* Adjust highlight for dark mode */
+      [data-theme="dark"] .bottom-nav-item.active {
+        background: rgba(129, 140, 248, 0.15);
+      }
+
+      /* Reveal text and scale icon when active */
+      .bottom-nav-item.active span {
+        max-width: 100px;
+        opacity: 1;
+        margin-left: 8px;
+      }
+
+      .bottom-nav-item.active svg {
+        transform: scale(1.15);
+      }
+
+      /* Click animation */
+      .bottom-nav-item:active {
+        transform: scale(0.92);
+      }
+
+      /* Update footer to account for the new floating offset */
       .app-footer {
         margin-top: auto;
-        margin-bottom: calc(
-          70px + env(safe-area-inset-bottom)
-        ); /* Increased to prevent overlap */
+        margin-bottom: calc(90px + env(safe-area-inset-bottom));
         padding: 32px 16px 16px;
         text-align: center;
         border-top: 1px solid var(--border);
