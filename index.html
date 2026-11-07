@@ -47,6 +47,7 @@
           0 2px 4px -1px rgba(0, 0, 0, 0.06);
         --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
           0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --stripe-bg: rgba(79, 70, 229, 0.04);
       }
 
       [data-theme="dark"] {
@@ -68,6 +69,7 @@
         --success-border: #059669;
         --mic-bg: #f87171;
         --mic-hover: #ef4444;
+        --stripe-bg: rgba(129, 140, 248, 0.05);
       }
 
       * {
@@ -592,106 +594,112 @@
       .advanced-filter-toggle:hover {
         background: var(--btn-secondary);
       }
-/* --- SEARCH OPTIONS & ADVANCED FILTERS --- */
-.advanced-filter-toggle {
-  background: transparent;
-  border: none;
-  color: var(--primary);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: 0.2s;
-  padding: 6px 12px;
-  border-radius: 8px;
-}
-.advanced-filter-toggle:hover {
-  background: var(--input-bg);
-}
+      /* --- SEARCH OPTIONS & ADVANCED FILTERS --- */
+      .advanced-filter-toggle {
+        background: transparent;
+        border: none;
+        color: var(--primary);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: 0.2s;
+        padding: 6px 12px;
+        border-radius: 8px;
+      }
+      .advanced-filter-toggle:hover {
+        background: var(--input-bg);
+      }
 
-.advanced-filters-panel {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  margin-top: 12px;
-  display: block; /* Forces strict vertical stacking of the top and bottom rows */
-  animation: fadeInDown 0.3s ease;
-  width: 100%;
-}
+      .advanced-filters-panel {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 12px;
+        display: block; /* Forces strict vertical stacking of the top and bottom rows */
+        animation: fadeInDown 0.3s ease;
+        width: 100%;
+      }
 
-/* Row 1: Radio Chips (Top Row) */
-.search-filters-row {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px; /* Creates clean spacing before the input fields */
-}
-.filter-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-light);
-  min-width: 70px;
-}
-.chips-container {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-@media (min-width: 600px) {
-  .search-filters-row {
-    flex-direction: row;
-    align-items: center;
-  }
-}
+      /* Row 1: Radio Chips (Top Row) */
+      .search-filters-row {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px; /* Creates clean spacing before the input fields */
+      }
+      .filter-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-light);
+        min-width: 70px;
+      }
+      .chips-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      @media (min-width: 600px) {
+        .search-filters-row {
+          flex-direction: row;
+          align-items: center;
+        }
+      }
 
-/* Row 2: Secondary Inputs (Bottom Row) */
-.advanced-filters-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-}
-@media (min-width: 600px) {
-  .advanced-filters-inputs {
-    flex-direction: row;
-  }
-}
+      /* Row 2: Secondary Inputs (Bottom Row) */
+      .advanced-filters-inputs {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+      }
+      @media (min-width: 600px) {
+        .advanced-filters-inputs {
+          flex-direction: row;
+        }
+      }
 
-.filter-wrapper {
-  background: var(--card-bg);
-  border: 1px solid var(--input-border);
-  border-radius: 12px;
-  padding: 0 12px;
-  height: 48px;
-  flex: 1;
-  display: flex;
-  align-items: center; /* Centers the icon and text vertically */
-  min-width: 0;
-}
-.filter-wrapper input {
-  font-size: 14px;
-  border: none;
-  background: transparent;
-  outline: none;
-  flex: 1;
-  min-width: 0; /* Prevents the text input from breaking out of the box */
-  height: 100%;
-}
-.filter-icon {
-  font-size: 16px;
-  opacity: 0.7;
-  margin-right: 8px;
-}
+      .filter-wrapper {
+        background: var(--card-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 12px;
+        padding: 0 12px;
+        height: 48px;
+        flex: 1;
+        display: flex;
+        align-items: center; /* Centers the icon and text vertically */
+        min-width: 0;
+      }
+      .filter-wrapper input {
+        font-size: 14px;
+        border: none;
+        background: transparent;
+        outline: none;
+        flex: 1;
+        min-width: 0; /* Prevents the text input from breaking out of the box */
+        height: 100%;
+      }
+      .filter-icon {
+        font-size: 16px;
+        opacity: 0.7;
+        margin-right: 8px;
+      }
 
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
       @media (min-width: 600px) {
         .advanced-filters-panel {
           flex-direction: row;
@@ -789,18 +797,22 @@
         color: var(--text);
       }
 
+      /* --- LIST VIEW ALTERNATING COLORS --- */
       .list-item {
         padding: 16px 20px;
         border-bottom: 1px solid var(--border);
         transition: background 0.2s;
       }
-      .list-item:hover {
-        background: var(--btn-secondary);
-      }
-      .list-item:last-child {
-        border-bottom: none;
+
+      /* Applies the faint primary tint to even rows */
+      .list-item:nth-child(even) {
+        background-color: var(--stripe-bg);
       }
 
+      /* Hover overrides with neutral gray, creating clear contrast */
+      .list-item:hover {
+        background-color: var(--btn-secondary);
+      }
       .office-title {
         font-size: 16px;
         font-weight: 700;
@@ -857,16 +869,24 @@
         position: sticky;
         top: 0;
       }
+      /* --- TABLE VIEW ALTERNATING COLORS --- */
       table.data-table td {
         padding: 16px 20px;
-        font-size: 15px; /* Increased from 14px */
-        font-weight: 600; /* Increased from 500 */
+        font-size: 15px;
+        font-weight: 600;
         border-bottom: 1px solid var(--border);
-        color: var(--text); /* Changed from text-light */
+        color: var(--text);
         transition: background 0.2s;
       }
+
+      /* Applies the faint primary tint to even table rows */
+      table.data-table tbody tr:nth-child(even) td {
+        background-color: var(--stripe-bg);
+      }
+
+      /* Hover overrides with neutral gray, creating clear contrast */
       table.data-table tr:hover td {
-        background: var(--btn-secondary);
+        background-color: var(--btn-secondary);
         color: var(--text);
       }
 
