@@ -1368,12 +1368,26 @@
             </div>
 
             <!-- TOGGLE BUTTONS ROW -->
-            <div style="display: flex; gap: 8px; flex-wrap: nowrap; margin-top: 8px;">
+            <div
+              style="
+                display: flex;
+                gap: 8px;
+                flex-wrap: nowrap;
+                margin-top: 8px;
+              "
+            >
               <button
                 type="button"
                 id="history-toggle-btn"
                 class="advanced-filter-toggle hidden"
-                style="margin-top: 0; flex: 1; justify-content: center; padding: 8px 4px; font-size: 13px; white-space: nowrap;"
+                style="
+                  margin-top: 0;
+                  flex: 1;
+                  justify-content: center;
+                  padding: 8px 4px;
+                  font-size: 13px;
+                  white-space: nowrap;
+                "
                 onclick="toggleSearchHistory()"
               >
                 🕒 Recent Searches
@@ -1382,7 +1396,14 @@
               <button
                 type="button"
                 class="advanced-filter-toggle"
-                style="margin-top: 0; flex: 1; justify-content: center; padding: 8px 4px; font-size: 13px; white-space: nowrap;"
+                style="
+                  margin-top: 0;
+                  flex: 1;
+                  justify-content: center;
+                  padding: 8px 4px;
+                  font-size: 13px;
+                  white-space: nowrap;
+                "
                 onclick="toggleAdvancedFilters()"
               >
                 ⚙️ Search Options
@@ -1814,9 +1835,9 @@
 
         let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
         favorites.forEach((row) => {
-          
           const starIcon = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> Saved`;
-          const starStyle = "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;";
+          const starStyle =
+            "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;";
 
           html += `
       <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
@@ -1828,7 +1849,11 @@
             </div>
           </div>
           <div style="display: flex; justify-content: flex-end;">
-            <button onclick="toggleFavorite('${row.id}', '${escapeForOnclick(row.address)}', '${escapeForOnclick(row.office)}', '${escapeForOnclick(row.pin)}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">
+            <button onclick="toggleFavorite('${row.id}', '${escapeForOnclick(
+            row.address
+          )}', '${escapeForOnclick(row.office)}', '${escapeForOnclick(
+            row.pin
+          )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">
               ${starIcon}
             </button>
           </div>
@@ -2211,19 +2236,29 @@
           let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
           currentFilteredData.forEach((result) => {
             const row = result.item;
-            const addressHtml = highlightText(row.Address, result.matches, "Address");
-            const officeHtml = highlightText(row.Office, result.matches, "Office");
+            const addressHtml = highlightText(
+              row.Address,
+              result.matches,
+              "Address"
+            );
+            const officeHtml = highlightText(
+              row.Office,
+              result.matches,
+              "Office"
+            );
             const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
             const safeAddress = escapeForOnclick(row.Address);
             const safeOffice = escapeForOnclick(row.Office);
             const safePin = escapeForOnclick(row.Pin);
 
-            const isFav = favorites.some((f) => String(f.id) === String(row.id));
-            
-            const starIcon = isFav 
-                ? `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> Saved`
-                : `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg> Save`;
+            const isFav = favorites.some(
+              (f) => String(f.id) === String(row.id)
+            );
+
+            const starIcon = isFav
+              ? `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> Saved`
+              : `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg> Save`;
 
             const starStyle = isFav
               ? "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;"
@@ -2239,13 +2274,74 @@
             </div>
           </div>
           <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
-            <button onclick="toggleFavorite('${row.id}', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">${starIcon}</button>
-            <button onclick="updateRecord('${row.id}', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
-            <button onclick="deleteRecord('${row.id}')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
+            <button onclick="toggleFavorite('${
+              row.id
+            }', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">${starIcon}</button>
+            <button onclick="updateRecord('${
+              row.id
+            }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
+            <button onclick="deleteRecord('${
+              row.id
+            }')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
           </div>
       </li>`;
           });
           html += `</ul>`;
+          displayArea.innerHTML = html;
+        } else {
+          let html = `<table class="data-table">
+          <thead><tr><th>Address</th><th>Office</th><th>Pin</th><th style="text-align: right;">Actions</th></tr></thead>
+          <tbody>`;
+          currentFilteredData.forEach((result) => {
+            const row = result.item;
+
+            const addressHtml = highlightText(
+              row.Address,
+              result.matches,
+              "Address"
+            );
+            const officeHtml = highlightText(
+              row.Office,
+              result.matches,
+              "Office"
+            );
+            const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+
+            const safeAddress = escapeForOnclick(row.Address);
+            const safeOffice = escapeForOnclick(row.Office);
+            const safePin = escapeForOnclick(row.Pin);
+
+            const isFav = favorites.some(
+              (f) => String(f.id) === String(row.id)
+            );
+
+            const starIcon = isFav
+              ? `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`
+              : `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>`;
+
+            const starStyle = isFav
+              ? "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: inline-flex; align-items: center; justify-content: center;"
+              : "color: var(--text-light); background-color: transparent; display: inline-flex; align-items: center; justify-content: center;";
+
+            html += `<tr>
+        <td>${addressHtml}</td>
+        <td>${officeHtml}</td>
+        <td>${PinHtml || "-"}</td>
+        <td style="text-align: right; display: flex; gap: 4px; justify-content: flex-end; align-items: center; min-height: 48px;">
+          <button onclick="toggleFavorite('${
+            row.id
+          }', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}" title="Toggle Favorite">${starIcon}</button>
+          
+          <button onclick="updateRecord('${
+            row.id
+          }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 4px 8px;">✎</button>
+          <button onclick="deleteRecord('${
+            row.id
+          }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑</button>
+        </td>
+       </tr>`;
+          });
+          html += `</tbody></table>`;
           displayArea.innerHTML = html;
         }
       }
