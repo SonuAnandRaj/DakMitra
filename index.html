@@ -1300,10 +1300,24 @@
                 >
                   ✕
                 </button>
-                <button type="button" class="mic-btn" id="mic-btn" onclick="startVoiceSearch()" title="Voice Search">
-                  <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px" fill="currentColor">
-                    <path d="M0 0h24v24H0V0z" fill="none"/>
-                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                <button
+                  type="button"
+                  class="mic-btn"
+                  id="mic-btn"
+                  onclick="startVoiceSearch()"
+                  title="Voice Search"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    height="24px"
+                    viewBox="0 0 24 24"
+                    width="24px"
+                    fill="currentColor"
+                  >
+                    <path d="M0 0h24v24H0V0z" fill="none" />
+                    <path
+                      d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+                    />
                   </svg>
                 </button>
               </div>
@@ -1697,7 +1711,31 @@
           .classList.toggle("active", mode === "table");
         renderResults();
       }
+      // --- PRE-LOAD INDIAN TTS VOICE ---
+      let preferredIndianVoice = null;
 
+      function loadIndianVoice() {
+        const voices = window.speechSynthesis.getVoices();
+        // Look for Indian English first, then Hindi as a backup
+        preferredIndianVoice =
+          voices.find(
+            (v) =>
+              v.lang.includes("en-IN") ||
+              v.lang.includes("en_IN") ||
+              v.name.includes("India")
+          ) ||
+          voices.find(
+            (v) => v.lang.includes("hi-IN") || v.lang.includes("hi_IN")
+          );
+      }
+
+      // Try loading immediately
+      loadIndianVoice();
+
+      // Chrome/Android loads voices asynchronously, so we wait for this event to fire
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadIndianVoice;
+      }
       function triggerSearch() {
         const searchInput = document
           .getElementById("search-input")
@@ -1766,6 +1804,100 @@
 
         currentFilteredData = baseData;
         renderResults();
+
+        // --- VOICE OUTPUT LOGIC ---
+        if (window.isVoiceSearch) {
+          window.isVoiceSearch = false;
+          window.speechSynthesis.cancel();
+
+          let speechText = "No matching post offices found.";
+          if (currentFilteredData.length > 0) {
+            const topMatch = currentFilteredData[0].item;
+
+            // Extracts the last 3 digits and converts them to phonetical Hindi words (e.g., "210" -> "do sau das")
+            let lastThreePin = topMatch.Pin
+              ? String(topMatch.Pin).slice(-3)
+              : "";
+            let hindiPinWords = lastThreePin
+              ? convertToHindiWords(lastThreePin)
+              : "";
+
+            let pinText = hindiPinWords
+              ? `Pin code ${hindiPinWords}`
+              : "Pin not available";
+
+            speechText = `Top result is ${topMatch.Address}. Office is ${topMatch.Office}. ${pinText}.`;
+          }
+
+          const utterance = new SpeechSynthesisUtterance(speechText);
+
+          if (preferredIndianVoice) {
+            utterance.voice = preferredIndianVoice;
+          } else {
+            utterance.lang = "en-IN";
+          }
+
+          utterance.rate = 0.9;
+
+          window.speechSynthesis.speak(utterance);
+        } else {
+          window.speechSynthesis.cancel();
+        }
+      }
+      function convertToHindiWords(numStr) {
+        const num = parseInt(numStr, 10);
+        if (isNaN(num)) return numStr;
+
+        const ones = [
+          "",
+          "ek",
+          "do",
+          "teen",
+          "chaar",
+          "paanch",
+          "chhe",
+          "saat",
+          "aath",
+          "nau",
+          "das",
+          "gyarah",
+          "baarah",
+          "terah",
+          "chaudah",
+          "pandraH",
+          "solah",
+          "satraH",
+          "atharah",
+          "unnis",
+        ];
+        const tens = [
+          "",
+          "",
+          "bees",
+          "tees",
+          "chaalis",
+          "pachaas",
+          "saath",
+          "sattar",
+          "assi",
+          "nabbe",
+        ];
+
+        if (num < 20) return ones[num];
+        if (num < 100) {
+          return (
+            tens[Math.floor(num / 10)] +
+            (num % 10 !== 0 ? " " + ones[num % 10] : "")
+          );
+        }
+        if (num < 1000) {
+          const s = Math.floor(num / 100);
+          const rem = num % 100;
+          return (
+            ones[s] + " sau" + (rem !== 0 ? " " + convertToHindiWords(rem) : "")
+          );
+        }
+        return numStr; // Fallback for larger numbers
       }
 
       function clearSearchInput() {
@@ -2032,12 +2164,12 @@
           window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition)
           return alert("Sorry, your browser doesn't support voice search.");
-          
+
         const recognition = new SpeechRecognition();
         recognition.lang = "en-IN";
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
-        
+
         // 2. Save the instance so we know it's running
         window.activeRecognition = recognition;
 
@@ -2045,12 +2177,12 @@
         const searchInput = document.getElementById("search-input");
 
         recognition.onstart = function () {
-          micBtn.style.color = "#ef4444"; 
+          micBtn.style.color = "#ef4444";
           micBtn.style.transform = "scale(1.15)";
           searchInput.placeholder = "Listening...";
           searchInput.value = "";
         };
-        
+
         recognition.onresult = function (event) {
           if (
             event.results &&
@@ -2064,23 +2196,25 @@
             document
               .getElementById("clear-search-btn")
               .classList.remove("hidden");
+            // NEW: Tell the app this specific search came from the microphone
+            window.isVoiceSearch = true;
             triggerSearch();
           }
         };
-        
+
         recognition.onerror = function (event) {
           if (event.error === "not-allowed")
             alert("Microphone access was denied.");
         };
-        
+
         recognition.onend = function () {
-          micBtn.style.color = ""; 
+          micBtn.style.color = "";
           micBtn.style.transform = "";
           searchInput.placeholder = "Type address, office, or Pin...";
           // 3. Clear the saved instance when it stops listening
           window.activeRecognition = null;
         };
-        
+
         recognition.start();
       }
 
