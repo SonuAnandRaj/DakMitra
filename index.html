@@ -3247,9 +3247,64 @@
         triggerSearch();
         input.focus();
       }
+      // --- SWIPE NAVIGATION LOGIC ---
+      let touchStartX = 0;
+      let touchEndX = 0;
+      let touchStartY = 0;
+      let touchEndY = 0;
+
+      const swipeArea = document.getElementById("dashboard-view");
+      const viewOrder = ["favorites", "search", "upload"]; // Matches bottom nav order perfectly
+
+      swipeArea.addEventListener(
+        "touchstart",
+        (e) => {
+          touchStartX = e.changedTouches[0].screenX;
+          touchStartY = e.changedTouches[0].screenY;
+        },
+        { passive: true }
+      );
+
+      swipeArea.addEventListener(
+        "touchend",
+        (e) => {
+          touchEndX = e.changedTouches[0].screenX;
+          touchEndY = e.changedTouches[0].screenY;
+          handleSwipeGesture();
+        },
+        { passive: true }
+      );
+
+      function handleSwipeGesture() {
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+
+        // 1. Ensure the swipe is mostly horizontal (not a vertical scroll)
+        // 2. Ensure it travels at least 50px to prevent accidental taps triggering it
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+          // Find which view is currently active
+          const currentActiveId = viewOrder.find((view) =>
+            document.getElementById("view-" + view).classList.contains("active")
+          );
+
+          let currentIndex = viewOrder.indexOf(currentActiveId);
+          if (currentIndex === -1) return;
+
+          if (deltaX < 0) {
+            // Swipe Left -> Move to the Next Tab (Right)
+            if (currentIndex < viewOrder.length - 1) {
+              switchDashboardView(viewOrder[currentIndex + 1]);
+            }
+          } else {
+            // Swipe Right -> Move to the Previous Tab (Left)
+            if (currentIndex > 0) {
+              switchDashboardView(viewOrder[currentIndex - 1]);
+            }
+          }
+        }
+      }
       // BOOTSTRAP APP
       checkUserSession();
     </script>
   </body>
 </html>
-
