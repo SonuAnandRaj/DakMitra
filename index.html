@@ -178,7 +178,66 @@
           opacity: 1;
         }
       }
+      /* --- BOTTOM NAVIGATION --- */
+      .bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: var(--card-bg);
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+        z-index: 900;
+        box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+        max-width: 800px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
 
+      .bottom-nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        background: transparent;
+        border: none;
+        color: var(--text-light);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        flex: 1;
+        padding: 8px 0;
+        transition: color 0.2s ease, transform 0.1s;
+      }
+
+      .bottom-nav-item:active {
+        transform: scale(0.95);
+      }
+
+      .bottom-nav-item.active {
+        color: var(--primary);
+      }
+
+      .bottom-nav-item svg {
+        width: 24px;
+        height: 24px;
+        transition: stroke 0.2s, fill 0.2s;
+      }
+
+      /* Update your existing .app-footer class to increase the margin-bottom */
+      .app-footer {
+        margin-top: auto;
+        margin-bottom: calc(
+          70px + env(safe-area-inset-bottom)
+        ); /* Increased to prevent overlap */
+        padding: 32px 16px 16px;
+        text-align: center;
+        border-top: 1px solid var(--border);
+        background: var(--bg);
+      }
       /* --- APP BAR --- */
       .app-bar {
         display: flex;
@@ -625,17 +684,6 @@
         background: var(--input-bg);
       }
 
-      .advanced-filters-panel {
-        background: var(--bg);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 16px;
-        margin-top: 12px;
-        display: block; /* Forces strict vertical stacking of the top and bottom rows */
-        animation: fadeInDown 0.3s ease;
-        width: 100%;
-      }
-
       /* Row 1: Radio Chips (Top Row) */
       .search-filters-row {
         display: flex;
@@ -662,7 +710,6 @@
         }
       }
 
-      /* Row 2: Secondary Inputs (Bottom Row) */
       .advanced-filters-inputs {
         display: flex;
         flex-direction: column;
@@ -675,57 +722,51 @@
         }
       }
 
-      .filter-wrapper {
-        background: var(--card-bg);
-        border: 1px solid var(--input-border);
+      .advanced-filters-panel {
+        background: var(--bg);
+        border: 1px solid var(--border);
         border-radius: 12px;
-        padding: 0 12px;
-        height: 48px;
-        flex: 1;
+        padding: 16px;
+        margin-top: 12px;
         display: flex;
-        align-items: center; /* Centers the icon and text vertically */
-        min-width: 0;
-      }
-      .filter-wrapper input {
-        font-size: 14px;
-        border: none;
-        background: transparent;
-        outline: none;
-        flex: 1;
-        min-width: 0; /* Prevents the text input from breaking out of the box */
-        height: 100%;
-      }
-      .filter-icon {
-        font-size: 16px;
-        opacity: 0.7;
-        margin-right: 8px;
-      }
-
-      @keyframes fadeInDown {
-        from {
-          opacity: 0;
-          transform: translateY(-5px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
+        flex-direction: column;
+        animation: fadeInDown 0.3s ease;
+        width: 100%;
       }
       @media (min-width: 600px) {
         .advanced-filters-panel {
           flex-direction: row;
         }
       }
+
       .filter-wrapper {
-        border-width: 1px; /* Thinner border for a lighter, secondary look */
+        background: var(--card-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 12px;
         padding: 2px 12px;
+        height: 48px;
         flex: 1;
+        display: flex;
+        align-items: center;
+        min-width: 0;
       }
+
+      .filter-wrapper input {
+        font-size: 14px;
+        border: none;
+        background: transparent;
+        outline: none;
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+      }
+
       .filter-icon {
         font-size: 16px;
-        margin-right: 6px;
         opacity: 0.8;
+        margin-right: 6px;
       }
+
       @keyframes fadeInDown {
         from {
           opacity: 0;
@@ -1206,64 +1247,8 @@
           DakMitra
         </h1>
 
-        <!-- RIGHT SIDE ICONS (Grouped in one container) -->
+        <!-- RIGHT SIDE ICONS (Only Theme Toggle remains) -->
         <div style="display: flex; gap: 4px; align-items: center">
-          <button
-            class="theme-toggle-btn hidden"
-            id="top-nav-search"
-            onclick="switchDashboardView('search')"
-            title="Search Database"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="22"
-              height="22"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="11" cy="11" r="8"></circle>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-          </button>
-
-          <button
-            class="theme-toggle-btn"
-            id="top-nav-favorites"
-            onclick="switchDashboardView('favorites')"
-            title="Saved Favorites"
-          >
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="#f59e0b">
-              <path
-                d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-              />
-            </svg>
-          </button>
-
-          <button
-            class="theme-toggle-btn"
-            id="top-nav-upload"
-            onclick="switchDashboardView('upload')"
-            title="Upload Data"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="22"
-              height="22"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-          </button>
-
           <!-- Animated Theme Toggle -->
           <button
             class="theme-toggle-btn"
@@ -1705,7 +1690,60 @@
           </p>
           <p class="footer-subtext">DakMitra Database PWA &copy; 2026</p>
         </footer>
+        <!-- BOTTOM NAVIGATION BAR -->
+        <nav class="bottom-nav">
+          <button
+            class="bottom-nav-item active"
+            id="bottom-nav-search"
+            onclick="switchDashboardView('search')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span>Search</span>
+          </button>
+          <button
+            class="bottom-nav-item"
+            id="bottom-nav-favorites"
+            onclick="switchDashboardView('favorites')"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+              />
+            </svg>
+            <span>Favorites</span>
+          </button>
+          <button
+            class="bottom-nav-item"
+            id="bottom-nav-upload"
+            onclick="switchDashboardView('upload')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span>Upload</span>
+          </button>
+        </nav>
       </main>
+      <!-- This is your existing closing main tag -->
     </div>
 
     <script>
@@ -1717,6 +1755,8 @@
         SUPABASE_URL,
         SUPABASE_ANON_KEY
       );
+      const ICON_STAR_FILLED = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
+      const ICON_STAR_OUTLINE = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>`;
 
       let currentMode = "signin";
       let cachedPostOffices = [];
@@ -1746,13 +1786,24 @@
         document.getElementById("nav-upload").classList.remove("active");
         document.getElementById("nav-favorites").classList.remove("active");
 
-        // 3. TOP NAV LOGIC: Make all top icons visible, then hide the active one
-        document.getElementById("top-nav-search").classList.remove("hidden");
-        document.getElementById("top-nav-favorites").classList.remove("hidden");
-        document.getElementById("top-nav-upload").classList.remove("hidden");
+        // 3. BOTTOM NAV LOGIC: Update active styling for bottom tabs
+        const bottomNavSearch = document.getElementById("bottom-nav-search");
+        if (bottomNavSearch) {
+          document
+            .getElementById("bottom-nav-search")
+            .classList.remove("active");
+          document
+            .getElementById("bottom-nav-favorites")
+            .classList.remove("active");
+          document
+            .getElementById("bottom-nav-upload")
+            .classList.remove("active");
 
-        const activeTopIcon = document.getElementById("top-nav-" + viewId);
-        if (activeTopIcon) activeTopIcon.classList.add("hidden");
+          const activeBottomIcon = document.getElementById(
+            "bottom-nav-" + viewId
+          );
+          if (activeBottomIcon) activeBottomIcon.classList.add("active");
+        }
 
         // 4. Show the selected view and activate its sidebar nav button
         document.getElementById("view-" + viewId).classList.add("active");
@@ -1879,11 +1930,11 @@
         if (btnElement) {
           // If clicked in the Search tab: Instantly update the specific button WITHOUT jumping the screen
           if (isFavNow) {
-            btnElement.innerHTML = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> Saved`;
+            btnElement.innerHTML = `${ICON_STAR_FILLED} Saved`;
             btnElement.style.color = "#f59e0b";
             btnElement.style.backgroundColor = "rgba(245, 158, 11, 0.1)";
           } else {
-            btnElement.innerHTML = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg> Save`;
+            btnElement.innerHTML = `${ICON_STAR_OUTLINE} Save`;
             btnElement.style.color = "var(--text-light)";
             btnElement.style.backgroundColor = "transparent";
           }
@@ -1905,7 +1956,7 @@
 
         let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
         favorites.forEach((row) => {
-          const starIcon = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> Saved`;
+          const starIcon = `${ICON_STAR_FILLED} Saved`;
           const starStyle =
             "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;";
 
@@ -2329,9 +2380,8 @@
             );
 
             const starIcon = isFav
-              ? `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg> Saved`
-              : `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg> Save`;
-
+              ? `${ICON_STAR_FILLED} Saved` // (or just ICON_STAR_FILLED for the table view)
+              : `${ICON_STAR_OUTLINE} Save`; // (or just ICON_STAR_OUTLINE for the table view)
             const starStyle = isFav
               ? "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;"
               : "color: var(--text-light); background-color: transparent; display: flex; align-items: center; gap: 4px;";
@@ -2387,10 +2437,7 @@
               (f) => String(f.id) === String(row.id)
             );
 
-            const starIcon = isFav
-              ? `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`
-              : `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>`;
-
+            const starIcon = isFav ? ICON_STAR_FILLED : ICON_STAR_OUTLINE;
             const starStyle = isFav
               ? "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: inline-flex; align-items: center; justify-content: center;"
               : "color: var(--text-light); background-color: transparent; display: inline-flex; align-items: center; justify-content: center;";
@@ -2422,7 +2469,7 @@
         const text = currentFilteredData
           .map(
             (r) =>
-              `Address: ${r.item.address} | Office: ${r.item.office} | Pin: ${r.item.Pin}`
+              `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin: ${r.item.Pin}`
           )
           .join("\n");
         navigator.clipboard
