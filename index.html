@@ -2666,6 +2666,9 @@
             searchHero.classList.add("collapsed");
             resultsArea.classList.add("expanded");
 
+            // NEW: Hide the mobile keyboard instantly when scrolling down
+            document.getElementById("search-input").blur();
+
             let maxVh = window.innerHeight * 0.7;
             let safeMaxHeight = Math.min(maxVh, this.scrollHeight - 10);
             this.style.maxHeight = safeMaxHeight + "px";
