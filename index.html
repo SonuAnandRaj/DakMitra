@@ -1827,6 +1827,9 @@
       function renderResults() {
         const displayArea = document.getElementById("results-display-area");
 
+        // Force the scrollbar back to the top every time new results are loaded
+        displayArea.scrollTop = 0;
+
         if (currentFilteredData.length === 0) {
           displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No address found matching your search.</li></ul>`;
           return;
