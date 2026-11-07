@@ -1191,45 +1191,113 @@
     <!-- DASHBOARD APP (Shows only when logged in) -->
     <div id="dashboard-view" class="hidden">
       <!-- Top App Bar -->
-      <header class="app-bar">
+      <header class="app-bar" style="position: sticky">
         <button class="hamburger" onclick="toggleSidebar()">☰</button>
-        <h1>DakMitra</h1>
 
-        <!-- New Animated Theme Toggle -->
-        <button
-          class="theme-toggle-btn"
-          onclick="toggleTheme()"
-          title="Toggle Theme"
+        <!-- LOCKED CENTER TITLE -->
+        <h1
+          style="
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+          "
         >
-          <!-- Moon Icon -->
-          <svg
-            class="icon-moon"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            stroke-width="2"
+          DakMitra
+        </h1>
+
+        <!-- RIGHT SIDE ICONS (Grouped in one container) -->
+        <div style="display: flex; gap: 4px; align-items: center">
+          <button
+            class="theme-toggle-btn hidden"
+            id="top-nav-search"
+            onclick="switchDashboardView('search')"
+            title="Search Database"
           >
-            <path
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
-            ></path>
-          </svg>
-          <!-- Sun Icon -->
-          <svg
-            class="icon-sun"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            stroke-width="2"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          </button>
+
+          <button
+            class="theme-toggle-btn"
+            id="top-nav-favorites"
+            onclick="switchDashboardView('favorites')"
+            title="Saved Favorites"
           >
-            <path
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="#f59e0b">
+              <path
+                d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+              />
+            </svg>
+          </button>
+
+          <button
+            class="theme-toggle-btn"
+            id="top-nav-upload"
+            onclick="switchDashboardView('upload')"
+            title="Upload Data"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
-              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-            ></path>
-          </svg>
-        </button>
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+          </button>
+
+          <!-- Animated Theme Toggle -->
+          <button
+            class="theme-toggle-btn"
+            onclick="toggleTheme()"
+            title="Toggle Theme"
+          >
+            <svg
+              class="icon-moon"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
+              ></path>
+            </svg>
+            <svg
+              class="icon-sun"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+              ></path>
+            </svg>
+          </button>
+        </div>
       </header>
 
       <!-- Sidebar Drawer -->
@@ -1668,21 +1736,29 @@
       }
 
       function switchDashboardView(viewId) {
-        // Hide all views
+        // 1. Hide all views
         document.getElementById("view-search").classList.remove("active");
         document.getElementById("view-upload").classList.remove("active");
         document.getElementById("view-favorites").classList.remove("active");
 
-        // Remove active state from all nav buttons
+        // 2. Remove active state from all sidebar nav buttons
         document.getElementById("nav-search").classList.remove("active");
         document.getElementById("nav-upload").classList.remove("active");
         document.getElementById("nav-favorites").classList.remove("active");
 
-        // Show the selected view and activate its nav button
+        // 3. TOP NAV LOGIC: Make all top icons visible, then hide the active one
+        document.getElementById("top-nav-search").classList.remove("hidden");
+        document.getElementById("top-nav-favorites").classList.remove("hidden");
+        document.getElementById("top-nav-upload").classList.remove("hidden");
+
+        const activeTopIcon = document.getElementById("top-nav-" + viewId);
+        if (activeTopIcon) activeTopIcon.classList.add("hidden");
+
+        // 4. Show the selected view and activate its sidebar nav button
         document.getElementById("view-" + viewId).classList.add("active");
         document.getElementById("nav-" + viewId).classList.add("active");
 
-        // If switching to favorites, ensure it renders the latest data
+        // 5. If switching to favorites, ensure it renders the latest data
         if (viewId === "favorites") {
           renderFavorites();
         }
@@ -1942,9 +2018,11 @@
 
         const uniqueAddresses = new Set(cachedPostOffices.map((o) => o.Address))
           .size;
+        const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office))
+          .size;
+
         document.getElementById("stat-addresses").textContent = uniqueAddresses;
-        document.getElementById("stat-offices").textContent =
-          cachedPostOffices.length;
+        document.getElementById("stat-offices").textContent = uniqueOffices;
 
         fuse = new Fuse(cachedPostOffices, {
           keys: ["Address", "Office", "Pin"],
