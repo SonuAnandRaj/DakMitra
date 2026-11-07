@@ -1097,7 +1097,101 @@
         opacity: 1;
         transform: translateX(-50%) translateY(0);
       }
+      /* --- CUSTOM MODAL --- */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        z-index: 3000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
 
+      .modal-overlay.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal-card {
+        background: var(--card-bg);
+        border-radius: 24px;
+        padding: 32px 24px;
+        width: 90%;
+        max-width: 360px;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border);
+        transform: translateY(20px) scale(0.95);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-align: center;
+      }
+
+      .modal-overlay.show .modal-card {
+        transform: translateY(0) scale(1);
+      }
+
+      .modal-icon {
+        font-size: 36px;
+        margin-bottom: 16px;
+        animation: pulseText 2s infinite alternate;
+      }
+
+      .modal-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text);
+        margin-bottom: 8px;
+      }
+
+      .modal-message {
+        font-size: 14px;
+        color: var(--text-light);
+        margin-bottom: 28px;
+        line-height: 1.5;
+        font-weight: 500;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 12px;
+      }
+
+      .modal-actions .btn {
+        flex: 1;
+        margin: 0;
+        padding: 12px;
+      }
+
+      .modal-btn-cancel {
+        background: var(--btn-secondary);
+        color: var(--text);
+      }
+
+      .modal-btn-cancel:hover {
+        background: var(--border);
+      }
+
+      .modal-btn-danger {
+        background: #ef4444;
+        color: #ffffff;
+      }
+
+      .modal-btn-danger:hover {
+        background: #dc2626;
+      }
+
+      /* Dark mode adjustment for the cancel button */
+      [data-theme="dark"] .modal-btn-cancel {
+        background: var(--input-bg);
+      }
       .alert {
         padding: 12px 16px;
         border-radius: 12px;
@@ -1744,6 +1838,19 @@
         <!-- BOTTOM NAVIGATION BAR -->
         <nav class="bottom-nav">
           <button
+            class="bottom-nav-item"
+            id="bottom-nav-favorites"
+            onclick="switchDashboardView('favorites')"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
+              />
+            </svg>
+            <span>Favorites</span>
+          </button>
+
+          <button
             class="bottom-nav-item active"
             id="bottom-nav-search"
             onclick="switchDashboardView('search')"
@@ -1761,18 +1868,7 @@
             </svg>
             <span>Search</span>
           </button>
-          <button
-            class="bottom-nav-item"
-            id="bottom-nav-favorites"
-            onclick="switchDashboardView('favorites')"
-          >
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path
-                d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-              />
-            </svg>
-            <span>Favorites</span>
-          </button>
+
           <button
             class="bottom-nav-item"
             id="bottom-nav-upload"
@@ -1796,7 +1892,30 @@
       </main>
       <!-- This is your existing closing main tag -->
     </div>
-
+    <!-- CUSTOM CONFIRM MODAL -->
+    <div id="confirm-modal-overlay" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-icon">⚠️</div>
+        <h3 id="confirm-modal-title" class="modal-title">Confirm Action</h3>
+        <p id="confirm-modal-message" class="modal-message">Are you sure?</p>
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="closeConfirmModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="confirm-modal-submit"
+            class="btn modal-btn-danger"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
     <script>
       // --- SUPABASE & STATE ---
       const SUPABASE_URL = "https://nvviolzdujgwkmnrnaww.supabase.co";
@@ -2903,108 +3022,189 @@
 
       async function submitMultipleRecords() {
         const rows = document.querySelectorAll(".manual-entry-row");
-        const recordsToInsert = [];
+        const updates = [];
+        const inserts = [];
 
         const {
           data: { session },
         } = await supabaseClient.auth.getSession();
 
+        // 1. Sort rows into "Updates" or "Inserts" based on the hidden edit ID
         rows.forEach((row) => {
           const address = row.querySelector(".manual-address").value.trim();
           const office = row.querySelector(".manual-office").value.trim();
           const Pin = row.querySelector(".manual-Pin").value.trim();
+          const editId = row.getAttribute("data-edit-id");
 
           if (address && office) {
-            recordsToInsert.push({
+            const record = {
               Address: address,
               Office: office,
               Pin: Pin || null,
               user_id: session.user.id,
-            });
+            };
+
+            if (editId) {
+              record.id = editId;
+              updates.push(record);
+            } else {
+              inserts.push(record);
+            }
           }
         });
 
-        if (recordsToInsert.length === 0) {
+        if (updates.length === 0 && inserts.length === 0) {
           return showToast("Please fill in at least one complete row.");
         }
 
         const btn = document.getElementById("submit-multiple-btn");
-        btn.textContent = "Submitting...";
+        btn.textContent = "Saving...";
         btn.disabled = true;
 
-        const { error } = await supabaseClient
-          .from("post_offices")
-          .insert(recordsToInsert);
+        let hasError = false;
 
-        if (error) {
-          alert("Error adding records: " + error.message);
-        } else {
-          showToast(`✅ ${recordsToInsert.length} records added successfully!`);
-          document.getElementById("manual-entries-container").innerHTML =
-            getManualEntryRowHTML(true);
-          fetchAllPostOffices();
+        // 2. Process all Updates
+        for (const update of updates) {
+          const { error } = await supabaseClient
+            .from("post_offices")
+            .update({
+              Address: update.Address,
+              Office: update.Office,
+              Pin: update.Pin,
+            })
+            .eq("id", update.id);
+
+          if (error) {
+            alert("Error updating record: " + error.message);
+            hasError = true;
+          }
         }
 
-        btn.textContent = "Submit All";
+        // 3. Process all Inserts
+        if (inserts.length > 0) {
+          const { error } = await supabaseClient
+            .from("post_offices")
+            .insert(inserts);
+
+          if (error) {
+            alert("Error adding records: " + error.message);
+            hasError = true;
+          }
+        }
+
+        // 4. Finalize the UI
+        if (!hasError) {
+          const totalSaved = updates.length + inserts.length;
+          showToast(`✅ ${totalSaved} record(s) saved successfully!`);
+
+          // Reset the form back to the default empty state
+          document.getElementById("manual-entries-container").innerHTML =
+            getManualEntryRowHTML(true);
+
+          // Refresh the data so it shows up instantly
+          await fetchAllPostOffices();
+
+          // FLUID UX: If they were editing, jump them back to the Search tab to see the result
+          if (updates.length > 0) {
+            switchDashboardView("search");
+          }
+        }
+
+        btn.textContent = "Submit All"; // Reset button text
         btn.disabled = false;
       }
 
-      async function updateRecord(
-        id,
-        currentAddress,
-        currentOffice,
-        currentPin
-      ) {
-        const newAddress = prompt("Edit Address:", currentAddress);
-        if (newAddress === null) return;
+      function updateRecord(id, currentAddress, currentOffice, currentPin) {
+        // 1. Switch to the Upload View
+        switchDashboardView("upload");
 
-        const newOffice = prompt("Edit Office:", currentOffice);
-        if (newOffice === null) return;
+        // 2. Clear existing manual entries and add the one we are editing
+        const container = document.getElementById("manual-entries-container");
 
-        const newPin = prompt(
-          "Edit Pin:",
-          currentPin === "null" || currentPin === "undefined" ? "" : currentPin
-        );
-        if (newPin === null) return;
+        // Prevent literal "null" text from showing in the Pin box
+        const safePin =
+          currentPin === "null" || currentPin === "undefined" || !currentPin
+            ? ""
+            : currentPin;
 
-        if (!newAddress.trim() || !newOffice.trim()) {
-          return alert("Address and Office cannot be empty.");
-        }
+        container.innerHTML = `
+        <div class="manual-entry-row" data-edit-id="${id}">
+          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+            <label style="color: var(--primary);">Address (Editing)</label>
+            <input type="text" class="manual-address" value="${currentAddress}" />
+          </div>
+          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+            <label style="color: var(--primary);">Office</label>
+            <input type="text" class="manual-office" value="${currentOffice}" />
+          </div>
+          <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+            <label style="color: var(--primary);">Pin</label>
+            <input type="text" class="manual-Pin" value="${safePin}" />
+          </div>
+          <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
+        </div>
+        `;
 
-        const { error } = await supabaseClient
-          .from("post_offices")
-          .update({
-            Address: newAddress.trim(),
-            Office: newOffice.trim(),
-            Pin: newPin.trim() || null,
-          })
-          .eq("id", id);
+        // 3. Update the submit button text to reflect an edit action
+        document.getElementById("submit-multiple-btn").textContent =
+          "Save Changes";
 
-        if (error) {
-          alert("Error updating record: " + error.message);
-        } else {
-          showToast("✅ Record updated successfully!");
-          fetchAllPostOffices();
-        }
+        // 4. Scroll to top to ensure the form is clearly visible
+        window.scrollTo({ top: 0, behavior: "smooth" });
+
+        showToast("✏️ Ready to edit. Make your changes and click Save.");
       }
 
-      async function deleteRecord(id) {
-        if (
-          !confirm("Are you sure you want to permanently delete this record?")
-        )
-          return;
+      function deleteRecord(id) {
+        showCustomConfirm(
+          "Delete Record?",
+          "Are you sure you want to permanently delete this address? This action cannot be undone.",
+          "Delete",
+          async () => {
+            // This code only runs if they click the red "Delete" button inside the modal
+            const { error } = await supabaseClient
+              .from("post_offices")
+              .delete()
+              .eq("id", id);
 
-        const { error } = await supabaseClient
-          .from("post_offices")
-          .delete()
-          .eq("id", id);
+            if (error) {
+              alert("Error deleting record: " + error.message);
+            } else {
+              showToast("🗑️ Record deleted.");
+              fetchAllPostOffices();
+            }
+          }
+        );
+      }
+      // --- CUSTOM CONFIRM MODAL LOGIC ---
+      function showCustomConfirm(
+        title,
+        message,
+        confirmText,
+        onConfirmCallback
+      ) {
+        document.getElementById("confirm-modal-title").textContent = title;
+        document.getElementById("confirm-modal-message").textContent = message;
 
-        if (error) {
-          alert("Error deleting record: " + error.message);
-        } else {
-          showToast("🗑️ Record deleted.");
-          fetchAllPostOffices();
-        }
+        const submitBtn = document.getElementById("confirm-modal-submit");
+        submitBtn.textContent = confirmText;
+
+        // Remove old listeners to avoid multiple triggers firing
+        const newSubmitBtn = submitBtn.cloneNode(true);
+        submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+
+        newSubmitBtn.addEventListener("click", () => {
+          closeConfirmModal();
+          onConfirmCallback(); // Execute the actual delete function
+        });
+
+        document.getElementById("confirm-modal-overlay").classList.add("show");
+      }
+
+      function closeConfirmModal() {
+        document
+          .getElementById("confirm-modal-overlay")
+          .classList.remove("show");
       }
 
       // --- DOWNLOAD SAMPLE EXCEL TEMPLATE ---
@@ -3052,3 +3252,4 @@
     </script>
   </body>
 </html>
+
