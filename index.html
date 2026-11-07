@@ -1826,7 +1826,7 @@
               ? `Pin code ${hindiPinWords}`
               : "Pin not available";
 
-            speechText = `Top result is ${topMatch.Address}. Office is ${topMatch.Office}. ${pinText}.`;
+            speechText = `${topMatch.Address}. Office ${topMatch.Office}. ${pinText}.`;
           }
 
           const utterance = new SpeechSynthesisUtterance(speechText);
