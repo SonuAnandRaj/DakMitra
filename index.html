@@ -284,6 +284,11 @@
         border-top: 1px solid var(--border);
         background: var(--bg);
       }
+      @media (max-width: 600px) {
+        .app-footer {
+          display: none;
+        }
+      }
       /* --- APP BAR --- */
       .app-bar {
         display: flex;
@@ -433,6 +438,7 @@
         max-width: 800px;
         margin: 0 auto;
         padding: 20px;
+        padding-bottom: calc(100px + env(safe-area-inset-bottom));
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -1046,28 +1052,26 @@
         background: var(--border);
       }
 
-      /* --- FOOTER --- */
-      .app-footer {
-        margin-top: auto;
-        margin-bottom: calc(24px + env(safe-area-inset-bottom));
-        padding: 32px 16px 16px;
+      /* --- SIDEBAR FOOTER --- */
+      .sidebar-footer {
+        padding: 16px 20px;
         text-align: center;
         border-top: 1px solid var(--border);
         background: var(--bg);
-      }
-
-      .app-footer p {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
         color: var(--text);
+        margin-top: auto; /* Pushes it to the absolute bottom of the drawer */
       }
-      .app-footer .footer-subtext {
-        font-size: 12px;
+
+      .sidebar-footer .footer-subtext {
+        font-size: 11px;
         color: var(--text-light);
         margin-top: 6px;
         font-weight: 500;
       }
-      .app-footer strong {
+
+      .sidebar-footer strong {
         color: var(--primary);
       }
 
@@ -1391,6 +1395,14 @@
             🚪 Sign Out
           </button>
         </nav>
+        <!-- NEW SIDEBAR FOOTER -->
+        <div class="sidebar-footer">
+          <p>
+            Developed with <span style="color: #ef4444">♥</span> by
+            <strong>Sonu Anand Raj</strong>
+          </p>
+          <p class="footer-subtext">DakMitra Database PWA &copy; 2026</p>
+        </div>
       </aside>
 
       <!-- Main Dashboard Container -->
@@ -1728,14 +1740,7 @@
             </div>
           </div>
         </section>
-        <!-- FOOTER -->
-        <footer class="app-footer">
-          <p>
-            Developed with <span style="color: #ef4444">♥</span> by
-            <strong>Sonu Anand Raj</strong>
-          </p>
-          <p class="footer-subtext">DakMitra Database PWA &copy; 2026</p>
-        </footer>
+
         <!-- BOTTOM NAVIGATION BAR -->
         <nav class="bottom-nav">
           <button
