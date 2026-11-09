@@ -3252,78 +3252,74 @@
         document.getElementById(btnId).classList.add("hidden");
         triggerSearch();
       }
-      // --- SWIPE GESTURE NAVIGATION ---
+      // --- SWIPE NAVIGATION LOGIC ---
       let touchStartX = 0;
       let touchEndX = 0;
-      const minSwipeDistance = 50; // Minimum pixels required to register a swipe
+      let touchStartY = 0;
+      let touchEndY = 0;
 
-      // Define the exact order of your tabs for swiping sequence
-      const tabOrder = ["favorites", "search", "upload"];
+      const swipeArea = document.getElementById("dashboard-view");
+      const viewOrder = ["favorites", "search", "upload"]; // Matches bottom nav order perfectly
 
-      document.addEventListener(
+      swipeArea.addEventListener(
         "touchstart",
         (e) => {
-          // Ignore swipes starting from inside form inputs, text areas, or horizontal sliders
-          if (
-            e.target.closest("input, textarea, select, .card-actions, button")
-          )
-            return;
           touchStartX = e.changedTouches[0].screenX;
+          touchStartY = e.changedTouches[0].screenY;
         },
         { passive: true }
       );
 
-      document.addEventListener(
+      swipeArea.addEventListener(
         "touchend",
         (e) => {
-          if (
-            e.target.closest("input, textarea, select, .card-actions, button")
-          )
-            return;
           touchEndX = e.changedTouches[0].screenX;
+          touchEndY = e.changedTouches[0].screenY;
           handleSwipeGesture();
         },
         { passive: true }
       );
 
       function handleSwipeGesture() {
-        const swipeDistance = touchEndX - touchStartX;
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
 
-        if (Math.abs(swipeDistance) < minSwipeDistance) return;
+        // 1. Ensure the swipe is mostly horizontal (not a vertical scroll)
+        // 2. Ensure it travels at least 50px to prevent accidental taps triggering it
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+          // Find which view is currently active
+          const currentActiveId = viewOrder.find((view) =>
+            document.getElementById("view-" + view).classList.contains("active")
+          );
 
-        // Find currently active view section
-        const activeSection = document.querySelector(".view-section.active");
-        if (!activeSection) return;
+          let currentIndex = viewOrder.indexOf(currentActiveId);
+          if (currentIndex === -1) return;
 
-        const currentViewId = activeSection.id.replace("view-", "");
-        const currentIndex = tabOrder.indexOf(currentViewId);
-
-        if (currentIndex === -1) return;
-
-        if (swipeDistance < 0) {
-          // Swiped Left -> Go to next tab (if available)
-          if (currentIndex < tabOrder.length - 1) {
-            switchDashboardView(tabOrder[currentIndex + 1]);
-          }
-        } else {
-          // Swiped Right -> Go to previous tab (if available)
-          if (currentIndex > 0) {
-            switchDashboardView(tabOrder[currentIndex - 1]);
+          if (deltaX < 0) {
+            // Swipe Left -> Move to the Next Tab (Right)
+            if (currentIndex < viewOrder.length - 1) {
+              switchDashboardView(viewOrder[currentIndex + 1]);
+            }
+          } else {
+            // Swipe Right -> Move to the Previous Tab (Left)
+            if (currentIndex > 0) {
+              switchDashboardView(viewOrder[currentIndex - 1]);
+            }
           }
         }
       }
       function toggleCardExpansion(cardElement, event) {
         // If clicking inside the actions directly, don't toggle collapse
-        if (event.target.closest(".card-actions")) return;
+        if (event.target.closest('.card-actions')) return;
 
         // Collapse other open cards (optional accordion behavior)
-        const allCards = document.querySelectorAll(".list-item");
-        allCards.forEach((c) => {
-          if (c !== cardElement) c.classList.remove("expanded");
+        const allCards = document.querySelectorAll('.list-item');
+        allCards.forEach(c => {
+          if (c !== cardElement) c.classList.remove('expanded');
         });
 
         // Toggle current card
-        cardElement.classList.toggle("expanded");
+        cardElement.classList.toggle('expanded');
       }
 
       // BOOTSTRAP APP
