@@ -516,7 +516,8 @@
         margin-bottom: 8px;
         color: var(--text-light);
       }
-      .input-group input {
+      .input-group input,
+      .input-group select {
         width: 100%;
         padding: 14px 16px;
         background: var(--input-bg);
@@ -527,7 +528,8 @@
         outline: none;
         transition: 0.2s;
       }
-      .input-group input:focus {
+      .input-group input:focus,
+      .input-group select:focus {
         border-color: var(--primary);
         box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
       }
@@ -908,7 +910,8 @@
         transition: background 0.2s, border-color 0.2s;
       }
 
-      .list-item .card-actions {
+      /* Hide by default for both List (nested) and Table (adjacent sibling) */
+      .card-actions {
         max-height: 0;
         opacity: 0;
         overflow: hidden;
@@ -927,11 +930,20 @@
         border-color: var(--primary);
       }
 
+      /* Reveal for List View */
       .list-item.expanded .card-actions {
         max-height: 100px;
         opacity: 1;
         margin-top: 12px;
       }
+
+      /* Reveal for Table View (Next Row Sibling) */
+      .list-item.expanded + .card-actions-row .card-actions {
+        max-height: 100px;
+        opacity: 1;
+        margin-top: 0;
+      }
+
       /* --- LIST VIEW ALTERNATING COLORS --- */
       .list-item {
         padding: 16px 20px;
@@ -939,15 +951,16 @@
         transition: background 0.2s;
       }
 
-      /* Applies the faint primary tint to even rows */
-      .list-item:nth-child(even) {
+      /* Applies the faint primary tint to even rows in unordered lists */
+      li.list-item:nth-child(even) {
         background-color: var(--stripe-bg);
       }
 
       /* Hover overrides with neutral gray, creating clear contrast */
-      .list-item:hover {
+      li.list-item:hover {
         background-color: var(--btn-secondary);
       }
+      
       .office-title {
         font-size: 16px;
         font-weight: 700;
@@ -955,25 +968,25 @@
         margin-bottom: 8px;
       }
 
-      /* --- BEAUTIFUL BADGES FOR RESULTS (UPDATED) --- */
+      /* --- BEAUTIFUL BADGES FOR RESULTS --- */
       .badge {
         display: inline-block;
-        padding: 6px 14px; /* Increased padding */
+        padding: 6px 14px;
         border-radius: 8px;
-        font-size: 15px; /* Increased from 12px to 15px */
-        font-weight: 700; /* Increased to bold */
+        font-size: 15px;
+        font-weight: 700;
         background: var(--input-bg);
-        color: var(--text); /* Changed from text-light for better contrast */
+        color: var(--text);
         margin-right: 8px;
         margin-bottom: 4px;
         border: 1px solid var(--border);
-        box-shadow: var(--shadow-sm); /* Added a subtle shadow to make it pop */
+        box-shadow: var(--shadow-sm);
       }
 
       .badge-primary {
-        background: rgba(79, 70, 229, 0.15); /* Slightly richer background */
+        background: rgba(79, 70, 229, 0.15);
         color: var(--primary);
-        border-color: var(--primary); /* Stronger border instead of faded */
+        border-color: var(--primary);
       }
 
       [data-theme="dark"] .badge-primary {
@@ -1004,6 +1017,7 @@
         position: sticky;
         top: 0;
       }
+
       /* --- TABLE VIEW ALTERNATING COLORS --- */
       table.data-table td {
         padding: 16px 20px;
@@ -1014,17 +1028,18 @@
         transition: background 0.2s;
       }
 
-      /* Applies the faint primary tint to even table rows */
-      table.data-table tbody tr:nth-child(even) td {
+      /* Fix Zebra Striping (Since each item uses 2 rows, stripe every 4th row block) */
+      table.data-table tbody tr.list-item:nth-child(4n+3) td,
+      table.data-table tbody tr.card-actions-row:nth-child(4n+4) td {
         background-color: var(--stripe-bg);
       }
 
       /* Hover overrides with neutral gray, creating clear contrast */
-      table.data-table tr:hover td {
+      table.data-table tr.list-item:hover td,
+      table.data-table tr.list-item.expanded + .card-actions-row td {
         background-color: var(--btn-secondary);
         color: var(--text);
       }
-
       /* --- SEARCH HIGHLIGHTING --- */
       .highlight-text {
         background-color: transparent !important;
@@ -1402,20 +1417,7 @@
             </div>
             <div class="input-group">
               <label>Designation</label>
-              <select
-                id="signup-designation"
-                style="
-                  width: 100%;
-                  padding: 14px 16px;
-                  background: var(--input-bg);
-                  color: var(--text);
-                  border: 1px solid var(--input-border);
-                  border-radius: 12px;
-                  font-size: 15px;
-                  outline: none;
-                  transition: 0.2s;
-                "
-              >
+              <select id="signup-designation">
                 <option value="" disabled selected>
                   Select your designation
                 </option>
@@ -1519,7 +1521,6 @@
         </div>
       </header>
 
-      <!-- Sidebar Drawer -->
       <!-- Sidebar Drawer -->
       <div
         id="sidebar-overlay"
@@ -2061,40 +2062,45 @@
       }
 
       function switchDashboardView(viewId) {
-        document.getElementById("view-search").classList.remove("active");
-        document.getElementById("view-upload").classList.remove("active");
-        document.getElementById("view-favorites").classList.remove("active");
+        // Clear all active states efficiently
+        document.querySelectorAll('.view-section, .sidebar-menu-item, .bottom-nav-item').forEach(el => {
+          el.classList.remove('active');
+        });
 
-        document.getElementById("nav-search").classList.remove("active");
-        document.getElementById("nav-upload").classList.remove("active");
-        document.getElementById("nav-favorites").classList.remove("active");
-
-        const bottomNavSearch = document.getElementById("bottom-nav-search");
-        if (bottomNavSearch) {
-          document
-            .getElementById("bottom-nav-search")
-            .classList.remove("active");
-          document
-            .getElementById("bottom-nav-favorites")
-            .classList.remove("active");
-          document
-            .getElementById("bottom-nav-upload")
-            .classList.remove("active");
-
-          const activeBottomIcon = document.getElementById(
-            "bottom-nav-" + viewId
-          );
-          if (activeBottomIcon) activeBottomIcon.classList.add("active");
-        }
-
-        document.getElementById("view-" + viewId).classList.add("active");
-        document.getElementById("nav-" + viewId).classList.add("active");
+        // Set new active states
+        document.getElementById("view-" + viewId)?.classList.add("active");
+        document.getElementById("nav-" + viewId)?.classList.add("active");
+        document.getElementById("bottom-nav-" + viewId)?.classList.add("active");
 
         if (viewId === "favorites") {
           renderFavorites();
         }
 
         closeSidebar();
+      }
+
+      // XSS Protection Helper
+      function escapeHTML(str) {
+        if (str === null || str === undefined) return "";
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      // Shared Favorite Button Styling Logic
+      function getFavoriteBtnStyles(isFav, isTable = false) {
+        const starIcon = isFav ? `${ICON_STAR_FILLED} Saved` : `${ICON_STAR_OUTLINE} Save`;
+        const iconOnly = isFav ? ICON_STAR_FILLED : ICON_STAR_OUTLINE;
+        
+        return {
+          icon: isTable ? iconOnly : starIcon,
+          style: isFav
+            ? `color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: ${isTable ? 'inline-flex' : 'flex'}; align-items: center; justify-content: center; gap: 4px;`
+            : `color: var(--text-light); background-color: transparent; display: ${isTable ? 'inline-flex' : 'flex'}; align-items: center; justify-content: center; gap: 4px;`
+        };
       }
 
       function showToast(message) {
@@ -2122,7 +2128,7 @@
             (term) =>
               `<button class="badge" style="cursor: pointer;" onclick="applyHistorySearch('${escapeForOnclick(
                 term
-              )}')">${term}</button>`
+              )}')">${escapeHTML(term)}</button>`
           )
           .join("");
       }
@@ -2211,28 +2217,20 @@
 
         let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
         favorites.forEach((row) => {
-          const starIcon = `${ICON_STAR_FILLED} Saved`;
-          const starStyle =
-            "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;";
-
+          const favStyle = getFavoriteBtnStyles(true); // Always true in favorites view
+          
           html += `
           <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
               <div style="flex: 1 1 200px;">
-                <div class="office-title">${row.address}</div>
+                <div class="office-title">${escapeHTML(row.address)}</div>
                 <div class="sub-office">
-                  <span class="badge badge-primary">🏢 ${row.office}</span>
-                  <span class="badge">📍 Pin: ${row.pin || "N/A"}</span>
+                  <span class="badge badge-primary">🏢 ${escapeHTML(row.office)}</span>
+                  <span class="badge">📍 Pin: ${escapeHTML(row.pin) || "N/A"}</span>
                 </div>
               </div>
               <div style="display: flex; justify-content: flex-end;">
-                <button onclick="toggleFavorite('${
-                  row.id
-                }', '${escapeForOnclick(row.address)}', '${escapeForOnclick(
-            row.office
-          )}', '${escapeForOnclick(
-            row.pin
-          )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">
-                  ${starIcon}
+                <button onclick="toggleFavorite('${row.id}', '${escapeForOnclick(row.address)}', '${escapeForOnclick(row.office)}', '${escapeForOnclick(row.pin)}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${favStyle.style}">
+                  ${favStyle.icon}
                 </button>
               </div>
           </li>`;
@@ -2331,9 +2329,9 @@
           includeMatches: true,
         });
 
-        // PERFORMANCE BOOST: Render just the first 5 default items on startup
+        // PERFORMANCE BOOST: Render just the first 10 default items on startup
         currentFilteredData = cachedPostOffices
-          .slice(0, 5)
+          .slice(0, 10)
           .map((item) => ({ item, matches: [] }));
         renderResults();
       }
@@ -2351,6 +2349,7 @@
       let preferredIndianVoice = null;
       function loadIndianVoice() {
         const voices = window.speechSynthesis.getVoices();
+        if (voices.length === 0) return; // Wait for the event if array is empty
         preferredIndianVoice =
           voices.find(
             (v) => v.lang.includes("en-IN") || v.name.includes("India")
@@ -2361,55 +2360,48 @@
         window.speechSynthesis.onvoiceschanged = loadIndianVoice;
       }
 
+      let activeFilterVal = null; // Track current filter to avoid unnecessary Fuse rebuilds
+      
       function triggerSearch() {
-        const searchInput = document
-          .getElementById("search-input")
-          .value.trim();
-        const filterVal = document.querySelector(
-          'input[name="searchFilter"]:checked'
-        ).value;
-        const filterOffice = document
-          .getElementById("filter-office")
-          .value.trim()
-          .toLowerCase();
-        const filterPin = document
-          .getElementById("filter-pin")
-          .value.trim()
-          .toLowerCase();
+        const searchInput = document.getElementById("search-input").value.trim();
+        const filterVal = document.querySelector('input[name="searchFilter"]:checked').value;
+        const filterOffice = document.getElementById("filter-office").value.trim().toLowerCase();
+        const filterPin = document.getElementById("filter-pin").value.trim().toLowerCase();
 
-        // If search box and filters are empty, show the default top 5 items instantly
+        // If search box and filters are empty, show the default top 10 items instantly
         if (!searchInput && !filterOffice && !filterPin) {
-          currentFilteredData = cachedPostOffices
-            .slice(0, 5)
-            .map((item) => ({ item, matches: [] }));
+          currentFilteredData = cachedPostOffices.slice(0, 10).map((item) => ({ item, matches: [] }));
           renderResults();
           return;
         }
 
         if (searchInput.length > 2) saveSearchTerm(searchInput);
 
-        let keysToSearch = ["Address", "Office", "Pin"];
-        if (filterVal === "address") keysToSearch = ["Address"];
-        if (filterVal === "office") keysToSearch = ["Office"];
-        if (filterVal === "pin") keysToSearch = ["Pin"];
-
         let baseData = [];
         if (!searchInput) {
           baseData = cachedPostOffices.map((item) => ({ item, matches: [] }));
         } else {
-          // Re-instantiate Fuse cleanly with the active search keys
-          fuse = new Fuse(cachedPostOffices, {
-            keys: keysToSearch,
-            threshold: 0.3,
-            ignoreLocation: false,
-            location: 0,
-            distance: 100,
-            includeMatches: true,
-            getFn: (obj, path) => {
-              const value = obj[path];
-              return value === null || value === undefined ? "" : String(value);
-            },
-          });
+          // Rebuild Fuse ONLY if the filter changed or it hasn't been instantiated yet
+          if (!fuse || activeFilterVal !== filterVal) {
+            let keysToSearch = ["Address", "Office", "Pin"];
+            if (filterVal === "address") keysToSearch = ["Address"];
+            if (filterVal === "office") keysToSearch = ["Office"];
+            if (filterVal === "pin") keysToSearch = ["Pin"];
+
+            fuse = new Fuse(cachedPostOffices, {
+              keys: keysToSearch,
+              threshold: 0.3,
+              ignoreLocation: false,
+              location: 0,
+              distance: 100,
+              includeMatches: true,
+              getFn: (obj, path) => {
+                const value = obj[path];
+                return value === null || value === undefined ? "" : String(value);
+              },
+            });
+            activeFilterVal = filterVal;
+          }
           baseData = fuse.search(searchInput);
         }
 
@@ -2417,20 +2409,8 @@
           baseData = baseData.filter((result) => {
             const row = result.item;
             let keep = true;
-            if (
-              filterOffice &&
-              !String(row.Office || "")
-                .toLowerCase()
-                .includes(filterOffice)
-            )
-              keep = false;
-            if (
-              filterPin &&
-              !String(row.Pin || "")
-                .toLowerCase()
-                .includes(filterPin)
-            )
-              keep = false;
+            if (filterOffice && !String(row.Office || "").toLowerCase().includes(filterOffice)) keep = false;
+            if (filterPin && !String(row.Pin || "").toLowerCase().includes(filterPin)) keep = false;
             return keep;
           });
         }
@@ -2462,19 +2442,22 @@
 
       function highlightText(text, matches, key) {
         if (text === null || text === undefined) return "";
-        text = String(text);
-        if (!matches || matches.length === 0) return text;
+        let safeText = escapeHTML(text); // Secure against XSS
+        if (!matches || matches.length === 0) return safeText;
+        
         const match = matches.find((m) => m.key === key);
-        if (!match || !match.indices || match.indices.length === 0) return text;
+        if (!match || !match.indices || match.indices.length === 0) return safeText;
 
         const [start, end] = match.indices[0];
-        let highlighted = text.substring(0, start);
-        highlighted += `<span class="highlight-text">${text.substring(
-          start,
-          end + 1
-        )}</span>`;
-        highlighted += text.substring(end + 1);
-        return highlighted;
+        
+        // Note: Fuse returns indices based on the original unescaped text.
+        // For perfect security and alignment, we apply the highlight to the original, 
+        // then escape the chunks separately.
+        const before = escapeHTML(String(text).substring(0, start));
+        const highlighted = escapeHTML(String(text).substring(start, end + 1));
+        const after = escapeHTML(String(text).substring(end + 1));
+        
+        return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
       }
 
       function escapeForOnclick(str) {
@@ -2500,30 +2483,15 @@
           let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
           currentFilteredData.forEach((result) => {
             const row = result.item;
-            const addressHtml = highlightText(
-              row.Address,
-              result.matches,
-              "Address"
-            );
-            const officeHtml = highlightText(
-              row.Office,
-              result.matches,
-              "Office"
-            );
+            const addressHtml = highlightText(row.Address, result.matches, "Address");
+            const officeHtml = highlightText(row.Office, result.matches, "Office");
             const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
-            const isFav = favorites.some(
-              (f) => String(f.id) === String(row.id)
-            );
-            const starIcon = isFav
-              ? `${ICON_STAR_FILLED} Saved`
-              : `${ICON_STAR_OUTLINE} Save`;
-            const starStyle = isFav
-              ? "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;"
-              : "color: var(--text-light); background-color: transparent; display: flex; align-items: center; gap: 4px;";
+            const isFav = favorites.some((f) => String(f.id) === String(row.id));
+            const favStyle = getFavoriteBtnStyles(isFav, false);
 
             html += `
-          <li class="list-item" onclick="toggleCardExpansion(this, event)" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+          <li class="list-item" onclick="toggleCardExpansion(this)" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
               <div style="width: 100%;">
                 <div class="office-title">${addressHtml}</div>
                 <div class="sub-office">
@@ -2532,23 +2500,9 @@
                 </div>
               </div>
               <div class="card-actions">
-                <button onclick="event.stopPropagation(); toggleFavorite('${
-                  row.id
-                }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-              row.Office
-            )}', '${escapeForOnclick(
-              row.Pin
-            )}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">${starIcon}</button>
-                <button onclick="event.stopPropagation(); updateRecord('${
-                  row.id
-                }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-              row.Office
-            )}', '${escapeForOnclick(
-              row.Pin
-            )}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
-                <button onclick="event.stopPropagation(); deleteRecord('${
-                  row.id
-                }')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
+                <button onclick="event.stopPropagation(); toggleFavorite('${row.id}', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(row.Pin)}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${favStyle.style}">${favStyle.icon}</button>
+                <button onclick="event.stopPropagation(); updateRecord('${row.id}', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(row.Pin)}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
+                <button onclick="event.stopPropagation(); deleteRecord('${row.id}')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
               </div>
           </li>`;
           });
@@ -2560,27 +2514,14 @@
               <tbody>`;
           currentFilteredData.forEach((result) => {
             const row = result.item;
-            const addressHtml = highlightText(
-              row.Address,
-              result.matches,
-              "Address"
-            );
-            const officeHtml = highlightText(
-              row.Office,
-              result.matches,
-              "Office"
-            );
+            const addressHtml = highlightText(row.Address, result.matches, "Address");
+            const officeHtml = highlightText(row.Office, result.matches, "Office");
             const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
-            const isFav = favorites.some(
-              (f) => String(f.id) === String(row.id)
-            );
-            const starIcon = isFav ? ICON_STAR_FILLED : ICON_STAR_OUTLINE;
-            const starStyle = isFav
-              ? "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: inline-flex; align-items: center; justify-content: center;"
-              : "color: var(--text-light); background-color: transparent; display: inline-flex; align-items: center; justify-content: center;";
+            const isFav = favorites.some((f) => String(f.id) === String(row.id));
+            const favStyle = getFavoriteBtnStyles(isFav, true);
 
-            html += `<tr class="list-item" onclick="toggleCardExpansion(this, event)">
+            html += `<tr class="list-item" onclick="toggleCardExpansion(this)">
             <td>${addressHtml}</td>
             <td>${officeHtml}</td>
             <td>${PinHtml || "-"}</td>
@@ -2588,23 +2529,9 @@
            <tr class="card-actions-row">
              <td colspan="3" style="padding: 0; border: none;">
                <div class="card-actions" style="padding: 0 16px 12px 16px;">
-                 <button onclick="event.stopPropagation(); toggleFavorite('${
-                   row.id
-                 }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-              row.Office
-            )}', '${escapeForOnclick(
-              row.Pin
-            )}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}" title="Toggle Favorite">${starIcon}</button>
-                 <button onclick="event.stopPropagation(); updateRecord('${
-                   row.id
-                 }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-              row.Office
-            )}', '${escapeForOnclick(
-              row.Pin
-            )}')" class="toolbar-btn" style="padding: 4px 8px;">✎ Edit</button>
-                 <button onclick="event.stopPropagation(); deleteRecord('${
-                   row.id
-                 }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑 Delete</button>
+                 <button onclick="event.stopPropagation(); toggleFavorite('${row.id}', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(row.Pin)}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${favStyle.style}" title="Toggle Favorite">${favStyle.icon}</button>
+                 <button onclick="event.stopPropagation(); updateRecord('${row.id}', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(row.Pin)}')" class="toolbar-btn" style="padding: 4px 8px;">✎ Edit</button>
+                 <button onclick="event.stopPropagation(); deleteRecord('${row.id}')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑 Delete</button>
                </div>
              </td>
            </tr>`;
@@ -2628,12 +2555,19 @@
 
       function exportCSV() {
         if (!currentFilteredData.length) return showToast("No data to export!");
+        
+        // Helper to format strings safely for CSVs
+        const escapeCSV = (str) => {
+          if (str === null || str === undefined) return "";
+          // Replace inner double quotes with two double quotes (CSV standard)
+          return String(str).replace(/"/g, '""');
+        };
+
         let csv = "Address,Office,Pin\n";
         currentFilteredData.forEach((row) => {
-          csv += `"${row.item.Address || ""}","${row.item.Office || ""}","${
-            row.item.Pin || ""
-          }"\n`;
+          csv += `"${escapeCSV(row.item.Address)}","${escapeCSV(row.item.Office)}","${escapeCSV(row.item.Pin)}"\n`;
         });
+        
         const blob = new Blob([csv], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -3154,19 +3088,24 @@
         const container = document.getElementById("manual-entries-container");
         const safePin = !currentPin || currentPin === "null" ? "" : currentPin;
 
+        // Double check escaping for innerHTML insertion to prevent breakout
+        const escapedAddress = escapeHTML(currentAddress);
+        const escapedOffice = escapeHTML(currentOffice);
+        const escapedPin = escapeHTML(safePin);
+
         container.innerHTML = `
         <div class="manual-entry-row" data-edit-id="${id}">
           <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
             <label style="color: var(--primary);">Address (Editing)</label>
-            <input type="text" class="manual-address" value="${currentAddress}" />
+            <input type="text" class="manual-address" value="${escapedAddress}" />
           </div>
           <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
             <label style="color: var(--primary);">Office</label>
-            <input type="text" class="manual-office" value="${currentOffice}" />
+            <input type="text" class="manual-office" value="${escapedOffice}" />
           </div>
           <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
             <label style="color: var(--primary);">Pin</label>
-            <input type="text" class="manual-Pin" value="${safePin}" />
+            <input type="text" class="manual-Pin" value="${escapedPin}" />
           </div>
           <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
         </div>
@@ -3308,10 +3247,8 @@
           }
         }
       }
-      function toggleCardExpansion(cardElement, event) {
-        // If clicking inside the actions directly, don't toggle collapse
-        if (event.target.closest('.card-actions')) return;
 
+      function toggleCardExpansion(cardElement) {
         // Collapse other open cards (optional accordion behavior)
         const allCards = document.querySelectorAll('.list-item');
         allCards.forEach(c => {
