@@ -3252,18 +3252,78 @@
         document.getElementById(btnId).classList.add("hidden");
         triggerSearch();
       }
+      // --- SWIPE GESTURE NAVIGATION ---
+      let touchStartX = 0;
+      let touchEndX = 0;
+      const minSwipeDistance = 50; // Minimum pixels required to register a swipe
+
+      // Define the exact order of your tabs for swiping sequence
+      const tabOrder = ["favorites", "search", "upload"];
+
+      document.addEventListener(
+        "touchstart",
+        (e) => {
+          // Ignore swipes starting from inside form inputs, text areas, or horizontal sliders
+          if (
+            e.target.closest("input, textarea, select, .card-actions, button")
+          )
+            return;
+          touchStartX = e.changedTouches[0].screenX;
+        },
+        { passive: true }
+      );
+
+      document.addEventListener(
+        "touchend",
+        (e) => {
+          if (
+            e.target.closest("input, textarea, select, .card-actions, button")
+          )
+            return;
+          touchEndX = e.changedTouches[0].screenX;
+          handleSwipeGesture();
+        },
+        { passive: true }
+      );
+
+      function handleSwipeGesture() {
+        const swipeDistance = touchEndX - touchStartX;
+
+        if (Math.abs(swipeDistance) < minSwipeDistance) return;
+
+        // Find currently active view section
+        const activeSection = document.querySelector(".view-section.active");
+        if (!activeSection) return;
+
+        const currentViewId = activeSection.id.replace("view-", "");
+        const currentIndex = tabOrder.indexOf(currentViewId);
+
+        if (currentIndex === -1) return;
+
+        if (swipeDistance < 0) {
+          // Swiped Left -> Go to next tab (if available)
+          if (currentIndex < tabOrder.length - 1) {
+            switchDashboardView(tabOrder[currentIndex + 1]);
+          }
+        } else {
+          // Swiped Right -> Go to previous tab (if available)
+          if (currentIndex > 0) {
+            switchDashboardView(tabOrder[currentIndex - 1]);
+          }
+        }
+      }
       function toggleCardExpansion(cardElement, event) {
         // If clicking inside the actions directly, don't toggle collapse
-        if (event.target.closest('.card-actions')) return;
+        if (event.target.closest(".card-actions")) return;
 
         // Collapse other open cards (optional accordion behavior)
-        const allCards = document.querySelectorAll('.list-item');
-        allCards.forEach(c => {
-          if (c !== cardElement) c.classList.remove('expanded');
+        const allCards = document.querySelectorAll(".list-item");
+        allCards.forEach((c) => {
+          if (c !== cardElement) c.classList.remove("expanded");
         });
 
         // Toggle current card
-        cardElement.classList.toggle('expanded');
+        cardElement.classList.toggle("expanded");
       }
 
       // BOOTSTRAP APP
