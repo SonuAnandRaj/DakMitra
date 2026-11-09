@@ -117,7 +117,17 @@
         font-size: 36px;
         margin-bottom: 4px;
       }
-
+      /* If always-show mode is active, override the hidden state */
+      .list-container.always-show-actions .card-actions {
+        max-height: 100px !important;
+        opacity: 1 !important;
+        margin-top: 12px !important;
+      }
+      table.data-table.always-show-actions tr.card-actions-row .card-actions {
+        max-height: 100px !important;
+        opacity: 1 !important;
+        margin-top: 0 !important;
+      }
       /* --- THEME TOGGLE ANIMATION --- */
       .theme-toggle-btn {
         background: transparent;
@@ -960,7 +970,7 @@
       li.list-item:hover {
         background-color: var(--btn-secondary);
       }
-      
+
       .office-title {
         font-size: 16px;
         font-weight: 700;
@@ -1029,8 +1039,8 @@
       }
 
       /* Fix Zebra Striping (Since each item uses 2 rows, stripe every 4th row block) */
-      table.data-table tbody tr.list-item:nth-child(4n+3) td,
-      table.data-table tbody tr.card-actions-row:nth-child(4n+4) td {
+      table.data-table tbody tr.list-item:nth-child(4n + 3) td,
+      table.data-table tbody tr.card-actions-row:nth-child(4n + 4) td {
         background-color: var(--stripe-bg);
       }
 
@@ -1585,7 +1595,13 @@
             📤 Upload Data
           </button>
           <hr style="border-top: 1px solid var(--border); margin: 16px 0" />
-
+          <button
+            class="sidebar-menu-item"
+            id="nav-settings"
+            onclick="switchDashboardView('settings')"
+          >
+            ⚙️ Settings
+          </button>
           <button
             class="sidebar-menu-item hidden"
             id="install-app-btn"
@@ -1879,7 +1895,162 @@
             </ul>
           </div>
         </section>
+        <!-- SETTINGS VIEW -->
+        <section id="view-settings" class="view-section">
+          <div class="search-hero" style="text-align: center">
+            <h2>App Settings</h2>
+          </div>
 
+          <!-- Display Settings -->
+          <div
+            class="upload-card"
+            style="margin-bottom: 24px; text-align: left"
+          >
+            <h3 style="margin-bottom: 16px; color: var(--primary)">Display</h3>
+
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+              "
+            >
+              <div>
+                <strong style="display: block; color: var(--text)"
+                  >Dark Mode</strong
+                >
+                <span style="font-size: 13px; color: var(--text-light)"
+                  >Switch between light and dark themes</span
+                >
+              </div>
+              <button
+                class="btn"
+                style="width: auto; padding: 8px 16px"
+                onclick="toggleTheme()"
+              >
+                Toggle
+              </button>
+            </div>
+
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <div>
+                <strong style="display: block; color: var(--text)"
+                  >Default View</strong
+                >
+                <span style="font-size: 13px; color: var(--text-light)"
+                  >Choose your preferred layout</span
+                >
+              </div>
+              <select
+                id="default-view-select"
+                onchange="saveDefaultView(this.value)"
+                style="
+                  padding: 8px;
+                  border-radius: 8px;
+                  background: var(--input-bg);
+                  color: var(--text);
+                  border: 1px solid var(--border);
+                "
+              >
+                <option value="list">List View</option>
+                <option value="table">Table View</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Data Management Settings -->
+          <div class="upload-card" style="text-align: left">
+            <h3 style="margin-bottom: 16px; color: var(--primary)">
+              Data Management
+            </h3>
+
+            <!-- Action Buttons Mode Setting -->
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+              "
+            >
+              <div>
+                <strong style="display: block; color: var(--text)"
+                  >Action Buttons</strong
+                >
+                <span style="font-size: 13px; color: var(--text-light)"
+                  >Choose how edit/delete buttons appear</span
+                >
+              </div>
+              <select
+                id="action-mode-select"
+                onchange="saveActionMode(this.value)"
+                style="
+                  padding: 8px;
+                  border-radius: 8px;
+                  background: var(--input-bg);
+                  color: var(--text);
+                  border: 1px solid var(--border);
+                "
+              >
+                <option value="tap">Tap to Show</option>
+                <option value="always">Always Show</option>
+              </select>
+            </div>
+
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+              "
+            >
+              <div>
+                <strong style="display: block; color: var(--text)"
+                  >Export Database</strong
+                >
+                <span style="font-size: 13px; color: var(--text-light)"
+                  >Download as CSV Excel file</span
+                >
+              </div>
+              <button
+                class="btn"
+                style="
+                  width: auto;
+                  padding: 8px 16px;
+                  background: var(--success-bg);
+                  color: var(--success-text);
+                "
+                onclick="exportCSV()"
+              >
+                Export
+              </button>
+            </div>
+
+            <hr
+              style="
+                border: 0;
+                border-top: 1px solid var(--border);
+                margin: 16px 0;
+              "
+            />
+
+            <button
+              class="btn"
+              style="background: #fee2e2; color: #b91c1c; width: 100%"
+              onclick="clearAppCache()"
+            >
+              🗑️ Clear App Cache
+            </button>
+          </div>
+        </section>
         <!-- UPLOAD VIEW (Hidden by default) -->
         <section id="view-upload" class="view-section">
           <!-- Manual Data Entry Card -->
@@ -2063,14 +2234,20 @@
 
       function switchDashboardView(viewId) {
         // Clear all active states efficiently
-        document.querySelectorAll('.view-section, .sidebar-menu-item, .bottom-nav-item').forEach(el => {
-          el.classList.remove('active');
-        });
+        document
+          .querySelectorAll(
+            ".view-section, .sidebar-menu-item, .bottom-nav-item"
+          )
+          .forEach((el) => {
+            el.classList.remove("active");
+          });
 
         // Set new active states
         document.getElementById("view-" + viewId)?.classList.add("active");
         document.getElementById("nav-" + viewId)?.classList.add("active");
-        document.getElementById("bottom-nav-" + viewId)?.classList.add("active");
+        document
+          .getElementById("bottom-nav-" + viewId)
+          ?.classList.add("active");
 
         if (viewId === "favorites") {
           renderFavorites();
@@ -2092,14 +2269,20 @@
 
       // Shared Favorite Button Styling Logic
       function getFavoriteBtnStyles(isFav, isTable = false) {
-        const starIcon = isFav ? `${ICON_STAR_FILLED} Saved` : `${ICON_STAR_OUTLINE} Save`;
+        const starIcon = isFav
+          ? `${ICON_STAR_FILLED} Saved`
+          : `${ICON_STAR_OUTLINE} Save`;
         const iconOnly = isFav ? ICON_STAR_FILLED : ICON_STAR_OUTLINE;
-        
+
         return {
           icon: isTable ? iconOnly : starIcon,
           style: isFav
-            ? `color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: ${isTable ? 'inline-flex' : 'flex'}; align-items: center; justify-content: center; gap: 4px;`
-            : `color: var(--text-light); background-color: transparent; display: ${isTable ? 'inline-flex' : 'flex'}; align-items: center; justify-content: center; gap: 4px;`
+            ? `color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: ${
+                isTable ? "inline-flex" : "flex"
+              }; align-items: center; justify-content: center; gap: 4px;`
+            : `color: var(--text-light); background-color: transparent; display: ${
+                isTable ? "inline-flex" : "flex"
+              }; align-items: center; justify-content: center; gap: 4px;`,
         };
       }
 
@@ -2218,18 +2401,30 @@
         let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
         favorites.forEach((row) => {
           const favStyle = getFavoriteBtnStyles(true); // Always true in favorites view
-          
+
           html += `
           <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
               <div style="flex: 1 1 200px;">
                 <div class="office-title">${escapeHTML(row.address)}</div>
                 <div class="sub-office">
-                  <span class="badge badge-primary">🏢 ${escapeHTML(row.office)}</span>
-                  <span class="badge">📍 Pin: ${escapeHTML(row.pin) || "N/A"}</span>
+                  <span class="badge badge-primary">🏢 ${escapeHTML(
+                    row.office
+                  )}</span>
+                  <span class="badge">📍 Pin: ${
+                    escapeHTML(row.pin) || "N/A"
+                  }</span>
                 </div>
               </div>
               <div style="display: flex; justify-content: flex-end;">
-                <button onclick="toggleFavorite('${row.id}', '${escapeForOnclick(row.address)}', '${escapeForOnclick(row.office)}', '${escapeForOnclick(row.pin)}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${favStyle.style}">
+                <button onclick="toggleFavorite('${
+                  row.id
+                }', '${escapeForOnclick(row.address)}', '${escapeForOnclick(
+            row.office
+          )}', '${escapeForOnclick(
+            row.pin
+          )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
+            favStyle.style
+          }">
                   ${favStyle.icon}
                 </button>
               </div>
@@ -2361,16 +2556,28 @@
       }
 
       let activeFilterVal = null; // Track current filter to avoid unnecessary Fuse rebuilds
-      
+
       function triggerSearch() {
-        const searchInput = document.getElementById("search-input").value.trim();
-        const filterVal = document.querySelector('input[name="searchFilter"]:checked').value;
-        const filterOffice = document.getElementById("filter-office").value.trim().toLowerCase();
-        const filterPin = document.getElementById("filter-pin").value.trim().toLowerCase();
+        const searchInput = document
+          .getElementById("search-input")
+          .value.trim();
+        const filterVal = document.querySelector(
+          'input[name="searchFilter"]:checked'
+        ).value;
+        const filterOffice = document
+          .getElementById("filter-office")
+          .value.trim()
+          .toLowerCase();
+        const filterPin = document
+          .getElementById("filter-pin")
+          .value.trim()
+          .toLowerCase();
 
         // If search box and filters are empty, show the default top 10 items instantly
         if (!searchInput && !filterOffice && !filterPin) {
-          currentFilteredData = cachedPostOffices.slice(0, 10).map((item) => ({ item, matches: [] }));
+          currentFilteredData = cachedPostOffices
+            .slice(0, 10)
+            .map((item) => ({ item, matches: [] }));
           renderResults();
           return;
         }
@@ -2397,7 +2604,9 @@
               includeMatches: true,
               getFn: (obj, path) => {
                 const value = obj[path];
-                return value === null || value === undefined ? "" : String(value);
+                return value === null || value === undefined
+                  ? ""
+                  : String(value);
               },
             });
             activeFilterVal = filterVal;
@@ -2409,8 +2618,20 @@
           baseData = baseData.filter((result) => {
             const row = result.item;
             let keep = true;
-            if (filterOffice && !String(row.Office || "").toLowerCase().includes(filterOffice)) keep = false;
-            if (filterPin && !String(row.Pin || "").toLowerCase().includes(filterPin)) keep = false;
+            if (
+              filterOffice &&
+              !String(row.Office || "")
+                .toLowerCase()
+                .includes(filterOffice)
+            )
+              keep = false;
+            if (
+              filterPin &&
+              !String(row.Pin || "")
+                .toLowerCase()
+                .includes(filterPin)
+            )
+              keep = false;
             return keep;
           });
         }
@@ -2444,19 +2665,20 @@
         if (text === null || text === undefined) return "";
         let safeText = escapeHTML(text); // Secure against XSS
         if (!matches || matches.length === 0) return safeText;
-        
+
         const match = matches.find((m) => m.key === key);
-        if (!match || !match.indices || match.indices.length === 0) return safeText;
+        if (!match || !match.indices || match.indices.length === 0)
+          return safeText;
 
         const [start, end] = match.indices[0];
-        
+
         // Note: Fuse returns indices based on the original unescaped text.
-        // For perfect security and alignment, we apply the highlight to the original, 
+        // For perfect security and alignment, we apply the highlight to the original,
         // then escape the chunks separately.
         const before = escapeHTML(String(text).substring(0, start));
         const highlighted = escapeHTML(String(text).substring(start, end + 1));
         const after = escapeHTML(String(text).substring(end + 1));
-        
+
         return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
       }
 
@@ -2478,16 +2700,33 @@
         }
 
         const favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+        const actionMode =
+          localStorage.getItem("dakmitra_action_mode") || "tap";
 
         if (viewMode === "list") {
-          let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
+          const containerClass =
+            actionMode === "always"
+              ? "list-container always-show-actions"
+              : "list-container";
+          let html = `<ul class="${containerClass}" style="margin:0; padding:0; list-style:none;">`;
+
           currentFilteredData.forEach((result) => {
             const row = result.item;
-            const addressHtml = highlightText(row.Address, result.matches, "Address");
-            const officeHtml = highlightText(row.Office, result.matches, "Office");
+            const addressHtml = highlightText(
+              row.Address,
+              result.matches,
+              "Address"
+            );
+            const officeHtml = highlightText(
+              row.Office,
+              result.matches,
+              "Office"
+            );
             const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
-            const isFav = favorites.some((f) => String(f.id) === String(row.id));
+            const isFav = favorites.some(
+              (f) => String(f.id) === String(row.id)
+            );
             const favStyle = getFavoriteBtnStyles(isFav, false);
 
             html += `
@@ -2500,25 +2739,56 @@
                 </div>
               </div>
               <div class="card-actions">
-                <button onclick="event.stopPropagation(); toggleFavorite('${row.id}', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(row.Pin)}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${favStyle.style}">${favStyle.icon}</button>
-                <button onclick="event.stopPropagation(); updateRecord('${row.id}', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(row.Pin)}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
-                <button onclick="event.stopPropagation(); deleteRecord('${row.id}')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
+                <button onclick="event.stopPropagation(); toggleFavorite('${
+                  row.id
+                }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
+              row.Office
+            )}', '${escapeForOnclick(
+              row.Pin
+            )}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
+              favStyle.style
+            }">${favStyle.icon}</button>
+                <button onclick="event.stopPropagation(); updateRecord('${
+                  row.id
+                }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
+              row.Office
+            )}', '${escapeForOnclick(
+              row.Pin
+            )}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
+                <button onclick="event.stopPropagation(); deleteRecord('${
+                  row.id
+                }')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
               </div>
           </li>`;
           });
           html += `</ul>`;
           displayArea.innerHTML = html;
         } else {
-          let html = `<table class="data-table">
+          const tableClass =
+            actionMode === "always"
+              ? "data-table always-show-actions"
+              : "data-table";
+          let html = `<table class="${tableClass}">
               <thead><tr><th>Address</th><th>Office</th><th>Pin</th></tr></thead>
               <tbody>`;
+
           currentFilteredData.forEach((result) => {
             const row = result.item;
-            const addressHtml = highlightText(row.Address, result.matches, "Address");
-            const officeHtml = highlightText(row.Office, result.matches, "Office");
+            const addressHtml = highlightText(
+              row.Address,
+              result.matches,
+              "Address"
+            );
+            const officeHtml = highlightText(
+              row.Office,
+              result.matches,
+              "Office"
+            );
             const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
-            const isFav = favorites.some((f) => String(f.id) === String(row.id));
+            const isFav = favorites.some(
+              (f) => String(f.id) === String(row.id)
+            );
             const favStyle = getFavoriteBtnStyles(isFav, true);
 
             html += `<tr class="list-item" onclick="toggleCardExpansion(this)">
@@ -2529,9 +2799,25 @@
            <tr class="card-actions-row">
              <td colspan="3" style="padding: 0; border: none;">
                <div class="card-actions" style="padding: 0 16px 12px 16px;">
-                 <button onclick="event.stopPropagation(); toggleFavorite('${row.id}', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(row.Pin)}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${favStyle.style}" title="Toggle Favorite">${favStyle.icon}</button>
-                 <button onclick="event.stopPropagation(); updateRecord('${row.id}', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(row.Pin)}')" class="toolbar-btn" style="padding: 4px 8px;">✎ Edit</button>
-                 <button onclick="event.stopPropagation(); deleteRecord('${row.id}')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑 Delete</button>
+                 <button onclick="event.stopPropagation(); toggleFavorite('${
+                   row.id
+                 }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
+              row.Office
+            )}', '${escapeForOnclick(
+              row.Pin
+            )}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
+              favStyle.style
+            }" title="Toggle Favorite">${favStyle.icon}</button>
+                 <button onclick="event.stopPropagation(); updateRecord('${
+                   row.id
+                 }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
+              row.Office
+            )}', '${escapeForOnclick(
+              row.Pin
+            )}')" class="toolbar-btn" style="padding: 4px 8px;">✎ Edit</button>
+                 <button onclick="event.stopPropagation(); deleteRecord('${
+                   row.id
+                 }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑 Delete</button>
                </div>
              </td>
            </tr>`;
@@ -2555,7 +2841,7 @@
 
       function exportCSV() {
         if (!currentFilteredData.length) return showToast("No data to export!");
-        
+
         // Helper to format strings safely for CSVs
         const escapeCSV = (str) => {
           if (str === null || str === undefined) return "";
@@ -2565,9 +2851,11 @@
 
         let csv = "Address,Office,Pin\n";
         currentFilteredData.forEach((row) => {
-          csv += `"${escapeCSV(row.item.Address)}","${escapeCSV(row.item.Office)}","${escapeCSV(row.item.Pin)}"\n`;
+          csv += `"${escapeCSV(row.item.Address)}","${escapeCSV(
+            row.item.Office
+          )}","${escapeCSV(row.item.Pin)}"\n`;
         });
-        
+
         const blob = new Blob([csv], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -3191,6 +3479,49 @@
         document.getElementById(btnId).classList.add("hidden");
         triggerSearch();
       }
+
+      // Add 'settings' to your viewOrder array for swipe navigation
+      const viewOrder = ["favorites", "search", "upload", "settings"];
+
+      // 1. Save and Load Default View (List vs Table)
+      function saveDefaultView(mode) {
+        localStorage.setItem("dakmitra_default_view", mode);
+        setViewMode(mode);
+        showToast("👁️ Default view saved!");
+      }
+
+      // Ensure this runs when the app loads (add this inside checkUserSession)
+      const savedView = localStorage.getItem("dakmitra_default_view") || "list";
+      document.getElementById("default-view-select").value = savedView;
+      setViewMode(savedView);
+
+      // 2. Clear Cache Logic
+      function clearAppCache() {
+        showCustomConfirm(
+          "Clear Cache?",
+          "This will reset your recent searches and preferences. You will not lose your database records.",
+          "Clear Cache",
+          () => {
+            localStorage.removeItem(HISTORY_KEY);
+            localStorage.removeItem("dakmitra_default_view");
+            showToast("🧹 Cache cleared successfully!");
+            loadSearchHistory();
+          }
+        );
+      }
+
+      // 1. Save and apply Action Button Mode
+      function saveActionMode(mode) {
+        localStorage.setItem("dakmitra_action_mode", mode);
+        renderResults();
+        showToast("⚙️ Action button preference saved!");
+      }
+
+      // 2. Load the saved preference when the app starts (add this inside checkUserSession or near initialization)
+      const savedActionMode =
+        localStorage.getItem("dakmitra_action_mode") || "tap";
+      const actionModeSelect = document.getElementById("action-mode-select");
+      if (actionModeSelect) actionModeSelect.value = savedActionMode;
       // --- SWIPE NAVIGATION LOGIC ---
       let touchStartX = 0;
       let touchEndX = 0;
@@ -3198,7 +3529,6 @@
       let touchEndY = 0;
 
       const swipeArea = document.getElementById("dashboard-view");
-      const viewOrder = ["favorites", "search", "upload"]; // Matches bottom nav order perfectly
 
       swipeArea.addEventListener(
         "touchstart",
@@ -3250,13 +3580,13 @@
 
       function toggleCardExpansion(cardElement) {
         // Collapse other open cards (optional accordion behavior)
-        const allCards = document.querySelectorAll('.list-item');
-        allCards.forEach(c => {
-          if (c !== cardElement) c.classList.remove('expanded');
+        const allCards = document.querySelectorAll(".list-item");
+        allCards.forEach((c) => {
+          if (c !== cardElement) c.classList.remove("expanded");
         });
 
         // Toggle current card
-        cardElement.classList.toggle('expanded');
+        cardElement.classList.toggle("expanded");
       }
 
       // BOOTSTRAP APP
