@@ -1595,13 +1595,7 @@
             📤 Upload Data
           </button>
           <hr style="border-top: 1px solid var(--border); margin: 16px 0" />
-          <button
-            class="sidebar-menu-item"
-            id="nav-settings"
-            onclick="switchDashboardView('settings')"
-          >
-            ⚙️ Settings
-          </button>
+
           <button
             class="sidebar-menu-item hidden"
             id="install-app-btn"
@@ -1938,6 +1932,7 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                margin-bottom: 16px;
               "
             >
               <div>
@@ -1963,13 +1958,6 @@
                 <option value="table">Table View</option>
               </select>
             </div>
-          </div>
-
-          <!-- Data Management Settings -->
-          <div class="upload-card" style="text-align: left">
-            <h3 style="margin-bottom: 16px; color: var(--primary)">
-              Data Management
-            </h3>
 
             <!-- Action Buttons Mode Setting -->
             <div
@@ -1977,7 +1965,6 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 16px;
               "
             >
               <div>
@@ -2003,6 +1990,13 @@
                 <option value="always">Always Show</option>
               </select>
             </div>
+          </div>
+
+          <!-- Data Management Settings -->
+          <div class="upload-card" style="text-align: left">
+            <h3 style="margin-bottom: 16px; color: var(--primary)">
+              Data Management
+            </h3>
 
             <div
               style="
@@ -2136,7 +2130,13 @@
             </svg>
             <span>Favorites</span>
           </button>
-
+          <button
+            class="sidebar-menu-item"
+            id="nav-settings"
+            onclick="switchDashboardView('settings')"
+          >
+            ⚙️ Settings
+          </button>
           <button
             class="bottom-nav-item active"
             id="bottom-nav-search"
@@ -2612,10 +2612,20 @@
       let activeFilterVal = null; // Track current filter to avoid unnecessary Fuse rebuilds
 
       function triggerSearch() {
-        const searchInput = document.getElementById("search-input").value.trim();
-        const filterVal = document.querySelector('input[name="searchFilter"]:checked').value;
-        const filterOffice = document.getElementById("filter-office").value.trim().toLowerCase();
-        const filterPin = document.getElementById("filter-pin").value.trim().toLowerCase();
+        const searchInput = document
+          .getElementById("search-input")
+          .value.trim();
+        const filterVal = document.querySelector(
+          'input[name="searchFilter"]:checked'
+        ).value;
+        const filterOffice = document
+          .getElementById("filter-office")
+          .value.trim()
+          .toLowerCase();
+        const filterPin = document
+          .getElementById("filter-pin")
+          .value.trim()
+          .toLowerCase();
 
         if (!searchInput && !filterOffice && !filterPin) {
           currentFilteredData = cachedPostOffices
@@ -2653,7 +2663,7 @@
               return value === null || value === undefined ? "" : String(value);
             },
           });
-          
+
           baseData = fuse.search(searchInput);
         }
 
@@ -2662,8 +2672,20 @@
           baseData = baseData.filter((result) => {
             const row = result.item;
             let keep = true;
-            if (filterOffice && !String(row.Office || "").toLowerCase().includes(filterOffice)) keep = false;
-            if (filterPin && !String(row.Pin || "").toLowerCase().includes(filterPin)) keep = false;
+            if (
+              filterOffice &&
+              !String(row.Office || "")
+                .toLowerCase()
+                .includes(filterOffice)
+            )
+              keep = false;
+            if (
+              filterPin &&
+              !String(row.Pin || "")
+                .toLowerCase()
+                .includes(filterPin)
+            )
+              keep = false;
             return keep;
           });
         }
@@ -2678,9 +2700,15 @@
           let speechText = "No matching post offices found.";
           if (currentFilteredData.length > 0) {
             const topMatch = currentFilteredData[0].item;
-            let lastThreePin = topMatch.Pin ? String(topMatch.Pin).slice(-3) : "";
-            let hindiPinWords = lastThreePin ? convertToHindiWords(lastThreePin) : "";
-            let pinText = hindiPinWords ? `Pin code ${hindiPinWords}` : "Pin not available";
+            let lastThreePin = topMatch.Pin
+              ? String(topMatch.Pin).slice(-3)
+              : "";
+            let hindiPinWords = lastThreePin
+              ? convertToHindiWords(lastThreePin)
+              : "";
+            let pinText = hindiPinWords
+              ? `Pin code ${hindiPinWords}`
+              : "Pin not available";
             speechText = `${topMatch.Address}. Office ${topMatch.Office}. ${pinText}.`;
           }
           const utterance = new SpeechSynthesisUtterance(speechText);
@@ -2703,18 +2731,20 @@
 
       function highlightText(text, matches, key) {
         if (text === null || text === undefined) return "";
-        
+
         // Force text to string to prevent crashes on numbers
-        text = String(text); 
+        text = String(text);
         let safeText = escapeHTML(text);
 
         // 1. MUST-HAVE MATCH: Only highlight if Fuse explicitly matched THIS column.
         // This fixes the bug where the filter seemed broken due to rogue highlighting.
         if (!matches || matches.length === 0) return safeText;
         const match = matches.find((m) => m.key === key);
-        if (!match) return safeText; 
+        if (!match) return safeText;
 
-        const searchInput = document.getElementById("search-input").value.trim();
+        const searchInput = document
+          .getElementById("search-input")
+          .value.trim();
 
         // 2. EXACT SUBSTRING BYPASS (Case-Insensitive)
         // Fixes the "1210" number highlighting issue and cleans up exact word matches.
@@ -2722,11 +2752,15 @@
           const lowerText = text.toLowerCase();
           const lowerSearch = searchInput.toLowerCase();
           const exactIndex = lowerText.indexOf(lowerSearch);
-          
+
           if (exactIndex !== -1) {
             const before = escapeHTML(text.substring(0, exactIndex));
-            const highlighted = escapeHTML(text.substring(exactIndex, exactIndex + searchInput.length));
-            const after = escapeHTML(text.substring(exactIndex + searchInput.length));
+            const highlighted = escapeHTML(
+              text.substring(exactIndex, exactIndex + searchInput.length)
+            );
+            const after = escapeHTML(
+              text.substring(exactIndex + searchInput.length)
+            );
             return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
           }
         }
