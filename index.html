@@ -2001,1481 +2001,1499 @@
       </div>
     </div>
     <script>
-      // --- SUPABASE & STATE ---
-      const SUPABASE_URL = "https://nvviolzdujgwkmnrnaww.supabase.co";
-      const SUPABASE_ANON_KEY =
-        "sb_publishable_vwlbAzFCF0zMMqeiPWyu7Q_ruSZ1WwM";
-      const supabaseClient = window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-      );
-      const ICON_STAR_FILLED = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
-      const ICON_STAR_OUTLINE = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>`;
-
-      let currentMode = "signin";
-      let cachedPostOffices = [];
-      let currentFilteredData = [];
-      let fuse;
-      let viewMode = "list";
-
-      // --- UI CONTROLS (Sidebar & Views) ---
-      function toggleSidebar() {
-        document.getElementById("sidebar").classList.toggle("open");
-        document.getElementById("sidebar-overlay").classList.toggle("show");
-      }
-
-      function closeSidebar() {
-        document.getElementById("sidebar").classList.remove("open");
-        document.getElementById("sidebar-overlay").classList.remove("show");
-      }
-
-      function switchDashboardView(viewId) {
-        // 1. Hide all views
-        document.getElementById("view-search").classList.remove("active");
-        document.getElementById("view-upload").classList.remove("active");
-        document.getElementById("view-favorites").classList.remove("active");
-
-        // 2. Remove active state from all sidebar nav buttons
-        document.getElementById("nav-search").classList.remove("active");
-        document.getElementById("nav-upload").classList.remove("active");
-        document.getElementById("nav-favorites").classList.remove("active");
-
-        // 3. BOTTOM NAV LOGIC: Update active styling for bottom tabs
-        const bottomNavSearch = document.getElementById("bottom-nav-search");
-        if (bottomNavSearch) {
-          document
-            .getElementById("bottom-nav-search")
-            .classList.remove("active");
-          document
-            .getElementById("bottom-nav-favorites")
-            .classList.remove("active");
-          document
-            .getElementById("bottom-nav-upload")
-            .classList.remove("active");
-
-          const activeBottomIcon = document.getElementById(
-            "bottom-nav-" + viewId
+          // --- SUPABASE & STATE ---
+          const SUPABASE_URL = "https://nvviolzdujgwkmnrnaww.supabase.co";
+          const SUPABASE_ANON_KEY =
+            "sb_publishable_vwlbAzFCF0zMMqeiPWyu7Q_ruSZ1WwM";
+          const supabaseClient = window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
           );
-          if (activeBottomIcon) activeBottomIcon.classList.add("active");
-        }
+          const ICON_STAR_FILLED = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
+          const ICON_STAR_OUTLINE = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>`;
 
-        // 4. Show the selected view and activate its sidebar nav button
-        document.getElementById("view-" + viewId).classList.add("active");
-        document.getElementById("nav-" + viewId).classList.add("active");
+          let currentMode = "signin";
+          let cachedPostOffices = [];
+          let currentFilteredData = [];
+          let fuse;
+          let viewMode = "list";
 
-        // 5. If switching to favorites, ensure it renders the latest data
-        if (viewId === "favorites") {
-          renderFavorites();
-        }
-
-        closeSidebar();
-      }
-
-      function showToast(message) {
-        const toastEl = document.getElementById("toast");
-        toastEl.textContent = message;
-        toastEl.classList.add("show");
-        setTimeout(() => toastEl.classList.remove("show"), 3000);
-      }
-      const HISTORY_KEY = "dakmitra_search_history";
-
-      function loadSearchHistory() {
-        const history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
-        const toggleBtn = document.getElementById("history-toggle-btn");
-        const chipsDiv = document.getElementById("search-history-chips");
-
-        // If no history, hide the toggle button entirely
-        if (history.length === 0) {
-          toggleBtn.classList.add("hidden");
-          return;
-        }
-
-        // Show the toggle button if history exists
-        toggleBtn.classList.remove("hidden");
-
-        // Populate the chips inside the hidden panel
-        chipsDiv.innerHTML = history
-          .map(
-            (term) =>
-              `<button class="badge" style="cursor: pointer;" onclick="applyHistorySearch('${escapeForOnclick(
-                term
-              )}')">${term}</button>`
-          )
-          .join("");
-      }
-
-      function toggleSearchHistory() {
-        document
-          .getElementById("search-history-panel")
-          .classList.toggle("hidden");
-      }
-
-      function applyHistorySearch(term) {
-        document.getElementById("search-input").value = term;
-        document.getElementById("clear-search-btn").classList.remove("hidden");
-
-        // Automatically hide the history panel after making a selection
-        document.getElementById("search-history-panel").classList.add("hidden");
-
-        triggerSearch();
-      }
-
-      function saveSearchTerm(term) {
-        // Don't save empty strings or 1-2 letter searches
-        if (!term || term.trim().length < 3) return;
-
-        let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
-        const newTermLower = term.toLowerCase().trim();
-
-        // 1. Remove exact duplicates from anywhere in the array
-        history = history.filter((t) => t.toLowerCase() !== newTermLower);
-
-        // 2. Smart Replace: If the user is just building on the last word
-        // (e.g., "goth" -> "gotha") or backspacing ("gotha" -> "goth"),
-        // overwrite the last entry instead of making a new chip.
-        if (history.length > 0) {
-          const lastTermLower = history[0].toLowerCase();
-          if (
-            newTermLower.startsWith(lastTermLower) ||
-            lastTermLower.startsWith(newTermLower)
-          ) {
-            history[0] = term.trim(); // Overwrite the top item
-            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-            loadSearchHistory();
-            return;
+          // --- UI CONTROLS (Sidebar & Views) ---
+          function toggleSidebar() {
+            document.getElementById("sidebar").classList.toggle("open");
+            document.getElementById("sidebar-overlay").classList.toggle("show");
           }
-        }
 
-        // 3. If it's a completely new word, add it to the front
-        history.unshift(term.trim());
-
-        // 4. Keep only the last 5 searches
-        if (history.length > 5) history.pop();
-
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-        loadSearchHistory();
-      }
-
-      const FAV_KEY = "dakmitra_favorites";
-
-      function toggleFavorite(id, address, office, pin, btnElement) {
-        let favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
-
-        // Bulletproof ID check
-        const existingIndex = favorites.findIndex(
-          (f) => String(f.id) === String(id)
-        );
-
-        const isFavNow = existingIndex === -1; // If not found, it is being added
-
-        if (existingIndex > -1) {
-          favorites.splice(existingIndex, 1);
-          showToast("Removed from favorites");
-        } else {
-          favorites.push({ id, address, office, pin });
-          showToast("⭐ Added to favorites");
-        }
-
-        localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
-
-        // Always update the favorites tab in the background
-        renderFavorites();
-
-        if (btnElement) {
-          // If clicked in the Search tab: Instantly update the specific button WITHOUT jumping the screen
-          if (isFavNow) {
-            btnElement.innerHTML = `${ICON_STAR_FILLED} Saved`;
-            btnElement.style.color = "#f59e0b";
-            btnElement.style.backgroundColor = "rgba(245, 158, 11, 0.1)";
-          } else {
-            btnElement.innerHTML = `${ICON_STAR_OUTLINE} Save`;
-            btnElement.style.color = "var(--text-light)";
-            btnElement.style.backgroundColor = "transparent";
+          function closeSidebar() {
+            document.getElementById("sidebar").classList.remove("open");
+            document.getElementById("sidebar-overlay").classList.remove("show");
           }
-        } else {
-          // If clicked in the Favorites tab: Silently re-render the Search tab in the background
-          // so the stars are perfectly synced when you switch back!
-          renderResults();
-        }
-      }
 
-      function renderFavorites() {
-        const favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
-        const displayArea = document.getElementById("favorites-display-area");
+          function switchDashboardView(viewId) {
+            // 1. Hide all views
+            document.getElementById("view-search").classList.remove("active");
+            document.getElementById("view-upload").classList.remove("active");
+            document.getElementById("view-favorites").classList.remove("active");
 
-        if (favorites.length === 0) {
-          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No favorites saved yet.</li></ul>`;
-          return;
-        }
+            // 2. Remove active state from all sidebar nav buttons
+            document.getElementById("nav-search").classList.remove("active");
+            document.getElementById("nav-upload").classList.remove("active");
+            document.getElementById("nav-favorites").classList.remove("active");
 
-        let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
-        favorites.forEach((row) => {
-          const starIcon = `${ICON_STAR_FILLED} Saved`;
-          const starStyle =
-            "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;";
+            // 3. BOTTOM NAV LOGIC: Update active styling for bottom tabs
+            const bottomNavSearch = document.getElementById("bottom-nav-search");
+            if (bottomNavSearch) {
+              document
+                .getElementById("bottom-nav-search")
+                .classList.remove("active");
+              document
+                .getElementById("bottom-nav-favorites")
+                .classList.remove("active");
+              document
+                .getElementById("bottom-nav-upload")
+                .classList.remove("active");
 
-          html += `
-      <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
-          <div style="flex: 1 1 200px;">
-            <div class="office-title">${row.address}</div>
-            <div class="sub-office">
-              <span class="badge badge-primary">🏢 ${row.office}</span>
-              <span class="badge">📍 Pin: ${row.pin || "N/A"}</span>
-            </div>
-          </div>
-          <div style="display: flex; justify-content: flex-end;">
-            <button onclick="toggleFavorite('${row.id}', '${escapeForOnclick(
-            row.address
-          )}', '${escapeForOnclick(row.office)}', '${escapeForOnclick(
-            row.pin
-          )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">
-              ${starIcon}
-            </button>
-          </div>
-      </li>`;
-        });
-        html += `</ul>`;
-        displayArea.innerHTML = html;
-      }
-      // --- THEME LOGIC ---
-      function applyTheme(theme) {
-        if (theme === "system") {
-          const prefersDark = window.matchMedia(
-            "(prefers-color-scheme: dark)"
-          ).matches;
-          document.documentElement.setAttribute(
-            "data-theme",
-            prefersDark ? "dark" : "light"
-          );
-        } else {
-          document.documentElement.setAttribute("data-theme", theme);
-        }
-        localStorage.setItem("app-theme", theme);
-      }
-
-      function toggleTheme() {
-        const current = document.documentElement.getAttribute("data-theme");
-        const newTheme = current === "dark" ? "light" : "dark";
-        applyTheme(newTheme);
-      }
-
-      window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .addEventListener("change", () => {
-          if (localStorage.getItem("app-theme") === "system")
-            applyTheme("system");
-        });
-
-      const savedTheme = localStorage.getItem("app-theme") || "system";
-      applyTheme(savedTheme);
-
-      // --- PWA INSTALLATION ---
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("./sw.js")
-            .catch((err) => console.log("SW failed: ", err));
-        });
-      }
-      let deferredPrompt;
-      const installBtn = document.getElementById("install-app-btn");
-      window.addEventListener("beforeinstallprompt", (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        installBtn.classList.remove("hidden");
-      });
-      installBtn.addEventListener("click", async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          if (outcome === "accepted") installBtn.classList.add("hidden");
-          deferredPrompt = null;
-        }
-      });
-
-      // --- DATA FETCHING & STATS ---
-      async function fetchAllPostOffices() {
-        const { data, error } = await supabaseClient
-          .from("post_offices")
-          .select("*");
-        if (error) {
-          console.error("Error fetching address:", error);
-          document.getElementById(
-            "results-display-area"
-          ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Error loading data from server. Ensure table columns are updated to "Address", "Office", and "Pin".</li></ul>`;
-          return;
-        }
-
-        if (!data || data.length === 0) {
-          document.getElementById(
-            "results-display-area"
-          ).innerHTML = `<ul class="list-container"><li class="list-empty">Database is currently empty.</li></ul>`;
-          document.getElementById("stat-addresses").textContent = "0";
-          document.getElementById("stat-offices").textContent = "0";
-          return;
-        }
-
-        cachedPostOffices = data || [];
-        currentFilteredData = cachedPostOffices.map((item) => ({
-          item,
-          matches: [],
-        }));
-
-        const uniqueAddresses = new Set(cachedPostOffices.map((o) => o.Address))
-          .size;
-        const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office))
-          .size;
-
-        document.getElementById("stat-addresses").textContent = uniqueAddresses;
-        document.getElementById("stat-offices").textContent = uniqueOffices;
-
-        fuse = new Fuse(cachedPostOffices, {
-          keys: ["Address", "Office", "Pin"],
-          threshold: 0.3,
-          ignoreLocation: false, // Set to false so location matters
-          location: 0, // Expect matches to be at the very start (index 0)
-          distance: 100, // How quickly the score drops as the match moves right. Lower = stricter left-priority
-          includeMatches: true,
-        });
-        renderResults();
-      }
-
-      // --- VIEW & RENDER LOGIC ---
-      function setViewMode(mode) {
-        viewMode = mode;
-        document
-          .getElementById("view-list-btn")
-          .classList.toggle("active", mode === "list");
-        document
-          .getElementById("view-table-btn")
-          .classList.toggle("active", mode === "table");
-        renderResults();
-      }
-      // --- PRE-LOAD INDIAN TTS VOICE ---
-      let preferredIndianVoice = null;
-
-      function loadIndianVoice() {
-        const voices = window.speechSynthesis.getVoices();
-        // Look for Indian English first, then Hindi as a backup
-        preferredIndianVoice =
-          voices.find(
-            (v) =>
-              v.lang.includes("en-IN") ||
-              v.lang.includes("en_IN") ||
-              v.name.includes("India")
-          ) ||
-          voices.find(
-            (v) => v.lang.includes("hi-IN") || v.lang.includes("hi_IN")
-          );
-      }
-
-      // Try loading immediately
-      loadIndianVoice();
-
-      // Chrome/Android loads voices asynchronously, so we wait for this event to fire
-      if (window.speechSynthesis.onvoiceschanged !== undefined) {
-        window.speechSynthesis.onvoiceschanged = loadIndianVoice;
-      }
-      function triggerSearch() {
-        const searchInput = document
-          .getElementById("search-input")
-          .value.trim();
-        if (searchInput.length > 2) {
-          saveSearchTerm(searchInput);
-        }
-        const filterVal = document.querySelector(
-          'input[name="searchFilter"]:checked'
-        ).value;
-
-        // 1. Grab the secondary filter values
-        const filterOffice = document
-          .getElementById("filter-office")
-          .value.trim()
-          .toLowerCase();
-        const filterPin = document
-          .getElementById("filter-pin")
-          .value.trim()
-          .toLowerCase();
-
-        // 2. Decide which columns Fuse should search based on primary filter
-        let keysToSearch = ["Address", "Office", "Pin"];
-        if (filterVal === "address") keysToSearch = ["Address"];
-        if (filterVal === "office") keysToSearch = ["Office"];
-        if (filterVal === "pin") keysToSearch = ["Pin"];
-
-        // 3. Run primary Fuse search (or return all if search is empty)
-        let baseData = [];
-        if (!searchInput) {
-          baseData = cachedPostOffices.map((item) => ({ item, matches: [] }));
-        } else {
-          fuse = new Fuse(cachedPostOffices, {
-            keys: keysToSearch,
-            threshold: 0.3,
-            ignoreLocation: false,
-            location: 0,
-            distance: 100,
-            includeMatches: true,
-            getFn: (obj, path) => {
-              const value = obj[path];
-              return value === null || value === undefined ? "" : String(value);
-            },
-          });
-          baseData = fuse.search(searchInput);
-        }
-
-        // 4. Apply Advanced "Must Have" Filters (if user typed anything in them)
-        if (filterOffice || filterPin) {
-          baseData = baseData.filter((result) => {
-            const row = result.item;
-            let keep = true;
-
-            if (filterOffice) {
-              const officeVal = row.Office
-                ? String(row.Office).toLowerCase()
-                : "";
-              if (!officeVal.includes(filterOffice)) keep = false;
+              const activeBottomIcon = document.getElementById(
+                "bottom-nav-" + viewId
+              );
+              if (activeBottomIcon) activeBottomIcon.classList.add("active");
             }
 
-            if (filterPin) {
-              const pinVal = row.Pin ? String(row.Pin).toLowerCase() : "";
-              if (!pinVal.includes(filterPin)) keep = false;
+            // 4. Show the selected view and activate its sidebar nav button
+            document.getElementById("view-" + viewId).classList.add("active");
+            document.getElementById("nav-" + viewId).classList.add("active");
+
+            // 5. If switching to favorites, ensure it renders the latest data
+            if (viewId === "favorites") {
+              renderFavorites();
             }
 
-            return keep;
-          });
-        }
-
-        currentFilteredData = baseData;
-        renderResults();
-
-        // --- VOICE OUTPUT LOGIC ---
-        if (window.isVoiceSearch) {
-          window.isVoiceSearch = false;
-          window.speechSynthesis.cancel();
-
-          let speechText = "No matching post offices found.";
-          if (currentFilteredData.length > 0) {
-            const topMatch = currentFilteredData[0].item;
-
-            // Extracts the last 3 digits and converts them to phonetical Hindi words (e.g., "210" -> "do sau das")
-            let lastThreePin = topMatch.Pin
-              ? String(topMatch.Pin).slice(-3)
-              : "";
-            let hindiPinWords = lastThreePin
-              ? convertToHindiWords(lastThreePin)
-              : "";
-
-            let pinText = hindiPinWords
-              ? `Pin code ${hindiPinWords}`
-              : "Pin not available";
-
-            speechText = `${topMatch.Address}. Office ${topMatch.Office}. ${pinText}.`;
+            closeSidebar();
           }
 
-          const utterance = new SpeechSynthesisUtterance(speechText);
-
-          if (preferredIndianVoice) {
-            utterance.voice = preferredIndianVoice;
-          } else {
-            utterance.lang = "en-IN";
+          function showToast(message) {
+            const toastEl = document.getElementById("toast");
+            toastEl.textContent = message;
+            toastEl.classList.add("show");
+            setTimeout(() => toastEl.classList.remove("show"), 3000);
           }
+          const HISTORY_KEY = "dakmitra_search_history";
 
-          utterance.rate = 0.9;
+          function loadSearchHistory() {
+            const history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+            const toggleBtn = document.getElementById("history-toggle-btn");
+            const chipsDiv = document.getElementById("search-history-chips");
 
-          window.speechSynthesis.speak(utterance);
-        } else {
-          window.speechSynthesis.cancel();
-        }
-      }
-      function convertToHindiWords(numStr) {
-        const num = parseInt(numStr, 10);
-        if (isNaN(num)) return numStr;
-
-        const ones = [
-          "",
-          "ek",
-          "do",
-          "teen",
-          "chaar",
-          "paanch",
-          "chhe",
-          "saat",
-          "aath",
-          "nau",
-          "das",
-          "gyarah",
-          "baarah",
-          "terah",
-          "chaudah",
-          "pandraH",
-          "solah",
-          "satraH",
-          "atharah",
-          "unnis",
-        ];
-        const tens = [
-          "",
-          "",
-          "bees",
-          "tees",
-          "chaalis",
-          "pachaas",
-          "saath",
-          "sattar",
-          "assi",
-          "nabbe",
-        ];
-
-        if (num < 20) return ones[num];
-        if (num < 100) {
-          return (
-            tens[Math.floor(num / 10)] +
-            (num % 10 !== 0 ? " " + ones[num % 10] : "")
-          );
-        }
-        if (num < 1000) {
-          const s = Math.floor(num / 100);
-          const rem = num % 100;
-          return (
-            ones[s] + " sau" + (rem !== 0 ? " " + convertToHindiWords(rem) : "")
-          );
-        }
-        return numStr; // Fallback for larger numbers
-      }
-
-      function clearSearchInput() {
-        const searchInput = document.getElementById("search-input");
-        const clearBtn = document.getElementById("clear-search-btn");
-
-        searchInput.value = "";
-        clearBtn.classList.add("hidden");
-
-        triggerSearch();
-        searchInput.focus();
-      }
-
-      function highlightText(text, matches, key) {
-        // 1. Return empty if null or undefined
-        if (text === null || text === undefined) return "";
-
-        // 2. FORCE text to be a string (This fixes the Pin code crash)
-        text = String(text);
-
-        if (!matches || matches.length === 0) return text;
-        const match = matches.find((m) => m.key === key);
-        if (!match || !match.indices || match.indices.length === 0) return text;
-
-        let bestIndex = match.indices[0];
-        let maxLen = bestIndex[1] - bestIndex[0];
-
-        for (let i = 1; i < match.indices.length; i++) {
-          const currentLen = match.indices[i][1] - match.indices[i][0];
-          if (currentLen > maxLen) {
-            maxLen = currentLen;
-            bestIndex = match.indices[i];
-          }
-        }
-
-        const [start, end] = bestIndex;
-
-        let highlighted = text.substring(0, start);
-        highlighted += `<span class="highlight-text">${text.substring(
-          start,
-          end + 1
-        )}</span>`;
-        highlighted += text.substring(end + 1);
-
-        return highlighted;
-      }
-
-      function escapeForOnclick(str) {
-        if (!str) return "";
-        return String(str)
-          .replace(/\\/g, "\\\\")
-          .replace(/'/g, "\\'")
-          .replace(/"/g, "&quot;");
-      }
-
-      function renderResults() {
-        const displayArea = document.getElementById("results-display-area");
-
-        // Force scrollbar to top only when NEW search results load
-        displayArea.scrollTop = 0;
-
-        if (currentFilteredData.length === 0) {
-          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No address found matching your search.</li></ul>`;
-          return;
-        }
-
-        const favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
-
-        if (viewMode === "list") {
-          let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
-          currentFilteredData.forEach((result) => {
-            const row = result.item;
-            const addressHtml = highlightText(
-              row.Address,
-              result.matches,
-              "Address"
-            );
-            const officeHtml = highlightText(
-              row.Office,
-              result.matches,
-              "Office"
-            );
-            const PinHtml = highlightText(row.Pin, result.matches, "Pin");
-
-            const safeAddress = escapeForOnclick(row.Address);
-            const safeOffice = escapeForOnclick(row.Office);
-            const safePin = escapeForOnclick(row.Pin);
-
-            const isFav = favorites.some(
-              (f) => String(f.id) === String(row.id)
-            );
-
-            const starIcon = isFav
-              ? `${ICON_STAR_FILLED} Saved` // (or just ICON_STAR_FILLED for the table view)
-              : `${ICON_STAR_OUTLINE} Save`; // (or just ICON_STAR_OUTLINE for the table view)
-            const starStyle = isFav
-              ? "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;"
-              : "color: var(--text-light); background-color: transparent; display: flex; align-items: center; gap: 4px;";
-
-            html += `
-      <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
-          <div style="flex: 1 1 200px;">
-            <div class="office-title">${addressHtml}</div>
-            <div class="sub-office">
-              <span class="badge badge-primary">🏢 ${officeHtml}</span>
-              <span class="badge">📍 Pin: ${PinHtml || "N/A"}</span>
-            </div>
-          </div>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
-            <button onclick="toggleFavorite('${
-              row.id
-            }', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">${starIcon}</button>
-            <button onclick="updateRecord('${
-              row.id
-            }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
-            <button onclick="deleteRecord('${
-              row.id
-            }')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
-          </div>
-      </li>`;
-          });
-          html += `</ul>`;
-          displayArea.innerHTML = html;
-        } else {
-          let html = `<table class="data-table">
-          <thead><tr><th>Address</th><th>Office</th><th>Pin</th><th style="text-align: right;">Actions</th></tr></thead>
-          <tbody>`;
-          currentFilteredData.forEach((result) => {
-            const row = result.item;
-
-            const addressHtml = highlightText(
-              row.Address,
-              result.matches,
-              "Address"
-            );
-            const officeHtml = highlightText(
-              row.Office,
-              result.matches,
-              "Office"
-            );
-            const PinHtml = highlightText(row.Pin, result.matches, "Pin");
-
-            const safeAddress = escapeForOnclick(row.Address);
-            const safeOffice = escapeForOnclick(row.Office);
-            const safePin = escapeForOnclick(row.Pin);
-
-            const isFav = favorites.some(
-              (f) => String(f.id) === String(row.id)
-            );
-
-            const starIcon = isFav ? ICON_STAR_FILLED : ICON_STAR_OUTLINE;
-            const starStyle = isFav
-              ? "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: inline-flex; align-items: center; justify-content: center;"
-              : "color: var(--text-light); background-color: transparent; display: inline-flex; align-items: center; justify-content: center;";
-
-            html += `<tr>
-        <td>${addressHtml}</td>
-        <td>${officeHtml}</td>
-        <td>${PinHtml || "-"}</td>
-        <td style="text-align: right; display: flex; gap: 4px; justify-content: flex-end; align-items: center; min-height: 48px;">
-          <button onclick="toggleFavorite('${
-            row.id
-          }', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}" title="Toggle Favorite">${starIcon}</button>
-          
-          <button onclick="updateRecord('${
-            row.id
-          }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 4px 8px;">✎</button>
-          <button onclick="deleteRecord('${
-            row.id
-          }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑</button>
-        </td>
-       </tr>`;
-          });
-          html += `</tbody></table>`;
-          displayArea.innerHTML = html;
-        }
-      }
-      function copyResults() {
-        if (!currentFilteredData.length) return showToast("No data to copy!");
-        const text = currentFilteredData
-          .map(
-            (r) =>
-              `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin: ${r.item.Pin}`
-          )
-          .join("\n");
-        navigator.clipboard
-          .writeText(text)
-          .then(() => showToast("📋 List copied to clipboard!"));
-      }
-
-      function exportCSV() {
-        if (!currentFilteredData.length) return showToast("No data to export!");
-        let csv = "Address,Office,Pin\n";
-        currentFilteredData.forEach((row) => {
-          csv += `"${row.item.Address || ""}","${row.item.Office || ""}","${
-            row.item.Pin || ""
-          }"\n`;
-        });
-        const blob = new Blob([csv], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "DakMitra_Export.csv";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        showToast("📥 CSV Exported successfully!");
-      }
-
-      // --- EXCEL UPLOAD ---
-      async function uploadExcel() {
-        const fileInput = document.getElementById("excel-file");
-        const file = fileInput.files[0];
-        const uploadBtn = document.getElementById("upload-excel-btn");
-
-        if (!file) {
-          alert("Please select an Excel file first.");
-          return;
-        }
-
-        const originalText = uploadBtn.textContent;
-        uploadBtn.textContent = "Uploading...";
-        uploadBtn.disabled = true;
-
-        const reader = new FileReader();
-        reader.onload = async function (e) {
-          try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: "array" });
-            const firstSheetName = workbook.SheetNames[0];
-            const jsonData = XLSX.utils.sheet_to_json(
-              workbook.Sheets[firstSheetName]
-            );
-
-            if (jsonData.length === 0) {
-              alert("The Excel file is empty.");
-              uploadBtn.textContent = originalText;
-              uploadBtn.disabled = false;
+            // If no history, hide the toggle button entirely
+            if (history.length === 0) {
+              toggleBtn.classList.add("hidden");
               return;
             }
+
+            // Show the toggle button if history exists
+            toggleBtn.classList.remove("hidden");
+
+            // Populate the chips inside the hidden panel
+            chipsDiv.innerHTML = history
+              .map(
+                (term) =>
+                  `<button class="badge" style="cursor: pointer;" onclick="applyHistorySearch('${escapeForOnclick(
+                    term
+                  )}')">${term}</button>`
+              )
+              .join("");
+          }
+
+          function toggleSearchHistory() {
+            document
+              .getElementById("search-history-panel")
+              .classList.toggle("hidden");
+          }
+
+          function applyHistorySearch(term) {
+            document.getElementById("search-input").value = term;
+            document.getElementById("clear-search-btn").classList.remove("hidden");
+
+            // Automatically hide the history panel after making a selection
+            document.getElementById("search-history-panel").classList.add("hidden");
+
+            triggerSearch();
+          }
+
+          function saveSearchTerm(term) {
+            // Don't save empty strings or 1-2 letter searches
+            if (!term || term.trim().length < 3) return;
+
+            let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+            const newTermLower = term.toLowerCase().trim();
+
+            // 1. Remove exact duplicates from anywhere in the array
+            history = history.filter((t) => t.toLowerCase() !== newTermLower);
+
+            // 2. Smart Replace: If the user is just building on the last word
+            // (e.g., "goth" -> "gotha") or backspacing ("gotha" -> "goth"),
+            // overwrite the last entry instead of making a new chip.
+            if (history.length > 0) {
+              const lastTermLower = history[0].toLowerCase();
+              if (
+                newTermLower.startsWith(lastTermLower) ||
+                lastTermLower.startsWith(newTermLower)
+              ) {
+                history[0] = term.trim(); // Overwrite the top item
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+                loadSearchHistory();
+                return;
+              }
+            }
+
+            // 3. If it's a completely new word, add it to the front
+            history.unshift(term.trim());
+
+            // 4. Keep only the last 5 searches
+            if (history.length > 5) history.pop();
+
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+            loadSearchHistory();
+          }
+
+          const FAV_KEY = "dakmitra_favorites";
+
+          function toggleFavorite(id, address, office, pin, btnElement) {
+            let favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+
+            // Bulletproof ID check
+            const existingIndex = favorites.findIndex(
+              (f) => String(f.id) === String(id)
+            );
+
+            const isFavNow = existingIndex === -1; // If not found, it is being added
+
+            if (existingIndex > -1) {
+              favorites.splice(existingIndex, 1);
+              showToast("Removed from favorites");
+            } else {
+              favorites.push({ id, address, office, pin });
+              showToast("⭐ Added to favorites");
+            }
+
+            localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
+
+            // Always update the favorites tab in the background
+            renderFavorites();
+
+            if (btnElement) {
+              // If clicked in the Search tab: Instantly update the specific button WITHOUT jumping the screen
+              if (isFavNow) {
+                btnElement.innerHTML = `${ICON_STAR_FILLED} Saved`;
+                btnElement.style.color = "#f59e0b";
+                btnElement.style.backgroundColor = "rgba(245, 158, 11, 0.1)";
+              } else {
+                btnElement.innerHTML = `${ICON_STAR_OUTLINE} Save`;
+                btnElement.style.color = "var(--text-light)";
+                btnElement.style.backgroundColor = "transparent";
+              }
+            } else {
+              // If clicked in the Favorites tab: Silently re-render the Search tab in the background
+              // so the stars are perfectly synced when you switch back!
+              renderResults();
+            }
+          }
+
+          function renderFavorites() {
+            const favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+            const displayArea = document.getElementById("favorites-display-area");
+
+            if (favorites.length === 0) {
+              displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No favorites saved yet.</li></ul>`;
+              return;
+            }
+
+            let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
+            favorites.forEach((row) => {
+              const starIcon = `${ICON_STAR_FILLED} Saved`;
+              const starStyle =
+                "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;";
+
+              html += `
+          <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+              <div style="flex: 1 1 200px;">
+                <div class="office-title">${row.address}</div>
+                <div class="sub-office">
+                  <span class="badge badge-primary">🏢 ${row.office}</span>
+                  <span class="badge">📍 Pin: ${row.pin || "N/A"}</span>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: flex-end;">
+                <button onclick="toggleFavorite('${row.id}', '${escapeForOnclick(
+                row.address
+              )}', '${escapeForOnclick(row.office)}', '${escapeForOnclick(
+                row.pin
+              )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">
+                  ${starIcon}
+                </button>
+              </div>
+          </li>`;
+            });
+            html += `</ul>`;
+            displayArea.innerHTML = html;
+          }
+          // --- THEME LOGIC ---
+          function applyTheme(theme) {
+            if (theme === "system") {
+              const prefersDark = window.matchMedia(
+                "(prefers-color-scheme: dark)"
+              ).matches;
+              document.documentElement.setAttribute(
+                "data-theme",
+                prefersDark ? "dark" : "light"
+              );
+            } else {
+              document.documentElement.setAttribute("data-theme", theme);
+            }
+            localStorage.setItem("app-theme", theme);
+          }
+
+          function toggleTheme() {
+            const current = document.documentElement.getAttribute("data-theme");
+            const newTheme = current === "dark" ? "light" : "dark";
+            applyTheme(newTheme);
+          }
+
+          window
+            .matchMedia("(prefers-color-scheme: dark)")
+            .addEventListener("change", () => {
+              if (localStorage.getItem("app-theme") === "system")
+                applyTheme("system");
+            });
+
+          const savedTheme = localStorage.getItem("app-theme") || "system";
+          applyTheme(savedTheme);
+
+          // --- PWA INSTALLATION ---
+          if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+              navigator.serviceWorker
+                .register("./sw.js")
+                .catch((err) => console.log("SW failed: ", err));
+            });
+          }
+          let deferredPrompt;
+          const installBtn = document.getElementById("install-app-btn");
+          window.addEventListener("beforeinstallprompt", (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.classList.remove("hidden");
+          });
+          installBtn.addEventListener("click", async () => {
+            if (deferredPrompt) {
+              deferredPrompt.prompt();
+              const { outcome } = await deferredPrompt.userChoice;
+              if (outcome === "accepted") installBtn.classList.add("hidden");
+              deferredPrompt = null;
+            }
+          });
+
+          // --- DATA FETCHING & STATS ---
+          async function fetchAllPostOffices() {
+            const { data, error } = await supabaseClient
+              .from("post_offices")
+              .select("*");
+            if (error) {
+              console.error("Error fetching address:", error);
+              document.getElementById(
+                "results-display-area"
+              ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Error loading data from server. Ensure table columns are updated to "Address", "Office", and "Pin".</li></ul>`;
+              return;
+            }
+
+            if (!data || data.length === 0) {
+              document.getElementById(
+                "results-display-area"
+              ).innerHTML = `<ul class="list-container"><li class="list-empty">Database is currently empty.</li></ul>`;
+              document.getElementById("stat-addresses").textContent = "0";
+              document.getElementById("stat-offices").textContent = "0";
+              return;
+            }
+
+            cachedPostOffices = data || [];
+            currentFilteredData = cachedPostOffices.map((item) => ({
+              item,
+              matches: [],
+            }));
+
+            const uniqueAddresses = new Set(cachedPostOffices.map((o) => o.Address))
+              .size;
+            const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office))
+              .size;
+
+            document.getElementById("stat-addresses").textContent = uniqueAddresses;
+            document.getElementById("stat-offices").textContent = uniqueOffices;
+
+            fuse = new Fuse(cachedPostOffices, {
+              keys: ["Address", "Office", "Pin"],
+              threshold: 0.3,
+              ignoreLocation: false, // Set to false so location matters
+              location: 0, // Expect matches to be at the very start (index 0)
+              distance: 100, // How quickly the score drops as the match moves right. Lower = stricter left-priority
+              includeMatches: true,
+            });
+            renderResults();
+          }
+
+          // --- VIEW & RENDER LOGIC ---
+          function setViewMode(mode) {
+            viewMode = mode;
+            document
+              .getElementById("view-list-btn")
+              .classList.toggle("active", mode === "list");
+            document
+              .getElementById("view-table-btn")
+              .classList.toggle("active", mode === "table");
+            renderResults();
+          }
+          // --- PRE-LOAD INDIAN TTS VOICE ---
+          let preferredIndianVoice = null;
+
+          function loadIndianVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            // Look for Indian English first, then Hindi as a backup
+            preferredIndianVoice =
+              voices.find(
+                (v) =>
+                  v.lang.includes("en-IN") ||
+                  v.lang.includes("en_IN") ||
+                  v.name.includes("India")
+              ) ||
+              voices.find(
+                (v) => v.lang.includes("hi-IN") || v.lang.includes("hi_IN")
+              );
+          }
+
+          // Try loading immediately
+          loadIndianVoice();
+
+          // Chrome/Android loads voices asynchronously, so we wait for this event to fire
+          if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = loadIndianVoice;
+          }
+          function triggerSearch() {
+            const searchInput = document
+              .getElementById("search-input")
+              .value.trim();
+            if (searchInput.length > 2) {
+              saveSearchTerm(searchInput);
+            }
+            const filterVal = document.querySelector(
+              'input[name="searchFilter"]:checked'
+            ).value;
+
+            // 1. Grab the secondary filter values
+            const filterOffice = document
+              .getElementById("filter-office")
+              .value.trim()
+              .toLowerCase();
+            const filterPin = document
+              .getElementById("filter-pin")
+              .value.trim()
+              .toLowerCase();
+
+            // 2. Decide which columns Fuse should search based on primary filter
+            let keysToSearch = ["Address", "Office", "Pin"];
+            if (filterVal === "address") keysToSearch = ["Address"];
+            if (filterVal === "office") keysToSearch = ["Office"];
+            if (filterVal === "pin") keysToSearch = ["Pin"];
+
+            // 3. Run primary Fuse search (or return all if search is empty)
+            let baseData = [];
+            if (!searchInput) {
+              baseData = cachedPostOffices.map((item) => ({ item, matches: [] }));
+            } else {
+              fuse = new Fuse(cachedPostOffices, {
+                keys: keysToSearch,
+                threshold: 0.3,
+                ignoreLocation: false,
+                location: 0,
+                distance: 100,
+                includeMatches: true,
+                getFn: (obj, path) => {
+                  const value = obj[path];
+                  return value === null || value === undefined ? "" : String(value);
+                },
+              });
+              baseData = fuse.search(searchInput);
+            }
+
+            // 4. Apply Advanced "Must Have" Filters (if user typed anything in them)
+            if (filterOffice || filterPin) {
+              baseData = baseData.filter((result) => {
+                const row = result.item;
+                let keep = true;
+
+                if (filterOffice) {
+                  const officeVal = row.Office
+                    ? String(row.Office).toLowerCase()
+                    : "";
+                  if (!officeVal.includes(filterOffice)) keep = false;
+                }
+
+                if (filterPin) {
+                  const pinVal = row.Pin ? String(row.Pin).toLowerCase() : "";
+                  if (!pinVal.includes(filterPin)) keep = false;
+                }
+
+                return keep;
+              });
+            }
+
+            currentFilteredData = baseData;
+            renderResults();
+
+            // --- VOICE OUTPUT LOGIC ---
+            if (window.isVoiceSearch) {
+              window.isVoiceSearch = false;
+              window.speechSynthesis.cancel();
+
+              let speechText = "No matching post offices found.";
+              if (currentFilteredData.length > 0) {
+                const topMatch = currentFilteredData[0].item;
+
+                // Extracts the last 3 digits and converts them to phonetical Hindi words (e.g., "210" -> "do sau das")
+                let lastThreePin = topMatch.Pin
+                  ? String(topMatch.Pin).slice(-3)
+                  : "";
+                let hindiPinWords = lastThreePin
+                  ? convertToHindiWords(lastThreePin)
+                  : "";
+
+                let pinText = hindiPinWords
+                  ? `Pin code ${hindiPinWords}`
+                  : "Pin not available";
+
+                speechText = `${topMatch.Address}. Office ${topMatch.Office}. ${pinText}.`;
+              }
+
+              const utterance = new SpeechSynthesisUtterance(speechText);
+
+              if (preferredIndianVoice) {
+                utterance.voice = preferredIndianVoice;
+              } else {
+                utterance.lang = "en-IN";
+              }
+
+              utterance.rate = 0.9;
+
+              window.speechSynthesis.speak(utterance);
+            } else {
+              window.speechSynthesis.cancel();
+            }
+          }
+          function convertToHindiWords(numStr) {
+            const num = parseInt(numStr, 10);
+            if (isNaN(num)) return numStr;
+
+            const ones = [
+              "",
+              "ek",
+              "do",
+              "teen",
+              "chaar",
+              "paanch",
+              "chhe",
+              "saat",
+              "aath",
+              "nau",
+              "das",
+              "gyarah",
+              "baarah",
+              "terah",
+              "chaudah",
+              "pandraH",
+              "solah",
+              "satraH",
+              "atharah",
+              "unnis",
+            ];
+            const tens = [
+              "",
+              "",
+              "bees",
+              "tees",
+              "chaalis",
+              "pachaas",
+              "saath",
+              "sattar",
+              "assi",
+              "nabbe",
+            ];
+
+            if (num < 20) return ones[num];
+            if (num < 100) {
+              return (
+                tens[Math.floor(num / 10)] +
+                (num % 10 !== 0 ? " " + ones[num % 10] : "")
+              );
+            }
+            if (num < 1000) {
+              const s = Math.floor(num / 100);
+              const rem = num % 100;
+              return (
+                ones[s] + " sau" + (rem !== 0 ? " " + convertToHindiWords(rem) : "")
+              );
+            }
+            return numStr; // Fallback for larger numbers
+          }
+
+          function clearSearchInput() {
+            const searchInput = document.getElementById("search-input");
+            const clearBtn = document.getElementById("clear-search-btn");
+
+            searchInput.value = "";
+            clearBtn.classList.add("hidden");
+
+            triggerSearch();
+            searchInput.focus();
+          }
+
+          function highlightText(text, matches, key) {
+            // 1. Return empty if null or undefined
+            if (text === null || text === undefined) return "";
+
+            // 2. FORCE text to be a string (This fixes the Pin code crash)
+            text = String(text);
+
+            if (!matches || matches.length === 0) return text;
+            const match = matches.find((m) => m.key === key);
+            if (!match || !match.indices || match.indices.length === 0) return text;
+
+            let bestIndex = match.indices[0];
+            let maxLen = bestIndex[1] - bestIndex[0];
+
+            for (let i = 1; i < match.indices.length; i++) {
+              const currentLen = match.indices[i][1] - match.indices[i][0];
+              if (currentLen > maxLen) {
+                maxLen = currentLen;
+                bestIndex = match.indices[i];
+              }
+            }
+
+            const [start, end] = bestIndex;
+
+            let highlighted = text.substring(0, start);
+            highlighted += `<span class="highlight-text">${text.substring(
+              start,
+              end + 1
+            )}</span>`;
+            highlighted += text.substring(end + 1);
+
+            return highlighted;
+          }
+
+          function escapeForOnclick(str) {
+            if (!str) return "";
+            return String(str)
+              .replace(/\\/g, "\\\\")
+              .replace(/'/g, "\\'")
+              .replace(/"/g, "&quot;");
+          }
+
+          function renderResults() {
+            const displayArea = document.getElementById("results-display-area");
+
+            // Force scrollbar to top only when NEW search results load
+            displayArea.scrollTop = 0;
+
+            if (currentFilteredData.length === 0) {
+              displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No address found matching your search.</li></ul>`;
+              return;
+            }
+
+            const favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+
+            if (viewMode === "list") {
+              let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
+              currentFilteredData.forEach((result) => {
+                const row = result.item;
+                const addressHtml = highlightText(
+                  row.Address,
+                  result.matches,
+                  "Address"
+                );
+                const officeHtml = highlightText(
+                  row.Office,
+                  result.matches,
+                  "Office"
+                );
+                const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+
+                const safeAddress = escapeForOnclick(row.Address);
+                const safeOffice = escapeForOnclick(row.Office);
+                const safePin = escapeForOnclick(row.Pin);
+
+                const isFav = favorites.some(
+                  (f) => String(f.id) === String(row.id)
+                );
+
+                const starIcon = isFav
+                  ? `${ICON_STAR_FILLED} Saved` // (or just ICON_STAR_FILLED for the table view)
+                  : `${ICON_STAR_OUTLINE} Save`; // (or just ICON_STAR_OUTLINE for the table view)
+                const starStyle = isFav
+                  ? "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;"
+                  : "color: var(--text-light); background-color: transparent; display: flex; align-items: center; gap: 4px;";
+
+                html += `
+          <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+              <div style="flex: 1 1 200px;">
+                <div class="office-title">${addressHtml}</div>
+                <div class="sub-office">
+                  <span class="badge badge-primary">🏢 ${officeHtml}</span>
+                  <span class="badge">📍 Pin: ${PinHtml || "N/A"}</span>
+                </div>
+              </div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+                <button onclick="toggleFavorite('${
+                  row.id
+                }', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">${starIcon}</button>
+                <button onclick="updateRecord('${
+                  row.id
+                }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
+                <button onclick="deleteRecord('${
+                  row.id
+                }')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
+              </div>
+          </li>`;
+              });
+              html += `</ul>`;
+              displayArea.innerHTML = html;
+            } else {
+              let html = `<table class="data-table">
+              <thead><tr><th>Address</th><th>Office</th><th>Pin</th><th style="text-align: right;">Actions</th></tr></thead>
+              <tbody>`;
+              currentFilteredData.forEach((result) => {
+                const row = result.item;
+
+                const addressHtml = highlightText(
+                  row.Address,
+                  result.matches,
+                  "Address"
+                );
+                const officeHtml = highlightText(
+                  row.Office,
+                  result.matches,
+                  "Office"
+                );
+                const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+
+                const safeAddress = escapeForOnclick(row.Address);
+                const safeOffice = escapeForOnclick(row.Office);
+                const safePin = escapeForOnclick(row.Pin);
+
+                const isFav = favorites.some(
+                  (f) => String(f.id) === String(row.id)
+                );
+
+                const starIcon = isFav ? ICON_STAR_FILLED : ICON_STAR_OUTLINE;
+                const starStyle = isFav
+                  ? "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: inline-flex; align-items: center; justify-content: center;"
+                  : "color: var(--text-light); background-color: transparent; display: inline-flex; align-items: center; justify-content: center;";
+
+                html += `<tr>
+            <td>${addressHtml}</td>
+            <td>${officeHtml}</td>
+            <td>${PinHtml || "-"}</td>
+            <td style="text-align: right; display: flex; gap: 4px; justify-content: flex-end; align-items: center; min-height: 48px;">
+              <button onclick="toggleFavorite('${
+                row.id
+              }', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}" title="Toggle Favorite">${starIcon}</button>
+
+              <button onclick="updateRecord('${
+                row.id
+              }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 4px 8px;">✎</button>
+              <button onclick="deleteRecord('${
+                row.id
+              }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑</button>
+            </td>
+           </tr>`;
+              });
+              html += `</tbody></table>`;
+              displayArea.innerHTML = html;
+            }
+          }
+          function copyResults() {
+            if (!currentFilteredData.length) return showToast("No data to copy!");
+            const text = currentFilteredData
+              .map(
+                (r) =>
+                  `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin: ${r.item.Pin}`
+              )
+              .join("\n");
+            navigator.clipboard
+              .writeText(text)
+              .then(() => showToast("📋 List copied to clipboard!"));
+          }
+
+          function exportCSV() {
+            if (!currentFilteredData.length) return showToast("No data to export!");
+            let csv = "Address,Office,Pin\n";
+            currentFilteredData.forEach((row) => {
+              csv += `"${row.item.Address || ""}","${row.item.Office || ""}","${
+                row.item.Pin || ""
+              }"\n`;
+            });
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "DakMitra_Export.csv";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast("📥 CSV Exported successfully!");
+          }
+
+          // --- EXCEL UPLOAD ---
+          async function uploadExcel() {
+            const fileInput = document.getElementById("excel-file");
+            const file = fileInput.files[0];
+            const uploadBtn = document.getElementById("upload-excel-btn");
+
+            if (!file) {
+              alert("Please select an Excel file first.");
+              return;
+            }
+
+            const originalText = uploadBtn.textContent;
+            uploadBtn.textContent = "Uploading...";
+            uploadBtn.disabled = true;
+
+            const reader = new FileReader();
+            reader.onload = async function (e) {
+              try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const firstSheetName = workbook.SheetNames[0];
+                const jsonData = XLSX.utils.sheet_to_json(
+                  workbook.Sheets[firstSheetName]
+                );
+
+                if (jsonData.length === 0) {
+                  alert("The Excel file is empty.");
+                  uploadBtn.textContent = originalText;
+                  uploadBtn.disabled = false;
+                  return;
+                }
+
+                const {
+                  data: { session },
+                } = await supabaseClient.auth.getSession();
+                const formattedData = jsonData.map((row) => ({
+                  Address: row["Address"],
+                  Office: row["Office"],
+                  Pin: row["Pin"] ? String(row["Pin"]) : null,
+                  user_id: session.user.id,
+                }));
+
+                const { error } = await supabaseClient
+                  .from("post_offices")
+                  .insert(formattedData);
+
+                if (error) {
+                  alert("Upload Error: " + error.message);
+                  uploadBtn.textContent = originalText;
+                  uploadBtn.disabled = false;
+                } else {
+                  uploadBtn.textContent = "✅ Upload Successful!";
+                  uploadBtn.style.backgroundColor = "#10b981";
+                  setTimeout(() => {
+                    uploadBtn.textContent = originalText;
+                    uploadBtn.style.backgroundColor = "var(--primary)";
+                    uploadBtn.disabled = false;
+                  }, 3000);
+                  fileInput.value = "";
+                  fetchAllPostOffices();
+                }
+              } catch (err) {
+                console.error(err);
+                alert(
+                  'Error reading Excel file. Ensure headers are exactly "Address", "Office", and "Pin".'
+                );
+                uploadBtn.textContent = originalText;
+                uploadBtn.disabled = false;
+              }
+            };
+            reader.readAsArrayBuffer(file);
+          }
+
+          // --- VOICE SEARCH ---
+          function startVoiceSearch() {
+            // 1. If already listening, stop it and exit
+            if (window.activeRecognition) {
+              window.activeRecognition.abort();
+              return;
+            }
+
+            const SpeechRecognition =
+              window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition)
+              return alert("Sorry, your browser doesn't support voice search.");
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = "en-IN";
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            // 2. Save the instance so we know it's running
+            window.activeRecognition = recognition;
+
+            const micBtn = document.getElementById("mic-btn");
+            const searchInput = document.getElementById("search-input");
+
+            recognition.onstart = function () {
+              micBtn.style.color = "#ef4444";
+              micBtn.style.transform = "scale(1.15)";
+              searchInput.placeholder = "Listening...";
+              searchInput.value = "";
+            };
+
+            recognition.onresult = function (event) {
+              if (
+                event.results &&
+                event.results.length > 0 &&
+                event.results[0].length > 0
+              ) {
+                searchInput.value = event.results[0][0].transcript.replace(
+                  /\.$/,
+                  ""
+                );
+                document
+                  .getElementById("clear-search-btn")
+                  .classList.remove("hidden");
+                // NEW: Tell the app this specific search came from the microphone
+                window.isVoiceSearch = true;
+                triggerSearch();
+              }
+            };
+
+            recognition.onerror = function (event) {
+              if (event.error === "not-allowed")
+                alert("Microphone access was denied.");
+            };
+
+            recognition.onend = function () {
+              micBtn.style.color = "";
+              micBtn.style.transform = "";
+              searchInput.placeholder = "Type address, office, or Pin...";
+              // 3. Clear the saved instance when it stops listening
+              window.activeRecognition = null;
+            };
+
+            recognition.start();
+          }
+
+          // --- AUTHENTICATION ---
+          function switchTab(mode) {
+            currentMode = mode;
+            const signinTab = document.getElementById("tab-signin");
+            const signupTab = document.getElementById("tab-signup");
+            const authBtn = document.getElementById("auth-btn");
+            const extraFields = document.getElementById("signup-extra-fields");
+
+            hideAlert();
+            if (mode === "signin") {
+              signinTab.classList.add("active");
+              signupTab.classList.remove("active");
+              authBtn.textContent = "Sign In";
+              extraFields.classList.add("hidden"); // Hide profile fields on Sign In
+            } else {
+              signupTab.classList.add("active");
+              signinTab.classList.remove("active");
+              authBtn.textContent = "Create Account";
+              extraFields.classList.remove("hidden"); // Show profile fields on Sign Up
+            }
+          }
+
+          function showAlert(message, type = "error") {
+            const box = document.getElementById("alert-box");
+            box.className = `alert ${type}`;
+            box.textContent = message;
+          }
+          function hideAlert() {
+            const box = document.getElementById("alert-box");
+            box.className = "alert";
+            box.textContent = "";
+          }
+
+          async function handleAuth() {
+            hideAlert();
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value.trim();
+
+            if (!email || !password)
+              return showAlert("Please fill in all required fields.");
+
+            const splashScreen = document.getElementById("splash-screen");
+            splashScreen.classList.remove("hidden-splash");
+
+            if (currentMode === "signup") {
+              const name = document.getElementById("signup-name").value.trim();
+              const employeeId = document
+                .getElementById("signup-empid")
+                .value.trim();
+              const designation = document
+                .getElementById("signup-designation")
+                .value.trim();
+
+              if (!name || !employeeId || !designation) {
+                splashScreen.classList.add("hidden-splash");
+                return showAlert(
+                  "Please complete all profile fields (Name, Employee ID, Designation)."
+                );
+              }
+
+              const { data: authData, error: authError } =
+                await supabaseClient.auth.signUp({
+                  email,
+                  password,
+                  options: {
+                    data: {
+                      name: name,
+                      employee_id: employeeId,
+                      designation: designation,
+                    },
+                    emailRedirectTo:
+                      window.location.origin + window.location.pathname,
+                  },
+                });
+
+              splashScreen.classList.add("hidden-splash");
+
+              if (authError) {
+                return showAlert(authError.message);
+              }
+
+              // Show a clear success toast instructing them to check email
+              showToast("✉️ Account created!");
+              showAlert(
+                "Registration successful!",
+                "success"
+              );
+              switchTab("signin");
+            } } else {
+        // Standard Sign In Logic
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (authError) {
+          splashScreen.classList.add("hidden-splash");
+          showAlert(authError.message);
+        } else {
+          // 1. Generate a unique session token for this specific login instance
+          const newSessionId = 'sess_' + Math.random().toString(36.2) + Date.now().toString(36);
+
+          // 2. Save it to the user's profile row in Supabase
+          const { error: updateError } = await supabaseClient
+            .from('profiles')
+            .update({ current_session_id: newSessionId })
+            .eq('id', authData.user.id);
+
+          if (updateError) {
+            splashScreen.classList.add("hidden-splash");
+            return showAlert("Error establishing session lock.");
+          }
+
+          // 3. Store this session ID locally on this device/browser
+          localStorage.setItem('dakmitra_session_id', newSessionId);
+
+          checkUserSession();
+        }
+      }
+          // Check if user just verified their email via confirmation link
+          async function checkEmailVerificationRedirect() {
+            const hash = window.location.hash;
+            if (hash && hash.includes("type=signup")) {
+              const splashScreen = document.getElementById("splash-screen");
+              splashScreen.classList.remove("hidden-splash");
+
+              // Give Supabase a brief moment to process the session from the URL hash
+              setTimeout(() => {
+                splashScreen.classList.add("hidden-splash");
+
+                // Show a gorgeous confirmation modal or alert state
+                showCustomConfirm(
+                  "🎉 Email Verified Successfully!",
+                  "Your DakMitra employee account is now fully verified and active. Welcome aboard!",
+                  "Sign In Now",
+                  () => {
+                    // Clean up the URL hash
+                    window.history.replaceState(
+                      {},
+                      document.title,
+                      window.location.pathname
+                    );
+                    switchTab("signin");
+                  }
+                );
+              }, 1000);
+            }
+          }
+
+          async function signOutApp() {
+            await supabaseClient.auth.signOut();
+            closeSidebar();
+            checkUserSession();
+          }
+
+          async function checkUserSession() {
+            const {
+              data: { session },
+            } = await supabaseClient.auth.getSession();
+
+            const authView = document.getElementById("auth-view");
+            const dashboardView = document.getElementById("dashboard-view");
+            const splashScreen = document.getElementById("splash-screen");
+
+            if (session) {
+              authView.classList.add("hidden");
+              dashboardView.classList.remove("hidden");
+
+              const userEmail = session.user.email;
+              document.getElementById("user-email-display").textContent = userEmail;
+
+              // FETCH PROFILE DETAILS FROM SUPABASE
+              const { data: profileData, error: profileError } =
+                await supabaseClient
+                  .from("profiles")
+                  .select("name, designation, employee_id")
+                  .eq("id", session.user.id)
+                  .single();
+
+              if (profileData && !profileError) {
+                document.getElementById("user-name-display").textContent =
+                  profileData.name;
+                document.getElementById("user-designation-display").textContent =
+                  profileData.designation;
+                document.getElementById("avatar-letter").textContent =
+                  profileData.name.charAt(0).toUpperCase();
+              } else {
+                // Fallback if profile row is missing
+                document.getElementById("user-name-display").textContent =
+                  userEmail.split("@")[0];
+                document.getElementById("user-designation-display").textContent =
+                  "Employee";
+                document.getElementById("avatar-letter").textContent = userEmail
+                  .charAt(0)
+                  .toUpperCase();
+              }
+
+              switchDashboardView("search");
+              await fetchAllPostOffices();
+            } else {
+              authView.classList.remove("hidden");
+              dashboardView.classList.add("hidden");
+              cachedPostOffices = [];
+              currentFilteredData = [];
+            }
+
+            setTimeout(() => {
+              splashScreen.classList.add("hidden-splash");
+            }, 400);
+            loadSearchHistory();
+          }
+
+          // --- EVENT LISTENERS ---
+          document
+            .getElementById("search-input")
+            .addEventListener("input", function () {
+              const clearBtn = document.getElementById("clear-search-btn");
+
+              if (this.value.length > 0) {
+                clearBtn.classList.remove("hidden");
+              } else {
+                clearBtn.classList.add("hidden");
+              }
+
+              triggerSearch();
+            });
+
+          let lastScrollTop = 0;
+          let isAnimating = false;
+
+          const resultsArea = document.getElementById("results-display-area");
+          const searchHero = document.querySelector("#view-search .search-hero");
+
+          resultsArea.addEventListener("scroll", function () {
+            if (isAnimating) return;
+
+            let currentScroll = this.scrollTop;
+
+            if (currentScroll <= 10) {
+              if (searchHero.classList.contains("collapsed")) {
+                isAnimating = true;
+                searchHero.classList.remove("collapsed");
+                resultsArea.classList.remove("expanded");
+                this.style.maxHeight = "";
+
+                setTimeout(() => {
+                  isAnimating = false;
+                }, 350);
+              }
+              lastScrollTop = currentScroll;
+              return;
+            }
+
+            if (currentScroll > lastScrollTop && currentScroll > 20) {
+              if (!searchHero.classList.contains("collapsed")) {
+                isAnimating = true;
+
+                searchHero.classList.add("collapsed");
+                resultsArea.classList.add("expanded");
+
+                // NEW: Hide the mobile keyboard instantly when scrolling down
+                document.getElementById("search-input").blur();
+
+                let maxVh = window.innerHeight * 0.7;
+                let safeMaxHeight = Math.min(maxVh, this.scrollHeight - 10);
+                this.style.maxHeight = safeMaxHeight + "px";
+
+                setTimeout(() => {
+                  isAnimating = false;
+                }, 350);
+              }
+            } else if (currentScroll < lastScrollTop - 10) {
+              if (searchHero.classList.contains("collapsed")) {
+                isAnimating = true;
+
+                searchHero.classList.remove("collapsed");
+                resultsArea.classList.remove("expanded");
+                this.style.maxHeight = "";
+
+                setTimeout(() => {
+                  isAnimating = false;
+                }, 350);
+              }
+            }
+
+            lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
+          });
+
+          // --- DYNAMIC MULTIPLE RECORDS ---
+
+          function getManualEntryRowHTML(showLabels = false) {
+            return `
+            <div class="manual-entry-row">
+              <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+                ${showLabels ? "<label>Address</label>" : ""}
+                <input type="text" class="manual-address" placeholder="Address" />
+              </div>
+              <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+                ${showLabels ? "<label>Office</label>" : ""}
+                <input type="text" class="manual-office" placeholder="Office name" />
+              </div>
+              <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+                ${showLabels ? "<label>Pin</label>" : ""}
+                <input type="text" class="manual-Pin" placeholder="e.g. 231305" />
+              </div>
+              <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
+            </div>
+            `;
+          }
+
+          // Initialize the first row
+          document.getElementById("manual-entries-container").innerHTML =
+            getManualEntryRowHTML(true);
+
+          function addInputRow() {
+            const container = document.getElementById("manual-entries-container");
+            container.insertAdjacentHTML("beforeend", getManualEntryRowHTML(false));
+          }
+
+          async function submitMultipleRecords() {
+            const rows = document.querySelectorAll(".manual-entry-row");
+            const updates = [];
+            const inserts = [];
 
             const {
               data: { session },
             } = await supabaseClient.auth.getSession();
-            const formattedData = jsonData.map((row) => ({
-              Address: row["Address"],
-              Office: row["Office"],
-              Pin: row["Pin"] ? String(row["Pin"]) : null,
-              user_id: session.user.id,
-            }));
 
-            const { error } = await supabaseClient
-              .from("post_offices")
-              .insert(formattedData);
+            // 1. Sort rows into "Updates" or "Inserts" based on the hidden edit ID
+            rows.forEach((row) => {
+              const address = row.querySelector(".manual-address").value.trim();
+              const office = row.querySelector(".manual-office").value.trim();
+              const Pin = row.querySelector(".manual-Pin").value.trim();
+              const editId = row.getAttribute("data-edit-id");
 
-            if (error) {
-              alert("Upload Error: " + error.message);
-              uploadBtn.textContent = originalText;
-              uploadBtn.disabled = false;
-            } else {
-              uploadBtn.textContent = "✅ Upload Successful!";
-              uploadBtn.style.backgroundColor = "#10b981";
-              setTimeout(() => {
-                uploadBtn.textContent = originalText;
-                uploadBtn.style.backgroundColor = "var(--primary)";
-                uploadBtn.disabled = false;
-              }, 3000);
-              fileInput.value = "";
-              fetchAllPostOffices();
-            }
-          } catch (err) {
-            console.error(err);
-            alert(
-              'Error reading Excel file. Ensure headers are exactly "Address", "Office", and "Pin".'
-            );
-            uploadBtn.textContent = originalText;
-            uploadBtn.disabled = false;
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      }
+              if (address && office) {
+                const record = {
+                  Address: address,
+                  Office: office,
+                  Pin: Pin || null,
+                  user_id: session.user.id,
+                };
 
-      // --- VOICE SEARCH ---
-      function startVoiceSearch() {
-        // 1. If already listening, stop it and exit
-        if (window.activeRecognition) {
-          window.activeRecognition.abort();
-          return;
-        }
-
-        const SpeechRecognition =
-          window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition)
-          return alert("Sorry, your browser doesn't support voice search.");
-
-        const recognition = new SpeechRecognition();
-        recognition.lang = "en-IN";
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        // 2. Save the instance so we know it's running
-        window.activeRecognition = recognition;
-
-        const micBtn = document.getElementById("mic-btn");
-        const searchInput = document.getElementById("search-input");
-
-        recognition.onstart = function () {
-          micBtn.style.color = "#ef4444";
-          micBtn.style.transform = "scale(1.15)";
-          searchInput.placeholder = "Listening...";
-          searchInput.value = "";
-        };
-
-        recognition.onresult = function (event) {
-          if (
-            event.results &&
-            event.results.length > 0 &&
-            event.results[0].length > 0
-          ) {
-            searchInput.value = event.results[0][0].transcript.replace(
-              /\.$/,
-              ""
-            );
-            document
-              .getElementById("clear-search-btn")
-              .classList.remove("hidden");
-            // NEW: Tell the app this specific search came from the microphone
-            window.isVoiceSearch = true;
-            triggerSearch();
-          }
-        };
-
-        recognition.onerror = function (event) {
-          if (event.error === "not-allowed")
-            alert("Microphone access was denied.");
-        };
-
-        recognition.onend = function () {
-          micBtn.style.color = "";
-          micBtn.style.transform = "";
-          searchInput.placeholder = "Type address, office, or Pin...";
-          // 3. Clear the saved instance when it stops listening
-          window.activeRecognition = null;
-        };
-
-        recognition.start();
-      }
-
-      // --- AUTHENTICATION ---
-      function switchTab(mode) {
-        currentMode = mode;
-        const signinTab = document.getElementById("tab-signin");
-        const signupTab = document.getElementById("tab-signup");
-        const authBtn = document.getElementById("auth-btn");
-        const extraFields = document.getElementById("signup-extra-fields");
-
-        hideAlert();
-        if (mode === "signin") {
-          signinTab.classList.add("active");
-          signupTab.classList.remove("active");
-          authBtn.textContent = "Sign In";
-          extraFields.classList.add("hidden"); // Hide profile fields on Sign In
-        } else {
-          signupTab.classList.add("active");
-          signinTab.classList.remove("active");
-          authBtn.textContent = "Create Account";
-          extraFields.classList.remove("hidden"); // Show profile fields on Sign Up
-        }
-      }
-
-      function showAlert(message, type = "error") {
-        const box = document.getElementById("alert-box");
-        box.className = `alert ${type}`;
-        box.textContent = message;
-      }
-      function hideAlert() {
-        const box = document.getElementById("alert-box");
-        box.className = "alert";
-        box.textContent = "";
-      }
-
-      async function handleAuth() {
-        hideAlert();
-        const email = document.getElementById("email").value.trim();
-        const password = document.getElementById("password").value.trim();
-
-        if (!email || !password)
-          return showAlert("Please fill in all required fields.");
-
-        const splashScreen = document.getElementById("splash-screen");
-        splashScreen.classList.remove("hidden-splash");
-
-        if (currentMode === "signup") {
-          const name = document.getElementById("signup-name").value.trim();
-          const employeeId = document
-            .getElementById("signup-empid")
-            .value.trim();
-          const designation = document
-            .getElementById("signup-designation")
-            .value.trim();
-
-          if (!name || !employeeId || !designation) {
-            splashScreen.classList.add("hidden-splash");
-            return showAlert(
-              "Please complete all profile fields (Name, Employee ID, Designation)."
-            );
-          }
-
-          const { data: authData, error: authError } =
-            await supabaseClient.auth.signUp({
-              email,
-              password,
-              options: {
-                data: {
-                  name: name,
-                  employee_id: employeeId,
-                  designation: designation,
-                },
-                emailRedirectTo:
-                  window.location.origin + window.location.pathname,
-              },
+                if (editId) {
+                  record.id = editId;
+                  updates.push(record);
+                } else {
+                  inserts.push(record);
+                }
+              }
             });
 
-          splashScreen.classList.add("hidden-splash");
+            if (updates.length === 0 && inserts.length === 0) {
+              return showToast("Please fill in at least one complete row.");
+            }
 
-          if (authError) {
-            return showAlert(authError.message);
+            const btn = document.getElementById("submit-multiple-btn");
+            btn.textContent = "Saving...";
+            btn.disabled = true;
+
+            let hasError = false;
+
+            // 2. Process all Updates
+            for (const update of updates) {
+              const { error } = await supabaseClient
+                .from("post_offices")
+                .update({
+                  Address: update.Address,
+                  Office: update.Office,
+                  Pin: update.Pin,
+                })
+                .eq("id", update.id);
+
+              if (error) {
+                alert("Error updating record: " + error.message);
+                hasError = true;
+              }
+            }
+
+            // 3. Process all Inserts
+            if (inserts.length > 0) {
+              const { error } = await supabaseClient
+                .from("post_offices")
+                .insert(inserts);
+
+              if (error) {
+                alert("Error adding records: " + error.message);
+                hasError = true;
+              }
+            }
+
+            // 4. Finalize the UI
+            if (!hasError) {
+              const totalSaved = updates.length + inserts.length;
+              showToast(`✅ ${totalSaved} record(s) saved successfully!`);
+
+              // Reset the form back to the default empty state
+              document.getElementById("manual-entries-container").innerHTML =
+                getManualEntryRowHTML(true);
+
+              // Refresh the data so it shows up instantly
+              await fetchAllPostOffices();
+
+              // FLUID UX: If they were editing, jump them back to the Search tab to see the result
+              if (updates.length > 0) {
+                switchDashboardView("search");
+              }
+            }
+
+            btn.textContent = "Submit All"; // Reset button text
+            btn.disabled = false;
           }
 
-          // Show a clear success toast instructing them to check email
-          showToast("✉️ Account created! Please check your email to verify.");
-          showAlert(
-            "Registration successful! A verification link has been sent to your email.",
-            "success"
-          );
-          switchTab("signin");
-        } else {
-          const { error } = await supabaseClient.auth.signInWithPassword({
-            email,
-            password,
-          });
-          if (error) {
-            splashScreen.classList.add("hidden-splash");
-            showAlert(error.message);
-          } else {
-            checkUserSession();
+          function updateRecord(id, currentAddress, currentOffice, currentPin) {
+            // 1. Switch to the Upload View
+            switchDashboardView("upload");
+
+            // 2. Clear existing manual entries and add the one we are editing
+            const container = document.getElementById("manual-entries-container");
+
+            // Prevent literal "null" text from showing in the Pin box
+            const safePin =
+              currentPin === "null" || currentPin === "undefined" || !currentPin
+                ? ""
+                : currentPin;
+
+            container.innerHTML = `
+            <div class="manual-entry-row" data-edit-id="${id}">
+              <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+                <label style="color: var(--primary);">Address (Editing)</label>
+                <input type="text" class="manual-address" value="${currentAddress}" />
+              </div>
+              <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+                <label style="color: var(--primary);">Office</label>
+                <input type="text" class="manual-office" value="${currentOffice}" />
+              </div>
+              <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+                <label style="color: var(--primary);">Pin</label>
+                <input type="text" class="manual-Pin" value="${safePin}" />
+              </div>
+              <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
+            </div>
+            `;
+
+            // 3. Update the submit button text to reflect an edit action
+            document.getElementById("submit-multiple-btn").textContent =
+              "Save Changes";
+
+            // 4. Scroll to top to ensure the form is clearly visible
+            window.scrollTo({ top: 0, behavior: "smooth" });
+
+            showToast("✏️ Ready to edit. Make your changes and click Save.");
           }
-        }
-      }
-      // Check if user just verified their email via confirmation link
-      async function checkEmailVerificationRedirect() {
-        const hash = window.location.hash;
-        if (hash && hash.includes("type=signup")) {
-          const splashScreen = document.getElementById("splash-screen");
-          splashScreen.classList.remove("hidden-splash");
 
-          // Give Supabase a brief moment to process the session from the URL hash
-          setTimeout(() => {
-            splashScreen.classList.add("hidden-splash");
-
-            // Show a gorgeous confirmation modal or alert state
+          function deleteRecord(id) {
             showCustomConfirm(
-              "🎉 Email Verified Successfully!",
-              "Your DakMitra employee account is now fully verified and active. Welcome aboard!",
-              "Sign In Now",
-              () => {
-                // Clean up the URL hash
-                window.history.replaceState(
-                  {},
-                  document.title,
-                  window.location.pathname
-                );
-                switchTab("signin");
+              "Delete Record?",
+              "Are you sure you want to permanently delete this address? This action cannot be undone.",
+              "Delete",
+              async () => {
+                // This code only runs if they click the red "Delete" button inside the modal
+                const { error } = await supabaseClient
+                  .from("post_offices")
+                  .delete()
+                  .eq("id", id);
+
+                if (error) {
+                  alert("Error deleting record: " + error.message);
+                } else {
+                  showToast("🗑️ Record deleted.");
+                  fetchAllPostOffices();
+                }
               }
             );
-          }, 1000);
-        }
-      }
+          }
+          // --- CUSTOM CONFIRM MODAL LOGIC ---
+          function showCustomConfirm(
+            title,
+            message,
+            confirmText,
+            onConfirmCallback
+          ) {
+            document.getElementById("confirm-modal-title").textContent = title;
+            document.getElementById("confirm-modal-message").textContent = message;
 
-      async function signOutApp() {
-        await supabaseClient.auth.signOut();
-        closeSidebar();
-        checkUserSession();
-      }
+            const submitBtn = document.getElementById("confirm-modal-submit");
+            submitBtn.textContent = confirmText;
 
-      async function checkUserSession() {
-        const {
-          data: { session },
-        } = await supabaseClient.auth.getSession();
+            // Remove old listeners to avoid multiple triggers firing
+            const newSubmitBtn = submitBtn.cloneNode(true);
+            submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
 
-        const authView = document.getElementById("auth-view");
-        const dashboardView = document.getElementById("dashboard-view");
-        const splashScreen = document.getElementById("splash-screen");
+            newSubmitBtn.addEventListener("click", () => {
+              closeConfirmModal();
+              onConfirmCallback(); // Execute the actual delete function
+            });
 
-        if (session) {
-          authView.classList.add("hidden");
-          dashboardView.classList.remove("hidden");
-
-          const userEmail = session.user.email;
-          document.getElementById("user-email-display").textContent = userEmail;
-
-          // FETCH PROFILE DETAILS FROM SUPABASE
-          const { data: profileData, error: profileError } =
-            await supabaseClient
-              .from("profiles")
-              .select("name, designation, employee_id")
-              .eq("id", session.user.id)
-              .single();
-
-          if (profileData && !profileError) {
-            document.getElementById("user-name-display").textContent =
-              profileData.name;
-            document.getElementById("user-designation-display").textContent =
-              profileData.designation;
-            document.getElementById("avatar-letter").textContent =
-              profileData.name.charAt(0).toUpperCase();
-          } else {
-            // Fallback if profile row is missing
-            document.getElementById("user-name-display").textContent =
-              userEmail.split("@")[0];
-            document.getElementById("user-designation-display").textContent =
-              "Employee";
-            document.getElementById("avatar-letter").textContent = userEmail
-              .charAt(0)
-              .toUpperCase();
+            document.getElementById("confirm-modal-overlay").classList.add("show");
           }
 
-          switchDashboardView("search");
-          await fetchAllPostOffices();
-        } else {
-          authView.classList.remove("hidden");
-          dashboardView.classList.add("hidden");
-          cachedPostOffices = [];
-          currentFilteredData = [];
-        }
+          function closeConfirmModal() {
+            document
+              .getElementById("confirm-modal-overlay")
+              .classList.remove("show");
+          }
 
-        setTimeout(() => {
-          splashScreen.classList.add("hidden-splash");
-        }, 400);
-        loadSearchHistory();
-      }
+          // --- DOWNLOAD SAMPLE EXCEL TEMPLATE ---
+          function downloadSampleExcel() {
+            const wb = XLSX.utils.book_new();
+            const sampleData = [
+              { Address: "Gothani BO", Office: "Chopan SO", Pin: "231205" },
+              { Address: "Biraura BO", Office: "Bijaipur SO", Pin: "231305" },
+              { Address: "Sandwa BO", Office: "Kachhwa SO", Pin: "231501" },
+            ];
+            const ws = XLSX.utils.json_to_sheet(sampleData);
+            ws["!cols"] = [{ wch: 20 }, { wch: 20 }, { wch: 15 }];
+            XLSX.utils.book_append_sheet(wb, ws, "DakMitra Template");
+            XLSX.writeFile(wb, "DakMitra_Sample_Template.xlsx");
+            showToast("📥 Sample Excel downloaded!");
+          }
+          function toggleAdvancedFilters() {
+            document
+              .getElementById("advanced-filters-panel")
+              .classList.toggle("hidden");
+          }
+          function toggleClearBtn(inputId, btnId) {
+            const input = document.getElementById(inputId);
+            const clearBtn = document.getElementById(btnId);
 
-      // --- EVENT LISTENERS ---
-      document
-        .getElementById("search-input")
-        .addEventListener("input", function () {
-          const clearBtn = document.getElementById("clear-search-btn");
+            if (input.value.length > 0) {
+              clearBtn.classList.remove("hidden");
+            } else {
+              clearBtn.classList.add("hidden");
+            }
+          }
 
-          if (this.value.length > 0) {
-            clearBtn.classList.remove("hidden");
-          } else {
+          function clearFilterInput(inputId, btnId) {
+            const input = document.getElementById(inputId);
+            const clearBtn = document.getElementById(btnId);
+
+            input.value = "";
             clearBtn.classList.add("hidden");
+
+            triggerSearch();
+            input.focus();
           }
+          // --- SWIPE NAVIGATION LOGIC ---
+          let touchStartX = 0;
+          let touchEndX = 0;
+          let touchStartY = 0;
+          let touchEndY = 0;
 
-          triggerSearch();
-        });
+          const swipeArea = document.getElementById("dashboard-view");
+          const viewOrder = ["favorites", "search", "upload"]; // Matches bottom nav order perfectly
 
-      let lastScrollTop = 0;
-      let isAnimating = false;
-
-      const resultsArea = document.getElementById("results-display-area");
-      const searchHero = document.querySelector("#view-search .search-hero");
-
-      resultsArea.addEventListener("scroll", function () {
-        if (isAnimating) return;
-
-        let currentScroll = this.scrollTop;
-
-        if (currentScroll <= 10) {
-          if (searchHero.classList.contains("collapsed")) {
-            isAnimating = true;
-            searchHero.classList.remove("collapsed");
-            resultsArea.classList.remove("expanded");
-            this.style.maxHeight = "";
-
-            setTimeout(() => {
-              isAnimating = false;
-            }, 350);
-          }
-          lastScrollTop = currentScroll;
-          return;
-        }
-
-        if (currentScroll > lastScrollTop && currentScroll > 20) {
-          if (!searchHero.classList.contains("collapsed")) {
-            isAnimating = true;
-
-            searchHero.classList.add("collapsed");
-            resultsArea.classList.add("expanded");
-
-            // NEW: Hide the mobile keyboard instantly when scrolling down
-            document.getElementById("search-input").blur();
-
-            let maxVh = window.innerHeight * 0.7;
-            let safeMaxHeight = Math.min(maxVh, this.scrollHeight - 10);
-            this.style.maxHeight = safeMaxHeight + "px";
-
-            setTimeout(() => {
-              isAnimating = false;
-            }, 350);
-          }
-        } else if (currentScroll < lastScrollTop - 10) {
-          if (searchHero.classList.contains("collapsed")) {
-            isAnimating = true;
-
-            searchHero.classList.remove("collapsed");
-            resultsArea.classList.remove("expanded");
-            this.style.maxHeight = "";
-
-            setTimeout(() => {
-              isAnimating = false;
-            }, 350);
-          }
-        }
-
-        lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
-      });
-
-      // --- DYNAMIC MULTIPLE RECORDS ---
-
-      function getManualEntryRowHTML(showLabels = false) {
-        return `
-        <div class="manual-entry-row">
-          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-            ${showLabels ? "<label>Address</label>" : ""}
-            <input type="text" class="manual-address" placeholder="Address" />
-          </div>
-          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-            ${showLabels ? "<label>Office</label>" : ""}
-            <input type="text" class="manual-office" placeholder="Office name" />
-          </div>
-          <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-            ${showLabels ? "<label>Pin</label>" : ""}
-            <input type="text" class="manual-Pin" placeholder="e.g. 231305" />
-          </div>
-          <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
-        </div>
-        `;
-      }
-
-      // Initialize the first row
-      document.getElementById("manual-entries-container").innerHTML =
-        getManualEntryRowHTML(true);
-
-      function addInputRow() {
-        const container = document.getElementById("manual-entries-container");
-        container.insertAdjacentHTML("beforeend", getManualEntryRowHTML(false));
-      }
-
-      async function submitMultipleRecords() {
-        const rows = document.querySelectorAll(".manual-entry-row");
-        const updates = [];
-        const inserts = [];
-
-        const {
-          data: { session },
-        } = await supabaseClient.auth.getSession();
-
-        // 1. Sort rows into "Updates" or "Inserts" based on the hidden edit ID
-        rows.forEach((row) => {
-          const address = row.querySelector(".manual-address").value.trim();
-          const office = row.querySelector(".manual-office").value.trim();
-          const Pin = row.querySelector(".manual-Pin").value.trim();
-          const editId = row.getAttribute("data-edit-id");
-
-          if (address && office) {
-            const record = {
-              Address: address,
-              Office: office,
-              Pin: Pin || null,
-              user_id: session.user.id,
-            };
-
-            if (editId) {
-              record.id = editId;
-              updates.push(record);
-            } else {
-              inserts.push(record);
-            }
-          }
-        });
-
-        if (updates.length === 0 && inserts.length === 0) {
-          return showToast("Please fill in at least one complete row.");
-        }
-
-        const btn = document.getElementById("submit-multiple-btn");
-        btn.textContent = "Saving...";
-        btn.disabled = true;
-
-        let hasError = false;
-
-        // 2. Process all Updates
-        for (const update of updates) {
-          const { error } = await supabaseClient
-            .from("post_offices")
-            .update({
-              Address: update.Address,
-              Office: update.Office,
-              Pin: update.Pin,
-            })
-            .eq("id", update.id);
-
-          if (error) {
-            alert("Error updating record: " + error.message);
-            hasError = true;
-          }
-        }
-
-        // 3. Process all Inserts
-        if (inserts.length > 0) {
-          const { error } = await supabaseClient
-            .from("post_offices")
-            .insert(inserts);
-
-          if (error) {
-            alert("Error adding records: " + error.message);
-            hasError = true;
-          }
-        }
-
-        // 4. Finalize the UI
-        if (!hasError) {
-          const totalSaved = updates.length + inserts.length;
-          showToast(`✅ ${totalSaved} record(s) saved successfully!`);
-
-          // Reset the form back to the default empty state
-          document.getElementById("manual-entries-container").innerHTML =
-            getManualEntryRowHTML(true);
-
-          // Refresh the data so it shows up instantly
-          await fetchAllPostOffices();
-
-          // FLUID UX: If they were editing, jump them back to the Search tab to see the result
-          if (updates.length > 0) {
-            switchDashboardView("search");
-          }
-        }
-
-        btn.textContent = "Submit All"; // Reset button text
-        btn.disabled = false;
-      }
-
-      function updateRecord(id, currentAddress, currentOffice, currentPin) {
-        // 1. Switch to the Upload View
-        switchDashboardView("upload");
-
-        // 2. Clear existing manual entries and add the one we are editing
-        const container = document.getElementById("manual-entries-container");
-
-        // Prevent literal "null" text from showing in the Pin box
-        const safePin =
-          currentPin === "null" || currentPin === "undefined" || !currentPin
-            ? ""
-            : currentPin;
-
-        container.innerHTML = `
-        <div class="manual-entry-row" data-edit-id="${id}">
-          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-            <label style="color: var(--primary);">Address (Editing)</label>
-            <input type="text" class="manual-address" value="${currentAddress}" />
-          </div>
-          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-            <label style="color: var(--primary);">Office</label>
-            <input type="text" class="manual-office" value="${currentOffice}" />
-          </div>
-          <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-            <label style="color: var(--primary);">Pin</label>
-            <input type="text" class="manual-Pin" value="${safePin}" />
-          </div>
-          <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
-        </div>
-        `;
-
-        // 3. Update the submit button text to reflect an edit action
-        document.getElementById("submit-multiple-btn").textContent =
-          "Save Changes";
-
-        // 4. Scroll to top to ensure the form is clearly visible
-        window.scrollTo({ top: 0, behavior: "smooth" });
-
-        showToast("✏️ Ready to edit. Make your changes and click Save.");
-      }
-
-      function deleteRecord(id) {
-        showCustomConfirm(
-          "Delete Record?",
-          "Are you sure you want to permanently delete this address? This action cannot be undone.",
-          "Delete",
-          async () => {
-            // This code only runs if they click the red "Delete" button inside the modal
-            const { error } = await supabaseClient
-              .from("post_offices")
-              .delete()
-              .eq("id", id);
-
-            if (error) {
-              alert("Error deleting record: " + error.message);
-            } else {
-              showToast("🗑️ Record deleted.");
-              fetchAllPostOffices();
-            }
-          }
-        );
-      }
-      // --- CUSTOM CONFIRM MODAL LOGIC ---
-      function showCustomConfirm(
-        title,
-        message,
-        confirmText,
-        onConfirmCallback
-      ) {
-        document.getElementById("confirm-modal-title").textContent = title;
-        document.getElementById("confirm-modal-message").textContent = message;
-
-        const submitBtn = document.getElementById("confirm-modal-submit");
-        submitBtn.textContent = confirmText;
-
-        // Remove old listeners to avoid multiple triggers firing
-        const newSubmitBtn = submitBtn.cloneNode(true);
-        submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
-
-        newSubmitBtn.addEventListener("click", () => {
-          closeConfirmModal();
-          onConfirmCallback(); // Execute the actual delete function
-        });
-
-        document.getElementById("confirm-modal-overlay").classList.add("show");
-      }
-
-      function closeConfirmModal() {
-        document
-          .getElementById("confirm-modal-overlay")
-          .classList.remove("show");
-      }
-
-      // --- DOWNLOAD SAMPLE EXCEL TEMPLATE ---
-      function downloadSampleExcel() {
-        const wb = XLSX.utils.book_new();
-        const sampleData = [
-          { Address: "Gothani BO", Office: "Chopan SO", Pin: "231205" },
-          { Address: "Biraura BO", Office: "Bijaipur SO", Pin: "231305" },
-          { Address: "Sandwa BO", Office: "Kachhwa SO", Pin: "231501" },
-        ];
-        const ws = XLSX.utils.json_to_sheet(sampleData);
-        ws["!cols"] = [{ wch: 20 }, { wch: 20 }, { wch: 15 }];
-        XLSX.utils.book_append_sheet(wb, ws, "DakMitra Template");
-        XLSX.writeFile(wb, "DakMitra_Sample_Template.xlsx");
-        showToast("📥 Sample Excel downloaded!");
-      }
-      function toggleAdvancedFilters() {
-        document
-          .getElementById("advanced-filters-panel")
-          .classList.toggle("hidden");
-      }
-      function toggleClearBtn(inputId, btnId) {
-        const input = document.getElementById(inputId);
-        const clearBtn = document.getElementById(btnId);
-
-        if (input.value.length > 0) {
-          clearBtn.classList.remove("hidden");
-        } else {
-          clearBtn.classList.add("hidden");
-        }
-      }
-
-      function clearFilterInput(inputId, btnId) {
-        const input = document.getElementById(inputId);
-        const clearBtn = document.getElementById(btnId);
-
-        input.value = "";
-        clearBtn.classList.add("hidden");
-
-        triggerSearch();
-        input.focus();
-      }
-      // --- SWIPE NAVIGATION LOGIC ---
-      let touchStartX = 0;
-      let touchEndX = 0;
-      let touchStartY = 0;
-      let touchEndY = 0;
-
-      const swipeArea = document.getElementById("dashboard-view");
-      const viewOrder = ["favorites", "search", "upload"]; // Matches bottom nav order perfectly
-
-      swipeArea.addEventListener(
-        "touchstart",
-        (e) => {
-          touchStartX = e.changedTouches[0].screenX;
-          touchStartY = e.changedTouches[0].screenY;
-        },
-        { passive: true }
-      );
-
-      swipeArea.addEventListener(
-        "touchend",
-        (e) => {
-          touchEndX = e.changedTouches[0].screenX;
-          touchEndY = e.changedTouches[0].screenY;
-          handleSwipeGesture();
-        },
-        { passive: true }
-      );
-
-      function handleSwipeGesture() {
-        const deltaX = touchEndX - touchStartX;
-        const deltaY = touchEndY - touchStartY;
-
-        // 1. Ensure the swipe is mostly horizontal (not a vertical scroll)
-        // 2. Ensure it travels at least 50px to prevent accidental taps triggering it
-        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-          // Find which view is currently active
-          const currentActiveId = viewOrder.find((view) =>
-            document.getElementById("view-" + view).classList.contains("active")
+          swipeArea.addEventListener(
+            "touchstart",
+            (e) => {
+              touchStartX = e.changedTouches[0].screenX;
+              touchStartY = e.changedTouches[0].screenY;
+            },
+            { passive: true }
           );
 
-          let currentIndex = viewOrder.indexOf(currentActiveId);
-          if (currentIndex === -1) return;
+          swipeArea.addEventListener(
+            "touchend",
+            (e) => {
+              touchEndX = e.changedTouches[0].screenX;
+              touchEndY = e.changedTouches[0].screenY;
+              handleSwipeGesture();
+            },
+            { passive: true }
+          );
 
-          if (deltaX < 0) {
-            // Swipe Left -> Move to the Next Tab (Right)
-            if (currentIndex < viewOrder.length - 1) {
-              switchDashboardView(viewOrder[currentIndex + 1]);
-            }
-          } else {
-            // Swipe Right -> Move to the Previous Tab (Left)
-            if (currentIndex > 0) {
-              switchDashboardView(viewOrder[currentIndex - 1]);
+          function handleSwipeGesture() {
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+
+            // 1. Ensure the swipe is mostly horizontal (not a vertical scroll)
+            // 2. Ensure it travels at least 50px to prevent accidental taps triggering it
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+              // Find which view is currently active
+              const currentActiveId = viewOrder.find((view) =>
+                document.getElementById("view-" + view).classList.contains("active")
+              );
+
+              let currentIndex = viewOrder.indexOf(currentActiveId);
+              if (currentIndex === -1) return;
+
+              if (deltaX < 0) {
+                // Swipe Left -> Move to the Next Tab (Right)
+                if (currentIndex < viewOrder.length - 1) {
+                  switchDashboardView(viewOrder[currentIndex + 1]);
+                }
+              } else {
+                // Swipe Right -> Move to the Previous Tab (Left)
+                if (currentIndex > 0) {
+                  switchDashboardView(viewOrder[currentIndex - 1]);
+                }
+              }
             }
           }
-        }
-      }
-      // BOOTSTRAP APP
-      checkEmailVerificationRedirect();
-      checkUserSession();
+          // BOOTSTRAP APP
+          checkEmailVerificationRedirect();
+          checkUserSession();
     </script>
   </body>
 </html>
