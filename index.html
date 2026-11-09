@@ -2215,26 +2215,26 @@
             "color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); display: flex; align-items: center; gap: 4px;";
 
           html += `
-          <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
-              <div style="flex: 1 1 200px;">
-                <div class="office-title">${row.address}</div>
-                <div class="sub-office">
-                  <span class="badge badge-primary">🏢 ${row.office}</span>
-                  <span class="badge">📍 Pin: ${row.pin || "N/A"}</span>
-                </div>
-              </div>
-              <div style="display: flex; justify-content: flex-end;">
-                <button onclick="toggleFavorite('${
-                  row.id
-                }', '${escapeForOnclick(row.address)}', '${escapeForOnclick(
+              <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+                  <div style="flex: 1 1 200px;">
+                    <div class="office-title">${row.address}</div>
+                    <div class="sub-office">
+                      <span class="badge badge-primary">🏢 ${row.office}</span>
+                      <span class="badge">📍 Pin: ${row.pin || "N/A"}</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; justify-content: flex-end;">
+                    <button onclick="toggleFavorite('${
+                      row.id
+                    }', '${escapeForOnclick(row.address)}', '${escapeForOnclick(
             row.office
           )}', '${escapeForOnclick(
             row.pin
           )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">
-                  ${starIcon}
-                </button>
-              </div>
-          </li>`;
+                      ${starIcon}
+                    </button>
+                  </div>
+              </li>`;
         });
         html += `</ul>`;
         displayArea.innerHTML = html;
@@ -2643,33 +2643,33 @@
               : "color: var(--text-light); background-color: transparent; display: flex; align-items: center; gap: 4px;";
 
             html += `
-          <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
-              <div style="flex: 1 1 200px;">
-                <div class="office-title">${addressHtml}</div>
-                <div class="sub-office">
-                  <span class="badge badge-primary">🏢 ${officeHtml}</span>
-                  <span class="badge">📍 Pin: ${PinHtml || "N/A"}</span>
-                </div>
-              </div>
-              <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
-                <button onclick="toggleFavorite('${
-                  row.id
-                }', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">${starIcon}</button>
-                <button onclick="updateRecord('${
-                  row.id
-                }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
-                <button onclick="deleteRecord('${
-                  row.id
-                }')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
-              </div>
-          </li>`;
+              <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+                  <div style="flex: 1 1 200px;">
+                    <div class="office-title">${addressHtml}</div>
+                    <div class="sub-office">
+                      <span class="badge badge-primary">🏢 ${officeHtml}</span>
+                      <span class="badge">📍 Pin: ${PinHtml || "N/A"}</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+                    <button onclick="toggleFavorite('${
+                      row.id
+                    }', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}">${starIcon}</button>
+                    <button onclick="updateRecord('${
+                      row.id
+                    }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
+                    <button onclick="deleteRecord('${
+                      row.id
+                    }')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
+                  </div>
+              </li>`;
           });
           html += `</ul>`;
           displayArea.innerHTML = html;
         } else {
           let html = `<table class="data-table">
-              <thead><tr><th>Address</th><th>Office</th><th>Pin</th><th style="text-align: right;">Actions</th></tr></thead>
-              <tbody>`;
+                  <thead><tr><th>Address</th><th>Office</th><th>Pin</th><th style="text-align: right;">Actions</th></tr></thead>
+                  <tbody>`;
           currentFilteredData.forEach((result) => {
             const row = result.item;
 
@@ -2699,22 +2699,22 @@
               : "color: var(--text-light); background-color: transparent; display: inline-flex; align-items: center; justify-content: center;";
 
             html += `<tr>
-            <td>${addressHtml}</td>
-            <td>${officeHtml}</td>
-            <td>${PinHtml || "-"}</td>
-            <td style="text-align: right; display: flex; gap: 4px; justify-content: flex-end; align-items: center; min-height: 48px;">
-              <button onclick="toggleFavorite('${
-                row.id
-              }', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}" title="Toggle Favorite">${starIcon}</button>
+                <td>${addressHtml}</td>
+                <td>${officeHtml}</td>
+                <td>${PinHtml || "-"}</td>
+                <td style="text-align: right; display: flex; gap: 4px; justify-content: flex-end; align-items: center; min-height: 48px;">
+                  <button onclick="toggleFavorite('${
+                    row.id
+                  }', '${safeAddress}', '${safeOffice}', '${safePin}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${starStyle}" title="Toggle Favorite">${starIcon}</button>
 
-              <button onclick="updateRecord('${
-                row.id
-              }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 4px 8px;">✎</button>
-              <button onclick="deleteRecord('${
-                row.id
-              }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑</button>
-            </td>
-           </tr>`;
+                  <button onclick="updateRecord('${
+                    row.id
+                  }', '${safeAddress}', '${safeOffice}', '${safePin}')" class="toolbar-btn" style="padding: 4px 8px;">✎</button>
+                  <button onclick="deleteRecord('${
+                    row.id
+                  }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑</button>
+                </td>
+               </tr>`;
           });
           html += `</tbody></table>`;
           displayArea.innerHTML = html;
@@ -2991,23 +2991,54 @@
             splashScreen.classList.add("hidden-splash");
             showAlert(authError.message);
           } else {
-            // 1. Generate a unique session token for this specific login instance
-            const newSessionId =
-              "sess_" + Math.random().toString(36.2) + Date.now().toString(36);
-
-            // 2. Save it to the user's profile row in Supabase
-            const { error: updateError } = await supabaseClient
-              .from("profiles")
-              .update({ current_session_id: newSessionId })
-              .eq("id", authData.user.id);
-
-            if (updateError) {
-              splashScreen.classList.add("hidden-splash");
-              return showAlert("Error establishing session lock.");
+            // 1. Get or create a persistent device ID for this browser/device
+            let localDeviceId = localStorage.getItem("dakmitra_device_id");
+            if (!localDeviceId) {
+              localDeviceId =
+                "dev_" + Math.random().toString(36).substring(2) + Date.now();
+              localStorage.setItem("dakmitra_device_id", localDeviceId);
             }
 
-            // 3. Store this session ID locally on this device/browser
-            localStorage.setItem("dakmitra_session_id", newSessionId);
+            // 2. Fetch the user's profile to check if a device is already registered
+            const { data: profileData, error: profileError } =
+              await supabaseClient
+                .from("profiles")
+                .select("device_id")
+                .eq("id", authData.user.id)
+                .single();
+
+            if (profileError) {
+              await supabaseClient.auth.signOut();
+              splashScreen.classList.add("hidden-splash");
+              return showAlert("Error checking device registration.");
+            }
+
+            // 3. Enforce single-device lock
+            if (
+              profileData.device_id &&
+              profileData.device_id !== localDeviceId
+            ) {
+              // Another device is already registered! Deny login and sign out immediately.
+              await supabaseClient.auth.signOut();
+              splashScreen.classList.add("hidden-splash");
+              return showAlert(
+                "Login Denied: This account is already registered and active on another device. Multi-device login is not permitted."
+              );
+            }
+
+            // 4. If no device is registered yet, register this current device
+            if (!profileData.device_id) {
+              const { error: updateError } = await supabaseClient
+                .from("profiles")
+                .update({ device_id: localDeviceId })
+                .eq("id", authData.user.id);
+
+              if (updateError) {
+                await supabaseClient.auth.signOut();
+                splashScreen.classList.add("hidden-splash");
+                return showAlert("Error registering device.");
+              }
+            }
 
             checkUserSession();
           }
@@ -3065,13 +3096,31 @@
           const userEmail = session.user.email;
           document.getElementById("user-email-display").textContent = userEmail;
 
-          // FETCH PROFILE DETAILS FROM SUPABASE
+          // FIXED: Added "current_session_id" to the select query below
           const { data: profileData, error: profileError } =
             await supabaseClient
               .from("profiles")
-              .select("name, designation, employee_id")
+              .select("name, designation, employee_id, current_session_id")
               .eq("id", session.user.id)
               .single();
+
+          const localSessionId = localStorage.getItem("dakmitra_session_id");
+
+          // If another login happened on another device/browser, the session ID will mismatch
+          if (
+            profileData &&
+            profileData.current_session_id &&
+            localSessionId !== profileData.current_session_id
+          ) {
+            await supabaseClient.auth.signOut();
+            localStorage.removeItem("dakmitra_session_id");
+            splashScreen.classList.add("hidden-splash");
+            authView.classList.remove("hidden");
+            dashboardView.classList.add("hidden");
+            return showAlert(
+              "Your account was logged in from another device or browser. This session has been terminated."
+            );
+          }
 
           if (profileData && !profileError) {
             document.getElementById("user-name-display").textContent =
@@ -3105,7 +3154,6 @@
         }, 400);
         loadSearchHistory();
       }
-
       // --- EVENT LISTENERS ---
       document
         .getElementById("search-input")
@@ -3186,22 +3234,22 @@
 
       function getManualEntryRowHTML(showLabels = false) {
         return `
-            <div class="manual-entry-row">
-              <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-                ${showLabels ? "<label>Address</label>" : ""}
-                <input type="text" class="manual-address" placeholder="Address" />
-              </div>
-              <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-                ${showLabels ? "<label>Office</label>" : ""}
-                <input type="text" class="manual-office" placeholder="Office name" />
-              </div>
-              <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-                ${showLabels ? "<label>Pin</label>" : ""}
-                <input type="text" class="manual-Pin" placeholder="e.g. 231305" />
-              </div>
-              <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
-            </div>
-            `;
+                <div class="manual-entry-row">
+                  <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+                    ${showLabels ? "<label>Address</label>" : ""}
+                    <input type="text" class="manual-address" placeholder="Address" />
+                  </div>
+                  <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+                    ${showLabels ? "<label>Office</label>" : ""}
+                    <input type="text" class="manual-office" placeholder="Office name" />
+                  </div>
+                  <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+                    ${showLabels ? "<label>Pin</label>" : ""}
+                    <input type="text" class="manual-Pin" placeholder="e.g. 231305" />
+                  </div>
+                  <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
+                </div>
+                `;
       }
 
       // Initialize the first row
@@ -3321,22 +3369,22 @@
             : currentPin;
 
         container.innerHTML = `
-            <div class="manual-entry-row" data-edit-id="${id}">
-              <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-                <label style="color: var(--primary);">Address (Editing)</label>
-                <input type="text" class="manual-address" value="${currentAddress}" />
-              </div>
-              <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-                <label style="color: var(--primary);">Office</label>
-                <input type="text" class="manual-office" value="${currentOffice}" />
-              </div>
-              <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-                <label style="color: var(--primary);">Pin</label>
-                <input type="text" class="manual-Pin" value="${safePin}" />
-              </div>
-              <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
-            </div>
-            `;
+                <div class="manual-entry-row" data-edit-id="${id}">
+                  <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+                    <label style="color: var(--primary);">Address (Editing)</label>
+                    <input type="text" class="manual-address" value="${currentAddress}" />
+                  </div>
+                  <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+                    <label style="color: var(--primary);">Office</label>
+                    <input type="text" class="manual-office" value="${currentOffice}" />
+                  </div>
+                  <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+                    <label style="color: var(--primary);">Pin</label>
+                    <input type="text" class="manual-Pin" value="${safePin}" />
+                  </div>
+                  <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
+                </div>
+                `;
 
         // 3. Update the submit button text to reflect an edit action
         document.getElementById("submit-multiple-btn").textContent =
