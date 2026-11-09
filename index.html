@@ -2554,26 +2554,69 @@
       if (window.speechSynthesis.onvoiceschanged !== undefined) {
         window.speechSynthesis.onvoiceschanged = loadIndianVoice;
       }
+      function convertToHindiWords(numStr) {
+        const num = parseInt(numStr, 10);
+        if (isNaN(num)) return numStr;
 
+        const ones = [
+          "",
+          "ek",
+          "do",
+          "teen",
+          "chaar",
+          "paanch",
+          "chhe",
+          "saat",
+          "aath",
+          "nau",
+          "das",
+          "gyarah",
+          "baarah",
+          "terah",
+          "chaudah",
+          "pandraH",
+          "solah",
+          "satraH",
+          "atharah",
+          "unnis",
+        ];
+        const tens = [
+          "",
+          "",
+          "bees",
+          "tees",
+          "chaalis",
+          "pachaas",
+          "saath",
+          "sattar",
+          "assi",
+          "nabbe",
+        ];
+
+        if (num < 20) return ones[num];
+        if (num < 100) {
+          return (
+            tens[Math.floor(num / 10)] +
+            (num % 10 !== 0 ? " " + ones[num % 10] : "")
+          );
+        }
+        if (num < 1000) {
+          const s = Math.floor(num / 100);
+          const rem = num % 100;
+          return (
+            ones[s] + " sau" + (rem !== 0 ? " " + convertToHindiWords(rem) : "")
+          );
+        }
+        return numStr;
+      }
       let activeFilterVal = null; // Track current filter to avoid unnecessary Fuse rebuilds
 
       function triggerSearch() {
-        const searchInput = document
-          .getElementById("search-input")
-          .value.trim();
-        const filterVal = document.querySelector(
-          'input[name="searchFilter"]:checked'
-        ).value;
-        const filterOffice = document
-          .getElementById("filter-office")
-          .value.trim()
-          .toLowerCase();
-        const filterPin = document
-          .getElementById("filter-pin")
-          .value.trim()
-          .toLowerCase();
+        const searchInput = document.getElementById("search-input").value.trim();
+        const filterVal = document.querySelector('input[name="searchFilter"]:checked').value;
+        const filterOffice = document.getElementById("filter-office").value.trim().toLowerCase();
+        const filterPin = document.getElementById("filter-pin").value.trim().toLowerCase();
 
-        // If search box and filters are empty, show the default top 10 items instantly
         if (!searchInput && !filterOffice && !filterPin) {
           currentFilteredData = cachedPostOffices
             .slice(0, 10)
@@ -2588,50 +2631,39 @@
         if (!searchInput) {
           baseData = cachedPostOffices.map((item) => ({ item, matches: [] }));
         } else {
-          // Rebuild Fuse ONLY if the filter changed or it hasn't been instantiated yet
-          if (!fuse || activeFilterVal !== filterVal) {
-            let keysToSearch = ["Address", "Office", "Pin"];
-            if (filterVal === "address") keysToSearch = ["Address"];
-            if (filterVal === "office") keysToSearch = ["Office"];
-            if (filterVal === "pin") keysToSearch = ["Pin"];
+          let keysToSearch = ["Address", "Office", "Pin"];
+          if (filterVal === "address") keysToSearch = ["Address"];
+          if (filterVal === "office") keysToSearch = ["Office"];
+          if (filterVal === "pin") keysToSearch = ["Pin"];
 
-            fuse = new Fuse(cachedPostOffices, {
-              keys: keysToSearch,
-              threshold: 0.3,
-              ignoreLocation: false,
-              location: 0,
-              distance: 100,
-              includeMatches: true,
-              getFn: (obj, path) => {
-                const value = obj[path];
-                return value === null || value === undefined
-                  ? ""
-                  : String(value);
-              },
-            });
-            activeFilterVal = filterVal;
-          }
+          // STRICT MODE FOR NUMBERS, FUZZY MODE FOR TEXT
+          let isNumericSearch = /^\d+$/.test(searchInput);
+          let activeThreshold = isNumericSearch ? 0.0 : 0.3;
+          let activeIgnoreLocation = isNumericSearch ? true : false;
+
+          fuse = new Fuse(cachedPostOffices, {
+            keys: keysToSearch,
+            threshold: activeThreshold,
+            ignoreLocation: activeIgnoreLocation,
+            location: 0,
+            distance: 100,
+            includeMatches: true,
+            getFn: (obj, path) => {
+              const value = obj[path];
+              return value === null || value === undefined ? "" : String(value);
+            },
+          });
+          
           baseData = fuse.search(searchInput);
         }
 
+        // Apply secondary MUST-HAVE filters
         if (filterOffice || filterPin) {
           baseData = baseData.filter((result) => {
             const row = result.item;
             let keep = true;
-            if (
-              filterOffice &&
-              !String(row.Office || "")
-                .toLowerCase()
-                .includes(filterOffice)
-            )
-              keep = false;
-            if (
-              filterPin &&
-              !String(row.Pin || "")
-                .toLowerCase()
-                .includes(filterPin)
-            )
-              keep = false;
+            if (filterOffice && !String(row.Office || "").toLowerCase().includes(filterOffice)) keep = false;
+            if (filterPin && !String(row.Pin || "").toLowerCase().includes(filterPin)) keep = false;
             return keep;
           });
         }
@@ -2639,16 +2671,24 @@
         currentFilteredData = baseData;
         renderResults();
 
+        // --- VOICE OUTPUT LOGIC ---
         if (window.isVoiceSearch) {
           window.isVoiceSearch = false;
           window.speechSynthesis.cancel();
           let speechText = "No matching post offices found.";
           if (currentFilteredData.length > 0) {
             const topMatch = currentFilteredData[0].item;
-            speechText = `${topMatch.Address}. Office ${topMatch.Office}.`;
+            let lastThreePin = topMatch.Pin ? String(topMatch.Pin).slice(-3) : "";
+            let hindiPinWords = lastThreePin ? convertToHindiWords(lastThreePin) : "";
+            let pinText = hindiPinWords ? `Pin code ${hindiPinWords}` : "Pin not available";
+            speechText = `${topMatch.Address}. Office ${topMatch.Office}. ${pinText}.`;
           }
           const utterance = new SpeechSynthesisUtterance(speechText);
-          if (preferredIndianVoice) utterance.voice = preferredIndianVoice;
+          if (preferredIndianVoice) {
+            utterance.voice = preferredIndianVoice;
+          } else {
+            utterance.lang = "en-IN";
+          }
           utterance.rate = 0.9;
           window.speechSynthesis.speak(utterance);
         }
@@ -2663,25 +2703,56 @@
 
       function highlightText(text, matches, key) {
         if (text === null || text === undefined) return "";
-        let safeText = escapeHTML(text); // Secure against XSS
+        
+        // Force text to string to prevent crashes on numbers
+        text = String(text); 
+        let safeText = escapeHTML(text);
+
+        // 1. MUST-HAVE MATCH: Only highlight if Fuse explicitly matched THIS column.
+        // This fixes the bug where the filter seemed broken due to rogue highlighting.
         if (!matches || matches.length === 0) return safeText;
-
         const match = matches.find((m) => m.key === key);
-        if (!match || !match.indices || match.indices.length === 0)
-          return safeText;
+        if (!match) return safeText; 
 
-        const [start, end] = match.indices[0];
+        const searchInput = document.getElementById("search-input").value.trim();
 
-        // Note: Fuse returns indices based on the original unescaped text.
-        // For perfect security and alignment, we apply the highlight to the original,
-        // then escape the chunks separately.
-        const before = escapeHTML(String(text).substring(0, start));
-        const highlighted = escapeHTML(String(text).substring(start, end + 1));
-        const after = escapeHTML(String(text).substring(end + 1));
+        // 2. EXACT SUBSTRING BYPASS (Case-Insensitive)
+        // Fixes the "1210" number highlighting issue and cleans up exact word matches.
+        if (searchInput.length > 0) {
+          const lowerText = text.toLowerCase();
+          const lowerSearch = searchInput.toLowerCase();
+          const exactIndex = lowerText.indexOf(lowerSearch);
+          
+          if (exactIndex !== -1) {
+            const before = escapeHTML(text.substring(0, exactIndex));
+            const highlighted = escapeHTML(text.substring(exactIndex, exactIndex + searchInput.length));
+            const after = escapeHTML(text.substring(exactIndex + searchInput.length));
+            return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
+          }
+        }
+
+        // 3. FUZZY FALLBACK
+        // If the user made a typo (e.g. "ghrwl"), rely on Fuse's fuzzy index blocks.
+        if (!match.indices || match.indices.length === 0) return safeText;
+
+        let bestIndex = match.indices[0];
+        let maxLen = bestIndex[1] - bestIndex[0];
+        for (let i = 1; i < match.indices.length; i++) {
+          const currentLen = match.indices[i][1] - match.indices[i][0];
+          if (currentLen > maxLen) {
+            maxLen = currentLen;
+            bestIndex = match.indices[i];
+          }
+        }
+
+        const [start, end] = bestIndex;
+
+        const before = escapeHTML(text.substring(0, start));
+        const highlighted = escapeHTML(text.substring(start, end + 1));
+        const after = escapeHTML(text.substring(end + 1));
 
         return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
       }
-
       function escapeForOnclick(str) {
         if (!str) return "";
         return String(str)
