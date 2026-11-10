@@ -2585,6 +2585,12 @@
       }
 
       async function fetchFromServerBackground() {
+        // Instantly cancel the network request if the device is offline
+        if (!navigator.onLine) {
+          console.log("Offline mode: Skipping background sync to prevent timeouts.");
+          return; 
+        }
+
         try {
           const { data, error } = await supabaseClient
             .from("post_offices")
@@ -2594,13 +2600,11 @@
           
           if (data && data.length > 0) {
             cachedPostOffices = data;
-            // Save to local storage for offline use
             localStorage.setItem("dakmitra_offline_db", JSON.stringify(cachedPostOffices));
             initializeSearchAndRender();
           }
         } catch (error) {
           console.error("Background sync failed:", error);
-          // If we fail and have NO cache, show an error
           if (!cachedPostOffices || cachedPostOffices.length === 0) {
             document.getElementById("results-display-area").innerHTML = 
               `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
@@ -3722,12 +3726,17 @@
         const syncBtn = document.getElementById("sync-db-btn");
         if (!syncBtn) return;
 
+        // Prevent hanging if the user tries to manually sync while offline
+        if (!navigator.onLine) {
+          return showToast("⚠️ No internet connection. Cannot sync.");
+        }
+
         // Visual feedback for syncing state
         const originalText = syncBtn.textContent;
         syncBtn.textContent = "Syncing...";
         syncBtn.disabled = true;
 
-        // Fetch fresh data from Supabase
+        // Fetch fresh data from Supabase directly
         await fetchAllPostOffices(true);
 
         // Show success state
