@@ -1576,6 +1576,13 @@
         <nav class="sidebar-nav">
           <button
             class="sidebar-menu-item"
+            id="nav-approvals"
+            onclick="switchDashboardView('approvals')"
+          >
+            📝 Pending Approvals
+          </button>
+          <button
+            class="sidebar-menu-item"
             id="nav-favorites"
             onclick="switchDashboardView('favorites')"
           >
@@ -1638,6 +1645,24 @@
           >
             <ul class="list-container">
               <li class="list-empty">No favorites saved yet.</li>
+            </ul>
+          </div>
+        </section>
+        <!-- APPROVALS VIEW -->
+        <section id="view-approvals" class="view-section">
+          <div class="search-hero">
+            <h2>Pending Approvals</h2>
+            <p style="color: var(--text-light); font-size: 14px">
+              Review proposed database changes. Requires 5 standard votes or 1
+              Admin vote.
+            </p>
+          </div>
+          <div
+            class="results-container-scroll expanded"
+            id="approvals-display-area"
+          >
+            <ul class="list-container">
+              <li class="list-empty">Loading requests...</li>
             </ul>
           </div>
         </section>
@@ -2143,7 +2168,7 @@
               </button>
             </div>
           </div>
-          <div class="upload-card">
+          <div class="upload-card" id="admin-excel-upload">
             <h2 style="font-size: 22px; font-weight: 700">Excel Upload</h2>
             <p>
               Update the master database. Select an Excel file (.xlsx, .xls).<br />Ensure
@@ -2353,6 +2378,8 @@
 
         if (viewId === "favorites") {
           renderFavorites();
+        } else if (viewId === "approvals") {
+          loadApprovals();
         }
 
         closeSidebar();
@@ -2597,16 +2624,17 @@
 
               // Now trigger a background sync to keep data fresh without blocking the UI
               fetchFromServerBackground();
-              return;
+              return true;
             } catch (e) {
               console.error("Cache corrupted, fetching fresh.");
             }
           }
         }
 
-        // 2. If no cache or forced sync, fetch from Supabase
-        await fetchFromServerBackground();
+        // 2. If no cache or forced sync, fetch from Supabase and return its boolean success state
+        return await fetchFromServerBackground();
       }
+
 
       async function fetchFromServerBackground() {
         // Fast 1.5s true internet check
@@ -2626,7 +2654,8 @@
           // Since we know the internet is real, just run the normal query
           const { data, error } = await supabaseClient
             .from("post_offices")
-            .select("*");
+            .select("*")
+            .eq("is_deleted", false);
 
           if (error) throw error;
 
@@ -3404,6 +3433,10 @@
           const userEmail = session.user.email;
           document.getElementById("user-email-display").textContent = userEmail;
 
+          // DYNAMIC CHECK: Ask Supabase if this user is an admin
+          isCurrentUserAdmin = await checkIfAdmin(session.user.id);
+          applyAdminUI(); // Hide or show admin tools based on database result
+
           // Pull profile from local cache instantly to eliminate bulky network wait times
           let profileData = JSON.parse(
             localStorage.getItem("dakmitra_cached_profile")
@@ -3546,8 +3579,7 @@
 
       async function submitMultipleRecords() {
         const rows = document.querySelectorAll(".manual-entry-row");
-        const updates = [];
-        const inserts = [];
+        const requests = [];
         const {
           data: { session },
         } = await supabaseClient.auth.getSession();
@@ -3559,61 +3591,52 @@
           const editId = row.getAttribute("data-edit-id");
 
           if (address && office) {
-            const record = {
-              Address: address,
-              Office: office,
-              Pin: Pin || null,
-              user_id: session.user.id,
-            };
             if (editId) {
-              record.id = editId;
-              updates.push(record);
+              requests.push({
+                post_office_id: editId,
+                action_type: "EDIT",
+                proposed_data: {
+                  Address: address,
+                  Office: office,
+                  Pin: Pin || null,
+                },
+                requested_by: session.user.id,
+              });
             } else {
-              inserts.push(record);
+              requests.push({
+                action_type: "ADD",
+                proposed_data: {
+                  Address: address,
+                  Office: office,
+                  Pin: Pin || null,
+                },
+                requested_by: session.user.id,
+              });
             }
           }
         });
 
-        if (updates.length === 0 && inserts.length === 0)
+        if (requests.length === 0)
           return showToast("Please fill in at least one complete row.");
 
         const btn = document.getElementById("submit-multiple-btn");
-        btn.textContent = "Saving...";
+        btn.textContent = "Submitting...";
         btn.disabled = true;
 
-        let hasError = false;
-        for (const update of updates) {
-          const { error } = await supabaseClient
-            .from("post_offices")
-            .update({
-              Address: update.Address,
-              Office: update.Office,
-              Pin: update.Pin,
-            })
-            .eq("id", update.id);
-          if (error) {
-            alert("Error updating record: " + error.message);
-            hasError = true;
-          }
-        }
+        const { error } = await supabaseClient
+          .from("edit_requests")
+          .insert(requests);
 
-        if (inserts.length > 0) {
-          const { error } = await supabaseClient
-            .from("post_offices")
-            .insert(inserts);
-          if (error) {
-            alert("Error adding records: " + error.message);
-            hasError = true;
-          }
-        }
-
-        if (!hasError) {
-          showToast(`✅ Records saved successfully!`);
+        if (error) {
+          alert("Error submitting request: " + error.message);
+        } else {
+          showToast(`✅ Change requests submitted for approval!`);
           document.getElementById("manual-entries-container").innerHTML =
             getManualEntryRowHTML(true);
-          await fetchAllPostOffices();
-          if (updates.length > 0) switchDashboardView("search");
+          if (requests.some((r) => r.action_type === "EDIT"))
+            switchDashboardView("search");
         }
+
         btn.textContent = "Submit All";
         btn.disabled = false;
       }
@@ -3653,19 +3676,23 @@
 
       function deleteRecord(id) {
         showCustomConfirm(
-          "Delete Record?",
-          "Are you sure you want to permanently delete this address?",
-          "Delete",
+          "Request Deletion?",
+          "This will submit a deletion request to the community for approval. Continue?",
+          "Request Delete",
           async () => {
+            const {
+              data: { session },
+            } = await supabaseClient.auth.getSession();
             const { error } = await supabaseClient
-              .from("post_offices")
-              .delete()
-              .eq("id", id);
-            if (error) alert("Error deleting record: " + error.message);
-            else {
-              showToast("🗑️ Record deleted.");
-              fetchAllPostOffices();
-            }
+              .from("edit_requests")
+              .insert({
+                post_office_id: id,
+                action_type: "DELETE",
+                proposed_data: {},
+                requested_by: session.user.id,
+              });
+            if (error) alert("Error: " + error.message);
+            else showToast("📝 Deletion request submitted for approval.");
           }
         );
       }
@@ -3726,7 +3753,84 @@
         document.getElementById(btnId).classList.add("hidden");
         triggerSearch();
       }
+      async function loadApprovals() {
+        const displayArea = document.getElementById("approvals-display-area");
+        displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">Loading requests...</li></ul>`;
+        
+        // Notice we are now fetching profiles(name) and counting the request_approvals array!
+        const { data, error } = await supabaseClient
+            .from("edit_requests")
+            .select("*, post_offices(Address, Office), profiles(name), request_approvals(id)")
+            .eq("status", "PENDING")
+            .order("created_at", { ascending: false });
+            
+        if (error) {
+            displayArea.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error loading requests: ${error.message}</li></ul>`;
+            return;
+        }
+        
+        if (!data || data.length === 0) {
+            displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No pending approvals! 🎉</li></ul>`;
+            return;
+        }
 
+        let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
+        data.forEach(req => {
+            let desc = "";
+            if (req.action_type === 'ADD') {
+                desc = `<span class="badge" style="background:#dcfce7;color:#166534;">➕ ADD</span> <b>${escapeHTML(req.proposed_data.Address)}</b> (${escapeHTML(req.proposed_data.Office)})`;
+            } else if (req.action_type === 'EDIT') {
+                const oldAddress = req.post_offices ? req.post_offices.Address : 'Unknown';
+                desc = `<span class="badge" style="background:#fef9c3;color:#854d0e;">✏️ EDIT</span> <b>${escapeHTML(oldAddress)}</b> ➡️ ${escapeHTML(req.proposed_data.Address)}`;
+            } else if (req.action_type === 'DELETE') {
+                const oldAddress = req.post_offices ? req.post_offices.Address : 'Unknown';
+                desc = `<span class="badge" style="background:#fee2e2;color:#991b1b;">🗑️ DELETE</span> <b>${escapeHTML(oldAddress)}</b>`;
+            }
+
+            // Extract tracking data
+            const voteCount = req.request_approvals ? req.request_approvals.length : 0;
+            const dateStr = new Date(req.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+            const requesterName = req.profiles ? req.profiles.name : 'Unknown User';
+
+            html += `
+            <li class="list-item" style="display: flex; flex-direction: column; gap: 10px;">
+                <div style="font-size: 15px;">${desc}</div>
+                
+                <!-- Tracking Info Box -->
+                <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
+                  👤 Requested by: <b>${escapeHTML(requesterName)}</b><br>
+                  📅 ${dateStr} <br>
+                  🗳️ Community Votes: <b style="color: var(--primary);">${voteCount} / 5</b>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end;">
+                   <button onclick="approveRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:var(--primary); font-size:14px;">👍 Approve</button>
+                </div>
+            </li>
+            `;
+        });
+        html += `</ul>`;
+        displayArea.innerHTML = html;
+      }
+      async function approveRequest(reqId) {
+        showToast("Processing vote...");
+        try {
+          const { data, error } = await supabaseClient.rpc("submit_approval", {
+            req_id: reqId,
+          });
+          if (error) throw error;
+
+          if (data === "APPROVED") {
+            showToast("✅ Request approved and executed!");
+            fetchAllPostOffices(true); // refresh local cache instantly
+          } else {
+            showToast("👍 Vote recorded! Waiting for more votes.");
+          }
+          loadApprovals(); // Refresh the list
+        } catch (err) {
+          alert(err.message);
+        }
+      }
       // Add 'settings' to your viewOrder array for swipe navigation
       const viewOrder = ["favorites", "settings", "search", "upload"];
 
@@ -3811,7 +3915,34 @@
         applyExportMode(mode);
         showToast("⚙️ Export button preference saved!");
       }
+      let isCurrentUserAdmin = false;
 
+      // Ask Supabase directly if this user's UUID exists in the database admins table
+      async function checkIfAdmin(userId) {
+        try {
+          const { data, error } = await supabaseClient
+            .from("admins")
+            .select("id")
+            .eq("id", userId)
+            .maybeSingle();
+            
+          return !!data; // Returns true if found in the database, false otherwise
+        } catch (err) {
+          return false;
+        }
+      }
+
+      async function applyAdminUI() {
+        const adminOnlyExcelCard = document.getElementById("admin-excel-upload");
+
+        if (!isCurrentUserAdmin) {
+          // Hide direct database override tools from standard users
+          if (adminOnlyExcelCard) adminOnlyExcelCard.style.display = "none";
+        } else {
+          // Show to Admins
+          if (adminOnlyExcelCard) adminOnlyExcelCard.style.display = "block";
+        }
+      }
       function applyExportMode(mode) {
         const exportGroup = document.getElementById("export-toolbar-group");
         if (exportGroup) {
