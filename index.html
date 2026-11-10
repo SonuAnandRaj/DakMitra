@@ -814,19 +814,7 @@
         margin-bottom: 0; /* Removes extra bottom space so it looks perfectly balanced */
       }
       /* --- SEARCH SECTION --- */
-      .search-hero {
-        background: var(--card-bg);
-        padding: 24px;
-        border-radius: 20px;
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--border);
-        margin-bottom: 24px;
-        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-          opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease,
-          border-width 0.3s ease;
-        overflow: hidden;
-        max-height: 800px;
-      }
+
       .search-hero.collapsed {
         max-height: 0;
         opacity: 0;
@@ -841,11 +829,6 @@
         margin-bottom: 16px;
         color: var(--text);
       }
-      .search-bar-modern {
-        display: flex;
-        gap: 10px;
-        flex-direction: column;
-      }
 
       @media (min-width: 600px) {
         .search-bar-modern {
@@ -853,16 +836,6 @@
         }
       }
 
-      .search-input-wrapper {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        background: var(--input-bg);
-        border: 2px solid var(--input-border);
-        border-radius: 16px;
-        padding: 4px 8px;
-        transition: 0.2s;
-      }
       .search-input-wrapper:focus-within {
         border-color: var(--primary);
         background: var(--card-bg);
@@ -882,52 +855,199 @@
         opacity: 0.8;
       }
 
+      .mic-btn:hover {
+        background: transparent;
+        transform: scale(1.15);
+      }
+
+      .clear-btn:hover {
+        color: var(--text);
+        transform: scale(1.15);
+      }
+      /* --- SEARCH SECTION ENHANCEMENTS --- */
+      .search-hero {
+        background: var(--card-bg);
+        padding: 28px 24px;
+        border-radius: 24px; /* Softer, modern corners */
+        box-shadow: 0 12px 32px -12px rgba(79, 70, 229, 0.15); /* Vibrant tinted shadow */
+        border: 1px solid rgba(79, 70, 229, 0.1);
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Decorative Gradient Top Bar */
+      .search-hero::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+      }
+
+      .search-hero.collapsed {
+        max-height: 0;
+        opacity: 0;
+        margin-bottom: 0;
+        padding: 0;
+        border-width: 0;
+        box-shadow: none;
+      }
+
+      .search-hero h2 {
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 20px;
+        color: var(--text);
+        letter-spacing: -0.5px;
+      }
+
+      .search-bar-modern {
+        display: flex;
+        gap: 12px;
+        flex-direction: column;
+      }
+
+      @media (min-width: 600px) {
+        .search-bar-modern {
+          flex-direction: row;
+        }
+      }
+
+      .search-input-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        background: var(--input-bg);
+        border: 2px solid transparent; /* Removes harsh lines for a pill look */
+        border-radius: 20px;
+        padding: 6px 12px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+      }
+
+      /* Smooth lifting animation & glowing focus ring */
+      .search-input-wrapper:focus-within {
+        border-color: var(--primary);
+        background: var(--card-bg);
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12),
+          0 8px 16px -4px rgba(79, 70, 229, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .search-input-wrapper input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        padding: 12px 8px;
+        font-size: 16px;
+        color: var(--text);
+        outline: none;
+        font-weight: 500;
+      }
+
+      .search-input-wrapper input::placeholder {
+        color: var(--text-light);
+        opacity: 0.7;
+        font-weight: 400;
+      }
+
+      /* Animated Gradient Search Button */
+      .search-action-btn {
+        width: 100%;
+        height: 56px;
+        border-radius: 20px;
+        font-size: 16px;
+        font-weight: 700;
+        flex-shrink: 0;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+        color: #ffffff;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 6px 16px -4px rgba(79, 70, 229, 0.4);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .search-action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px -4px rgba(79, 70, 229, 0.5);
+      }
+
+      .search-action-btn:active {
+        transform: scale(0.96);
+      }
+
+      @media (min-width: 600px) {
+        .search-action-btn {
+          width: 140px;
+          flex: none;
+        }
+      }
+
+      /* Mic & Clear Button Polish */
       .mic-btn {
         background: transparent;
-        color: var(--primary);
+        color: var(--primary); /* Defaults to primary color */
         border: none;
         width: 44px;
         height: 44px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 22px;
         cursor: pointer;
-        transition: transform 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         flex-shrink: 0;
-        margin-left: 12px;
+        margin-left: 8px;
       }
+
+      /* Morphs to red when hovered (indicating recording readiness) */
       .mic-btn:hover {
-        background: transparent;
-        transform: scale(1.15);
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        transform: scale(1.1);
       }
+
       .clear-btn {
         background: transparent;
         color: var(--text-light);
         border: none;
         width: 36px;
         height: 44px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 16px;
         cursor: pointer;
-        transition: color 0.2s ease, transform 0.2s ease;
-        margin-right: 12px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-right: 4px;
         flex-shrink: 0;
-      }
-      .clear-btn:hover {
-        color: var(--text);
-        transform: scale(1.15);
       }
 
-      .search-action-btn {
-        width: 100%;
-        height: 56px;
-        border-radius: 16px;
-        font-size: 16px;
-        flex-shrink: 0;
+      .clear-btn:hover {
+        background: rgba(0, 0, 0, 0.05);
+        color: var(--text);
+        transform: scale(1.1);
       }
+
+      [data-theme="dark"] .clear-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
       /* --- SEARCH FILTERS --- */
       .search-filters {
         display: flex;
@@ -1125,27 +1245,8 @@
         color: var(--text);
       }
       /* --- CARD EXPANSION STYLES --- */
-      .list-item {
-        cursor: pointer;
-        position: relative;
-        overflow: hidden;
-        transition: background 0.2s, border-color 0.2s;
-      }
 
       /* Hide by default for both List (nested) and Table (adjacent sibling) */
-      .card-actions {
-        max-height: 0;
-        opacity: 0;
-        overflow: hidden;
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        margin-top: 0;
-        transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-          opacity 0.3s ease, margin-top 0.3s ease;
-        width: 100%;
-      }
 
       .list-item.expanded {
         background-color: var(--btn-secondary) !important;
@@ -1183,28 +1284,6 @@
         background-color: var(--btn-secondary);
       }
 
-      .office-title {
-        font-size: 16px;
-        font-weight: 700;
-        color: var(--text);
-        margin-bottom: 8px;
-      }
-
-      /* --- BEAUTIFUL BADGES FOR RESULTS --- */
-      .badge {
-        display: inline-block;
-        padding: 6px 14px;
-        border-radius: 8px;
-        font-size: 15px;
-        font-weight: 700;
-        background: var(--input-bg);
-        color: var(--text);
-        margin-right: 8px;
-        margin-bottom: 4px;
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow-sm);
-      }
-
       .badge-primary {
         background: rgba(79, 70, 229, 0.15);
         color: var(--primary);
@@ -1217,51 +1296,260 @@
         border-color: var(--primary);
       }
 
+      /* --- LIST VIEW (Floating Cards) --- */
+      .list-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px; /* Distinct spacing between cards */
+        padding: 4px; /* Room for hover shadows */
+      }
+
+      li.list-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px 20px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+      }
+
+      /* Hover lift effect for list cards */
+      li.list-item:hover {
+        border-color: var(--primary);
+        box-shadow: 0 8px 16px -6px rgba(79, 70, 229, 0.15);
+        transform: translateY(-2px);
+      }
+
+      /* Expanded state for list cards */
+      li.list-item.expanded {
+        background: var(--btn-secondary) !important;
+        border-color: var(--primary);
+        transform: translateY(0);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+      }
+
+      .office-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--text);
+        margin-bottom: 10px;
+        letter-spacing: -0.3px;
+      }
+
       .list-empty {
-        padding: 40px 20px;
+        padding: 48px 20px;
         text-align: center;
         color: var(--text-light);
         font-size: 15px;
+        font-weight: 500;
+        background: var(--card-bg);
+        border-radius: 16px;
+        border: 2px dashed var(--input-border);
+        margin: 12px 0;
       }
 
+      /* --- TABLE VIEW (Modern Continuous Rows) --- */
       table.data-table {
         width: 100%;
         border-collapse: collapse;
         text-align: left;
       }
+
+      /* Frosted Glass Sticky Headers */
       table.data-table th {
-        background: var(--btn-secondary);
+        background: rgba(248, 250, 252, 0.85); /* Matches light theme --bg */
         padding: 14px 20px;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 700;
-        color: var(--text);
-        border-bottom: 1px solid var(--border);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--text-light);
+        border-bottom: 2px solid var(--border);
         position: sticky;
         top: 0;
         z-index: 10;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
       }
 
-      /* --- TABLE VIEW ALTERNATING COLORS --- */
+      [data-theme="dark"] table.data-table th {
+        background: rgba(9, 14, 23, 0.85); /* Matches dark theme --bg */
+      }
+
       table.data-table td {
         padding: 16px 20px;
         font-size: 15px;
         font-weight: 600;
         border-bottom: 1px solid var(--border);
         color: var(--text);
-        transition: background 0.2s;
+        transition: all 0.2s ease;
       }
 
-      /* Fix Zebra Striping (Since each item uses 2 rows, stripe every 4th row block) */
+      /* Ultra-subtle alternating row colors */
       table.data-table tbody tr.list-item:nth-child(4n + 3) td,
       table.data-table tbody tr.card-actions-row:nth-child(4n + 4) td {
-        background-color: var(--stripe-bg);
+        background-color: rgba(0, 0, 0, 0.015);
       }
 
-      /* Hover overrides with neutral gray, creating clear contrast */
-      table.data-table tr.list-item:hover td,
+      [data-theme="dark"]
+        table.data-table
+        tbody
+        tr.list-item:nth-child(4n + 3)
+        td,
+      [data-theme="dark"]
+        table.data-table
+        tbody
+        tr.card-actions-row:nth-child(4n + 4)
+        td {
+        background-color: rgba(255, 255, 255, 0.015);
+      }
+
+      /* Beautiful hover highlight for table rows */
+      table.data-table tr.list-item:hover td {
+        background-color: rgba(79, 70, 229, 0.04);
+        color: var(--primary);
+        cursor: pointer;
+      }
+
+      [data-theme="dark"] table.data-table tr.list-item:hover td {
+        background-color: rgba(129, 140, 248, 0.08);
+      }
+
+      /* Seamlessly merge expanded row with action row */
+      table.data-table tr.list-item.expanded td,
       table.data-table tr.list-item.expanded + .card-actions-row td {
         background-color: var(--btn-secondary);
+        border-bottom-color: transparent;
+      }
+
+      table.data-table tr.card-actions-row td {
+        padding: 0;
+        border-bottom: 1px solid var(--border);
+      }
+
+      /* --- BEAUTIFUL BADGES --- */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        border-radius: 10px; /* Modern squircle */
+        font-size: 13px;
+        font-weight: 700;
+        background: var(--input-bg);
         color: var(--text);
+        margin-right: 8px;
+        margin-bottom: 4px;
+        border: 1px solid transparent;
+        box-shadow: none; /* Replaced harsh shadow with pop animation */
+        transition: all 0.2s ease;
+      }
+
+      .badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px -2px rgba(0, 0, 0, 0.05);
+      }
+
+      .badge-primary {
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--primary);
+        border-color: rgba(79, 70, 229, 0.15);
+      }
+
+      [data-theme="dark"] .badge-primary {
+        background: rgba(129, 140, 248, 0.15);
+        color: var(--primary);
+        border-color: rgba(129, 140, 248, 0.25);
+      }
+
+      /* --- ACTION BUTTONS (Pill Styled) --- */
+      .toolbar-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--text-light);
+        border: 1px solid transparent;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .toolbar-btn:hover {
+        background: var(--input-bg);
+        color: var(--text);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      }
+
+      .toolbar-btn:active {
+        transform: scale(0.96);
+      }
+
+      .toolbar-btn.active {
+        background: var(--btn-secondary);
+        color: var(--text);
+      }
+
+      /* --- EXPANSION ANIMATIONS --- */
+      .card-actions {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        margin-top: 0;
+        transform: translateY(-10px); /* Slide down effect */
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+      }
+
+      /* Hide padding glitch in collapsed table rows via forced override */
+      table.data-table .card-actions {
+        padding-bottom: 0 !important;
+      }
+
+      /* Reveal for List View */
+      .list-item.expanded .card-actions {
+        max-height: 100px;
+        opacity: 1;
+        margin-top: 12px;
+        transform: translateY(0);
+      }
+
+      /* Reveal for Table View (Next Row Sibling) */
+      .list-item.expanded + .card-actions-row .card-actions {
+        max-height: 100px;
+        opacity: 1;
+        margin-top: 0;
+        padding-bottom: 16px !important;
+        transform: translateY(0);
+      }
+
+      /* --- SEARCH HIGHLIGHTING (Enhanced visibility) --- */
+      .highlight-text {
+        background-color: transparent !important;
+        color: #ef4444 !important;
+        font-weight: 900 !important;
+        position: relative;
+      }
+
+      .highlight-text::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: rgba(239, 68, 68, 0.2);
+        border-radius: 2px;
       }
       /* --- SEARCH HIGHLIGHTING --- */
       .highlight-text {
