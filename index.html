@@ -2031,15 +2031,35 @@
               Bird's-eye view of all addresses grouped by their respective
               offices.
             </p>
+
+            <!-- Quick Filter Bar -->
+            <div
+              style="
+                margin-top: 16px;
+                max-width: 400px;
+                margin-left: auto;
+                margin-right: auto;
+              "
+            >
+              <div class="search-input-wrapper">
+                <span style="margin-left: 12px; font-size: 16px">🔍</span>
+                <input
+                  type="text"
+                  id="directory-filter-input"
+                  placeholder="Filter by office name or PIN..."
+                  oninput="filterDirectory()"
+                  autocomplete="off"
+                />
+              </div>
+            </div>
           </div>
+
           <div
             class="results-container-scroll expanded"
             id="directory-display-area"
             style="max-height: 70vh"
           >
-            <ul class="list-container">
-              <li class="list-empty">Loading directory...</li>
-            </ul>
+            <div class="list-empty">Loading directory...</div>
           </div>
         </section>
         <!-- SETTINGS VIEW -->
@@ -3541,6 +3561,8 @@
       }
       function renderDirectory() {
         const displayArea = document.getElementById("directory-display-area");
+        const filterInput = document.getElementById("directory-filter-input");
+        if (filterInput) filterInput.value = "";
 
         if (!cachedPostOffices || cachedPostOffices.length === 0) {
           displayArea.innerHTML = `<div class="list-empty">No data available.</div>`;
@@ -4954,6 +4976,47 @@
             }, 1200);
           }
         }, 50);
+      }
+      function filterDirectory() {
+        const filterValue = document
+          .getElementById("directory-filter-input")
+          .value.toLowerCase();
+        const cards = document.querySelectorAll(
+          "#directory-display-area .directory-card"
+        );
+
+        let hasVisibleCards = false;
+
+        cards.forEach((card) => {
+          // Check the text content of the card's header (which contains the Office name and PIN)
+          const headerText = card
+            .querySelector(".directory-card-header")
+            .textContent.toLowerCase();
+
+          if (headerText.includes(filterValue)) {
+            card.style.display = "block";
+            hasVisibleCards = true;
+          } else {
+            card.style.display = "none";
+          }
+        });
+
+        // Handle the "No matches found" message
+        let emptyState = document.getElementById("directory-empty-state");
+        if (!hasVisibleCards && cards.length > 0) {
+          if (!emptyState) {
+            document
+              .getElementById("directory-display-area")
+              .insertAdjacentHTML(
+                "beforeend",
+                '<div id="directory-empty-state" class="list-empty">No offices match your filter.</div>'
+              );
+          } else {
+            emptyState.style.display = "block";
+          }
+        } else if (emptyState) {
+          emptyState.style.display = "none";
+        }
       }
 
       // BOOTSTRAP APP
