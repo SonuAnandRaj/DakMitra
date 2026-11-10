@@ -1516,17 +1516,17 @@
 
       /* --- ACTION BUTTONS (Pill Styled) --- */
       .toolbar-btn {
-        padding: 8px 16px;
-        font-size: 13px;
+        padding: 6px 12px; /* Reduced padding from 8px 16px */
+        font-size: 12px;   /* Reduced font size from 13px */
         font-weight: 600;
-        border-radius: 12px;
+        border-radius: 10px; /* Slightly tighter border radius */
         background: transparent;
         color: var(--text-light);
         border: 1px solid transparent;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        gap: 4px; /* Reduced gap between icon and text */
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
@@ -4019,14 +4019,14 @@
                   <div class="card-actions">
                     <button onclick="event.stopPropagation(); viewHistory('${
                       row.id
-                    }')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">🕒 History</button>
+                    }')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
                     <button onclick="event.stopPropagation(); toggleFavorite('${
                       row.id
                     }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
               row.Office
             )}', '${escapeForOnclick(
               row.Pin
-            )}', this)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
+            )}', this)" class="toolbar-btn" style="${
               favStyle.style
             }">${favStyle.icon}</button>
                     <button onclick="event.stopPropagation(); updateRecord('${
@@ -4035,10 +4035,10 @@
               row.Office
             )}', '${escapeForOnclick(
               row.Pin
-            )}')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">Edit</button>
+            )}')" class="toolbar-btn" style="background: var(--input-bg);">Edit</button>
                     <button onclick="event.stopPropagation(); deleteRecord('${
                       row.id
-                    }')" class="toolbar-btn" style="padding: 6px 12px; background: #fee2e2; color: #b91c1c;">Delete</button>
+                    }')" class="toolbar-btn" style="background: #fee2e2; color: #b91c1c;">Delete</button>
                   </div>
               </li>`;
           });
