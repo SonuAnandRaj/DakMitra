@@ -2306,7 +2306,27 @@
       </main>
       <!-- This is your existing closing main tag -->
     </div>
-    <!-- CUSTOM CONFIRM MODAL -->
+    <!-- CUSTOM ALERT MODAL -->
+    <div id="alert-modal-overlay" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-icon" id="alert-modal-icon">⚠️</div>
+        <h3 id="alert-modal-title" class="modal-title">Alert</h3>
+        <p id="alert-modal-message" class="modal-message">
+          Something went wrong.
+        </p>
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="closeAlertModal()"
+            style="width: 100%; margin: 0"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="confirm-modal-overlay" class="modal-overlay">
       <div class="modal-card">
         <div class="modal-icon">⚠️</div>
@@ -2326,6 +2346,26 @@
             class="btn modal-btn-danger"
           >
             Delete
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- CUSTOM ALERT MODAL -->
+    <div id="alert-modal-overlay" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-icon" id="alert-modal-icon">⚠️</div>
+        <h3 id="alert-modal-title" class="modal-title">Alert</h3>
+        <p id="alert-modal-message" class="modal-message">
+          Something went wrong.
+        </p>
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="closeAlertModal()"
+            style="width: 100%; margin: 0"
+          >
+            OK
           </button>
         </div>
       </div>
@@ -3718,6 +3758,9 @@
         );
       }
 
+      function closeAlertModal() {
+        document.getElementById("alert-modal-overlay").classList.remove("show");
+      }
       function showCustomConfirm(
         title,
         message,
@@ -3744,6 +3787,23 @@
           .getElementById("confirm-modal-overlay")
           .classList.remove("show");
       }
+
+      function showCustomAlert(title, message, icon = "⚠️") {
+        document.getElementById("alert-modal-icon").textContent = icon;
+        document.getElementById("alert-modal-title").textContent = title;
+        document.getElementById("alert-modal-message").textContent = message;
+        document.getElementById("alert-modal-overlay").classList.add("show");
+      }
+
+      function closeAlertModal() {
+        document.getElementById("alert-modal-overlay").classList.remove("show");
+      }
+
+      // THE MAGIC TRICK: Override the browser's default alert!
+      window.alert = function (message) {
+        // Automatically passes any standard alert into your beautiful UI
+        showCustomAlert("System Alert", message, "🔔");
+      };
 
       function downloadSampleExcel() {
         const wb = XLSX.utils.book_new();
@@ -3778,11 +3838,11 @@
         const displayArea = document.getElementById("approvals-display-area");
         displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">Loading requests...</li></ul>`;
 
-        // Notice we are now fetching profiles(name) and counting the request_approvals array!
+        // Fetching profiles(name, employee_id) now!
         const { data, error } = await supabaseClient
           .from("edit_requests")
           .select(
-            "*, post_offices(Address, Office), profiles(name), request_approvals(id)"
+            "*, post_offices(Address, Office), profiles(name, employee_id), request_approvals(id)"
           )
           .eq("status", "PENDING")
           .order("created_at", { ascending: false });
@@ -3800,17 +3860,25 @@
         let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
         data.forEach((req) => {
           let desc = "";
+
+          // Get the proposed PIN safely
+          const propPin = req.proposed_data.Pin
+            ? escapeHTML(req.proposed_data.Pin)
+            : "N/A";
+
           if (req.action_type === "ADD") {
             desc = `<span class="badge" style="background:#dcfce7;color:#166534;">➕ ADD</span> <b>${escapeHTML(
               req.proposed_data.Address
-            )}</b> (${escapeHTML(req.proposed_data.Office)})`;
+            )}</b> (${escapeHTML(req.proposed_data.Office)}) - 📍 ${propPin}`;
           } else if (req.action_type === "EDIT") {
             const oldAddress = req.post_offices
               ? req.post_offices.Address
               : "Unknown";
             desc = `<span class="badge" style="background:#fef9c3;color:#854d0e;">✏️ EDIT</span> <b>${escapeHTML(
               oldAddress
-            )}</b> ➡️ ${escapeHTML(req.proposed_data.Address)}`;
+            )}</b> ➡️ ${escapeHTML(req.proposed_data.Address)} (${escapeHTML(
+              req.proposed_data.Office
+            )}) - 📍 ${propPin}`;
           } else if (req.action_type === "DELETE") {
             const oldAddress = req.post_offices
               ? req.post_offices.Address
@@ -3831,6 +3899,10 @@
           const requesterName = req.profiles
             ? req.profiles.name
             : "Unknown User";
+          const requesterId =
+            req.profiles && req.profiles.employee_id
+              ? req.profiles.employee_id
+              : "No ID";
 
           html += `
             <li class="list-item" style="display: flex; flex-direction: column; gap: 10px;">
@@ -3838,12 +3910,22 @@
                 
                 <!-- Tracking Info Box -->
                 <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
-                  👤 Requested by: <b>${escapeHTML(requesterName)}</b><br>
+                  👤 Requested by: <b>${escapeHTML(
+                    requesterName
+                  )}</b> (${escapeHTML(requesterId)})<br>
                   📅 ${dateStr} <br>
                   🗳️ Community Votes: <b style="color: var(--primary);">${voteCount} / 5</b>
                 </div>
                 
-                <div style="display: flex; justify-content: flex-end;">
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                   <!-- Only show Reject button if the user is an admin -->
+                   ${
+                     isCurrentUserAdmin
+                       ? `
+                   <button onclick="rejectRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:#fee2e2; color:#b91c1c; font-size:14px;">👎 Reject</button>
+                   `
+                       : ""
+                   }
                    <button onclick="approveRequest('${
                      req.id
                    }')" class="btn" style="width:auto; padding:8px 20px; background:var(--primary); font-size:14px;">👍 Approve</button>
@@ -3872,6 +3954,32 @@
         } catch (err) {
           alert(err.message);
         }
+      }
+      async function rejectRequest(reqId) {
+        showCustomConfirm(
+          "Reject Request?",
+          "Are you sure you want to reject and close this community request?",
+          "Reject",
+          async () => {
+            showToast("Rejecting request...");
+            try {
+              const { data, error } = await supabaseClient.rpc(
+                "reject_request",
+                {
+                  req_id: reqId,
+                }
+              );
+              if (error) throw error;
+
+              if (data === "REJECTED") {
+                showToast("❌ Request rejected and closed.");
+              }
+              loadApprovals(); // Refresh the list
+            } catch (err) {
+              alert(err.message);
+            }
+          }
+        );
       }
       // Add 'settings' to your viewOrder array for swipe navigation
       const viewOrder = [
