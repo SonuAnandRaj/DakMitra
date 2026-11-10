@@ -11,6 +11,22 @@
     <meta name="theme-color" content="#4f46e5" />
     <link rel="apple-touch-icon" href="icon-192.png" />
 
+    <!-- Locks zooming and scaling -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <!-- Colors the Android status bar to match your Material Design theme -->
+    <meta name="theme-color" content="#1976d2" />
+
+    <!-- iOS specific tags to hide Safari UI -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+
     <!-- SDKs -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -49,19 +65,61 @@
           0 4px 6px -2px rgba(0, 0, 0, 0.05);
         --stripe-bg: rgba(79, 70, 229, 0.04);
       }
+      html,
+      body {
+        /* Stops the browser from bouncing or refreshing */
+        overscroll-behavior-y: contain;
+
+        /* Prevents horizontal scrolling issues */
+        overflow-x: hidden;
+      }
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .scrollable-container::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .scrollable-container {
+        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none; /* Firefox */
+      }
+
+      /* Re-enable text selection ONLY for actual input fields so staff can type */
+      input,
+      textarea,
+      select {
+        user-select: auto;
+        -webkit-touch-callout: default;
+      }
+
       * {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
         font-family: "Inter", sans-serif;
+
+        /* --- PWA Native App Reset --- */
+        /* Removes the blue highlight box on Android when tapping buttons/links */
         -webkit-tap-highlight-color: transparent;
 
-        /* --- Prevent text selection globally --- */
+        /* Disables the long-press popup menu (like "Save Image" or "Copy Link") */
+        -webkit-touch-callout: none;
+
+        /* Prevent text selection globally */
         -webkit-user-select: none; /* Safari */
         -moz-user-select: none; /* Firefox */
         -ms-user-select: none; /* Internet Explorer/Edge */
         user-select: none; /* Standard syntax */
       }
+
+      /* Re-enable text selection ONLY for actual input fields so staff can type */
+      input,
+      textarea,
+      select {
+        user-select: auto;
+        -webkit-touch-callout: default;
+      }
+
       [data-theme="dark"] {
         /* --- DARK THEME (Deep OLED & Soft Neon) --- */
         --primary: #818cf8;
@@ -2935,6 +2993,14 @@
         </section>
         <!-- UPLOAD VIEW (Hidden by default) -->
         <section id="view-upload" class="view-section">
+          <!-- NEW: Consistent Top Header -->
+          <div class="search-hero" style="text-align: center">
+            <h2 style="margin-bottom: 8px">Upload Data</h2>
+            <p style="color: var(--text-light); font-size: 14px">
+              Add new records manually or update the master database via Excel.
+            </p>
+          </div>
+
           <!-- Manual Data Entry Card -->
           <div class="upload-card" style="margin-bottom: 24px">
             <h2 style="font-size: 22px; font-weight: 700">
