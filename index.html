@@ -107,7 +107,69 @@
         flex-direction: column;
         flex: 1;
       }
+      /* --- DIRECTORY VIEW STYLES (Card & Chip Layout) --- */
+      .directory-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        margin-bottom: 16px;
+        padding: 16px;
+        box-shadow: var(--shadow-sm);
+        transition: box-shadow 0.2s;
+      }
 
+      .directory-card:hover {
+        box-shadow: var(--shadow-md);
+      }
+
+      .directory-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px dashed var(--border);
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .directory-office-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .directory-badges {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .directory-address-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .directory-address-chip {
+        background: var(--btn-secondary);
+        color: var(--text);
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 500;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        transition: all 0.2s;
+      }
+
+      .directory-address-chip:hover {
+        border-color: var(--primary);
+        background: rgba(79, 70, 229, 0.05); /* Faint primary tint */
+      }
       /* --- BEAUTIFUL GRADIENT BRANDING --- */
       .app-bar h1,
       #auth-view h1 {
@@ -1609,6 +1671,13 @@
           </button>
           <button
             class="sidebar-menu-item"
+            id="nav-directory"
+            onclick="switchDashboardView('directory')"
+          >
+            🗂️ All Offices Directory
+          </button>
+          <button
+            class="sidebar-menu-item"
             id="nav-upload"
             onclick="switchDashboardView('upload')"
           >
@@ -1951,6 +2020,25 @@
           <div class="results-container-scroll" id="results-display-area">
             <ul class="list-container">
               <li class="list-empty">Loading database...</li>
+            </ul>
+          </div>
+        </section>
+        <!-- DIRECTORY VIEW -->
+        <section id="view-directory" class="view-section">
+          <div class="search-hero" style="text-align: center">
+            <h2 style="margin-bottom: 8px">Office Directory</h2>
+            <p style="color: var(--text-light); font-size: 14px">
+              Bird's-eye view of all addresses grouped by their respective
+              offices.
+            </p>
+          </div>
+          <div
+            class="results-container-scroll expanded"
+            id="directory-display-area"
+            style="max-height: 70vh"
+          >
+            <ul class="list-container">
+              <li class="list-empty">Loading directory...</li>
             </ul>
           </div>
         </section>
@@ -2534,6 +2622,8 @@
           renderFavorites();
         } else if (viewId === "approvals") {
           loadApprovals();
+        } else if (viewId === "directory") {
+          renderDirectory();
         }
 
         closeSidebar();
@@ -3437,7 +3527,75 @@
         box.className = "alert";
         box.textContent = "";
       }
+      function renderDirectory() {
+        const displayArea = document.getElementById("directory-display-area");
 
+        if (!cachedPostOffices || cachedPostOffices.length === 0) {
+          displayArea.innerHTML = `<div class="list-empty">No data available.</div>`;
+          return;
+        }
+
+        // 1. Group addresses by Office
+        const grouped = {};
+        cachedPostOffices.forEach((row) => {
+          const office = row.Office || "Unknown Office";
+          if (!grouped[office]) {
+            grouped[office] = { pin: row.Pin || "N/A", addresses: [] };
+          }
+          grouped[office].addresses.push(row.Address);
+        });
+
+        // 2. Sort offices alphabetically
+        const sortedOffices = Object.keys(grouped).sort();
+
+        // 3. Build the grouped Card & Chip HTML
+        let html = `<div style="padding: 4px;">`; // Tiny padding prevents shadow clipping
+
+        sortedOffices.forEach((office) => {
+          const data = grouped[office];
+          // Sort addresses alphabetically within each office
+          data.addresses.sort();
+          const totalAddresses = data.addresses.length;
+
+          html += `
+            <div class="directory-card">
+              <div class="directory-card-header">
+                <div class="directory-office-title">
+                  <span>🏢</span>
+                  <span>${escapeHTML(office)}</span>
+                </div>
+                
+                <div class="directory-badges">
+                  <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2);">
+                    📑 ${totalAddresses} ${
+            totalAddresses === 1 ? "Address" : "Addresses"
+          }
+                  </span>
+                  <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px;">📍 ${escapeHTML(
+                    data.pin
+                  )}</span>
+                </div>
+              </div>
+              
+              <div class="directory-address-list">
+          `;
+
+          data.addresses.forEach((address) => {
+            html += `<span class="directory-address-chip">${escapeHTML(
+              address
+            )}</span>`;
+          });
+
+          html += `
+              </div>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+        displayArea.innerHTML = html;
+        displayArea.scrollTop = 0;
+      }
       // --- OPTIMIZED AUTHENTICATION & DEVICE REGISTRATION ---
       async function handleAuth() {
         hideAlert();
