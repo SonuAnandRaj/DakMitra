@@ -2306,6 +2306,59 @@
       </main>
       <!-- This is your existing closing main tag -->
     </div>
+    <!-- CUSTOM HISTORY MODAL -->
+    <div id="history-modal-overlay" class="modal-overlay">
+      <div
+        class="modal-card"
+        style="
+          max-width: 500px;
+          width: 95%;
+          max-height: 80vh;
+          display: flex;
+          flex-direction: column;
+        "
+      >
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+          "
+        >
+          <h3 class="modal-title" style="margin: 0; font-size: 20px">
+            Record History
+          </h3>
+          <button
+            onclick="closeHistoryModal()"
+            style="
+              background: none;
+              border: none;
+              font-size: 20px;
+              cursor: pointer;
+              color: var(--text-light);
+            "
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Scrollable container for the timeline -->
+        <div
+          id="history-modal-content"
+          style="
+            flex: 1;
+            overflow-y: auto;
+            text-align: left;
+            padding-right: 8px;
+          "
+        >
+          <ul class="list-container">
+            <li class="list-empty">Loading history...</li>
+          </ul>
+        </div>
+      </div>
+    </div>
     <!-- CUSTOM ALERT MODAL -->
     <div id="alert-modal-overlay" class="modal-overlay">
       <div class="modal-card">
@@ -3076,6 +3129,9 @@
                 </div>
               </div>
               <div class="card-actions">
+                <button onclick="event.stopPropagation(); viewHistory('${
+                  row.id
+                }')" class="toolbar-btn" style="padding: 6px 12px; background: var(--input-bg);">🕒 History</button>
                 <button onclick="event.stopPropagation(); toggleFavorite('${
                   row.id
                 }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
@@ -3798,7 +3854,180 @@
       function closeAlertModal() {
         document.getElementById("alert-modal-overlay").classList.remove("show");
       }
+      function closeHistoryModal() {
+        document
+          .getElementById("history-modal-overlay")
+          .classList.remove("show");
+      }
 
+      async function viewHistory(postOfficeId) {
+        const contentDiv = document.getElementById("history-modal-content");
+        contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty">Fetching records...</li></ul>`;
+        document.getElementById("history-modal-overlay").classList.add("show");
+
+        try {
+          // 1. Fetch the audit log
+          const { data, error } = await supabaseClient
+            .from("post_offices_history")
+            .select(
+              `
+              *,
+              requester:profiles!changed_by(name, employee_id),
+              approver:profiles!approved_by(name, employee_id)
+            `
+            )
+            .eq("post_office_id", postOfficeId)
+            .order("changed_at", { ascending: false });
+
+          if (error) throw error;
+
+          if (!data || data.length === 0) {
+            contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty">No history recorded for this entry yet.</li></ul>`;
+            return;
+          }
+
+          // 2. NEW: Check which of these approvers hold Admin status
+          const approverIds = data
+            .map((log) => log.approved_by)
+            .filter((id) => id);
+          let adminSet = new Set();
+          if (approverIds.length > 0) {
+            const { data: adminData } = await supabaseClient
+              .from("admins")
+              .select("id")
+              .in("id", approverIds);
+            if (adminData) adminData.forEach((a) => adminSet.add(a.id));
+          }
+
+          let html = `<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">`;
+
+          data.forEach((log) => {
+            const dateStr = new Date(log.changed_at).toLocaleString("en-IN", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            });
+
+            const requesterName = log.requester
+              ? log.requester.name
+              : "System / Direct Upload";
+            const requesterId =
+              log.requester && log.requester.employee_id
+                ? log.requester.employee_id
+                : "No ID";
+
+            // 3. NEW: Format the Approver HTML based on Admin Status
+            let approverHtml = "";
+            if (log.approver && log.approver.employee_id) {
+              const isAdmin = adminSet.has(log.approved_by);
+
+              if (isAdmin) {
+                approverHtml = `
+                    <div style="font-size: 12px; color: var(--success-text); margin-top: 4px;">
+                      ✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
+                        log.approver.name
+                      )} - ${escapeHTML(log.approver.employee_id)})
+                    </div>`;
+              } else {
+                approverHtml = `
+                    <div style="font-size: 12px; color: var(--primary); margin-top: 4px;">
+                      👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
+                        log.approver.name
+                      )} - ${escapeHTML(log.approver.employee_id)})
+                    </div>`;
+              }
+            }
+
+            let actionBadge = "";
+            let changesHtml = "";
+
+            const formatField = (
+              oldVal,
+              newVal,
+              prefix = "",
+              fallback = "N/A"
+            ) => {
+              const sOld = escapeHTML(oldVal || fallback);
+              const sNew = escapeHTML(newVal || fallback);
+              if (oldVal !== newVal) {
+                return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${sOld}</span> ➡️ <b>${sNew}</b></div>`;
+              }
+              return `<div style="margin-bottom: 4px;">${prefix} ${sNew}</div>`;
+            };
+
+            if (log.action === "INSERT") {
+              actionBadge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px;">➕ CREATED</span>`;
+              changesHtml = `
+                  <div style="margin-bottom: 4px;"><b>${escapeHTML(
+                    log.new_data?.Address
+                  )}</b></div>
+                  <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
+                    log.new_data?.Office
+                  )}</div>
+                  <div>📍 Pin: ${escapeHTML(log.new_data?.Pin || "N/A")}</div>
+                `;
+            } else if (log.action === "UPDATE") {
+              actionBadge = `<span class="badge" style="background:#fef9c3;color:#854d0e; padding: 4px 8px; font-size: 12px;">✏️ EDITED</span>`;
+
+              const oldD = log.old_data || {};
+              const newD = log.new_data || {};
+
+              changesHtml =
+                formatField(
+                  oldD.Address,
+                  newD.Address,
+                  "📮",
+                  "Unknown Address"
+                ) +
+                formatField(oldD.Office, newD.Office, "🏢", "Unknown Office") +
+                formatField(oldD.Pin, newD.Pin, "📍 Pin:", "N/A");
+
+              if (oldD.is_deleted !== newD.is_deleted) {
+                changesHtml += `<div style="margin-top: 8px;"><b>Status:</b> ${
+                  newD.is_deleted ? "Marked as Deleted 🗑️" : "Restored ♻️"
+                }</div>`;
+              }
+            } else if (log.action === "DELETE") {
+              actionBadge = `<span class="badge" style="background:#fee2e2;color:#991b1b; padding: 4px 8px; font-size: 12px;">🗑️ DELETED</span>`;
+              changesHtml = `
+                  <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
+                    log.old_data?.Address
+                  )}</b></div>
+                  <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
+                    log.old_data?.Office
+                  )}</div>
+                  <div style="text-decoration: line-through; color: var(--text-light);">📍 Pin: ${escapeHTML(
+                    log.old_data?.Pin || "N/A"
+                  )}</div>
+                  <div style="margin-top: 8px; color: #991b1b; font-weight: 600;">Record was permanently deleted.</div>
+                `;
+            }
+
+            html += `
+              <div style="background: var(--btn-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  ${actionBadge}
+                  <span style="font-size: 12px; color: var(--text-light); font-weight: 600;">${dateStr}</span>
+                </div>
+                <div style="font-size: 14px; margin-bottom: 8px; color: var(--text); line-height: 1.4;">
+                  ${changesHtml}
+                </div>
+                
+                <div style="font-size: 12px; color: var(--text-light); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
+                  <div>👤 Requested by: <b>${escapeHTML(
+                    requesterName
+                  )}</b> (${escapeHTML(requesterId)})</div>
+                  ${approverHtml}
+                </div>
+              </div>
+            `;
+          });
+
+          html += `</div>`;
+          contentDiv.innerHTML = html;
+        } catch (err) {
+          contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error: ${err.message}</li></ul>`;
+        }
+      }
       // THE MAGIC TRICK: Override the browser's default alert!
       window.alert = function (message) {
         // Automatically passes any standard alert into your beautiful UI
