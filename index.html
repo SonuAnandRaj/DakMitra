@@ -2851,6 +2851,7 @@
             .map((item) => ({ item, matches: [] }));
           renderResults();
         }
+        refreshOfficeDropdowns();
       }
       function setViewMode(mode) {
         viewMode = mode;
@@ -3738,25 +3739,29 @@
       });
 
       function getManualEntryRowHTML(showLabels = false) {
-        return `
-        <div class="manual-entry-row">
-          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-            ${showLabels ? "<label>Address</label>" : ""}
-            <input type="text" class="manual-address" placeholder="Address" />
-          </div>
-          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-            ${showLabels ? "<label>Office</label>" : ""}
-            <input type="text" class="manual-office" placeholder="Office name" />
-          </div>
-          <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-            ${showLabels ? "<label>Pin</label>" : ""}
-            <input type="text" class="manual-Pin" placeholder="e.g. 231305" />
-          </div>
-          <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
-        </div>
-        `;
-      }
+        const optionsHtml = generateOfficeDropdownOptions();
 
+        return `
+  <div class="manual-entry-row">
+    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+      ${showLabels ? "<label>Address</label>" : ""}
+      <input type="text" class="manual-address" placeholder="Address" />
+    </div>
+    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+      ${showLabels ? "<label>Office</label>" : ""}
+      <select class="manual-office" onchange="autoFillPin(this)">
+        <option value="" disabled selected>Select Office</option>
+        ${optionsHtml}
+      </select>
+    </div>
+    <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+      ${showLabels ? "<label>Pin</label>" : ""}
+      <input type="text" class="manual-Pin" placeholder="e.g. 231305" />
+    </div>
+    <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
+  </div>
+  `;
+      }
       document.getElementById("manual-entries-container").innerHTML =
         getManualEntryRowHTML(true);
 
@@ -3845,35 +3850,39 @@
         const container = document.getElementById("manual-entries-container");
         const safePin = !currentPin || currentPin === "null" ? "" : currentPin;
 
-        // Double check escaping for innerHTML insertion to prevent breakout
         const escapedAddress = escapeHTML(currentAddress);
         const escapedOffice = escapeHTML(currentOffice);
         const escapedPin = escapeHTML(safePin);
 
-        // Add data attributes to secretly store the original values
+        // Generate options and mark the current office as selected
+        const optionsHtml = generateOfficeDropdownOptions(currentOffice);
+
         container.innerHTML = `
-        <div class="manual-entry-row" data-edit-id="${id}" data-old-addr="${escapedAddress}" data-old-off="${escapedOffice}" data-old-pin="${escapedPin}">
-          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-            <label style="color: var(--primary);">Address (Editing)</label>
-            <input type="text" class="manual-address" value="${escapedAddress}" />
-          </div>
-          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-            <label style="color: var(--primary);">Office</label>
-            <input type="text" class="manual-office" value="${escapedOffice}" />
-          </div>
-          <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-            <label style="color: var(--primary);">Pin</label>
-            <input type="text" class="manual-Pin" value="${escapedPin}" />
-          </div>
-          <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
-        </div>
-        `;
+  <div class="manual-entry-row" data-edit-id="${id}" data-old-addr="${escapedAddress}" data-old-off="${escapedOffice}" data-old-pin="${escapedPin}">
+    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+      <label style="color: var(--primary);">Address (Editing)</label>
+      <input type="text" class="manual-address" value="${escapedAddress}" />
+    </div>
+    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+      <label style="color: var(--primary);">Office</label>
+      <select class="manual-office" onchange="autoFillPin(this)">
+        <option value="" disabled>Select Office</option>
+        ${optionsHtml}
+      </select>
+    </div>
+    <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+      <label style="color: var(--primary);">Pin</label>
+      <input type="text" class="manual-Pin" value="${escapedPin}" />
+    </div>
+    <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
+  </div>
+  `;
+
         document.getElementById("submit-multiple-btn").textContent =
           "Save Changes";
         window.scrollTo({ top: 0, behavior: "smooth" });
         showToast("✏️ Ready to edit.");
       }
-
       function deleteRecord(id) {
         showCustomConfirm(
           "Request Deletion?",
@@ -4688,6 +4697,60 @@
 
         // Toggle current card
         cardElement.classList.toggle("expanded");
+      }
+      // Helper: Extracts unique offices from the database and generates <option> tags
+      function generateOfficeDropdownOptions(selectedOffice = "") {
+        if (!cachedPostOffices || cachedPostOffices.length === 0) return "";
+
+        const officeMap = new Map();
+        cachedPostOffices.forEach((row) => {
+          if (row.Office && !officeMap.has(row.Office)) {
+            officeMap.set(row.Office, row.Pin || "");
+          }
+        });
+
+        // Sort alphabetically for easier searching
+        const sortedOffices = Array.from(officeMap.keys()).sort();
+
+        let html = "";
+        sortedOffices.forEach((office) => {
+          const pin = officeMap.get(office);
+          const isSelected = office === selectedOffice ? "selected" : "";
+          // Store the PIN in a data attribute to retrieve it later
+          html += `<option value="${escapeHTML(office)}" data-pin="${escapeHTML(
+            pin
+          )}" ${isSelected}>${escapeHTML(office)}</option>`;
+        });
+        return html;
+      }
+
+      // Helper: Automatically fills the PIN field when an office is selected
+      function autoFillPin(selectElement) {
+        const selectedOption =
+          selectElement.options[selectElement.selectedIndex];
+        const pin = selectedOption.getAttribute("data-pin");
+
+        const row = selectElement.closest(".manual-entry-row");
+        const pinInput = row.querySelector(".manual-Pin");
+
+        if (pinInput && pin) {
+          pinInput.value = pin;
+        }
+      }
+
+      // Helper: Refreshes dropdown options after database is fetched from Supabase
+      function refreshOfficeDropdowns() {
+        const selects = document.querySelectorAll(".manual-office");
+        if (selects.length === 0) return;
+
+        const optionsHtml =
+          `<option value="" disabled selected>Select Office</option>` +
+          generateOfficeDropdownOptions();
+        selects.forEach((select) => {
+          const currentVal = select.value;
+          select.innerHTML = optionsHtml;
+          if (currentVal) select.value = currentVal;
+        });
       }
 
       // BOOTSTRAP APP
