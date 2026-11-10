@@ -2211,7 +2211,9 @@
               stroke-linejoin="round"
             >
               <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+              ></path>
             </svg>
             <span>Settings</span>
           </button>
@@ -2298,6 +2300,28 @@
       let currentFilteredData = [];
       let fuse;
       let viewMode = "list";
+
+      // Ultra-fast "Lie-Fi" detector
+      async function checkActualInternet() {
+        if (!navigator.onLine) return false; // Instantly fails if hardware is offline
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5-second strict cutoff
+
+          // Fetches a 0-byte file. 'no-cors' makes it bypass security overhead.
+          await fetch("https://clients3.google.com/generate_204", {
+            method: "HEAD",
+            mode: "no-cors",
+            cache: "no-store",
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+          return true; // Packets are routing!
+        } catch (e) {
+          return false; // Timeout or DNS failure (Lie-Fi)
+        }
+      }
 
       // --- UI CONTROLS (Sidebar & Views) ---
       function toggleSidebar() {
@@ -2570,11 +2594,11 @@
             try {
               cachedPostOffices = JSON.parse(cachedDataString);
               initializeSearchAndRender();
-              
+
               // Now trigger a background sync to keep data fresh without blocking the UI
               fetchFromServerBackground();
-              return; 
-            } catch(e) {
+              return;
+            } catch (e) {
               console.error("Cache corrupted, fetching fresh.");
             }
           }
@@ -2585,36 +2609,48 @@
       }
 
       async function fetchFromServerBackground() {
-        // Instantly cancel the network request if the device is offline
-        if (!navigator.onLine) {
-          console.log("Offline mode: Skipping background sync to prevent timeouts.");
-          return; 
+        // Fast 1.5s true internet check
+        const hasInternet = await checkActualInternet();
+
+        if (!hasInternet) {
+          console.log("Offline mode: Skipping background sync.");
+          if (!cachedPostOffices || cachedPostOffices.length === 0) {
+            document.getElementById(
+              "results-display-area"
+            ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
+          }
+          return false;
         }
 
         try {
+          // Since we know the internet is real, just run the normal query
           const { data, error } = await supabaseClient
             .from("post_offices")
             .select("*");
-            
+
           if (error) throw error;
-          
+
           if (data && data.length > 0) {
             cachedPostOffices = data;
-            localStorage.setItem("dakmitra_offline_db", JSON.stringify(cachedPostOffices));
+            localStorage.setItem(
+              "dakmitra_offline_db",
+              JSON.stringify(cachedPostOffices)
+            );
             initializeSearchAndRender();
+            return true;
           }
+          return false;
         } catch (error) {
           console.error("Background sync failed:", error);
-          if (!cachedPostOffices || cachedPostOffices.length === 0) {
-            document.getElementById("results-display-area").innerHTML = 
-              `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
-          }
+          return false;
         }
       }
 
       function initializeSearchAndRender() {
-        const uniqueAddresses = new Set(cachedPostOffices.map((o) => o.Address)).size;
-        const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office)).size;
+        const uniqueAddresses = new Set(cachedPostOffices.map((o) => o.Address))
+          .size;
+        const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office))
+          .size;
 
         document.getElementById("stat-addresses").textContent = uniqueAddresses;
         document.getElementById("stat-offices").textContent = uniqueOffices;
@@ -2630,10 +2666,10 @@
 
         // If the user hasn't typed anything yet, just show the default top 10
         if (!document.getElementById("search-input").value.trim()) {
-           currentFilteredData = cachedPostOffices
-             .slice(0, 10)
-             .map((item) => ({ item, matches: [] }));
-           renderResults();
+          currentFilteredData = cachedPostOffices
+            .slice(0, 10)
+            .map((item) => ({ item, matches: [] }));
+          renderResults();
         }
       }
       function setViewMode(mode) {
@@ -3715,7 +3751,7 @@
           () => {
             localStorage.removeItem(HISTORY_KEY);
             localStorage.removeItem("dakmitra_default_view");
-            localStorage.removeItem("dakmitra_offline_db"); 
+            localStorage.removeItem("dakmitra_offline_db");
             showToast("🧹 Cache cleared successfully!");
             loadSearchHistory();
           }
@@ -3726,23 +3762,33 @@
         const syncBtn = document.getElementById("sync-db-btn");
         if (!syncBtn) return;
 
-        // Prevent hanging if the user tries to manually sync while offline
-        if (!navigator.onLine) {
+        syncBtn.textContent = "Checking...";
+        syncBtn.disabled = true;
+
+        // Perform the fast 1.5s check
+        const hasInternet = await checkActualInternet();
+
+        if (!hasInternet) {
+          syncBtn.textContent = "Sync";
+          syncBtn.disabled = false;
           return showToast("⚠️ No internet connection. Cannot sync.");
         }
 
-        // Visual feedback for syncing state
-        const originalText = syncBtn.textContent;
         syncBtn.textContent = "Syncing...";
-        syncBtn.disabled = true;
 
         // Fetch fresh data from Supabase directly
-        await fetchAllPostOffices(true);
+        const success = await fetchAllPostOffices(true);
 
-        // Show success state
-        syncBtn.textContent = "✅ Synced";
-        syncBtn.style.backgroundColor = "var(--success-border)";
-        showToast("🔄 Database synced successfully!");
+        if (success) {
+          syncBtn.textContent = "✅ Synced";
+          syncBtn.style.backgroundColor = "var(--success-border)";
+          showToast("🔄 Database synced successfully!");
+        } else {
+          syncBtn.textContent = "❌ Failed";
+          syncBtn.style.backgroundColor = "#ef4444";
+          syncBtn.style.color = "#ffffff";
+          showToast("⚠️ Sync failed. Try again later.");
+        }
 
         // Reset button after 2 seconds
         setTimeout(() => {
