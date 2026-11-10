@@ -3951,6 +3951,23 @@
 
         return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
       }
+function applyTheme(theme) {
+  let isDark = false;
+  if (theme === "system") {
+    isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+  } else {
+    isDark = (theme === "dark");
+    document.documentElement.setAttribute("data-theme", theme);
+  }
+  localStorage.setItem("app-theme", theme);
+  
+  // Blends the Android status bar seamlessly with your app bar
+  const metaTheme = document.getElementById("meta-theme-color");
+  if (metaTheme) {
+    metaTheme.setAttribute("content", isDark ? "#111827" : "#ffffff");
+  }
+}
       function escapeForOnclick(str) {
         if (!str) return "";
         return String(str)
