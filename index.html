@@ -2562,33 +2562,55 @@
       });
 
       // --- DATA FETCHING & STATS ---
-      async function fetchAllPostOffices() {
-        const { data, error } = await supabaseClient
-          .from("post_offices")
-          .select("*");
-        if (error) {
-          console.error("Error fetching address:", error);
-          document.getElementById(
-            "results-display-area"
-          ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Error loading data from server.</li></ul>`;
-          return;
+      async function fetchAllPostOffices(forceSync = false) {
+        // 1. Try to load from Local Cache FIRST (for instant offline load)
+        if (!forceSync) {
+          const cachedDataString = localStorage.getItem("dakmitra_offline_db");
+          if (cachedDataString) {
+            try {
+              cachedPostOffices = JSON.parse(cachedDataString);
+              initializeSearchAndRender();
+              
+              // Now trigger a background sync to keep data fresh without blocking the UI
+              fetchFromServerBackground();
+              return; 
+            } catch(e) {
+              console.error("Cache corrupted, fetching fresh.");
+            }
+          }
         }
 
-        if (!data || data.length === 0) {
-          document.getElementById(
-            "results-display-area"
-          ).innerHTML = `<ul class="list-container"><li class="list-empty">Database is currently empty.</li></ul>`;
-          document.getElementById("stat-addresses").textContent = "0";
-          document.getElementById("stat-offices").textContent = "0";
-          return;
+        // 2. If no cache or forced sync, fetch from Supabase
+        await fetchFromServerBackground();
+      }
+
+      async function fetchFromServerBackground() {
+        try {
+          const { data, error } = await supabaseClient
+            .from("post_offices")
+            .select("*");
+            
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            cachedPostOffices = data;
+            // Save to local storage for offline use
+            localStorage.setItem("dakmitra_offline_db", JSON.stringify(cachedPostOffices));
+            initializeSearchAndRender();
+          }
+        } catch (error) {
+          console.error("Background sync failed:", error);
+          // If we fail and have NO cache, show an error
+          if (!cachedPostOffices || cachedPostOffices.length === 0) {
+            document.getElementById("results-display-area").innerHTML = 
+              `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
+          }
         }
+      }
 
-        cachedPostOffices = data || [];
-
-        const uniqueAddresses = new Set(cachedPostOffices.map((o) => o.Address))
-          .size;
-        const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office))
-          .size;
+      function initializeSearchAndRender() {
+        const uniqueAddresses = new Set(cachedPostOffices.map((o) => o.Address)).size;
+        const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office)).size;
 
         document.getElementById("stat-addresses").textContent = uniqueAddresses;
         document.getElementById("stat-offices").textContent = uniqueOffices;
@@ -2602,11 +2624,13 @@
           includeMatches: true,
         });
 
-        // PERFORMANCE BOOST: Render just the first 10 default items on startup
-        currentFilteredData = cachedPostOffices
-          .slice(0, 10)
-          .map((item) => ({ item, matches: [] }));
-        renderResults();
+        // If the user hasn't typed anything yet, just show the default top 10
+        if (!document.getElementById("search-input").value.trim()) {
+           currentFilteredData = cachedPostOffices
+             .slice(0, 10)
+             .map((item) => ({ item, matches: [] }));
+           renderResults();
+        }
       }
       function setViewMode(mode) {
         viewMode = mode;
@@ -3687,6 +3711,7 @@
           () => {
             localStorage.removeItem(HISTORY_KEY);
             localStorage.removeItem("dakmitra_default_view");
+            localStorage.removeItem("dakmitra_offline_db"); 
             showToast("🧹 Cache cleared successfully!");
             loadSearchHistory();
           }
@@ -3703,7 +3728,7 @@
         syncBtn.disabled = true;
 
         // Fetch fresh data from Supabase
-        await fetchAllPostOffices();
+        await fetchAllPostOffices(true);
 
         // Show success state
         syncBtn.textContent = "✅ Synced";
