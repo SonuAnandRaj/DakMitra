@@ -2062,7 +2062,39 @@
                 Export
               </button>
             </div>
+            <!-- Spacer between Export and Sync -->
+            <div style="margin-bottom: 16px"></div>
 
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+              "
+            >
+              <div>
+                <strong style="display: block; color: var(--text)"
+                  >Sync Database</strong
+                >
+                <span style="font-size: 13px; color: var(--text-light)"
+                  >Fetch latest data from server</span
+                >
+              </div>
+              <button
+                id="sync-db-btn"
+                class="btn"
+                style="
+                  width: auto;
+                  padding: 8px 16px;
+                  background: var(--primary);
+                  color: #ffffff;
+                "
+                onclick="syncDatabase()"
+              >
+                Sync
+              </button>
+            </div>
             <hr
               style="
                 border: 0;
@@ -3648,6 +3680,31 @@
             loadSearchHistory();
           }
         );
+      }
+
+      async function syncDatabase() {
+        const syncBtn = document.getElementById("sync-db-btn");
+        if (!syncBtn) return;
+
+        // Visual feedback for syncing state
+        const originalText = syncBtn.textContent;
+        syncBtn.textContent = "Syncing...";
+        syncBtn.disabled = true;
+
+        // Fetch fresh data from Supabase
+        await fetchAllPostOffices();
+
+        // Show success state
+        syncBtn.textContent = "✅ Synced";
+        syncBtn.style.backgroundColor = "var(--success-border)";
+        showToast("🔄 Database synced successfully!");
+
+        // Reset button after 2 seconds
+        setTimeout(() => {
+          syncBtn.textContent = "Sync";
+          syncBtn.style.backgroundColor = "var(--primary)";
+          syncBtn.disabled = false;
+        }, 2000);
       }
 
       // 1. Save and apply Action Button Mode
