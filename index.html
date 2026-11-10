@@ -1579,7 +1579,7 @@
             id="nav-approvals"
             onclick="switchDashboardView('approvals')"
           >
-            📝 Pending Approvals
+            📝 Approvals
           </button>
           <button
             class="sidebar-menu-item"
@@ -1650,13 +1650,40 @@
         </section>
         <!-- APPROVALS VIEW -->
         <section id="view-approvals" class="view-section">
-          <div class="search-hero">
-            <h2>Pending Approvals</h2>
+          <div class="search-hero" style="text-align: center;">
+            <h2 style="margin-bottom: 8px;">Approvals</h2>
             <p style="color: var(--text-light); font-size: 14px">
-              Review proposed database changes. Requires 5 standard votes or 1
-              Admin vote.
+              Review proposed changes or check request history.
             </p>
+
+            <!-- NEW: Approvals Tabs -->
+            <div
+              class="tabs"
+              style="
+                margin-top: 20px;
+                border-bottom: 1px solid var(--border);
+                background: transparent;
+              "
+            >
+              <button
+                type="button"
+                class="tab-btn active"
+                id="tab-appr-pending"
+                onclick="switchApprovalTab('pending')"
+              >
+                Pending
+              </button>
+              <button
+                type="button"
+                class="tab-btn"
+                id="tab-appr-resolved"
+                onclick="switchApprovalTab('resolved')"
+              >
+                Resolved
+              </button>
+            </div>
           </div>
+
           <div
             class="results-container-scroll expanded"
             id="approvals-display-area"
@@ -2654,9 +2681,7 @@
                   <span class="badge badge-primary">🏢 ${escapeHTML(
                     row.office
                   )}</span>
-                  <span class="badge">📍 Pin: ${
-                    escapeHTML(row.pin) || "N/A"
-                  }</span>
+                  <span class="badge">📍 ${escapeHTML(row.pin) || "N/A"}</span>
                 </div>
               </div>
               <div style="display: flex; justify-content: flex-end;">
@@ -3125,7 +3150,7 @@
                 <div class="office-title">${addressHtml}</div>
                 <div class="sub-office">
                   <span class="badge badge-primary">🏢 ${officeHtml}</span>
-                  <span class="badge">📍 Pin: ${PinHtml || "N/A"}</span>
+                  <span class="badge">📍 ${PinHtml || "N/A"}</span>
                 </div>
               </div>
               <div class="card-actions">
@@ -3224,7 +3249,7 @@
         const text = currentFilteredData
           .map(
             (r) =>
-              `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin: ${r.item.Pin}`
+              `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin ${r.item.Pin}`
           )
           .join("\n");
         navigator.clipboard
@@ -3709,6 +3734,11 @@
 
           if (address && office) {
             if (editId) {
+              // Grab the hidden original values we saved earlier
+              const oldAddr = row.getAttribute("data-old-addr");
+              const oldOff = row.getAttribute("data-old-off");
+              const oldPin = row.getAttribute("data-old-pin");
+
               requests.push({
                 post_office_id: editId,
                 action_type: "EDIT",
@@ -3716,6 +3746,11 @@
                   Address: address,
                   Office: office,
                   Pin: Pin || null,
+                },
+                original_data: {
+                  Address: oldAddr,
+                  Office: oldOff,
+                  Pin: oldPin || null,
                 },
                 requested_by: session.user.id,
               });
@@ -3768,8 +3803,9 @@
         const escapedOffice = escapeHTML(currentOffice);
         const escapedPin = escapeHTML(safePin);
 
+        // Add data attributes to secretly store the original values
         container.innerHTML = `
-        <div class="manual-entry-row" data-edit-id="${id}">
+        <div class="manual-entry-row" data-edit-id="${id}" data-old-addr="${escapedAddress}" data-old-off="${escapedOffice}" data-old-pin="${escapedPin}">
           <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
             <label style="color: var(--primary);">Address (Editing)</label>
             <input type="text" class="manual-address" value="${escapedAddress}" />
@@ -3946,12 +3982,28 @@
               prefix = "",
               fallback = "N/A"
             ) => {
-              const sOld = escapeHTML(oldVal || fallback);
-              const sNew = escapeHTML(newVal || fallback);
-              if (oldVal !== newVal) {
-                return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${sOld}</span> ➡️ <b>${sNew}</b></div>`;
+              // Safely parse to string and remove invisible spaces
+              const rawOld =
+                oldVal === undefined || oldVal === null
+                  ? ""
+                  : String(oldVal).trim();
+              const rawNew =
+                newVal === undefined || newVal === null
+                  ? ""
+                  : String(newVal).trim();
+
+              const sOld = rawOld === "" ? fallback : rawOld;
+              const sNew = rawNew === "" ? fallback : rawNew;
+
+              if (sOld !== sNew) {
+                return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${escapeHTML(
+                  sOld
+                )}</span> ➡️ <b>${escapeHTML(sNew)}</b></div>`;
               }
-              return `<div style="margin-bottom: 4px;">${prefix} ${sNew}</div>`;
+
+              return `<div style="margin-bottom: 4px;">${prefix} ${escapeHTML(
+                sNew
+              )}</div>`;
             };
 
             if (log.action === "INSERT") {
@@ -3963,7 +4015,7 @@
                   <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
                     log.new_data?.Office
                   )}</div>
-                  <div>📍 Pin: ${escapeHTML(log.new_data?.Pin || "N/A")}</div>
+                  <div>📍 ${escapeHTML(log.new_data?.Pin || "N/A")}</div>
                 `;
             } else if (log.action === "UPDATE") {
               actionBadge = `<span class="badge" style="background:#fef9c3;color:#854d0e; padding: 4px 8px; font-size: 12px;">✏️ EDITED</span>`;
@@ -3971,15 +4023,20 @@
               const oldD = log.old_data || {};
               const newD = log.new_data || {};
 
+              // Extract values safely to prevent missing data bugs
+              const oldAddr = oldD.Address || oldD.address;
+              const newAddr = newD.Address || newD.address;
+
+              const oldOff = oldD.Office || oldD.office;
+              const newOff = newD.Office || newD.office;
+
+              const oldPin = oldD.Pin || oldD.pin;
+              const newPin = newD.Pin || newD.pin;
+
               changesHtml =
-                formatField(
-                  oldD.Address,
-                  newD.Address,
-                  "📮",
-                  "Unknown Address"
-                ) +
-                formatField(oldD.Office, newD.Office, "🏢", "Unknown Office") +
-                formatField(oldD.Pin, newD.Pin, "📍 Pin:", "N/A");
+                formatField(oldAddr, newAddr, "📮", "Unknown Address") +
+                formatField(oldOff, newOff, "🏢", "Unknown Office") +
+                formatField(oldPin, newPin, "📍", "N/A");
 
               if (oldD.is_deleted !== newD.is_deleted) {
                 changesHtml += `<div style="margin-top: 8px;"><b>Status:</b> ${
@@ -3995,7 +4052,7 @@
                   <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
                     log.old_data?.Office
                   )}</div>
-                  <div style="text-decoration: line-through; color: var(--text-light);">📍 Pin: ${escapeHTML(
+                  <div style="text-decoration: line-through; color: var(--text-light);">📍 ${escapeHTML(
                     log.old_data?.Pin || "N/A"
                   )}</div>
                   <div style="margin-top: 8px; color: #991b1b; font-weight: 600;">Record was permanently deleted.</div>
@@ -4063,107 +4120,278 @@
         document.getElementById(btnId).classList.add("hidden");
         triggerSearch();
       }
+      let currentApprovalTab = "pending";
+
+      function switchApprovalTab(tab) {
+        currentApprovalTab = tab;
+
+        // Update tab UI styles
+        if (tab === "pending") {
+          document.getElementById("tab-appr-pending").classList.add("active");
+          document
+            .getElementById("tab-appr-resolved")
+            .classList.remove("active");
+        } else {
+          document.getElementById("tab-appr-resolved").classList.add("active");
+          document
+            .getElementById("tab-appr-pending")
+            .classList.remove("active");
+        }
+
+        // Reload the list
+        loadApprovals();
+      }
+
       async function loadApprovals() {
         const displayArea = document.getElementById("approvals-display-area");
         displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">Loading requests...</li></ul>`;
 
-        // Fetching profiles(name, employee_id) now!
-        const { data, error } = await supabaseClient
-          .from("edit_requests")
-          .select(
-            "*, post_offices(Address, Office), profiles(name, employee_id), request_approvals(id)"
-          )
-          .eq("status", "PENDING")
-          .order("created_at", { ascending: false });
+        try {
+          // 1. Clean query without any complex embedded joins
+          let query = supabaseClient
+            .from("edit_requests")
+            .select(
+              "*, post_offices(Address, Office, Pin), request_approvals(approved_by, is_admin)"
+            )
+            .order("created_at", { ascending: false });
 
-        if (error) {
-          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error loading requests: ${error.message}</li></ul>`;
-          return;
-        }
-
-        if (!data || data.length === 0) {
-          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No pending approvals! 🎉</li></ul>`;
-          return;
-        }
-
-        let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
-        data.forEach((req) => {
-          let desc = "";
-
-          // Get the proposed PIN safely
-          const propPin = req.proposed_data.Pin
-            ? escapeHTML(req.proposed_data.Pin)
-            : "N/A";
-
-          if (req.action_type === "ADD") {
-            desc = `<span class="badge" style="background:#dcfce7;color:#166534;">➕ ADD</span> <b>${escapeHTML(
-              req.proposed_data.Address
-            )}</b> (${escapeHTML(req.proposed_data.Office)}) - 📍 ${propPin}`;
-          } else if (req.action_type === "EDIT") {
-            const oldAddress = req.post_offices
-              ? req.post_offices.Address
-              : "Unknown";
-            desc = `<span class="badge" style="background:#fef9c3;color:#854d0e;">✏️ EDIT</span> <b>${escapeHTML(
-              oldAddress
-            )}</b> ➡️ ${escapeHTML(req.proposed_data.Address)} (${escapeHTML(
-              req.proposed_data.Office
-            )}) - 📍 ${propPin}`;
-          } else if (req.action_type === "DELETE") {
-            const oldAddress = req.post_offices
-              ? req.post_offices.Address
-              : "Unknown";
-            desc = `<span class="badge" style="background:#fee2e2;color:#991b1b;">🗑️ DELETE</span> <b>${escapeHTML(
-              oldAddress
-            )}</b>`;
+          if (currentApprovalTab === "pending") {
+            query = query.eq("status", "PENDING");
+          } else {
+            query = query.neq("status", "PENDING");
           }
 
-          // Extract tracking data
-          const voteCount = req.request_approvals
-            ? req.request_approvals.length
-            : 0;
-          const dateStr = new Date(req.created_at).toLocaleString("en-IN", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          });
-          const requesterName = req.profiles
-            ? req.profiles.name
-            : "Unknown User";
-          const requesterId =
-            req.profiles && req.profiles.employee_id
-              ? req.profiles.employee_id
-              : "No ID";
+          const { data, error } = await query;
+          if (error) throw error;
 
-          html += `
-            <li class="list-item" style="display: flex; flex-direction: column; gap: 10px;">
-                <div style="font-size: 15px;">${desc}</div>
-                
-                <!-- Tracking Info Box -->
-                <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
-                  👤 Requested by: <b>${escapeHTML(
-                    requesterName
-                  )}</b> (${escapeHTML(requesterId)})<br>
-                  📅 ${dateStr} <br>
-                  🗳️ Community Votes: <b style="color: var(--primary);">${voteCount} / 5</b>
-                </div>
-                
-                <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                   <!-- Only show Reject button if the user is an admin -->
+          if (!data || data.length === 0) {
+            const emptyMsg =
+              currentApprovalTab === "pending"
+                ? "No pending approvals! 🎉"
+                : "No resolved requests yet.";
+            displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">${emptyMsg}</li></ul>`;
+            return;
+          }
+
+          // 2. Gather all unique user IDs (requesters, approvers, rejecters) to fetch in one batch
+          let userIdsToFetch = new Set();
+          data.forEach((req) => {
+            if (req.requested_by) userIdsToFetch.add(req.requested_by);
+            if (req.last_approved_by) userIdsToFetch.add(req.last_approved_by);
+            if (req.request_approvals) {
+              req.request_approvals.forEach((app) => {
+                if (app.approved_by) userIdsToFetch.add(app.approved_by);
+              });
+            }
+          });
+
+          // 3. Fetch all needed profiles in a single query
+          let profilesMap = {};
+          if (userIdsToFetch.size > 0) {
+            const { data: profileData } = await supabaseClient
+              .from("profiles")
+              .select("id, name, employee_id")
+              .in("id", Array.from(userIdsToFetch));
+
+            if (profileData) {
+              profileData.forEach((p) => {
+                profilesMap[p.id] = p;
+              });
+            }
+          }
+
+          let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
+
+          data.forEach((req) => {
+            let changesHtml = "";
+
+            const formatApprovalField = (
+              oldVal,
+              newVal,
+              prefix = "",
+              fallback = "N/A"
+            ) => {
+              // Safely parse to string and remove invisible spaces
+              const rawOld =
+                oldVal === undefined || oldVal === null
+                  ? ""
+                  : String(oldVal).trim();
+              const rawNew =
+                newVal === undefined || newVal === null
+                  ? ""
+                  : String(newVal).trim();
+
+              const sOld = rawOld === "" ? fallback : rawOld;
+              const sNew = rawNew === "" ? fallback : rawNew;
+
+              // Only strike through if the trimmed values are genuinely different
+              if (sOld !== sNew) {
+                return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${escapeHTML(
+                  sOld
+                )}</span> ➡️ <b>${escapeHTML(sNew)}</b></div>`;
+              }
+
+              // If they are the same, just display the value normally
+              return `<div style="margin-bottom: 4px;">${prefix} ${escapeHTML(
+                sNew
+              )}</div>`;
+            };
+
+            if (req.action_type === "ADD") {
+              const badge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">➕ ADD</span>`;
+              changesHtml = `
+                ${badge}
+                <div style="margin-bottom: 4px;"><b>${escapeHTML(
+                  req.proposed_data.Address
+                )}</b></div>
+                <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
+                  req.proposed_data.Office
+                )}</div>
+                <div>📍 ${escapeHTML(req.proposed_data.Pin || "N/A")}</div>
+              `;
+            } else if (req.action_type === "EDIT") {
+              const badge = `<span class="badge" style="background:#fef9c3;color:#854d0e; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">✏️ EDIT</span>`;
+              
+              // 1. Look for the snapshot first! Fall back to post_offices if it's missing.
+              const oldD = req.original_data || req.post_offices || {};
+              const newD = req.proposed_data || {};
+
+              // 2. Extract values safely
+              const oldAddr = oldD.Address || oldD.address;
+              const newAddr = newD.Address || newD.address;
+              
+              const oldOff = oldD.Office || oldD.office;
+              const newOff = newD.Office || newD.office;
+              
+              const oldPin = oldD.Pin || oldD.pin;
+              const newPin = newD.Pin || newD.pin;
+
+              changesHtml = badge
+                          + formatApprovalField(oldAddr, newAddr, "📮", "Unknown Address")
+                          + formatApprovalField(oldOff, newOff, "🏢", "Unknown Office")
+                          + formatApprovalField(oldPin, newPin, "📍", "N/A");
+
+            } else if (req.action_type === "DELETE") {
+              const badge = `<span class="badge" style="background:#fee2e2;color:#991b1b; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">🗑️ DELETE</span>`;
+
+              const oldD = req.post_offices || {};
+              changesHtml = `
+                ${badge}
+                <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
+                  oldD.Address || "Unknown"
+                )}</b></div>
+                <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
+                  oldD.Office || "Unknown"
+                )}</div>
+                <div style="text-decoration: line-through; color: var(--text-light);">📍 ${escapeHTML(
+                  oldD.Pin || "N/A"
+                )}</div>
+              `;
+            }
+
+            const voteCount = req.request_approvals
+              ? req.request_approvals.length
+              : 0;
+            const dateStr = new Date(req.created_at).toLocaleString("en-IN", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            });
+
+            // Map requester using the fetched profile dictionary
+            const reqProfile = profilesMap[req.requested_by];
+            const requesterName = reqProfile ? reqProfile.name : "Unknown User";
+            const requesterId =
+              reqProfile && reqProfile.employee_id
+                ? reqProfile.employee_id
+                : "No ID";
+
+            // Format Approver block
+            let approverDetailsHtml = "";
+            if (
+              req.status === "APPROVED" &&
+              req.request_approvals &&
+              req.request_approvals.length > 0
+            ) {
+              const lastApproval =
+                req.request_approvals[req.request_approvals.length - 1];
+              const approverProfile = profilesMap[lastApproval.approved_by];
+
+              if (approverProfile) {
+                if (lastApproval.is_admin) {
+                  approverDetailsHtml = `
+                        <div style="font-size: 12px; color: var(--success-text); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
+                          ✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
+                            approverProfile.name
+                          )} - ${escapeHTML(approverProfile.employee_id)})
+                        </div>`;
+                } else {
+                  approverDetailsHtml = `
+                        <div style="font-size: 12px; color: var(--primary); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
+                          👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
+                            approverProfile.name
+                          )} - ${escapeHTML(approverProfile.employee_id)})
+                        </div>`;
+                }
+              }
+            }
+
+            // Generate Action Bar & Status block
+            let actionBarHtml = "";
+            if (req.status === "PENDING") {
+              actionBarHtml = `
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
                    ${
                      isCurrentUserAdmin
-                       ? `
-                   <button onclick="rejectRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:#fee2e2; color:#b91c1c; font-size:14px;">👎 Reject</button>
-                   `
+                       ? `<button onclick="rejectRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:#fee2e2; color:#b91c1c; font-size:14px;">👎 Reject</button>`
                        : ""
                    }
                    <button onclick="approveRequest('${
                      req.id
                    }')" class="btn" style="width:auto; padding:8px 20px; background:var(--primary); font-size:14px;">👍 Approve</button>
-                </div>
-            </li>
-            `;
-        });
-        html += `</ul>`;
-        displayArea.innerHTML = html;
+                </div>`;
+            } else if (req.status === "APPROVED") {
+              actionBarHtml = `<div style="text-align: right; color: var(--success-text); font-weight: 600; font-size: 13px; margin-top: 12px;">✅ Request Approved & Merged</div>`;
+            } else if (req.status === "REJECTED") {
+              let rejecterText = "";
+              if (req.last_approved_by && profilesMap[req.last_approved_by]) {
+                const rej = profilesMap[req.last_approved_by];
+                rejecterText = ` (Rejected by: ${escapeHTML(
+                  rej.name
+                )} - ${escapeHTML(rej.employee_id)})`;
+              }
+              actionBarHtml = `<div style="text-align: right; color: #b91c1c; font-weight: 600; font-size: 13px; margin-top: 12px;">❌ Request Rejected${rejecterText}</div>`;
+            }
+
+            html += `
+              <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm);">
+                  
+                  <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">
+                    ${changesHtml}
+                  </div>
+                  
+                  <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
+                    <div>👤 Requested by: <b>${escapeHTML(
+                      requesterName
+                    )}</b> (${escapeHTML(requesterId)})</div>
+                    <div>📅 ${dateStr}</div>
+                    ${
+                      req.status === "PENDING"
+                        ? `<div style="margin-top: 4px;">🗳️ Community Votes: <b style="color: var(--primary);">${voteCount} / 5</b></div>`
+                        : ""
+                    }
+                    ${approverDetailsHtml}
+                  </div>
+                  
+                  ${actionBarHtml}
+              </div>
+              `;
+          });
+
+          html += `</ul>`;
+          displayArea.innerHTML = html;
+        } catch (err) {
+          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error loading requests: ${err.message}</li></ul>`;
+        }
       }
       async function approveRequest(reqId) {
         showToast("Processing vote...");
