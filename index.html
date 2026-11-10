@@ -2261,26 +2261,28 @@
             <span>Search</span>
           </button>
           <button
-          class="bottom-nav-item"
-          id="bottom-nav-approvals"
-          onclick="switchDashboardView('approvals')"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            class="bottom-nav-item"
+            id="bottom-nav-approvals"
+            onclick="switchDashboardView('approvals')"
           >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            polyline points="14 2 14 8 20 8"></polyline>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            polyline points="10 9 9 9 8 9"></polyline>
-          </svg>
-          <span>Approvals</span>
-        </button>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+              ></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Approvals</span>
+          </button>
           <button
             class="bottom-nav-item"
             id="bottom-nav-upload"
@@ -2654,7 +2656,6 @@
         // 2. If no cache or forced sync, fetch from Supabase and return its boolean success state
         return await fetchFromServerBackground();
       }
-
 
       async function fetchFromServerBackground() {
         // Fast 1.5s true internet check
@@ -3776,43 +3777,62 @@
       async function loadApprovals() {
         const displayArea = document.getElementById("approvals-display-area");
         displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">Loading requests...</li></ul>`;
-        
+
         // Notice we are now fetching profiles(name) and counting the request_approvals array!
         const { data, error } = await supabaseClient
-            .from("edit_requests")
-            .select("*, post_offices(Address, Office), profiles(name), request_approvals(id)")
-            .eq("status", "PENDING")
-            .order("created_at", { ascending: false });
-            
+          .from("edit_requests")
+          .select(
+            "*, post_offices(Address, Office), profiles(name), request_approvals(id)"
+          )
+          .eq("status", "PENDING")
+          .order("created_at", { ascending: false });
+
         if (error) {
-            displayArea.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error loading requests: ${error.message}</li></ul>`;
-            return;
+          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error loading requests: ${error.message}</li></ul>`;
+          return;
         }
-        
+
         if (!data || data.length === 0) {
-            displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No pending approvals! 🎉</li></ul>`;
-            return;
+          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No pending approvals! 🎉</li></ul>`;
+          return;
         }
 
         let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
-        data.forEach(req => {
-            let desc = "";
-            if (req.action_type === 'ADD') {
-                desc = `<span class="badge" style="background:#dcfce7;color:#166534;">➕ ADD</span> <b>${escapeHTML(req.proposed_data.Address)}</b> (${escapeHTML(req.proposed_data.Office)})`;
-            } else if (req.action_type === 'EDIT') {
-                const oldAddress = req.post_offices ? req.post_offices.Address : 'Unknown';
-                desc = `<span class="badge" style="background:#fef9c3;color:#854d0e;">✏️ EDIT</span> <b>${escapeHTML(oldAddress)}</b> ➡️ ${escapeHTML(req.proposed_data.Address)}`;
-            } else if (req.action_type === 'DELETE') {
-                const oldAddress = req.post_offices ? req.post_offices.Address : 'Unknown';
-                desc = `<span class="badge" style="background:#fee2e2;color:#991b1b;">🗑️ DELETE</span> <b>${escapeHTML(oldAddress)}</b>`;
-            }
+        data.forEach((req) => {
+          let desc = "";
+          if (req.action_type === "ADD") {
+            desc = `<span class="badge" style="background:#dcfce7;color:#166534;">➕ ADD</span> <b>${escapeHTML(
+              req.proposed_data.Address
+            )}</b> (${escapeHTML(req.proposed_data.Office)})`;
+          } else if (req.action_type === "EDIT") {
+            const oldAddress = req.post_offices
+              ? req.post_offices.Address
+              : "Unknown";
+            desc = `<span class="badge" style="background:#fef9c3;color:#854d0e;">✏️ EDIT</span> <b>${escapeHTML(
+              oldAddress
+            )}</b> ➡️ ${escapeHTML(req.proposed_data.Address)}`;
+          } else if (req.action_type === "DELETE") {
+            const oldAddress = req.post_offices
+              ? req.post_offices.Address
+              : "Unknown";
+            desc = `<span class="badge" style="background:#fee2e2;color:#991b1b;">🗑️ DELETE</span> <b>${escapeHTML(
+              oldAddress
+            )}</b>`;
+          }
 
-            // Extract tracking data
-            const voteCount = req.request_approvals ? req.request_approvals.length : 0;
-            const dateStr = new Date(req.created_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-            const requesterName = req.profiles ? req.profiles.name : 'Unknown User';
+          // Extract tracking data
+          const voteCount = req.request_approvals
+            ? req.request_approvals.length
+            : 0;
+          const dateStr = new Date(req.created_at).toLocaleString("en-IN", {
+            dateStyle: "medium",
+            timeStyle: "short",
+          });
+          const requesterName = req.profiles
+            ? req.profiles.name
+            : "Unknown User";
 
-            html += `
+          html += `
             <li class="list-item" style="display: flex; flex-direction: column; gap: 10px;">
                 <div style="font-size: 15px;">${desc}</div>
                 
@@ -3824,7 +3844,9 @@
                 </div>
                 
                 <div style="display: flex; justify-content: flex-end;">
-                   <button onclick="approveRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:var(--primary); font-size:14px;">👍 Approve</button>
+                   <button onclick="approveRequest('${
+                     req.id
+                   }')" class="btn" style="width:auto; padding:8px 20px; background:var(--primary); font-size:14px;">👍 Approve</button>
                 </div>
             </li>
             `;
@@ -3852,7 +3874,13 @@
         }
       }
       // Add 'settings' to your viewOrder array for swipe navigation
-      const viewOrder = ["favorites", "settings", "search", "approvals", "upload"];
+      const viewOrder = [
+        "favorites",
+        "settings",
+        "search",
+        "approvals",
+        "upload",
+      ];
 
       // 1. Save and Load Default View (List vs Table)
       function saveDefaultView(mode) {
@@ -3945,7 +3973,7 @@
             .select("id")
             .eq("id", userId)
             .maybeSingle();
-            
+
           return !!data; // Returns true if found in the database, false otherwise
         } catch (err) {
           return false;
@@ -3953,7 +3981,8 @@
       }
 
       async function applyAdminUI() {
-        const adminOnlyExcelCard = document.getElementById("admin-excel-upload");
+        const adminOnlyExcelCard =
+          document.getElementById("admin-excel-upload");
 
         if (!isCurrentUserAdmin) {
           // Hide direct database override tools from standard users
