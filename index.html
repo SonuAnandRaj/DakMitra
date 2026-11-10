@@ -12,7 +12,7 @@
     <!-- PWA Requirements -->
     <link rel="manifest" href="manifest.json" />
     <!-- Replace your existing theme-color meta tags with this -->
-<meta name="theme-color" id="meta-theme-color" content="#ffffff" />
+    <meta name="theme-color" id="meta-theme-color" content="#ffffff" />
     <link rel="apple-touch-icon" href="icon-192.png" />
 
     <!-- Locks zooming and scaling -->
@@ -20,8 +20,6 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-
-   
 
     <!-- iOS specific tags to hide Safari UI -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -72,8 +70,7 @@
       body {
         /* Stops the browser from bouncing or refreshing */
         overscroll-behavior-y: contain;
-
-        
+      }
 
       /* Re-enable text selection ONLY for actual input fields so staff can type */
       input,
@@ -3939,23 +3936,26 @@
 
         return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
       }
-function applyTheme(theme) {
-  let isDark = false;
-  if (theme === "system") {
-    isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
-  } else {
-    isDark = (theme === "dark");
-    document.documentElement.setAttribute("data-theme", theme);
-  }
-  localStorage.setItem("app-theme", theme);
-  
-  // Blends the Android status bar seamlessly with your app bar
-  const metaTheme = document.getElementById("meta-theme-color");
-  if (metaTheme) {
-    metaTheme.setAttribute("content", isDark ? "#111827" : "#ffffff");
-  }
-}
+      function applyTheme(theme) {
+        let isDark = false;
+        if (theme === "system") {
+          isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.setAttribute(
+            "data-theme",
+            isDark ? "dark" : "light"
+          );
+        } else {
+          isDark = theme === "dark";
+          document.documentElement.setAttribute("data-theme", theme);
+        }
+        localStorage.setItem("app-theme", theme);
+
+        // Blends the Android status bar seamlessly with your app bar
+        const metaTheme = document.getElementById("meta-theme-color");
+        if (metaTheme) {
+          metaTheme.setAttribute("content", isDark ? "#111827" : "#ffffff");
+        }
+      }
       function escapeForOnclick(str) {
         if (!str) return "";
         return String(str)
