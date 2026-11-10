@@ -3252,8 +3252,12 @@
               <div style="width: 100%;">
                 <div class="office-title">${addressHtml}</div>
                 <div class="sub-office">
-                  <span class="badge badge-primary">🏢 ${officeHtml}</span>
-                  <span class="badge">📍 ${PinHtml || "N/A"}</span>
+                  <span class="badge badge-primary" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+                    row.Office
+                  )}')">🏢 ${officeHtml}</span>
+                  <span class="badge" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+                    row.Office
+                  )}')">📍 ${PinHtml || "N/A"}</span>
                 </div>
               </div>
               <div class="card-actions">
@@ -3313,9 +3317,17 @@
             const favStyle = getFavoriteBtnStyles(isFav, true);
 
             html += `<tr class="list-item" onclick="toggleCardExpansion(this)">
-            <td>${addressHtml}</td>
-            <td>${officeHtml}</td>
-            <td>${PinHtml || "-"}</td>
+              <td>${addressHtml}</td>
+            <td style="cursor: pointer; color: var(--primary);" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+              row.Office
+            )}')">
+               ${officeHtml}
+            </td>
+            <td style="cursor: pointer; color: var(--primary);" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+              row.Office
+            )}')">
+               ${PinHtml || "-"}
+            </td>
            </tr>
            <tr class="card-actions-row">
              <td colspan="3" style="padding: 0; border: none;">
@@ -3557,8 +3569,11 @@
           data.addresses.sort();
           const totalAddresses = data.addresses.length;
 
+          // Create a safe, spaces-removed ID for jumping
+          const safeId = "dir-office-" + office.replace(/\W/g, "-");
+
           html += `
-            <div class="directory-card">
+            <div class="directory-card" id="${safeId}">
               <div class="directory-card-header">
                 <div class="directory-office-title">
                   <span>🏢</span>
@@ -4909,6 +4924,36 @@
           select.innerHTML = optionsHtml;
           if (currentVal) select.value = currentVal;
         });
+      }
+      function goToDirectoryOffice(officeName) {
+        if (!officeName) return;
+
+        // 1. Switch to the directory view
+        switchDashboardView("directory");
+
+        // 2. Generate the safe ID we used for the card
+        const cardId = "dir-office-" + officeName.replace(/\W/g, "-");
+
+        // 3. Wait a tiny moment for the DOM to render, then scroll and highlight
+        setTimeout(() => {
+          const card = document.getElementById(cardId);
+          if (card) {
+            // Scroll the card into view inside the scrollable container
+            card.scrollIntoView({ behavior: "smooth", block: "start" });
+
+            // Flash highlight effect
+            card.style.transition =
+              "background-color 0.5s ease, transform 0.3s ease";
+            card.style.backgroundColor = "rgba(79, 70, 229, 0.15)";
+            card.style.transform = "scale(1.02)";
+
+            // Remove highlight after a moment
+            setTimeout(() => {
+              card.style.backgroundColor = "var(--card-bg)";
+              card.style.transform = "scale(1)";
+            }, 1200);
+          }
+        }, 50);
       }
 
       // BOOTSTRAP APP
