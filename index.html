@@ -2047,9 +2047,19 @@
                   type="text"
                   id="directory-filter-input"
                   placeholder="Filter by office name or PIN..."
-                  oninput="filterDirectory()"
+                  oninput="toggleDirClearBtn(); filterDirectory();"
                   autocomplete="off"
                 />
+                <!-- Clear Button -->
+                <button
+                  type="button"
+                  id="clear-dir-filter-btn"
+                  class="clear-btn hidden"
+                  onclick="clearDirectoryFilter()"
+                  title="Clear Filter"
+                >
+                  ✕
+                </button>
               </div>
             </div>
           </div>
@@ -3561,8 +3571,12 @@
       }
       function renderDirectory() {
         const displayArea = document.getElementById("directory-display-area");
+
+        // Reset the filter input and hide clear button when the directory renders
         const filterInput = document.getElementById("directory-filter-input");
+        const clearBtn = document.getElementById("clear-dir-filter-btn");
         if (filterInput) filterInput.value = "";
+        if (clearBtn) clearBtn.classList.add("hidden");
 
         if (!cachedPostOffices || cachedPostOffices.length === 0) {
           displayArea.innerHTML = `<div class="list-empty">No data available.</div>`;
@@ -5018,7 +5032,23 @@
           emptyState.style.display = "none";
         }
       }
+      function toggleDirClearBtn() {
+        const input = document.getElementById("directory-filter-input");
+        const clearBtn = document.getElementById("clear-dir-filter-btn");
+        if (input.value.length > 0) {
+          clearBtn.classList.remove("hidden");
+        } else {
+          clearBtn.classList.add("hidden");
+        }
+      }
 
+      function clearDirectoryFilter() {
+        const input = document.getElementById("directory-filter-input");
+        input.value = "";
+        toggleDirClearBtn();
+        filterDirectory();
+        input.focus(); // Keeps the keyboard open on mobile
+      }
       // BOOTSTRAP APP
       checkEmailVerificationRedirect();
       checkUserSession();
