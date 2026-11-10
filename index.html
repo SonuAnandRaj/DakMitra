@@ -1868,7 +1868,7 @@
                 Table
               </button>
             </div>
-            <div class="toolbar-group">
+            <div class="toolbar-group" id="export-toolbar-group">
               <button type="button" class="toolbar-btn" onclick="copyResults()">
                 📋 Copy
               </button>
@@ -1988,6 +1988,40 @@
               >
                 <option value="tap">Tap to Show</option>
                 <option value="always">Always Show</option>
+              </select>
+            </div>
+            <!-- Add some spacing to the block above -->
+            <div style="margin-bottom: 16px"></div>
+
+            <!-- Export Buttons Mode Setting -->
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <div>
+                <strong style="display: block; color: var(--text)"
+                  >Export Buttons</strong
+                >
+                <span style="font-size: 13px; color: var(--text-light)"
+                  >Show Copy and CSV options</span
+                >
+              </div>
+              <select
+                id="export-mode-select"
+                onchange="saveExportMode(this.value)"
+                style="
+                  padding: 8px;
+                  border-radius: 8px;
+                  background: var(--input-bg);
+                  color: var(--text);
+                  border: 1px solid var(--border);
+                "
+              >
+                <option value="show">Show</option>
+                <option value="hide">Hide</option>
               </select>
             </div>
           </div>
@@ -3621,6 +3655,27 @@
         renderResults();
         showToast("⚙️ Action button preference saved!");
       }
+
+      // 3. Save and apply Export Buttons Mode
+      function saveExportMode(mode) {
+        localStorage.setItem("dakmitra_export_mode", mode);
+        applyExportMode(mode);
+        showToast("⚙️ Export button preference saved!");
+      }
+
+      function applyExportMode(mode) {
+        const exportGroup = document.getElementById("export-toolbar-group");
+        if (exportGroup) {
+          exportGroup.style.display = mode === "hide" ? "none" : "flex";
+        }
+      }
+
+      // Load the saved Export preference when the app starts
+      const savedExportMode =
+        localStorage.getItem("dakmitra_export_mode") || "show";
+      const exportModeSelect = document.getElementById("export-mode-select");
+      if (exportModeSelect) exportModeSelect.value = savedExportMode;
+      applyExportMode(savedExportMode);
 
       // 2. Load the saved preference when the app starts (add this inside checkUserSession or near initialization)
       const savedActionMode =
