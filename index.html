@@ -3573,43 +3573,43 @@
 
       // --- ULTRA-FAST SESSION LOADER (Zero unnecessary network delay) ---
       async function checkUserSession() {
-        const {
-          data: { session },
-        } = await supabaseClient.auth.getSession();
         const authView = document.getElementById("auth-view");
         const dashboardView = document.getElementById("dashboard-view");
         const splashScreen = document.getElementById("splash-screen");
+
+        // 1. FAST SESSION CHECK (800ms strict timeout to prevent hanging offline)
+        const sessionPromise = supabaseClient.auth.getSession();
+        const timeoutPromise = new Promise((resolve) =>
+          setTimeout(() => resolve({ timeout: true }), 800)
+        );
+
+        let result = await Promise.race([sessionPromise, timeoutPromise]);
+        let session = null;
+
+        if (result.timeout) {
+          // If Supabase hangs, manually pull the cached session from localStorage
+          const localKeys = Object.keys(localStorage).filter((k) =>
+            k.includes("-auth-token")
+          );
+          if (localKeys.length > 0) {
+            const localData = JSON.parse(localStorage.getItem(localKeys[0]));
+            session = localData?.session || localData;
+          }
+        } else {
+          session = result.data?.session;
+        }
 
         if (session) {
           authView.classList.add("hidden");
           dashboardView.classList.remove("hidden");
 
-          const userEmail = session.user.email;
+          const userEmail = session.user?.email || "user@example.com";
           document.getElementById("user-email-display").textContent = userEmail;
 
-          // DYNAMIC CHECK: Ask Supabase if this user is an admin
-          isCurrentUserAdmin = await checkIfAdmin(session.user.id);
-          applyAdminUI(); // Hide or show admin tools based on database result
-
-          // Pull profile from local cache instantly to eliminate bulky network wait times
+          // Instantly load profile from cache to eliminate UI network delay
           let profileData = JSON.parse(
             localStorage.getItem("dakmitra_cached_profile")
           );
-
-          if (!profileData) {
-            // Fallback query only if cache is missing
-            const { data } = await supabaseClient
-              .from("profiles")
-              .select("name, designation, employee_id")
-              .eq("id", session.user.id)
-              .single();
-            profileData = data;
-            if (profileData)
-              localStorage.setItem(
-                "dakmitra_cached_profile",
-                JSON.stringify(profileData)
-              );
-          }
 
           if (profileData) {
             document.getElementById("user-name-display").textContent =
@@ -3629,7 +3629,44 @@
           }
 
           switchDashboardView("search");
-          await fetchAllPostOffices();
+
+          // 2. FIRE AND FORGET: Run network requests in the background WITHOUT 'await'
+
+          // Background Task A: Check Admin Status
+          checkIfAdmin(session.user.id)
+            .then((isAdmin) => {
+              isCurrentUserAdmin = isAdmin;
+              applyAdminUI();
+            })
+            .catch(() => console.log("Admin check skipped (offline)"));
+
+          // Background Task B: Fetch fallback profile if cache is missing
+          if (!profileData && navigator.onLine) {
+            supabaseClient
+              .from("profiles")
+              .select("name, designation, employee_id")
+              .eq("id", session.user.id)
+              .single()
+              .then(({ data }) => {
+                if (data) {
+                  localStorage.setItem(
+                    "dakmitra_cached_profile",
+                    JSON.stringify(data)
+                  );
+                  document.getElementById("user-name-display").textContent =
+                    data.name;
+                  document.getElementById(
+                    "user-designation-display"
+                  ).textContent = data.designation;
+                  document.getElementById("avatar-letter").textContent =
+                    data.name.charAt(0).toUpperCase();
+                }
+              })
+              .catch(() => {});
+          }
+
+          // Background Task C: Load Post Offices
+          fetchAllPostOffices();
         } else {
           authView.classList.remove("hidden");
           dashboardView.classList.add("hidden");
@@ -3637,12 +3674,10 @@
           currentFilteredData = [];
         }
 
-        setTimeout(() => {
-          splashScreen.classList.add("hidden-splash");
-        }, 200);
+        // 3. INSTANT SPLASH DISMISSAL: No longer blocked by network awaits
+        splashScreen.classList.add("hidden-splash");
         loadSearchHistory();
       }
-
       document
         .getElementById("search-input")
         .addEventListener("input", function () {
