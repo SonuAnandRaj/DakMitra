@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <!-- Optimized viewport for mobile apps (Accessibility fixed) -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>DakMitra</title>
 
     <!-- PWA Requirements -->
@@ -437,7 +440,10 @@
         align-items: center;
         justify-content: space-between;
         background: var(--card-bg);
-        padding: 16px 20px;
+
+        /* UPDATED: Adds dynamic padding for the notch */
+        padding: calc(12px + env(safe-area-inset-top)) 20px 16px;
+
         box-shadow: var(--shadow-sm);
         position: sticky;
         top: 0;
@@ -493,8 +499,9 @@
       }
       /* --- SIDEBAR HEADER (Profile & Stats) --- */
       .sidebar-header {
-        padding: 32px 20px 24px;
-        /* Adds a subtle fade at the top of the sidebar */
+        /* UPDATED: Pushes the profile avatar below the notch */
+        padding: calc(24px + env(safe-area-inset-top)) 20px 24px;
+
         background: linear-gradient(to bottom, var(--stripe-bg), transparent);
         border-bottom: 1px solid var(--border);
       }
