@@ -2,7 +2,7 @@
   "name": "DakMitra",
   "short_name": "DakMitra",
   "start_url": "./index.html",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#f1f5f9",
   "theme_color": "#4f46e5",
   "orientation": "portrait",
