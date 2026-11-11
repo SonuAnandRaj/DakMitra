@@ -1115,10 +1115,18 @@
       }
 
       /* Morphs to red when hovered (indicating recording readiness) */
-      .mic-btn:hover {
-        background: rgba(239, 68, 68, 0.1);
-        color: #ef4444;
-        transform: scale(1.1);
+      /* Morphs to red when hovered (indicating recording readiness) */
+      @media (hover: hover) and (pointer: fine) {
+        .mic-btn:hover {
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          transform: scale(1.1);
+        }
+      }
+
+      /* Quick tap animation for mobile screens */
+      .mic-btn:active {
+        transform: scale(0.95);
       }
 
       .clear-btn {
