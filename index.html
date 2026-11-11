@@ -4814,6 +4814,8 @@
       async function submitMultipleRecords() {
         const rows = document.querySelectorAll(".manual-entry-row");
         const requests = [];
+        const adminDirectEdits = []; // Array for immediate execution if Admin
+        
         const {
           data: { session },
         } = await supabaseClient.auth.getSession();
@@ -4826,65 +4828,77 @@
 
           if (address && office) {
             if (editId) {
-              // Grab the hidden original values we saved earlier
               const oldAddr = row.getAttribute("data-old-addr");
               const oldOff = row.getAttribute("data-old-off");
               const oldPin = row.getAttribute("data-old-pin");
 
-              requests.push({
+              const reqData = {
                 post_office_id: editId,
                 action_type: "EDIT",
-                proposed_data: {
-                  Address: address,
-                  Office: office,
-                  Pin: Pin || null,
-                },
-                original_data: {
-                  Address: oldAddr,
-                  Office: oldOff,
-                  Pin: oldPin || null,
-                },
+                proposed_data: { Address: address, Office: office, Pin: Pin || null },
+                original_data: { Address: oldAddr, Office: oldOff, Pin: oldPin || null },
                 requested_by: session.user.id,
-              });
+              };
+              
+              if(isCurrentUserAdmin) adminDirectEdits.push(reqData);
+              else requests.push(reqData);
+              
             } else {
-              requests.push({
+              const reqData = {
                 action_type: "ADD",
-                proposed_data: {
-                  Address: address,
-                  Office: office,
-                  Pin: Pin || null,
-                },
+                proposed_data: { Address: address, Office: office, Pin: Pin || null },
                 requested_by: session.user.id,
-              });
+              };
+              
+              if(isCurrentUserAdmin) adminDirectEdits.push(reqData);
+              else requests.push(reqData);
             }
           }
         });
 
-        if (requests.length === 0)
+        if (requests.length === 0 && adminDirectEdits.length === 0)
           return showToast("Please fill in at least one complete row.");
 
         const btn = document.getElementById("submit-multiple-btn");
         btn.textContent = "Submitting...";
         btn.disabled = true;
 
-        const { error } = await supabaseClient
-          .from("edit_requests")
-          .insert(requests);
-
-        if (error) {
-          alert("Error submitting request: " + error.message);
-        } else {
-          showToast(`✅ Change requests submitted for approval!`);
-          document.getElementById("manual-entries-container").innerHTML =
-            getManualEntryRowHTML(true);
-          if (requests.some((r) => r.action_type === "EDIT"))
-            switchDashboardView("search");
+        try {
+            if(isCurrentUserAdmin) {
+                // Admin Flow: Execute immediately via RPC
+                const { data, error } = await supabaseClient.rpc('admin_direct_submit', { 
+                    request_payloads: adminDirectEdits 
+                });
+                
+                if(error) throw error;
+                showToast(`✅ Admin: Changes applied instantly!`);
+                fetchAllPostOffices(true); // Force sync to reflect changes
+                
+            } else {
+                // Standard User Flow: Insert pending request
+                const { error } = await supabaseClient
+                  .from("edit_requests")
+                  .insert(requests);
+                  
+                if(error) throw error;
+                showToast(`✅ Change requests submitted for approval!`);
+            }
+            
+            document.getElementById("manual-entries-container").innerHTML = getManualEntryRowHTML(true);
+            
+            // Navigate back to search if it was an edit
+            if ((requests.length > 0 && requests.some((r) => r.action_type === "EDIT")) || 
+                (adminDirectEdits.length > 0 && adminDirectEdits.some((r) => r.action_type === "EDIT"))) {
+                switchDashboardView("search");
+            }
+            
+        } catch (err) {
+            alert("Error submitting request: " + err.message);
         }
 
         btn.textContent = "Submit All";
         btn.disabled = false;
       }
-
       function updateRecord(id, currentAddress, currentOffice, currentPin) {
         switchDashboardView("upload");
         const container = document.getElementById("manual-entries-container");
@@ -4924,28 +4938,55 @@
         showToast("✏️ Ready to edit.");
       }
       function deleteRecord(id) {
+        let title = "Request Deletion?";
+        let message = "This will submit a deletion request to the community for approval. Continue?";
+        let btnText = "Request Delete";
+        
+        if(isCurrentUserAdmin) {
+            title = "Admin: Force Delete?";
+            message = "As an Admin, this deletion will be applied immediately without requiring community votes. Continue?";
+            btnText = "Delete Instantly";
+        }
+
         showCustomConfirm(
-          "Request Deletion?",
-          "This will submit a deletion request to the community for approval. Continue?",
-          "Request Delete",
+          title,
+          message,
+          btnText,
           async () => {
             const {
               data: { session },
             } = await supabaseClient.auth.getSession();
-            const { error } = await supabaseClient
-              .from("edit_requests")
-              .insert({
+            
+            const reqData = {
                 post_office_id: id,
                 action_type: "DELETE",
                 proposed_data: {},
                 requested_by: session.user.id,
-              });
-            if (error) alert("Error: " + error.message);
-            else showToast("📝 Deletion request submitted for approval.");
+            };
+
+            if(isCurrentUserAdmin) {
+                 // Admin Flow: Execute immediately via RPC
+                 try {
+                     const { data, error } = await supabaseClient.rpc('admin_direct_submit', { 
+                        request_payloads: [reqData] 
+                     });
+                     if (error) throw error;
+                     showToast("🗑️ Admin: Record deleted instantly.");
+                     fetchAllPostOffices(true); // Force sync
+                 } catch (err) {
+                     alert("Error: " + err.message);
+                 }
+            } else {
+                // Standard User Flow
+                const { error } = await supabaseClient
+                  .from("edit_requests")
+                  .insert(reqData);
+                if (error) alert("Error: " + error.message);
+                else showToast("📝 Deletion request submitted for approval.");
+            }
           }
         );
       }
-
       function closeAlertModal() {
         document.getElementById("alert-modal-overlay").classList.remove("show");
       }
