@@ -3969,13 +3969,14 @@
       function clearSearchInput() {
         window.speechSynthesis.cancel();
 
-        // Stop listening and reset mic color if active
         if (window.activeRecognition) {
           window.activeRecognition.abort();
           window.activeRecognition = null;
-          const micBtn = document.getElementById("mic-btn");
-          if (micBtn) micBtn.style.color = "";
         }
+
+        // Force reset the mic color safely
+        const micBtn = document.getElementById("mic-btn");
+        if (micBtn) micBtn.style.color = "";
 
         const searchInput = document.getElementById("search-input");
         searchInput.value = "";
@@ -3983,7 +3984,6 @@
         triggerSearch();
         searchInput.focus();
       }
-
       function highlightText(text, matches, key) {
         if (text === null || text === undefined) return "";
 
@@ -4326,20 +4326,29 @@
       }
 
       function startVoiceSearch() {
-        window.speechSynthesis.cancel();
-
         const micBtn = document.getElementById("mic-btn");
         const searchInput = document.getElementById("search-input");
 
-        // Stop listening and reset mic color instantly if active
-        if (window.activeRecognition) {
-          window.activeRecognition.abort();
-          window.activeRecognition = null;
-          micBtn.style.color = "";
+        // Check if the app is currently talking or listening
+        const isSpeaking =
+          window.speechSynthesis.speaking || window.speechSynthesis.pending;
+        const isListening = !!window.activeRecognition;
+
+        // If doing EITHER, we cancel everything, reset the mic color, and STOP.
+        if (isSpeaking || isListening) {
+          window.speechSynthesis.cancel();
+
+          if (isListening) {
+            window.activeRecognition.abort();
+            window.activeRecognition = null;
+          }
+
+          micBtn.style.color = ""; // Reverts to default blue
           searchInput.placeholder = "Type address, office, or Pin...";
           return;
         }
 
+        // If neither was happening, start a fresh listening mode
         const SpeechRecognition =
           window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition)
@@ -4352,7 +4361,7 @@
         window.activeRecognition = recognition;
 
         recognition.onstart = () => {
-          micBtn.style.color = "#ef4444";
+          micBtn.style.color = "#ef4444"; // Turns red
           searchInput.placeholder = "Listening...";
           searchInput.value = "";
         };
@@ -4370,7 +4379,7 @@
           }
         };
         recognition.onend = () => {
-          micBtn.style.color = "";
+          micBtn.style.color = ""; // Reverts to blue automatically when done listening
           searchInput.placeholder = "Type address, office, or Pin...";
           window.activeRecognition = null;
         };
