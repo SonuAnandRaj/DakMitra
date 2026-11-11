@@ -117,7 +117,83 @@
         --mic-hover: #ef4444;
         --stripe-bg: rgba(129, 140, 248, 0.05);
       }
+      /* --- SKELETON LOADER ANIMATION --- */
+      @keyframes shimmer {
+        0% {
+          background-position: -468px 0;
+        }
+        100% {
+          background-position: 468px 0;
+        }
+      }
 
+      .skeleton-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.02);
+      }
+
+      .skeleton-line {
+        height: 16px;
+        background: var(--input-bg);
+        background-image: linear-gradient(
+          to right,
+          var(--input-bg) 0%,
+          var(--border) 20%,
+          var(--input-bg) 40%,
+          var(--input-bg) 100%
+        );
+        background-repeat: no-repeat;
+        background-size: 800px 100%;
+        animation: shimmer 1.5s infinite linear forwards;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+
+      .skeleton-line.short {
+        width: 40%;
+      }
+      .skeleton-line.medium {
+        width: 70%;
+      }
+      .skeleton-line.badges {
+        height: 24px;
+        width: 50%;
+        border-radius: 12px;
+        margin-bottom: 0;
+      }
+      /* --- VOICE SEARCH RIPPLE ANIMATION --- */
+      @keyframes ripple {
+        0% {
+          transform: scale(0.8);
+          opacity: 0.6;
+        }
+        100% {
+          transform: scale(2.2);
+          opacity: 0;
+        }
+      }
+
+      .mic-btn.listening {
+        position: relative;
+        color: #ef4444 !important; /* Force red */
+      }
+
+      .mic-btn.listening::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(239, 68, 68, 0.4);
+        border-radius: 50%;
+        z-index: -1;
+        animation: ripple 1.2s infinite ease-out;
+      }
       body {
         background-color: var(--bg);
         color: var(--text);
@@ -1408,6 +1484,10 @@
       }
 
       .list-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         padding: 48px 20px;
         text-align: center;
         color: var(--text-light);
@@ -1417,6 +1497,13 @@
         border-radius: 16px;
         border: 2px dashed var(--input-border);
         margin: 12px 0;
+      }
+
+      .empty-icon {
+        width: 48px;
+        height: 48px;
+        color: var(--input-border);
+        margin-bottom: 12px;
       }
 
       /* --- TABLE VIEW (Modern Continuous Rows) --- */
@@ -2395,6 +2482,27 @@
             <span>Directory</span>
           </button>
 
+          <!-- HELP & GUIDE BUTTON -->
+          <button
+            class="sidebar-menu-item"
+            id="nav-help"
+            onclick="switchDashboardView('help')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            <span>Help & Guide</span>
+          </button>
+
           <hr style="border-top: 1px solid var(--border); margin: 8px 0" />
 
           <button
@@ -2768,7 +2876,22 @@
 
           <div class="results-container-scroll" id="results-display-area">
             <ul class="list-container">
-              <li class="list-empty">Loading database...</li>
+              <!-- Skeleton Loaders -->
+              <div class="skeleton-card">
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line badges"></div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line badges"></div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line short"></div>
+                <div class="skeleton-line badges"></div>
+              </div>
             </ul>
           </div>
         </section>
@@ -2818,7 +2941,16 @@
             id="directory-display-area"
             style="max-height: 70vh"
           >
-            <div class="list-empty">Loading directory...</div>
+            <div style="padding: 4px">
+              <div class="skeleton-card">
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line badges"></div>
+              </div>
+              <div class="skeleton-card">
+                <div class="skeleton-line medium"></div>
+                <div class="skeleton-line badges"></div>
+              </div>
+            </div>
           </div>
         </section>
         <!-- SETTINGS VIEW -->
@@ -3121,7 +3253,205 @@
             </div>
           </div>
         </section>
+        <!-- HELP VIEW -->
+        <section id="view-help" class="view-section">
+          <div class="search-hero" style="text-align: center">
+            <h2 style="margin-bottom: 8px">User Guide</h2>
+            <p style="color: var(--text-light); font-size: 14px">
+              Master the DakMitra app with this quick beginner's guide.
+            </p>
+          </div>
 
+          <div
+            class="results-container-scroll expanded"
+            style="
+              padding: 4px;
+              border: none;
+              box-shadow: none;
+              background: transparent;
+            "
+          >
+            <!-- Guide: Searching -->
+            <div
+              class="upload-card"
+              style="text-align: left; margin-bottom: 16px; padding: 24px"
+            >
+              <h3
+                style="
+                  color: var(--primary);
+                  margin-bottom: 12px;
+                  font-size: 18px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                "
+              >
+                🔍 Searching for Records
+              </h3>
+              <p
+                style="
+                  font-size: 14px;
+                  color: var(--text-light);
+                  margin-bottom: 12px;
+                "
+              >
+                The main Search tab allows you to instantly find any postal
+                record in the database.
+              </p>
+              <ul
+                style="
+                  font-size: 13px;
+                  color: var(--text);
+                  padding-left: 20px;
+                  line-height: 1.6;
+                "
+              >
+                <li style="margin-bottom: 8px">
+                  <strong>Smart Typing:</strong> Type a partial address, and the
+                  app will find the closest matches even if you misspell it
+                  slightly.
+                </li>
+                <li style="margin-bottom: 8px">
+                  <strong>Voice Search:</strong> Tap the red microphone icon
+                  <span style="color: #ef4444">🎙️</span> in the search bar to
+                  simply speak the address or PIN code.
+                </li>
+                <li style="margin-bottom: 8px">
+                  <strong>Filters:</strong> Tap the "⚙️ Search Options" button
+                  to strictly filter results by a specific Office or PIN.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Guide: Directory & Favorites -->
+            <div
+              class="upload-card"
+              style="text-align: left; margin-bottom: 16px; padding: 24px"
+            >
+              <h3
+                style="
+                  color: var(--accent);
+                  margin-bottom: 12px;
+                  font-size: 18px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                "
+              >
+                ⭐ Favorites & Directory
+              </h3>
+              <p
+                style="
+                  font-size: 14px;
+                  color: var(--text-light);
+                  margin-bottom: 12px;
+                "
+              >
+                Keep your most important data accessible and organized.
+              </p>
+              <ul
+                style="
+                  font-size: 13px;
+                  color: var(--text);
+                  padding-left: 20px;
+                  line-height: 1.6;
+                "
+              >
+                <li style="margin-bottom: 8px">
+                  <strong>Saving Favorites:</strong> Tap the Star icon next to
+                  any search result to save it. You can view all saved items in
+                  the <em>Favorites</em> tab.
+                </li>
+                <li style="margin-bottom: 8px">
+                  <strong>Using the Directory:</strong> Open the
+                  <em>Directory</em> from the sidebar to view all addresses
+                  grouped neatly by their main Post Office. It is perfect for
+                  getting a bird's-eye view of an area.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Guide: Edits & Approvals -->
+            <div
+              class="upload-card"
+              style="text-align: left; margin-bottom: 16px; padding: 24px"
+            >
+              <h3
+                style="
+                  color: var(--primary);
+                  margin-bottom: 12px;
+                  font-size: 18px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                "
+              >
+                📝 Editing Data & Approvals
+              </h3>
+              <p
+                style="
+                  font-size: 14px;
+                  color: var(--text-light);
+                  margin-bottom: 12px;
+                "
+              >
+                DakMitra is community-driven. You can suggest corrections to any
+                record.
+              </p>
+              <ul
+                style="
+                  font-size: 13px;
+                  color: var(--text);
+                  padding-left: 20px;
+                  line-height: 1.6;
+                "
+              >
+                <li style="margin-bottom: 8px">
+                  <strong>Proposing an Edit:</strong> Tap on any search result
+                  to expand it, then tap <strong>✎ Edit</strong>. Change the
+                  details and submit.
+                </li>
+                <li style="margin-bottom: 8px">
+                  <strong>The Approval Process:</strong> Your edit won't go live
+                  immediately. It goes to the <em>Approvals</em> tab where other
+                  colleagues must vote "👍 Approve" before the master database
+                  is updated.
+                </li>
+                <li style="margin-bottom: 8px">
+                  <strong>Adding New Records:</strong> Go to the
+                  <em>Upload Data</em> tab to manually type in brand new
+                  addresses that are missing from the database.
+                </li>
+              </ul>
+            </div>
+
+            <!-- Guide: Offline Mode -->
+            <div
+              class="upload-card"
+              style="text-align: left; margin-bottom: 24px; padding: 24px"
+            >
+              <h3
+                style="
+                  color: var(--success-border);
+                  margin-bottom: 12px;
+                  font-size: 18px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                "
+              >
+                📶 Working Offline
+              </h3>
+              <p style="font-size: 14px; color: var(--text-light)">
+                DakMitra saves a secure copy of the database directly to your
+                phone. If you lose internet connection while out on delivery or
+                in a remote office, you can still search the database instantly.
+                The app will automatically sync new data the next time you have
+                a stable connection.
+              </p>
+            </div>
+          </div>
+        </section>
         <!-- BOTTOM NAVIGATION BAR -->
         <nav class="bottom-nav">
           <button
@@ -3456,6 +3786,9 @@
         toastEl.textContent = message;
         toastEl.classList.add("show");
         setTimeout(() => toastEl.classList.remove("show"), 3000);
+
+        // HAPTIC: Single subtle tap for success actions
+        if (navigator.vibrate) navigator.vibrate(50);
       }
 
       const HISTORY_KEY = "dakmitra_search_history";
@@ -3559,7 +3892,15 @@
         const displayArea = document.getElementById("favorites-display-area");
 
         if (favorites.length === 0) {
-          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No favorites saved yet.</li></ul>`;
+          displayArea.innerHTML = `
+            <ul class="list-container">
+              <li class="list-empty">
+                <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+                <span>No favorites saved yet.</span>
+              </li>
+            </ul>`;
           return;
         }
 
@@ -3734,11 +4075,12 @@
           includeMatches: true,
         });
 
-        // If the user hasn't typed anything yet, just show the default top 10
+        // If the user hasn't typed anything yet, load the whole DB (Infinite Scroll handles rendering)
         if (!document.getElementById("search-input").value.trim()) {
-          currentFilteredData = cachedPostOffices
-            .slice(0, 10)
-            .map((item) => ({ item, matches: [] }));
+          currentFilteredData = cachedPostOffices.map((item) => ({
+            item,
+            matches: [],
+          }));
           renderResults();
         }
         refreshOfficeDropdowns();
@@ -3860,9 +4202,10 @@
           .toLowerCase();
 
         if (!searchInput && !filterOffice && !filterPin) {
-          currentFilteredData = cachedPostOffices
-            .slice(0, 10)
-            .map((item) => ({ item, matches: [] }));
+          currentFilteredData = cachedPostOffices.map((item) => ({
+            item,
+            matches: [],
+          }));
           renderResults();
           return;
         }
@@ -3971,8 +4314,12 @@
         }
 
         // Force reset the mic color safely
+        // Force reset the mic color and animation safely
         const micBtn = document.getElementById("mic-btn");
-        if (micBtn) micBtn.style.color = "";
+        if (micBtn) {
+          micBtn.classList.remove("listening");
+          micBtn.style.color = "";
+        }
 
         const searchInput = document.getElementById("search-input");
         searchInput.value = "";
@@ -4047,12 +4394,51 @@
           .replace(/"/g, "&quot;");
       }
 
-      function renderResults() {
+      // --- INFINITE SCROLL LOGIC FOR SEARCH ---
+      window.searchDisplayLimit = 10;
+      window.searchObserver = null;
+
+      function setupSearchObserver() {
+        const sentinel = document.getElementById("search-sentinel");
         const displayArea = document.getElementById("results-display-area");
-        displayArea.scrollTop = 0;
+
+        if (window.searchObserver) window.searchObserver.disconnect();
+
+        window.searchObserver = new IntersectionObserver(
+          (entries) => {
+            if (entries[0].isIntersecting) {
+              if (window.searchDisplayLimit < currentFilteredData.length) {
+                window.searchDisplayLimit += 10; // Load 50 more
+                renderResults(true); // The 'true' flag prevents scrolling back to the top
+              }
+            }
+          },
+          { root: displayArea, rootMargin: "300px" }
+        ); // Pre-load 300px before reaching the bottom
+
+        if (sentinel) window.searchObserver.observe(sentinel);
+      }
+
+      function renderResults(isLoadMore = false) {
+        const displayArea = document.getElementById("results-display-area");
+
+        // Only jump to the top and reset the limit if this is a brand new search
+        if (!isLoadMore) {
+          displayArea.scrollTop = 0;
+          window.searchDisplayLimit = 10;
+        }
 
         if (currentFilteredData.length === 0) {
-          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">No address found matching your search.</li></ul>`;
+          displayArea.innerHTML = `
+            <ul class="list-container">
+              <li class="list-empty">
+                <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span>No address found matching your search.</span>
+              </li>
+            </ul>`;
           return;
         }
 
@@ -4067,26 +4453,29 @@
               : "list-container";
           let html = `<ul class="${containerClass}" style="margin:0; padding:0; list-style:none;">`;
 
-          currentFilteredData.slice(0, 50).forEach((result) => {
-            const row = result.item;
-            const addressHtml = highlightText(
-              row.Address,
-              result.matches,
-              "Address"
-            );
-            const officeHtml = highlightText(
-              row.Office,
-              result.matches,
-              "Office"
-            );
-            const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+          // SLICE BASED ON DYNAMIC LIMIT
+          currentFilteredData
+            .slice(0, window.searchDisplayLimit)
+            .forEach((result) => {
+              const row = result.item;
+              const addressHtml = highlightText(
+                row.Address,
+                result.matches,
+                "Address"
+              );
+              const officeHtml = highlightText(
+                row.Office,
+                result.matches,
+                "Office"
+              );
+              const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
-            const isFav = favorites.some(
-              (f) => String(f.id) === String(row.id)
-            );
-            const favStyle = getFavoriteBtnStyles(isFav, false);
+              const isFav = favorites.some(
+                (f) => String(f.id) === String(row.id)
+              );
+              const favStyle = getFavoriteBtnStyles(isFav, false);
 
-            html += `
+              html += `
               <li class="list-item" onclick="toggleCardExpansion(this)" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
                   <div style="width: 100%;">
                     <div class="office-title">${addressHtml}</div>
@@ -4106,26 +4495,32 @@
                     <button onclick="event.stopPropagation(); toggleFavorite('${
                       row.id
                     }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-              row.Office
-            )}', '${escapeForOnclick(
-              row.Pin
-            )}', this)" class="toolbar-btn" style="${favStyle.style}">${
-              favStyle.icon
-            }</button>
+                row.Office
+              )}', '${escapeForOnclick(
+                row.Pin
+              )}', this)" class="toolbar-btn" style="${favStyle.style}">${
+                favStyle.icon
+              }</button>
                     <button onclick="event.stopPropagation(); updateRecord('${
                       row.id
                     }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-              row.Office
-            )}', '${escapeForOnclick(
-              row.Pin
-            )}')" class="toolbar-btn" style="background: var(--input-bg);">Edit</button>
+                row.Office
+              )}', '${escapeForOnclick(
+                row.Pin
+              )}')" class="toolbar-btn" style="background: var(--input-bg);">Edit</button>
                     <button onclick="event.stopPropagation(); deleteRecord('${
                       row.id
                     }')" class="toolbar-btn" style="background: #fee2e2; color: #b91c1c;">Delete</button>
                   </div>
               </li>`;
-          });
+            });
           html += `</ul>`;
+
+          // APPEND SENTINEL IF MORE DATA EXISTS
+          if (window.searchDisplayLimit < currentFilteredData.length) {
+            html += `<div id="search-sentinel" style="height: 40px; text-align: center; padding: 10px; color: var(--text-light); font-size: 13px;">Loading more results...</div>`;
+          }
+
           displayArea.innerHTML = html;
         } else {
           const tableClass =
@@ -4136,26 +4531,29 @@
                   <thead><tr><th>Address</th><th>Office</th><th>Pin</th></tr></thead>
                   <tbody>`;
 
-          currentFilteredData.slice(0, 50).forEach((result) => {
-            const row = result.item;
-            const addressHtml = highlightText(
-              row.Address,
-              result.matches,
-              "Address"
-            );
-            const officeHtml = highlightText(
-              row.Office,
-              result.matches,
-              "Office"
-            );
-            const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+          // SLICE BASED ON DYNAMIC LIMIT
+          currentFilteredData
+            .slice(0, window.searchDisplayLimit)
+            .forEach((result) => {
+              const row = result.item;
+              const addressHtml = highlightText(
+                row.Address,
+                result.matches,
+                "Address"
+              );
+              const officeHtml = highlightText(
+                row.Office,
+                result.matches,
+                "Office"
+              );
+              const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
-            const isFav = favorites.some(
-              (f) => String(f.id) === String(row.id)
-            );
-            const favStyle = getFavoriteBtnStyles(isFav, true);
+              const isFav = favorites.some(
+                (f) => String(f.id) === String(row.id)
+              );
+              const favStyle = getFavoriteBtnStyles(isFav, true);
 
-            html += `<tr class="list-item" onclick="toggleCardExpansion(this)">
+              html += `<tr class="list-item" onclick="toggleCardExpansion(this)">
                   <td>${addressHtml}</td>
                 <td style="cursor: pointer; color: var(--primary);" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
                   row.Office
@@ -4174,30 +4572,40 @@
                      <button onclick="event.stopPropagation(); toggleFavorite('${
                        row.id
                      }', '${escapeForOnclick(
-              row.Address
-            )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
-              row.Pin
-            )}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
-              favStyle.style
-            }" title="Toggle Favorite">${favStyle.icon}</button>
+                row.Address
+              )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
+                row.Pin
+              )}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
+                favStyle.style
+              }" title="Toggle Favorite">${favStyle.icon}</button>
                      <button onclick="event.stopPropagation(); updateRecord('${
                        row.id
                      }', '${escapeForOnclick(
-              row.Address
-            )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
-              row.Pin
-            )}')" class="toolbar-btn" style="padding: 4px 8px;">✎ Edit</button>
+                row.Address
+              )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
+                row.Pin
+              )}')" class="toolbar-btn" style="padding: 4px 8px;">✎ Edit</button>
                      <button onclick="event.stopPropagation(); deleteRecord('${
                        row.id
                      }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑 Delete</button>
                    </div>
                  </td>
                </tr>`;
-          });
+            });
           html += `</tbody></table>`;
+
+          // APPEND SENTINEL IF MORE DATA EXISTS
+          if (window.searchDisplayLimit < currentFilteredData.length) {
+            html += `<div id="search-sentinel" style="height: 40px; text-align: center; padding: 10px; color: var(--text-light); font-size: 13px;">Loading more results...</div>`;
+          }
+
           displayArea.innerHTML = html;
         }
+
+        // START WATCHING THE SENTINEL
+        setupSearchObserver();
       }
+
       function copyResults() {
         if (!currentFilteredData.length) return showToast("No data to copy!");
         const text = currentFilteredData
@@ -4318,7 +4726,7 @@
           window.speechSynthesis.speaking || window.speechSynthesis.pending;
         const isListening = !!window.activeRecognition;
 
-        // If doing EITHER, we cancel everything, reset the mic color, and STOP.
+        // If doing EITHER, we cancel everything, reset the mic, and STOP.
         if (isSpeaking || isListening) {
           window.speechSynthesis.cancel();
 
@@ -4327,7 +4735,8 @@
             window.activeRecognition = null;
           }
 
-          micBtn.style.color = ""; // Reverts to default blue
+          micBtn.classList.remove("listening");
+          micBtn.style.color = ""; // Safely clear inline styles
           searchInput.placeholder = "Type address, office, or Pin...";
           return;
         }
@@ -4345,7 +4754,7 @@
         window.activeRecognition = recognition;
 
         recognition.onstart = () => {
-          micBtn.style.color = "#ef4444"; // Turns red
+          micBtn.classList.add("listening"); // Triggers red color and ripple animation
           searchInput.placeholder = "Listening...";
           searchInput.value = "";
         };
@@ -4363,12 +4772,14 @@
           }
         };
         recognition.onend = () => {
-          micBtn.style.color = ""; // Reverts to blue automatically when done listening
+          micBtn.classList.remove("listening"); // Stops animation
+          micBtn.style.color = "";
           searchInput.placeholder = "Type address, office, or Pin...";
           window.activeRecognition = null;
         };
         recognition.start();
       }
+
       function switchTab(mode) {
         currentMode = mode;
         const signinTab = document.getElementById("tab-signin");
@@ -4394,6 +4805,9 @@
         const box = document.getElementById("alert-box");
         box.className = `alert ${type}`;
         box.textContent = message;
+
+        // HAPTIC: Double stutter tap for warnings/errors (50ms on, 50ms off, 50ms on)
+        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
       }
       function hideAlert() {
         const box = document.getElementById("alert-box");
@@ -5097,6 +5511,9 @@
         document.getElementById("alert-modal-title").textContent = title;
         document.getElementById("alert-modal-message").textContent = message;
         document.getElementById("alert-modal-overlay").classList.add("show");
+
+        // HAPTIC: Double stutter tap for major alerts
+        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
       }
 
       function closeAlertModal() {
@@ -5974,8 +6391,8 @@
           dropdown.classList.remove("show");
         } else {
           let html = "";
-          // Limit to top 50 matches for performance
-          matchedOffices.slice(0, 50).forEach((office) => {
+          // Limit to top 10 matches for performance
+          matchedOffices.slice(0, 10).forEach((office) => {
             const pin = officeMap.get(office);
             html += `<div class="autocomplete-item" onclick="selectCustomOffice(this, '${escapeForOnclick(
               office
@@ -6105,6 +6522,25 @@
         filterDirectory();
         input.focus(); // Keeps the keyboard open on mobile
       }
+      // --- FOREGROUND AUTO-SYNC ---
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          // Only attempt a sync if the user is actively logged in
+          const isLoggedIn =
+            document
+              .getElementById("dashboard-view")
+              .classList.contains("hidden") === false;
+
+          if (isLoggedIn) {
+            console.log(
+              "App returned to foreground. Silently fetching fresh data..."
+            );
+            // fetchFromServerBackground() handles the internet check and silent update automatically
+            fetchFromServerBackground();
+          }
+        }
+      });
+
       // BOOTSTRAP APP
       checkEmailVerificationRedirect();
       checkUserSession();
