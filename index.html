@@ -15,12 +15,6 @@
     <meta name="theme-color" id="meta-theme-color" content="#ffffff" />
     <link rel="apple-touch-icon" href="icon-192.png" />
 
-    <!-- Locks zooming and scaling -->
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-
     <!-- iOS specific tags to hide Safari UI -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
@@ -73,12 +67,6 @@
       }
 
       /* Re-enable text selection ONLY for actual input fields so staff can type */
-      input,
-      textarea,
-      select {
-        user-select: auto;
-        -webkit-touch-callout: default;
-      }
 
       * {
         box-sizing: border-box;
@@ -128,14 +116,6 @@
         --mic-bg: #f87171;
         --mic-hover: #ef4444;
         --stripe-bg: rgba(129, 140, 248, 0.05);
-      }
-
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-        font-family: "Inter", sans-serif;
-        -webkit-tap-highlight-color: transparent;
       }
 
       body {
@@ -915,25 +895,11 @@
       }
       /* --- SEARCH SECTION --- */
 
-      .search-hero.collapsed {
-        max-height: 0;
-        opacity: 0;
-        margin-bottom: 0;
-        padding: 0;
-        border-width: 0;
-        box-shadow: none;
-      }
       .search-hero h2 {
         font-size: 22px;
         font-weight: 700;
         margin-bottom: 16px;
         color: var(--text);
-      }
-
-      @media (min-width: 600px) {
-        .search-bar-modern {
-          flex-direction: row;
-        }
       }
 
       .search-input-wrapper:focus-within {
@@ -1308,12 +1274,6 @@
         border-color: var(--primary);
         box-shadow: var(--shadow-sm);
       }
-      @media (min-width: 600px) {
-        .search-action-btn {
-          width: 140px;
-          flex: none;
-        }
-      }
 
       /* --- TOOLBAR & RESULTS --- */
       .results-toolbar {
@@ -1658,12 +1618,6 @@
         height: 4px;
         background: rgba(239, 68, 68, 0.2);
         border-radius: 2px;
-      }
-      /* --- SEARCH HIGHLIGHTING --- */
-      .highlight-text {
-        background-color: transparent !important;
-        color: #ef4444 !important; /* The !important tag forces this to override table row colors */
-        font-weight: 900 !important;
       }
 
       /* --- UPLOAD SECTION --- */
@@ -3344,26 +3298,7 @@
         </div>
       </div>
     </div>
-    <!-- CUSTOM ALERT MODAL -->
-    <div id="alert-modal-overlay" class="modal-overlay">
-      <div class="modal-card">
-        <div class="modal-icon" id="alert-modal-icon">⚠️</div>
-        <h3 id="alert-modal-title" class="modal-title">Alert</h3>
-        <p id="alert-modal-message" class="modal-message">
-          Something went wrong.
-        </p>
-        <div class="modal-actions">
-          <button
-            type="button"
-            class="btn modal-btn-cancel"
-            onclick="closeAlertModal()"
-            style="width: 100%; margin: 0"
-          >
-            OK
-          </button>
-        </div>
-      </div>
-    </div>
+
     <script>
       // --- SUPABASE & STATE ---
       const SUPABASE_URL = "https://nvviolzdujgwkmnrnaww.supabase.co";
@@ -3395,6 +3330,15 @@
       let approvalsObserver = null;
       let isApprovalsLoading = false;
       let hasMoreApprovals = true;
+
+      function getSafeStorage(key) {
+        try {
+          return JSON.parse(localStorage.getItem(key)) || [];
+        } catch (e) {
+          console.warn(`Resetting corrupted storage for ${key}`);
+          return [];
+        }
+      }
 
       // Ultra-fast "Lie-Fi" detector
       async function checkActualInternet() {
@@ -3498,7 +3442,7 @@
       const HISTORY_KEY = "dakmitra_search_history";
 
       function loadSearchHistory() {
-        const history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+        const history = getSafeStorage(HISTORY_KEY);
         const toggleBtn = document.getElementById("history-toggle-btn");
         const chipsDiv = document.getElementById("search-history-chips");
 
@@ -3533,7 +3477,7 @@
 
       function saveSearchTerm(term) {
         if (!term || term.trim().length < 3) return;
-        let history = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+        let history = getSafeStorage(HISTORY_KEY);
         const newTermLower = term.toLowerCase().trim();
 
         history = history.filter((t) => t.toLowerCase() !== newTermLower);
@@ -3559,7 +3503,7 @@
       const FAV_KEY = "dakmitra_favorites";
 
       function toggleFavorite(id, address, office, pin, btnElement) {
-        let favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+        let favorites = getSafeStorage(FAV_KEY);
         const existingIndex = favorites.findIndex(
           (f) => String(f.id) === String(id)
         );
@@ -3592,7 +3536,7 @@
       }
 
       function renderFavorites() {
-        const favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+        const favorites = getSafeStorage(FAV_KEY);
         const displayArea = document.getElementById("favorites-display-area");
 
         if (favorites.length === 0) {
@@ -3638,18 +3582,24 @@
 
       // --- THEME LOGIC (Optimized) ---
       function applyTheme(theme) {
+        let isDark = false;
         if (theme === "system") {
-          const prefersDark = window.matchMedia(
-            "(prefers-color-scheme: dark)"
-          ).matches;
+          isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
           document.documentElement.setAttribute(
             "data-theme",
-            prefersDark ? "dark" : "light"
+            isDark ? "dark" : "light"
           );
         } else {
+          isDark = theme === "dark";
           document.documentElement.setAttribute("data-theme", theme);
         }
         localStorage.setItem("app-theme", theme);
+
+        // Blends the Android status bar seamlessly with your app bar
+        const metaTheme = document.getElementById("meta-theme-color");
+        if (metaTheme) {
+          metaTheme.setAttribute("content", isDark ? "#111827" : "#ffffff");
+        }
       }
 
       function toggleTheme() {
@@ -3853,9 +3803,10 @@
         }
         return numStr;
       }
-      let activeFilterVal = null; // Track current filter to avoid unnecessary Fuse rebuilds
 
       function triggerSearch() {
+        // Prevent crashes if the user types before background data finishes loading
+        if (!fuse) return;
         const searchInput = document
           .getElementById("search-input")
           .value.trim();
@@ -4050,26 +4001,7 @@
 
         return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
       }
-      function applyTheme(theme) {
-        let isDark = false;
-        if (theme === "system") {
-          isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-          document.documentElement.setAttribute(
-            "data-theme",
-            isDark ? "dark" : "light"
-          );
-        } else {
-          isDark = theme === "dark";
-          document.documentElement.setAttribute("data-theme", theme);
-        }
-        localStorage.setItem("app-theme", theme);
 
-        // Blends the Android status bar seamlessly with your app bar
-        const metaTheme = document.getElementById("meta-theme-color");
-        if (metaTheme) {
-          metaTheme.setAttribute("content", isDark ? "#111827" : "#ffffff");
-        }
-      }
       function escapeForOnclick(str) {
         if (!str) return "";
         return String(str)
@@ -4298,6 +4230,13 @@
             const {
               data: { session },
             } = await supabaseClient.auth.getSession();
+
+            if (!session || !session.user) {
+              uploadBtn.textContent = originalText;
+              uploadBtn.disabled = false;
+              checkUserSession();
+              return alert("Your session has expired. Please sign in again.");
+            }
             const formattedData = jsonData.map((row) => ({
               Address: row["Address"],
               Office: row["Office"],
@@ -4916,6 +4855,11 @@
           data: { session },
         } = await supabaseClient.auth.getSession();
 
+        if (!session || !session.user) {
+          checkUserSession(); // Kicks them back to the login screen
+          return alert("Your session has expired. Please sign in again.");
+        }
+
         rows.forEach((row) => {
           const address = row.querySelector(".manual-address").value.trim();
           const office = row.querySelector(".manual-office").value.trim();
@@ -5100,9 +5044,7 @@
           }
         });
       }
-      function closeAlertModal() {
-        document.getElementById("alert-modal-overlay").classList.remove("show");
-      }
+
       function showCustomConfirm(
         title,
         message,
@@ -5712,7 +5654,7 @@
           } else {
             showToast("👍 Vote recorded! Waiting for more votes.");
           }
-          loadApprovals(); // Refresh the list
+          switchApprovalTab(currentApprovalTab, true); // Refresh the list
         } catch (err) {
           alert(err.message);
         }
@@ -5736,7 +5678,7 @@
               if (data === "REJECTED") {
                 showToast("❌ Request rejected and closed.");
               }
-              loadApprovals(); // Refresh the list
+              switchApprovalTab(currentApprovalTab, true); // Refresh the list
             } catch (err) {
               alert(err.message);
             }
