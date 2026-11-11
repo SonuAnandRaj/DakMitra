@@ -570,12 +570,21 @@
         background: var(--card-bg);
         border: 1px solid var(--border);
         border-radius: 14px;
-        padding: 12px;
+        /* Slightly reduce side padding to ensure it fits in small columns */
+        padding: 12px 4px;
         display: flex;
         align-items: center;
-        gap: 10px;
+
+        /* Forces the icon and text group to sit perfectly in the horizontal center */
+        justify-content: center;
+
+        gap: 8px; /* Tightens the space between icon and text slightly */
         box-shadow: var(--shadow-sm);
         transition: transform 0.2s, box-shadow 0.2s;
+      }
+
+      .stat-box.clickable {
+        cursor: pointer;
       }
 
       .stat-box:hover {
@@ -610,6 +619,7 @@
       .stat-details {
         display: flex;
         flex-direction: column;
+        align-items: flex-start;
         overflow: hidden;
       }
 
@@ -2176,7 +2186,10 @@
 
           <!-- Modern Stats Grid -->
           <div class="sidebar-stats-grid">
-            <div class="stat-box">
+            <div
+              class="stat-box clickable"
+              onclick="switchDashboardView('directory')"
+            >
               <div class="stat-icon addr">
                 <svg
                   viewBox="0 0 24 24"
@@ -2199,7 +2212,10 @@
               </div>
             </div>
 
-            <div class="stat-box">
+            <div
+              class="stat-box clickable"
+              onclick="switchDashboardView('directory')"
+            >
               <div class="stat-icon office">
                 <svg
                   viewBox="0 0 24 24"
@@ -2234,8 +2250,8 @@
         <nav class="sidebar-nav">
           <button
             class="sidebar-menu-item"
-            id="nav-approvals"
-            onclick="switchDashboardView('approvals')"
+            id="nav-favorites"
+            onclick="switchDashboardView('favorites')"
           >
             <svg
               viewBox="0 0 24 24"
@@ -2245,16 +2261,13 @@
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <path
-                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-              ></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-              <polyline points="10 9 9 9 8 9"></polyline>
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+              ></polygon>
             </svg>
-            <span>Approvals</span>
+            <span>Favorites</span>
           </button>
+
           <!-- NEW SETTINGS BUTTON START -->
           <button
             class="sidebar-menu-item"
@@ -2279,26 +2292,6 @@
           <!-- NEW SETTINGS BUTTON END -->
 
           <button
-            class="sidebar-menu-item"
-            id="nav-favorites"
-            onclick="switchDashboardView('favorites')"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <polygon
-                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-              ></polygon>
-            </svg>
-            <span>Favorites</span>
-          </button>
-
-          <button
             class="sidebar-menu-item active"
             id="nav-search"
             onclick="switchDashboardView('search')"
@@ -2314,13 +2307,13 @@
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <span>Search Database</span>
+            <span>Search</span>
           </button>
 
           <button
             class="sidebar-menu-item"
-            id="nav-directory"
-            onclick="switchDashboardView('directory')"
+            id="nav-approvals"
+            onclick="switchDashboardView('approvals')"
           >
             <svg
               viewBox="0 0 24 24"
@@ -2331,10 +2324,14 @@
               stroke-linejoin="round"
             >
               <path
-                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
               ></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
             </svg>
-            <span>All Offices Directory</span>
+            <span>Approval</span>
           </button>
 
           <button
@@ -2355,6 +2352,26 @@
               <line x1="12" y1="3" x2="12" y2="15"></line>
             </svg>
             <span>Upload Data</span>
+          </button>
+
+          <button
+            class="sidebar-menu-item"
+            id="nav-directory"
+            onclick="switchDashboardView('directory')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+              ></path>
+            </svg>
+            <span>Directory</span>
           </button>
 
           <hr style="border-top: 1px solid var(--border); margin: 8px 0" />
@@ -2737,7 +2754,7 @@
         <!-- DIRECTORY VIEW -->
         <section id="view-directory" class="view-section">
           <div class="search-hero" style="text-align: center">
-            <h2 style="margin-bottom: 8px">Office Directory</h2>
+            <h2 style="margin-bottom: 8px">Directory</h2>
             <p style="color: var(--text-light); font-size: 14px">
               Bird's-eye view of all addresses grouped by their respective
               offices.
