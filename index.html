@@ -4787,28 +4787,24 @@
       });
 
       function getManualEntryRowHTML(showLabels = false) {
-        const optionsHtml = generateOfficeDropdownOptions();
-
         return `
-      <div class="manual-entry-row">
-        <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-          ${showLabels ? "<label>Address</label>" : ""}
-          <input type="text" class="manual-address" placeholder="Address" />
-        </div>
-        <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-          ${showLabels ? "<label>Office</label>" : ""}
-          <select class="manual-office" onchange="autoFillPin(this)">
-            <option value="" disabled selected>Select Office</option>
-            ${optionsHtml}
-          </select>
-        </div>
-        <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-          ${showLabels ? "<label>Pin</label>" : ""}
-          <input type="text" class="manual-Pin" placeholder="e.g. 231305" />
-        </div>
-        <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
-      </div>
-      `;
+  <div class="manual-entry-row">
+    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+      ${showLabels ? "<label>Address</label>" : ""}
+      <input type="text" class="manual-address" placeholder="Address" autocomplete="off" />
+    </div>
+    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left; position: relative;">
+      ${showLabels ? "<label>Office</label>" : ""}
+      <input type="text" class="manual-office" list="office-options-list" placeholder="Search & Select Office..." oninput="autoFillPin(this); this.nextElementSibling.classList.toggle('hidden', this.value.length === 0);" autocomplete="off" style="padding-right: 40px;" />
+      <button type="button" class="clear-btn hidden" style="position: absolute; right: 6px; bottom: 6px; width: 36px; height: 36px; padding: 0; margin: 0;" onclick="const inp = this.previousElementSibling; inp.value=''; inp.focus(); this.classList.add('hidden'); autoFillPin(inp);" title="Clear Office">✕</button>
+    </div>
+    <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+      ${showLabels ? "<label>Pin</label>" : ""}
+      <input type="text" class="manual-Pin" placeholder="e.g. 231305" autocomplete="off" />
+    </div>
+    <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
+  </div>
+  `;
       }
       document.getElementById("manual-entries-container").innerHTML =
         getManualEntryRowHTML(true);
@@ -4933,29 +4929,26 @@
         const escapedOffice = escapeHTML(currentOffice);
         const escapedPin = escapeHTML(safePin);
 
-        // Generate options and mark the current office as selected
-        const optionsHtml = generateOfficeDropdownOptions(currentOffice);
-
         container.innerHTML = `
-      <div class="manual-entry-row" data-edit-id="${id}" data-old-addr="${escapedAddress}" data-old-off="${escapedOffice}" data-old-pin="${escapedPin}">
-        <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-          <label style="color: var(--primary);">Address (Editing)</label>
-          <input type="text" class="manual-address" value="${escapedAddress}" />
-        </div>
-        <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-          <label style="color: var(--primary);">Office</label>
-          <select class="manual-office" onchange="autoFillPin(this)">
-            <option value="" disabled>Select Office</option>
-            ${optionsHtml}
-          </select>
-        </div>
-        <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-          <label style="color: var(--primary);">Pin</label>
-          <input type="text" class="manual-Pin" value="${escapedPin}" />
-        </div>
-        <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
-      </div>
-      `;
+  <div class="manual-entry-row" data-edit-id="${id}" data-old-addr="${escapedAddress}" data-old-off="${escapedOffice}" data-old-pin="${escapedPin}">
+    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+      <label style="color: var(--primary);">Address (Editing)</label>
+      <input type="text" class="manual-address" value="${escapedAddress}" autocomplete="off" />
+    </div>
+    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left; position: relative;">
+      <label style="color: var(--primary);">Office</label>
+      <input type="text" class="manual-office" list="office-options-list" value="${escapedOffice}" placeholder="Search & Select Office..." oninput="autoFillPin(this); this.nextElementSibling.classList.toggle('hidden', this.value.length === 0);" autocomplete="off" style="padding-right: 40px;" />
+      <button type="button" class="clear-btn ${
+        escapedOffice ? "" : "hidden"
+      }" style="position: absolute; right: 6px; bottom: 6px; width: 36px; height: 36px; padding: 0; margin: 0;" onclick="const inp = this.previousElementSibling; inp.value=''; inp.focus(); this.classList.add('hidden'); autoFillPin(inp);" title="Clear Office">✕</button>
+    </div>
+    <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+      <label style="color: var(--primary);">Pin</label>
+      <input type="text" class="manual-Pin" value="${escapedPin}" autocomplete="off" />
+    </div>
+    <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
+  </div>
+  `;
 
         document.getElementById("submit-multiple-btn").textContent =
           "Save Changes";
@@ -5860,7 +5853,7 @@
         cardElement.classList.toggle("expanded");
       }
       // Helper: Extracts unique offices from the database and generates <option> tags
-      function generateOfficeDropdownOptions(selectedOffice = "") {
+      function generateOfficeDropdownOptions() {
         if (!cachedPostOffices || cachedPostOffices.length === 0) return "";
 
         const officeMap = new Map();
@@ -5870,48 +5863,53 @@
           }
         });
 
-        // Sort alphabetically for easier searching
         const sortedOffices = Array.from(officeMap.keys()).sort();
 
         let html = "";
         sortedOffices.forEach((office) => {
           const pin = officeMap.get(office);
-          const isSelected = office === selectedOffice ? "selected" : "";
-          // Store the PIN in a data attribute to retrieve it later
           html += `<option value="${escapeHTML(office)}" data-pin="${escapeHTML(
             pin
-          )}" ${isSelected}>${escapeHTML(office)}</option>`;
+          )}"></option>`;
         });
         return html;
       }
-
       // Helper: Automatically fills the PIN field when an office is selected
-      function autoFillPin(selectElement) {
-        const selectedOption =
-          selectElement.options[selectElement.selectedIndex];
-        const pin = selectedOption.getAttribute("data-pin");
+      function autoFillPin(inputElement) {
+        const val = inputElement.value;
+        const dataList = document.getElementById("office-options-list");
+        if (!dataList) return;
 
-        const row = selectElement.closest(".manual-entry-row");
+        // Look up the exact option matching the typed text
+        const option = Array.from(dataList.options).find(
+          (opt) => opt.value === val
+        );
+
+        const row = inputElement.closest(".manual-entry-row");
         const pinInput = row.querySelector(".manual-Pin");
 
-        if (pinInput && pin) {
-          pinInput.value = pin;
+        if (pinInput) {
+          if (option) {
+            const pin = option.getAttribute("data-pin");
+            if (pin) {
+              pinInput.value = pin;
+            }
+          } else if (val.trim() === "") {
+            // Automatically clear the Pin if the Office is completely cleared
+            pinInput.value = "";
+          }
         }
       }
 
       // Helper: Refreshes dropdown options after database is fetched from Supabase
       function refreshOfficeDropdowns() {
-        const selects = document.querySelectorAll(".manual-office");
-        if (selects.length === 0) return;
-
-        const optionsHtml =
-          `<option value="" disabled selected>Select Office</option>` +
-          generateOfficeDropdownOptions();
-        selects.forEach((select) => {
-          const currentVal = select.value;
-          select.innerHTML = optionsHtml;
-          if (currentVal) select.value = currentVal;
-        });
+        let dataList = document.getElementById("office-options-list");
+        if (!dataList) {
+          dataList = document.createElement("datalist");
+          dataList.id = "office-options-list";
+          document.body.appendChild(dataList);
+        }
+        dataList.innerHTML = generateOfficeDropdownOptions();
       }
       function goToDirectoryOffice(officeName) {
         if (!officeName) return;
