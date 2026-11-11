@@ -3945,7 +3945,16 @@
             let pinText = hindiPinWords
               ? `Pin code ${hindiPinWords}`
               : "Pin not available";
+
+            // 1. Build the base string
             speechText = `${topMatch.Address}. Office ${topMatch.Office}. ${pinText}.`;
+
+            // 2. Format abbreviations so the voice reads them as individual letters (e.g., "B O" instead of "bo")
+            // Added PO, GPO, and RMS as well since they are common postal acronyms
+            speechText = speechText.replace(
+              /\b(BO|HO|SO|PO|GPO|RMS|TPS)\b/g,
+              (match) => match.split("").join(" ")
+            );
           }
           const utterance = new SpeechSynthesisUtterance(speechText);
           if (preferredIndianVoice) {
