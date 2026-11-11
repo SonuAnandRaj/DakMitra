@@ -1994,6 +1994,25 @@
         }
       }
     </style>
+    <!-- Instant Theme Loader to prevent white flash on boot -->
+    <script>
+      (function () {
+        const savedTheme = localStorage.getItem("app-theme") || "system";
+        let isDark = savedTheme === "dark";
+        if (savedTheme === "system") {
+          isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        }
+        document.documentElement.setAttribute(
+          "data-theme",
+          isDark ? "dark" : "light"
+        );
+
+        const metaTheme = document.getElementById("meta-theme-color");
+        if (metaTheme) {
+          metaTheme.setAttribute("content", isDark ? "#111827" : "#ffffff");
+        }
+      })();
+    </script>
   </head>
   <body>
     <!-- SPLASH SCREEN -->
@@ -3723,6 +3742,24 @@
           renderResults();
         }
         refreshOfficeDropdowns();
+        // Pre-build directory in the background once
+        if (directoryGroupedData.length === 0 && cachedPostOffices.length > 0) {
+          const grouped = {};
+          cachedPostOffices.forEach((row) => {
+            const office = row.Office || "Unknown Office";
+            if (!grouped[office])
+              grouped[office] = { pin: row.Pin || "N/A", addresses: [] };
+            grouped[office].addresses.push(row.Address);
+          });
+          directoryGroupedData = Object.keys(grouped)
+            .sort()
+            .map((office) => ({
+              office: office,
+              pin: grouped[office].pin,
+              addresses: grouped[office].addresses.sort(),
+              searchString: (office + " " + grouped[office].pin).toLowerCase(),
+            }));
+        }
       }
       function setViewMode(mode) {
         viewMode = mode;
@@ -4030,7 +4067,7 @@
               : "list-container";
           let html = `<ul class="${containerClass}" style="margin:0; padding:0; list-style:none;">`;
 
-          currentFilteredData.forEach((result) => {
+          currentFilteredData.slice(0, 50).forEach((result) => {
             const row = result.item;
             const addressHtml = highlightText(
               row.Address,
@@ -4099,7 +4136,7 @@
                   <thead><tr><th>Address</th><th>Office</th><th>Pin</th></tr></thead>
                   <tbody>`;
 
-          currentFilteredData.forEach((result) => {
+          currentFilteredData.slice(0, 50).forEach((result) => {
             const row = result.item;
             const addressHtml = highlightText(
               row.Address,
@@ -4376,27 +4413,6 @@
           displayArea.innerHTML = `<div class="list-empty">No data available.</div>`;
           return;
         }
-
-        // 1. Group addresses once and store in memory (Fast)
-        const grouped = {};
-        cachedPostOffices.forEach((row) => {
-          const office = row.Office || "Unknown Office";
-          if (!grouped[office]) {
-            grouped[office] = { pin: row.Pin || "N/A", addresses: [] };
-          }
-          grouped[office].addresses.push(row.Address);
-        });
-
-        // 2. Convert to array for easy sorting, slicing, and fast filtering
-        directoryGroupedData = Object.keys(grouped)
-          .sort()
-          .map((office) => ({
-            office: office,
-            pin: grouped[office].pin,
-            addresses: grouped[office].addresses.sort(),
-            // Pre-compute a lowercase search string for lightning-fast filtering
-            searchString: (office + " " + grouped[office].pin).toLowerCase(),
-          }));
 
         directoryFilteredData = [...directoryGroupedData];
         directoryCurrentPage = 0;
@@ -4755,13 +4771,17 @@
           window.speechSynthesis.cancel();
         });
 
+      let searchTimeout;
       document
         .getElementById("search-input")
         .addEventListener("input", function () {
           const clearBtn = document.getElementById("clear-search-btn");
           if (this.value.length > 0) clearBtn.classList.remove("hidden");
           else clearBtn.classList.add("hidden");
-          triggerSearch();
+
+          // Clear previous timeout and delay the search until typing stops
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(triggerSearch, 250);
         });
 
       let lastScrollTop = 0;
@@ -5590,8 +5610,9 @@
             }
 
             html += `
-                  <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm);">
-                      <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
+            <div id="approval-card-${
+              req.id
+            }" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm);">                      <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
                       <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
                         <div>👤 Requested by: <b>${escapeHTML(
                           requesterName
@@ -5641,7 +5662,10 @@
         if (sentinel) approvalsObserver.observe(sentinel);
       }
       async function approveRequest(reqId) {
-        showToast("Processing vote...");
+        // Optimistic UI: Instantly hide the card so the app feels fast
+        const card = document.getElementById("approval-card-" + reqId);
+        if (card) card.style.display = "none";
+
         try {
           const { data, error } = await supabaseClient.rpc("submit_approval", {
             req_id: reqId,
@@ -5650,41 +5674,41 @@
 
           if (data === "APPROVED") {
             showToast("✅ Request approved and executed!");
-            fetchAllPostOffices(true); // refresh local cache instantly
+            fetchAllPostOffices(true); // Refresh local cache in the background
           } else {
-            showToast("👍 Vote recorded! Waiting for more votes.");
+            showToast("👍 Vote recorded!");
           }
-          switchApprovalTab(currentApprovalTab, true); // Refresh the list
         } catch (err) {
+          if (card) card.style.display = "block"; // Revert UI if it failed
           alert(err.message);
         }
       }
+
       async function rejectRequest(reqId) {
         showCustomConfirm(
           "Reject Request?",
           "Are you sure you want to reject and close this community request?",
           "Reject",
           async () => {
-            showToast("Rejecting request...");
+            // Optimistic UI: Instantly hide the card
+            const card = document.getElementById("approval-card-" + reqId);
+            if (card) card.style.display = "none";
+
             try {
               const { data, error } = await supabaseClient.rpc(
                 "reject_request",
-                {
-                  req_id: reqId,
-                }
+                { req_id: reqId }
               );
               if (error) throw error;
-
-              if (data === "REJECTED") {
-                showToast("❌ Request rejected and closed.");
-              }
-              switchApprovalTab(currentApprovalTab, true); // Refresh the list
+              showToast("❌ Request rejected and closed.");
             } catch (err) {
+              if (card) card.style.display = "block"; // Revert UI if it failed
               alert(err.message);
             }
           }
         );
       }
+
       // Add 'settings' to your viewOrder array for swipe navigation
       const viewOrder = [
         "favorites",
