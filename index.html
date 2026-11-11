@@ -3967,6 +3967,16 @@
         }
       }
       function clearSearchInput() {
+        window.speechSynthesis.cancel();
+
+        // Stop listening and reset mic color if active
+        if (window.activeRecognition) {
+          window.activeRecognition.abort();
+          window.activeRecognition = null;
+          const micBtn = document.getElementById("mic-btn");
+          if (micBtn) micBtn.style.color = "";
+        }
+
         const searchInput = document.getElementById("search-input");
         searchInput.value = "";
         document.getElementById("clear-search-btn").classList.add("hidden");
@@ -4316,10 +4326,20 @@
       }
 
       function startVoiceSearch() {
+        window.speechSynthesis.cancel();
+
+        const micBtn = document.getElementById("mic-btn");
+        const searchInput = document.getElementById("search-input");
+
+        // Stop listening and reset mic color instantly if active
         if (window.activeRecognition) {
           window.activeRecognition.abort();
+          window.activeRecognition = null;
+          micBtn.style.color = "";
+          searchInput.placeholder = "Type address, office, or Pin...";
           return;
         }
+
         const SpeechRecognition =
           window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition)
@@ -4330,9 +4350,6 @@
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
         window.activeRecognition = recognition;
-
-        const micBtn = document.getElementById("mic-btn");
-        const searchInput = document.getElementById("search-input");
 
         recognition.onstart = () => {
           micBtn.style.color = "#ef4444";
@@ -4359,7 +4376,6 @@
         };
         recognition.start();
       }
-
       function switchTab(mode) {
         currentMode = mode;
         const signinTab = document.getElementById("tab-signin");
@@ -4776,6 +4792,13 @@
         splashScreen.classList.add("hidden-splash");
         loadSearchHistory();
       }
+
+      document
+        .getElementById("search-input")
+        .addEventListener("focus", function () {
+          window.speechSynthesis.cancel();
+        });
+
       document
         .getElementById("search-input")
         .addEventListener("input", function () {
