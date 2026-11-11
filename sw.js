@@ -29,12 +29,20 @@ self.addEventListener('activate', event => {
 // Network-First Strategy
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  
+  // Prevent caching of unsupported schemes like chrome-extension://
+  if (!event.request.url.startsWith('http')) return;
+
   event.respondWith(
     fetch(event.request).then(networkResponse => {
-      return caches.open(CACHE_NAME).then(cache => {
-        cache.put(event.request, networkResponse.clone());
-        return networkResponse;
-      });
+      // FIX: Only cache complete 200 OK responses to prevent the Partial Content 206 error
+      if (networkResponse && networkResponse.status === 200) {
+        const responseClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, responseClone);
+        });
+      }
+      return networkResponse;
     }).catch(() => caches.match(event.request))
   );
 });

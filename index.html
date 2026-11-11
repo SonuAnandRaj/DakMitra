@@ -3341,6 +3341,13 @@
       const DIRECTORY_PAGE_SIZE = 3;
       let directoryObserver = null;
 
+      // Approvals State Variables
+      let approvalsCurrentPage = 0;
+      const APPROVALS_PAGE_SIZE = 5;
+      let approvalsObserver = null;
+      let isApprovalsLoading = false;
+      let hasMoreApprovals = true;
+
       // Ultra-fast "Lie-Fi" detector
       async function checkActualInternet() {
         if (!navigator.onLine) return false; // Instantly fails if hardware is offline
@@ -3394,7 +3401,8 @@
         if (viewId === "favorites") {
           renderFavorites();
         } else if (viewId === "approvals") {
-          loadApprovals();
+          // Passing 'true' forces the database query to run when opening the view
+          switchApprovalTab(currentApprovalTab, true);
         } else if (viewId === "directory") {
           renderDirectory();
         }
@@ -4815,7 +4823,7 @@
         const rows = document.querySelectorAll(".manual-entry-row");
         const requests = [];
         const adminDirectEdits = []; // Array for immediate execution if Admin
-        
+
         const {
           data: { session },
         } = await supabaseClient.auth.getSession();
@@ -4835,22 +4843,33 @@
               const reqData = {
                 post_office_id: editId,
                 action_type: "EDIT",
-                proposed_data: { Address: address, Office: office, Pin: Pin || null },
-                original_data: { Address: oldAddr, Office: oldOff, Pin: oldPin || null },
+                proposed_data: {
+                  Address: address,
+                  Office: office,
+                  Pin: Pin || null,
+                },
+                original_data: {
+                  Address: oldAddr,
+                  Office: oldOff,
+                  Pin: oldPin || null,
+                },
                 requested_by: session.user.id,
               };
-              
-              if(isCurrentUserAdmin) adminDirectEdits.push(reqData);
+
+              if (isCurrentUserAdmin) adminDirectEdits.push(reqData);
               else requests.push(reqData);
-              
             } else {
               const reqData = {
                 action_type: "ADD",
-                proposed_data: { Address: address, Office: office, Pin: Pin || null },
+                proposed_data: {
+                  Address: address,
+                  Office: office,
+                  Pin: Pin || null,
+                },
                 requested_by: session.user.id,
               };
-              
-              if(isCurrentUserAdmin) adminDirectEdits.push(reqData);
+
+              if (isCurrentUserAdmin) adminDirectEdits.push(reqData);
               else requests.push(reqData);
             }
           }
@@ -4864,36 +4883,42 @@
         btn.disabled = true;
 
         try {
-            if(isCurrentUserAdmin) {
-                // Admin Flow: Execute immediately via RPC
-                const { data, error } = await supabaseClient.rpc('admin_direct_submit', { 
-                    request_payloads: adminDirectEdits 
-                });
-                
-                if(error) throw error;
-                showToast(`✅ Admin: Changes applied instantly!`);
-                fetchAllPostOffices(true); // Force sync to reflect changes
-                
-            } else {
-                // Standard User Flow: Insert pending request
-                const { error } = await supabaseClient
-                  .from("edit_requests")
-                  .insert(requests);
-                  
-                if(error) throw error;
-                showToast(`✅ Change requests submitted for approval!`);
-            }
-            
-            document.getElementById("manual-entries-container").innerHTML = getManualEntryRowHTML(true);
-            
-            // Navigate back to search if it was an edit
-            if ((requests.length > 0 && requests.some((r) => r.action_type === "EDIT")) || 
-                (adminDirectEdits.length > 0 && adminDirectEdits.some((r) => r.action_type === "EDIT"))) {
-                switchDashboardView("search");
-            }
-            
+          if (isCurrentUserAdmin) {
+            // Admin Flow: Execute immediately via RPC
+            const { data, error } = await supabaseClient.rpc(
+              "admin_direct_submit",
+              {
+                request_payloads: adminDirectEdits,
+              }
+            );
+
+            if (error) throw error;
+            showToast(`✅ Admin: Changes applied instantly!`);
+            fetchAllPostOffices(true); // Force sync to reflect changes
+          } else {
+            // Standard User Flow: Insert pending request
+            const { error } = await supabaseClient
+              .from("edit_requests")
+              .insert(requests);
+
+            if (error) throw error;
+            showToast(`✅ Change requests submitted for approval!`);
+          }
+
+          document.getElementById("manual-entries-container").innerHTML =
+            getManualEntryRowHTML(true);
+
+          // Navigate back to search if it was an edit
+          if (
+            (requests.length > 0 &&
+              requests.some((r) => r.action_type === "EDIT")) ||
+            (adminDirectEdits.length > 0 &&
+              adminDirectEdits.some((r) => r.action_type === "EDIT"))
+          ) {
+            switchDashboardView("search");
+          }
         } catch (err) {
-            alert("Error submitting request: " + err.message);
+          alert("Error submitting request: " + err.message);
         }
 
         btn.textContent = "Submit All";
@@ -4939,53 +4964,53 @@
       }
       function deleteRecord(id) {
         let title = "Request Deletion?";
-        let message = "This will submit a deletion request to the community for approval. Continue?";
+        let message =
+          "This will submit a deletion request to the community for approval. Continue?";
         let btnText = "Request Delete";
-        
-        if(isCurrentUserAdmin) {
-            title = "Admin: Force Delete?";
-            message = "As an Admin, this deletion will be applied immediately without requiring community votes. Continue?";
-            btnText = "Delete Instantly";
+
+        if (isCurrentUserAdmin) {
+          title = "Admin: Force Delete?";
+          message =
+            "As an Admin, this deletion will be applied immediately without requiring community votes. Continue?";
+          btnText = "Delete Instantly";
         }
 
-        showCustomConfirm(
-          title,
-          message,
-          btnText,
-          async () => {
-            const {
-              data: { session },
-            } = await supabaseClient.auth.getSession();
-            
-            const reqData = {
-                post_office_id: id,
-                action_type: "DELETE",
-                proposed_data: {},
-                requested_by: session.user.id,
-            };
+        showCustomConfirm(title, message, btnText, async () => {
+          const {
+            data: { session },
+          } = await supabaseClient.auth.getSession();
 
-            if(isCurrentUserAdmin) {
-                 // Admin Flow: Execute immediately via RPC
-                 try {
-                     const { data, error } = await supabaseClient.rpc('admin_direct_submit', { 
-                        request_payloads: [reqData] 
-                     });
-                     if (error) throw error;
-                     showToast("🗑️ Admin: Record deleted instantly.");
-                     fetchAllPostOffices(true); // Force sync
-                 } catch (err) {
-                     alert("Error: " + err.message);
-                 }
-            } else {
-                // Standard User Flow
-                const { error } = await supabaseClient
-                  .from("edit_requests")
-                  .insert(reqData);
-                if (error) alert("Error: " + error.message);
-                else showToast("📝 Deletion request submitted for approval.");
+          const reqData = {
+            post_office_id: id,
+            action_type: "DELETE",
+            proposed_data: {},
+            requested_by: session.user.id,
+          };
+
+          if (isCurrentUserAdmin) {
+            // Admin Flow: Execute immediately via RPC
+            try {
+              const { data, error } = await supabaseClient.rpc(
+                "admin_direct_submit",
+                {
+                  request_payloads: [reqData],
+                }
+              );
+              if (error) throw error;
+              showToast("🗑️ Admin: Record deleted instantly.");
+              fetchAllPostOffices(true); // Force sync
+            } catch (err) {
+              alert("Error: " + err.message);
             }
+          } else {
+            // Standard User Flow
+            const { error } = await supabaseClient
+              .from("edit_requests")
+              .insert(reqData);
+            if (error) alert("Error: " + error.message);
+            else showToast("📝 Deletion request submitted for approval.");
           }
-        );
+        });
       }
       function closeAlertModal() {
         document.getElementById("alert-modal-overlay").classList.remove("show");
@@ -5259,8 +5284,16 @@
       }
       let currentApprovalTab = "pending";
 
-      function switchApprovalTab(tab) {
+      function switchApprovalTab(tab, forceLoad = false) {
+        // If the user clicks the same tab they are already on, do nothing (unless forced)
+        if (currentApprovalTab === tab && !forceLoad) return;
+
         currentApprovalTab = tab;
+
+        // Reset Pagination State
+        approvalsCurrentPage = 0;
+        hasMoreApprovals = true;
+        isApprovalsLoading = false;
 
         // Update tab UI styles
         if (tab === "pending") {
@@ -5275,22 +5308,49 @@
             .classList.remove("active");
         }
 
-        // Reload the list
-        loadApprovals();
-      }
-
-      async function loadApprovals() {
+        // Clear the display area and reload the first batch
         const displayArea = document.getElementById("approvals-display-area");
-        displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">Loading requests...</li></ul>`;
+        displayArea.innerHTML = `
+            <div id="approvals-content" style="padding: 4px;"></div>
+            <div id="approvals-sentinel" style="height: 40px; text-align: center; color: var(--text-light); font-size: 13px; padding: 10px;">Loading requests...</div>
+        `;
+
+        setupApprovalsObserver();
+        loadApprovalsBatch();
+      }
+      async function loadApprovalsBatch() {
+        if (isApprovalsLoading || !hasMoreApprovals) return;
+        isApprovalsLoading = true;
+
+        const displayArea = document.getElementById("approvals-display-area");
+        const contentDiv = document.getElementById("approvals-content");
+        const sentinel = document.getElementById("approvals-sentinel");
+
+        // Initial setup if it's the first page load and the containers don't exist
+        if (!contentDiv) {
+          displayArea.innerHTML = `
+                <div id="approvals-content" style="padding: 4px;"></div>
+                <div id="approvals-sentinel" style="height: 40px; text-align: center; color: var(--text-light); font-size: 13px; padding: 10px;">Loading requests...</div>
+            `;
+          setupApprovalsObserver();
+          // Need to re-select elements after injecting HTML
+          return setTimeout(loadApprovalsBatch, 0);
+        }
+
+        if (sentinel) sentinel.textContent = "Loading more...";
 
         try {
-          // 1. Clean query without any complex embedded joins
+          const fromIndex = approvalsCurrentPage * APPROVALS_PAGE_SIZE;
+          const toIndex = fromIndex + APPROVALS_PAGE_SIZE - 1;
+
           let query = supabaseClient
             .from("edit_requests")
             .select(
-              "*, post_offices(Address, Office, Pin), request_approvals(approved_by, is_admin)"
+              "*, post_offices(Address, Office, Pin), request_approvals(approved_by, is_admin)",
+              { count: "exact" }
             )
-            .order("created_at", { ascending: false });
+            .order("created_at", { ascending: false })
+            .range(fromIndex, toIndex);
 
           if (currentApprovalTab === "pending") {
             query = query.eq("status", "PENDING");
@@ -5298,19 +5358,33 @@
             query = query.neq("status", "PENDING");
           }
 
-          const { data, error } = await query;
+          const { data, error, count } = await query;
           if (error) throw error;
 
           if (!data || data.length === 0) {
-            const emptyMsg =
-              currentApprovalTab === "pending"
-                ? "No pending approvals! 🎉"
-                : "No resolved requests yet.";
-            displayArea.innerHTML = `<ul class="list-container"><li class="list-empty">${emptyMsg}</li></ul>`;
+            hasMoreApprovals = false;
+            if (approvalsCurrentPage === 0) {
+              const emptyMsg =
+                currentApprovalTab === "pending"
+                  ? "No pending approvals! 🎉"
+                  : "No resolved requests yet.";
+              contentDiv.innerHTML = `<div class="list-empty">${emptyMsg}</div>`;
+            }
+            if (sentinel) sentinel.style.display = "none";
+            isApprovalsLoading = false;
             return;
           }
 
-          // 2. Gather all unique user IDs (requesters, approvers, rejecters) to fetch in one batch
+          // If we received fewer items than requested, we've hit the end
+          if (
+            data.length < APPROVALS_PAGE_SIZE ||
+            fromIndex + data.length >= count
+          ) {
+            hasMoreApprovals = false;
+            if (sentinel) sentinel.textContent = "End of requests";
+          }
+
+          // Gather all unique user IDs to fetch in one batch
           let userIdsToFetch = new Set();
           data.forEach((req) => {
             if (req.requested_by) userIdsToFetch.add(req.requested_by);
@@ -5322,7 +5396,7 @@
             }
           });
 
-          // 3. Fetch all needed profiles in a single query
+          // Fetch profiles
           let profilesMap = {};
           if (userIdsToFetch.size > 0) {
             const { data: profileData } = await supabaseClient
@@ -5337,8 +5411,7 @@
             }
           }
 
-          let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
-
+          let html = ``;
           data.forEach((req) => {
             let changesHtml = "";
 
@@ -5348,7 +5421,6 @@
               prefix = "",
               fallback = "N/A"
             ) => {
-              // Safely parse to string and remove invisible spaces
               const rawOld =
                 oldVal === undefined || oldVal === null
                   ? ""
@@ -5357,18 +5429,14 @@
                 newVal === undefined || newVal === null
                   ? ""
                   : String(newVal).trim();
-
               const sOld = rawOld === "" ? fallback : rawOld;
               const sNew = rawNew === "" ? fallback : rawNew;
 
-              // Only strike through if the trimmed values are genuinely different
               if (sOld !== sNew) {
                 return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${escapeHTML(
                   sOld
                 )}</span> ➡️ <b>${escapeHTML(sNew)}</b></div>`;
               }
-
-              // If they are the same, just display the value normally
               return `<div style="margin-bottom: 4px;">${prefix} ${escapeHTML(
                 sNew
               )}</div>`;
@@ -5388,29 +5456,31 @@
                   `;
             } else if (req.action_type === "EDIT") {
               const badge = `<span class="badge" style="background:#fef9c3;color:#854d0e; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">✏️ EDIT</span>`;
-
-              // 1. Look for the snapshot first! Fall back to post_offices if it's missing.
               const oldD = req.original_data || req.post_offices || {};
               const newD = req.proposed_data || {};
 
-              // 2. Extract values safely
-              const oldAddr = oldD.Address || oldD.address;
-              const newAddr = newD.Address || newD.address;
-
-              const oldOff = oldD.Office || oldD.office;
-              const newOff = newD.Office || newD.office;
-
-              const oldPin = oldD.Pin || oldD.pin;
-              const newPin = newD.Pin || newD.pin;
-
               changesHtml =
                 badge +
-                formatApprovalField(oldAddr, newAddr, "📮", "Unknown Address") +
-                formatApprovalField(oldOff, newOff, "🏢", "Unknown Office") +
-                formatApprovalField(oldPin, newPin, "📍", "N/A");
+                formatApprovalField(
+                  oldD.Address || oldD.address,
+                  newD.Address || newD.address,
+                  "📮",
+                  "Unknown Address"
+                ) +
+                formatApprovalField(
+                  oldD.Office || oldD.office,
+                  newD.Office || newD.office,
+                  "🏢",
+                  "Unknown Office"
+                ) +
+                formatApprovalField(
+                  oldD.Pin || oldD.pin,
+                  newD.Pin || newD.pin,
+                  "📍",
+                  "N/A"
+                );
             } else if (req.action_type === "DELETE") {
               const badge = `<span class="badge" style="background:#fee2e2;color:#991b1b; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">🗑️ DELETE</span>`;
-
               const oldD = req.post_offices || {};
               changesHtml = `
                     ${badge}
@@ -5434,7 +5504,6 @@
               timeStyle: "short",
             });
 
-            // Map requester using the fetched profile dictionary
             const reqProfile = profilesMap[req.requested_by];
             const requesterName = reqProfile ? reqProfile.name : "Unknown User";
             const requesterId =
@@ -5442,7 +5511,6 @@
                 ? reqProfile.employee_id
                 : "No ID";
 
-            // Format Approver block
             let approverDetailsHtml = "";
             if (
               req.status === "APPROVED" &&
@@ -5452,27 +5520,19 @@
               const lastApproval =
                 req.request_approvals[req.request_approvals.length - 1];
               const approverProfile = profilesMap[lastApproval.approved_by];
-
               if (approverProfile) {
                 if (lastApproval.is_admin) {
-                  approverDetailsHtml = `
-                            <div style="font-size: 12px; color: var(--success-text); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
-                              ✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
-                                approverProfile.name
-                              )} - ${escapeHTML(approverProfile.employee_id)})
-                            </div>`;
+                  approverDetailsHtml = `<div style="font-size: 12px; color: var(--success-text); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
+                    approverProfile.name
+                  )} - ${escapeHTML(approverProfile.employee_id)})</div>`;
                 } else {
-                  approverDetailsHtml = `
-                            <div style="font-size: 12px; color: var(--primary); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">
-                              👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
-                                approverProfile.name
-                              )} - ${escapeHTML(approverProfile.employee_id)})
-                            </div>`;
+                  approverDetailsHtml = `<div style="font-size: 12px; color: var(--primary); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
+                    approverProfile.name
+                  )} - ${escapeHTML(approverProfile.employee_id)})</div>`;
                 }
               }
             }
 
-            // Generate Action Bar & Status block
             let actionBarHtml = "";
             if (req.status === "PENDING") {
               actionBarHtml = `
@@ -5501,11 +5561,7 @@
 
             html += `
                   <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm);">
-
-                      <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">
-                        ${changesHtml}
-                      </div>
-
+                      <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
                       <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
                         <div>👤 Requested by: <b>${escapeHTML(
                           requesterName
@@ -5518,17 +5574,41 @@
                         }
                         ${approverDetailsHtml}
                       </div>
-
                       ${actionBarHtml}
                   </div>
                   `;
           });
 
-          html += `</ul>`;
-          displayArea.innerHTML = html;
+          contentDiv.insertAdjacentHTML("beforeend", html);
+          approvalsCurrentPage++;
+          isApprovalsLoading = false;
         } catch (err) {
-          displayArea.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error loading requests: ${err.message}</li></ul>`;
+          isApprovalsLoading = false;
+          if (contentDiv)
+            contentDiv.innerHTML = `<div class="list-empty" style="color: red;">Error loading requests: ${err.message}</div>`;
         }
+      }
+
+      function setupApprovalsObserver() {
+        const sentinel = document.getElementById("approvals-sentinel");
+        const displayArea = document.getElementById("approvals-display-area");
+
+        if (approvalsObserver) approvalsObserver.disconnect();
+
+        approvalsObserver = new IntersectionObserver(
+          (entries) => {
+            if (
+              entries[0].isIntersecting &&
+              hasMoreApprovals &&
+              !isApprovalsLoading
+            ) {
+              loadApprovalsBatch();
+            }
+          },
+          { root: displayArea, rootMargin: "200px", threshold: 0.1 }
+        );
+
+        if (sentinel) approvalsObserver.observe(sentinel);
       }
       async function approveRequest(reqId) {
         showToast("Processing vote...");
