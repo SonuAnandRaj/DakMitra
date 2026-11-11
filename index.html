@@ -2208,6 +2208,19 @@
           >
             Sign In
           </button>
+          {/* --- ADD THIS PASSKEY SIGN-IN BUTTON --- */}
+          <button
+            type="button"
+            class="btn"
+            style="
+              background: var(--btn-secondary);
+              color: var(--text);
+              margin-top: 12px;
+            "
+            onclick="signInWithDevice()"
+          >
+            🔑 Sign in with Device (Passkey)
+          </button>
         </div>
       </div>
     </div>
@@ -3174,6 +3187,30 @@
               🗑️ Clear App Cache
             </button>
           </div>
+          <!-- Data Management Settings Card in Settings View -->
+          <div class="upload-card" style="text-align: left; margin-top: 24px">
+            <h3 style="margin-bottom: 16px; color: var(--primary)">
+              Device Security
+            </h3>
+
+            <div style="margin-bottom: 16px">
+              <strong style="display: block; color: var(--text)"
+                >Hardware Lock</strong
+              >
+              <span style="font-size: 13px; color: var(--text-light)"
+                >Bind this account to this specific phone's fingerprint or Face
+                ID</span
+              >
+            </div>
+
+            <button
+              class="btn"
+              style="background: var(--primary); color: #ffffff; width: 100%"
+              onclick="registerDevicePasskey()"
+            >
+              🔒 Lock to This Device
+            </button>
+          </div>
         </section>
         <!-- UPLOAD VIEW (Hidden by default) -->
         <section id="view-upload" class="view-section">
@@ -3655,7 +3692,12 @@
         "sb_publishable_vwlbAzFCF0zMMqeiPWyu7Q_ruSZ1WwM";
       const supabaseClient = window.supabase.createClient(
         SUPABASE_URL,
-        SUPABASE_ANON_KEY
+        SUPABASE_ANON_KEY,
+        {
+          auth: {
+            experimental: { passkey: true }, // Required to unlock WebAuthn APIs
+          },
+        }
       );
       const ICON_STAR_FILLED = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
       const ICON_STAR_OUTLINE = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>`;
@@ -5719,6 +5761,38 @@
         // Automatically passes any standard alert into your beautiful UI
         showCustomAlert("System Alert", message, "🔔");
       };
+
+      async function registerDevicePasskey() {
+        try {
+          // Initiates the OS-level prompt for Fingerprint, Face ID, or Windows Hello
+          const { data, error } = await supabaseClient.auth.registerPasskey();
+
+          if (error) throw error;
+
+          showToast("✅ Device successfully registered!");
+          // data contains { id, friendly_name, created_at }
+        } catch (err) {
+          showAlert("Passkey registration failed: " + err.message);
+        }
+      }
+
+      async function signInWithDevice() {
+        const splashScreen = document.getElementById("splash-screen");
+        splashScreen.classList.remove("hidden-splash");
+
+        try {
+          // Bypasses email/password entirely. The authenticator picks the account.
+          const { data, error } = await supabaseClient.auth.signInWithPasskey();
+
+          if (error) throw error;
+
+          showToast("🔓 Verified by Device");
+          checkUserSession(); // Reroutes directly into your dashboard view
+        } catch (err) {
+          splashScreen.classList.add("hidden-splash");
+          showAlert("Device authentication failed. Try again.");
+        }
+      }
 
       function downloadSampleExcel() {
         const wb = XLSX.utils.book_new();
