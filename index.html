@@ -742,7 +742,47 @@
           transform: translateY(0);
         }
       }
-
+      /* --- CUSTOM AUTOCOMPLETE DROPDOWN --- */
+      .autocomplete-wrapper {
+        position: relative;
+        width: 100%;
+      }
+      .autocomplete-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-top: 4px;
+        max-height: 220px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: var(--shadow-lg);
+        display: none;
+      }
+      .autocomplete-dropdown.show {
+        display: block;
+        animation: fadeInDown 0.2s ease;
+      }
+      .autocomplete-item {
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border);
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text);
+        transition: background 0.2s, color 0.2s;
+      }
+      .autocomplete-item:last-child {
+        border-bottom: none;
+      }
+      .autocomplete-item:hover,
+      .autocomplete-item:active {
+        background: var(--btn-secondary);
+        color: var(--primary);
+      }
       /* --- AUTH VIEW --- */
       .auth-card {
         background: var(--card-bg);
@@ -4793,10 +4833,13 @@
       ${showLabels ? "<label>Address</label>" : ""}
       <input type="text" class="manual-address" placeholder="Address" autocomplete="off" />
     </div>
-    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left; position: relative;">
+    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
       ${showLabels ? "<label>Office</label>" : ""}
-      <input type="text" class="manual-office" list="office-options-list" placeholder="Search & Select Office..." oninput="autoFillPin(this); this.nextElementSibling.classList.toggle('hidden', this.value.length === 0);" autocomplete="off" style="padding-right: 40px;" />
-      <button type="button" class="clear-btn hidden" style="position: absolute; right: 6px; bottom: 6px; width: 36px; height: 36px; padding: 0; margin: 0;" onclick="const inp = this.previousElementSibling; inp.value=''; inp.focus(); this.classList.add('hidden'); autoFillPin(inp);" title="Clear Office">✕</button>
+      <div class="autocomplete-wrapper">
+        <input type="text" class="manual-office" placeholder="Search & Select Office..." autocomplete="off" oninput="handleOfficeInput(this)" onfocus="handleOfficeInput(this)" onblur="setTimeout(closeAllDropdowns, 200)" style="padding-right: 40px; width: 100%;" />
+        <button type="button" class="clear-btn hidden" style="position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; padding: 0; margin: 0; z-index: 2;" onclick="clearOfficeInput(this)" title="Clear Office">✕</button>
+        <div class="autocomplete-dropdown"></div>
+      </div>
     </div>
     <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
       ${showLabels ? "<label>Pin</label>" : ""}
@@ -4935,12 +4978,15 @@
       <label style="color: var(--primary);">Address (Editing)</label>
       <input type="text" class="manual-address" value="${escapedAddress}" autocomplete="off" />
     </div>
-    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left; position: relative;">
+    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
       <label style="color: var(--primary);">Office</label>
-      <input type="text" class="manual-office" list="office-options-list" value="${escapedOffice}" placeholder="Search & Select Office..." oninput="autoFillPin(this); this.nextElementSibling.classList.toggle('hidden', this.value.length === 0);" autocomplete="off" style="padding-right: 40px;" />
-      <button type="button" class="clear-btn ${
-        escapedOffice ? "" : "hidden"
-      }" style="position: absolute; right: 6px; bottom: 6px; width: 36px; height: 36px; padding: 0; margin: 0;" onclick="const inp = this.previousElementSibling; inp.value=''; inp.focus(); this.classList.add('hidden'); autoFillPin(inp);" title="Clear Office">✕</button>
+      <div class="autocomplete-wrapper">
+        <input type="text" class="manual-office" value="${escapedOffice}" placeholder="Search & Select Office..." autocomplete="off" oninput="handleOfficeInput(this)" onfocus="handleOfficeInput(this)" onblur="setTimeout(closeAllDropdowns, 200)" style="padding-right: 40px; width: 100%;" />
+        <button type="button" class="clear-btn ${
+          escapedOffice ? "" : "hidden"
+        }" style="position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; padding: 0; margin: 0; z-index: 2;" onclick="clearOfficeInput(this)" title="Clear Office">✕</button>
+        <div class="autocomplete-dropdown"></div>
+      </div>
     </div>
     <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
       <label style="color: var(--primary);">Pin</label>
@@ -5874,43 +5920,105 @@
         });
         return html;
       }
-      // Helper: Automatically fills the PIN field when an office is selected
-      function autoFillPin(inputElement) {
+
+      function handleOfficeInput(inputElement) {
         const val = inputElement.value;
-        const dataList = document.getElementById("office-options-list");
-        if (!dataList) return;
+        const wrapper = inputElement.closest(".autocomplete-wrapper");
+        const dropdown = wrapper.querySelector(".autocomplete-dropdown");
+        const clearBtn = wrapper.querySelector(".clear-btn");
+        const pinInput = wrapper
+          .closest(".manual-entry-row")
+          .querySelector(".manual-Pin");
 
-        // Look up the exact option matching the typed text
-        const option = Array.from(dataList.options).find(
-          (opt) => opt.value === val
-        );
+        // 1. Toggle Clear Button
+        if (val.length > 0) clearBtn.classList.remove("hidden");
+        else clearBtn.classList.add("hidden");
 
-        const row = inputElement.closest(".manual-entry-row");
-        const pinInput = row.querySelector(".manual-Pin");
-
-        if (pinInput) {
-          if (option) {
-            const pin = option.getAttribute("data-pin");
-            if (pin) {
-              pinInput.value = pin;
+        // 2. Extract Unique Offices from Database
+        const officeMap = new Map();
+        if (cachedPostOffices) {
+          cachedPostOffices.forEach((row) => {
+            if (row.Office && !officeMap.has(row.Office)) {
+              officeMap.set(row.Office, row.Pin || "");
             }
-          } else if (val.trim() === "") {
-            // Automatically clear the Pin if the Office is completely cleared
+          });
+        }
+
+        // 3. Filter Offices based on input
+        let matchedOffices = Array.from(officeMap.keys());
+        if (val) {
+          const lowerVal = val.toLowerCase();
+          matchedOffices = matchedOffices.filter((o) =>
+            o.toLowerCase().includes(lowerVal)
+          );
+        }
+        matchedOffices.sort();
+
+        // 4. Update Dropdown HTML
+        if (matchedOffices.length === 0) {
+          dropdown.classList.remove("show");
+        } else {
+          let html = "";
+          // Limit to top 50 matches for performance
+          matchedOffices.slice(0, 50).forEach((office) => {
+            const pin = officeMap.get(office);
+            html += `<div class="autocomplete-item" onclick="selectCustomOffice(this, '${escapeForOnclick(
+              office
+            )}', '${escapeForOnclick(pin)}')">🏢 ${escapeHTML(office)}</div>`;
+          });
+          dropdown.innerHTML = html;
+          dropdown.classList.add("show");
+        }
+
+        // 5. Auto-fill or clear PIN based on exact match or empty input
+        if (pinInput) {
+          if (val.trim() === "") {
             pinInput.value = "";
+          } else {
+            const exactMatch = Array.from(officeMap.keys()).find(
+              (k) => k.toLowerCase() === val.toLowerCase()
+            );
+            if (exactMatch) pinInput.value = officeMap.get(exactMatch);
           }
         }
       }
 
-      // Helper: Refreshes dropdown options after database is fetched from Supabase
-      function refreshOfficeDropdowns() {
-        let dataList = document.getElementById("office-options-list");
-        if (!dataList) {
-          dataList = document.createElement("datalist");
-          dataList.id = "office-options-list";
-          document.body.appendChild(dataList);
-        }
-        dataList.innerHTML = generateOfficeDropdownOptions();
+      function selectCustomOffice(itemElement, officeName, pinNumber) {
+        const wrapper = itemElement.closest(".autocomplete-wrapper");
+        const input = wrapper.querySelector(".manual-office");
+        const clearBtn = wrapper.querySelector(".clear-btn");
+        const pinInput = wrapper
+          .closest(".manual-entry-row")
+          .querySelector(".manual-Pin");
+
+        // Set values
+        input.value = officeName;
+        if (pinInput) pinInput.value = pinNumber;
+        clearBtn.classList.remove("hidden");
+
+        closeAllDropdowns();
       }
+
+      function clearOfficeInput(btnElement) {
+        const wrapper = btnElement.closest(".autocomplete-wrapper");
+        const input = wrapper.querySelector(".manual-office");
+
+        input.value = "";
+        input.focus(); // Re-trigger the dropdown
+        handleOfficeInput(input);
+      }
+
+      function closeAllDropdowns() {
+        document
+          .querySelectorAll(".autocomplete-dropdown.show")
+          .forEach((el) => el.classList.remove("show"));
+      }
+
+      // Safely remove the old function call without causing errors in the app lifecycle
+      function refreshOfficeDropdowns() {
+        // Left intentionally blank - the custom dropdown handles its own state now.
+      }
+
       function goToDirectoryOffice(officeName) {
         if (!officeName) return;
 
