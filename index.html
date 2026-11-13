@@ -2106,6 +2106,21 @@
         color: var(--primary);
       }
 
+      .footer-version-badge {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--primary);
+        background: rgba(79, 70, 229, 0.1);
+        border: 1px solid rgba(79, 70, 229, 0.2);
+        padding: 3px 10px;
+        border-radius: 12px;
+        letter-spacing: 0.4px;
+      }
+      [data-theme="dark"] .footer-version-badge {
+        background: rgba(129, 140, 248, 0.15);
+        border-color: rgba(129, 140, 248, 0.25);
+      }
+
       /* --- TOAST & ALERTS --- */
       .toast {
         position: fixed;
@@ -2871,8 +2886,18 @@
             <strong>Sonu Anand Raj</strong>
           </div>
 
-          <!-- Clean Copyright Subtext -->
-          <div class="footer-copyright">Database PWA &copy; 2026</div>
+          <!-- Clean Copyright Subtext & Version Badge -->
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-top: 2px;
+            "
+          >
+            <div class="footer-copyright">Database PWA &copy; 2026</div>
+            <span class="footer-version-badge" data-app-version>v1.0.0</span>
+          </div>
         </div>
       </aside>
 
@@ -3661,6 +3686,77 @@
               🔒 Lock to This Device
             </button>
           </div>
+
+          <!-- App Information Card in Settings View -->
+          <div class="upload-card" style="text-align: left; margin-top: 24px">
+            <h3 style="margin-bottom: 16px; color: var(--primary)">
+              App Information
+            </h3>
+
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+              "
+            >
+              <div>
+                <strong style="display: block; color: var(--text)"
+                  >App Version</strong
+                >
+                <span style="font-size: 13px; color: var(--text-light)"
+                  >Current installed build</span
+                >
+              </div>
+              <span
+                class="badge badge-primary"
+                style="margin: 0; font-size: 13px"
+                data-app-version
+                >v1.0.0</span
+              >
+            </div>
+
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+              "
+            >
+              <div>
+                <strong style="display: block; color: var(--text)"
+                  >Build Number</strong
+                >
+                <span style="font-size: 13px; color: var(--text-light)"
+                  >Release package code</span
+                >
+              </div>
+              <span
+                style="
+                  font-size: 13px;
+                  font-weight: 700;
+                  color: var(--text-light);
+                "
+                id="app-build-code"
+                >100</span
+              >
+            </div>
+
+            <button
+              type="button"
+              class="btn"
+              style="
+                background: var(--btn-secondary);
+                color: var(--text);
+                width: 100%;
+              "
+              onclick="checkForAppUpdate()"
+            >
+              🔄 Check for App Updates
+            </button>
+          </div>
         </section>
         <!-- UPLOAD VIEW (Hidden by default) -->
         <section id="view-upload" class="view-section">
@@ -4139,6 +4235,48 @@
     </div>
 
     <script>
+      // --- CENTRAL APP VERSION CONTROL ---
+      const APP_VERSION = "1.0.0"; // <-- Change ONLY this when releasing a new version
+      const APP_BUILD_CODE = "100"; // <-- Increment for each build (e.g., 101, 102)
+
+      function initAppVersion() {
+        // 1. Populate version across Sidebar Footer, Settings, etc.
+        document.querySelectorAll("[data-app-version]").forEach((el) => {
+          el.textContent = `v${APP_VERSION}`;
+        });
+        const buildEl = document.getElementById("app-build-code");
+        if (buildEl) buildEl.textContent = `#${APP_BUILD_CODE}`;
+
+        // 2. Detect version upgrade and refresh Service Worker cache automatically
+        const previousVersion = localStorage.getItem("dakmitra_app_version");
+        if (previousVersion && previousVersion !== APP_VERSION) {
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.getRegistrations().then((regs) => {
+              regs.forEach((reg) => reg.update());
+            });
+          }
+          setTimeout(() => {
+            showToast(`🎉 Updated to DakMitra v${APP_VERSION}`);
+          }, 1200);
+        }
+        localStorage.setItem("dakmitra_app_version", APP_VERSION);
+      }
+
+      async function checkForAppUpdate() {
+        showToast("🔍 Checking for updates...");
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (let reg of regs) {
+            await reg.update();
+          }
+        }
+        setTimeout(() => {
+          showToast(`✅ DakMitra v${APP_VERSION} is up to date!`);
+        }, 1000);
+      }
+
+      initAppVersion();
+
       // --- SUPABASE & STATE ---
       const SUPABASE_URL = "https://nvviolzdujgwkmnrnaww.supabase.co";
       const SUPABASE_ANON_KEY =
