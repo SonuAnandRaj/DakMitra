@@ -4128,12 +4128,46 @@
       const DIRECTORY_PAGE_SIZE = 3;
       let directoryObserver = null;
 
-      // Approvals State Variables
-      let approvalsCurrentPage = 0;
+      // Approvals State & In-Memory Cache (Resets automatically on app restart)
       const APPROVALS_PAGE_SIZE = 5;
+      let currentApprovalTab = "pending";
       let approvalsObserver = null;
       let isApprovalsLoading = false;
-      let hasMoreApprovals = true;
+
+      let approvalsCache = {
+        pending: {
+          html: "",
+          page: 0,
+          hasMore: true,
+          initialHasMore: true,
+          loaded: false,
+        },
+        resolved: {
+          html: "",
+          page: 0,
+          hasMore: true,
+          initialHasMore: true,
+          loaded: false,
+        },
+      };
+
+      // Call this whenever any data changes so the next view fetches fresh from Supabase
+      function invalidateApprovalsCache() {
+        approvalsCache.pending = {
+          html: "",
+          page: 0,
+          hasMore: true,
+          initialHasMore: true,
+          loaded: false,
+        };
+        approvalsCache.resolved = {
+          html: "",
+          page: 0,
+          hasMore: true,
+          initialHasMore: true,
+          loaded: false,
+        };
+      }
 
       function getSafeStorage(key) {
         try {
@@ -4198,7 +4232,7 @@
           renderFavorites();
         } else if (viewId === "approvals") {
           // Passing 'true' forces the database query to run when opening the view
-          switchApprovalTab(currentApprovalTab, true);
+          switchApprovalTab(currentApprovalTab);
         } else if (viewId === "directory") {
           renderDirectory();
         }
@@ -5833,6 +5867,8 @@
             if (error) throw error;
             showToast(`✅ Change requests submitted for approval!`);
           }
+          // Invalidate cached approvals so the new request/edit appears
+          invalidateApprovalsCache();
 
           document.getElementById("manual-entries-container").innerHTML =
             getManualEntryRowHTML(true);
@@ -5939,6 +5975,7 @@
             if (error) alert("Error: " + error.message);
             else showToast("📝 Deletion request submitted for approval.");
           }
+          invalidateApprovalsCache();
         });
       }
 
@@ -6244,7 +6281,6 @@
         document.getElementById(btnId).classList.add("hidden");
         triggerSearch();
       }
-      let currentApprovalTab = "pending";
 
       // Helper to generate themed skeleton cards matching Pending vs Resolved layout
       function getApprovalsSkeletonHTML(count = 3) {
@@ -6276,13 +6312,21 @@
       }
 
       function switchApprovalTab(tab, forceLoad = false) {
-        if (currentApprovalTab === tab && !forceLoad) return;
+        const cache = approvalsCache[tab];
+        const contentDiv = document.getElementById("approvals-content");
+
+        // Only do nothing if we are already on this tab, it's loaded in memory, and rendered on screen
+        if (
+          currentApprovalTab === tab &&
+          !forceLoad &&
+          cache.loaded &&
+          contentDiv &&
+          contentDiv.innerHTML.trim() !== ""
+        ) {
+          return;
+        }
 
         currentApprovalTab = tab;
-
-        // Reset Pagination State
-        approvalsCurrentPage = 0;
-        hasMoreApprovals = true;
         isApprovalsLoading = false;
 
         // Update tab UI styles
@@ -6298,9 +6342,30 @@
             .classList.remove("active");
         }
 
-        // Inject Skeletons immediately while first batch is fetched
         const displayArea = document.getElementById("approvals-display-area");
         displayArea.scrollTop = 0;
+
+        // 1. IF CACHED IN MEMORY: Render the 5 cached cards instantly (no skeleton, no DB call)
+        if (cache.loaded) {
+          cache.page = 1;
+          cache.hasMore = cache.initialHasMore;
+          displayArea.innerHTML = `
+            <div id="approvals-content" style="padding: 4px;">${cache.html}</div>
+            <div id="approvals-sentinel" style="min-height: 54px; display: ${
+              cache.html.includes("list-empty") ? "none" : "flex"
+            }; align-items: center; justify-content: center; padding: 10px;">
+              ${
+                !cache.hasMore
+                  ? `<span style="color: var(--text-light); font-size: 13px;">End of requests</span>`
+                  : ""
+              }
+            </div>
+          `;
+          setupApprovalsObserver();
+          return;
+        }
+
+        // 2. IF NOT CACHED YET: Show skeleton animation and fetch from Supabase
         displayArea.innerHTML = `
             <div id="approvals-content" style="padding: 4px;">
               ${getApprovalsSkeletonHTML(3)}
@@ -6311,16 +6376,17 @@
         setupApprovalsObserver();
         loadApprovalsBatch();
       }
-
       async function loadApprovalsBatch() {
-        if (isApprovalsLoading || !hasMoreApprovals) return;
+        const activeTab = currentApprovalTab;
+        const cache = approvalsCache[activeTab];
+
+        if (isApprovalsLoading || !cache.hasMore) return;
         isApprovalsLoading = true;
 
         const displayArea = document.getElementById("approvals-display-area");
         let contentDiv = document.getElementById("approvals-content");
         let sentinel = document.getElementById("approvals-sentinel");
 
-        // Initial setup if containers don't exist yet
         if (!contentDiv) {
           displayArea.innerHTML = `
               <div id="approvals-content" style="padding: 4px;">
@@ -6333,8 +6399,7 @@
           return setTimeout(loadApprovalsBatch, 0);
         }
 
-        // Show skeleton cards on initial page load, or pill spinner when scrolling for more
-        if (approvalsCurrentPage === 0) {
+        if (cache.page === 0) {
           contentDiv.innerHTML = getApprovalsSkeletonHTML(3);
           if (sentinel) sentinel.innerHTML = "";
         } else if (sentinel) {
@@ -6346,7 +6411,7 @@
         }
 
         try {
-          const fromIndex = approvalsCurrentPage * APPROVALS_PAGE_SIZE;
+          const fromIndex = cache.page * APPROVALS_PAGE_SIZE;
           const toIndex = fromIndex + APPROVALS_PAGE_SIZE - 1;
 
           let query = supabaseClient
@@ -6358,7 +6423,7 @@
             .order("created_at", { ascending: false })
             .range(fromIndex, toIndex);
 
-          if (currentApprovalTab === "pending") {
+          if (activeTab === "pending") {
             query = query.eq("status", "PENDING");
           } else {
             query = query.neq("status", "PENDING");
@@ -6367,19 +6432,31 @@
           const { data, error, count } = await query;
           if (error) throw error;
 
-          // Clear the initial skeleton cards before inserting real data
-          if (approvalsCurrentPage === 0) {
+          // Ignore response if the user switched tabs while the query was in flight
+          if (currentApprovalTab !== activeTab) {
+            isApprovalsLoading = false;
+            return;
+          }
+
+          if (cache.page === 0) {
             contentDiv.innerHTML = "";
           }
 
           if (!data || data.length === 0) {
-            hasMoreApprovals = false;
-            if (approvalsCurrentPage === 0) {
+            cache.hasMore = false;
+            if (cache.page === 0) {
               const emptyMsg =
-                currentApprovalTab === "pending"
+                activeTab === "pending"
                   ? "No pending approvals! 🎉"
                   : "No resolved requests yet.";
-              contentDiv.innerHTML = `<div class="list-empty">${emptyMsg}</div>`;
+              const emptyHtml = `<div class="list-empty">${emptyMsg}</div>`;
+              contentDiv.innerHTML = emptyHtml;
+
+              // Cache the empty state so it doesn't re-fetch until something changes
+              cache.html = emptyHtml;
+              cache.page = 1;
+              cache.initialHasMore = false;
+              cache.loaded = true;
             }
             if (sentinel) sentinel.style.display = "none";
             isApprovalsLoading = false;
@@ -6391,7 +6468,7 @@
             data.length < APPROVALS_PAGE_SIZE ||
             fromIndex + data.length >= count
           ) {
-            hasMoreApprovals = false;
+            cache.hasMore = false;
             if (sentinel) {
               sentinel.innerHTML = `<span style="color: var(--text-light); font-size: 13px;">End of requests</span>`;
             }
@@ -6596,7 +6673,17 @@
           });
 
           contentDiv.insertAdjacentHTML("beforeend", html);
-          approvalsCurrentPage++;
+
+          // Save ONLY the first 5 cards (page 0) in memory cache
+          if (cache.page === 0) {
+            cache.html = html;
+            cache.loaded = true;
+            cache.initialHasMore = cache.hasMore;
+            cache.page = 1;
+          } else {
+            cache.page++;
+          }
+
           isApprovalsLoading = false;
         } catch (err) {
           isApprovalsLoading = false;
@@ -6604,6 +6691,7 @@
             contentDiv.innerHTML = `<div class="list-empty" style="color: red;">Error loading requests: ${err.message}</div>`;
         }
       }
+
       function setupApprovalsObserver() {
         const sentinel = document.getElementById("approvals-sentinel");
         const displayArea = document.getElementById("approvals-display-area");
@@ -6612,9 +6700,10 @@
 
         approvalsObserver = new IntersectionObserver(
           (entries) => {
+            const cache = approvalsCache[currentApprovalTab];
             if (
               entries[0].isIntersecting &&
-              hasMoreApprovals &&
+              cache.hasMore &&
               !isApprovalsLoading
             ) {
               loadApprovalsBatch();
@@ -6642,6 +6731,9 @@
           } else {
             showToast("👍 Vote recorded!");
           }
+          invalidateApprovalsCache();
+          // Also refresh the current Pending tab if it became empty
+          switchApprovalTab(currentApprovalTab, true);
         } catch (err) {
           if (card) card.style.display = "block"; // Revert UI if it failed
           alert(err.message);
@@ -6665,6 +6757,8 @@
               );
               if (error) throw error;
               showToast("❌ Request rejected and closed.");
+              invalidateApprovalsCache();
+              switchApprovalTab(currentApprovalTab, true);
             } catch (err) {
               if (card) card.style.display = "block"; // Revert UI if it failed
               alert(err.message);
@@ -6706,6 +6800,7 @@
             localStorage.removeItem("dakmitra_offline_db");
             showToast("🧹 Cache cleared successfully!");
             loadSearchHistory();
+            invalidateApprovalsCache();
           },
         );
       }
@@ -6735,6 +6830,7 @@
           syncBtn.textContent = "✅ Synced";
           syncBtn.style.backgroundColor = "var(--success-border)";
           showToast("🔄 Database synced successfully!");
+          invalidateApprovalsCache();
         } else {
           syncBtn.textContent = "❌ Failed";
           syncBtn.style.backgroundColor = "#ef4444";
