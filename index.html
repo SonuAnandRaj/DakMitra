@@ -5695,8 +5695,20 @@
         .getElementById("search-input")
         .addEventListener("input", function () {
           const clearBtn = document.getElementById("clear-search-btn");
-          if (this.value.length > 0) clearBtn.classList.remove("hidden");
-          else clearBtn.classList.add("hidden");
+          if (this.value.length > 0) {
+            clearBtn.classList.remove("hidden");
+
+            // Automatically close Search Options & Recent Searches when typing starts
+            document
+              .getElementById("advanced-filters-panel")
+              .classList.add("hidden");
+            document
+              .getElementById("search-history-panel")
+              .classList.add("hidden");
+            closeAllDropdowns();
+          } else {
+            clearBtn.classList.add("hidden");
+          }
 
           // Clear previous timeout and delay the search until typing stops
           clearTimeout(searchTimeout);
