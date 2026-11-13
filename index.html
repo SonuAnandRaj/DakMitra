@@ -5662,6 +5662,7 @@
         }
 
         if (session) {
+          currentUserId = session.user?.id || null;
           authView.classList.add("hidden");
           dashboardView.classList.remove("hidden");
 
@@ -5731,6 +5732,7 @@
           // Background Task C: Load Post Offices
           fetchAllPostOffices();
         } else {
+          currentUserId = session.user?.id || null;
           authView.classList.remove("hidden");
           dashboardView.classList.add("hidden");
           cachedPostOffices = [];
@@ -6495,6 +6497,12 @@
         }
 
         try {
+          if (!currentUserId) {
+            const {
+              data: { session },
+            } = await supabaseClient.auth.getSession();
+            currentUserId = session?.user?.id || null;
+          }
           const fromIndex = cache.page * APPROVALS_PAGE_SIZE;
           const toIndex = fromIndex + APPROVALS_PAGE_SIZE - 1;
 
@@ -6708,20 +6716,42 @@
                 }
               }
             }
-
             let actionBarHtml = "";
             if (req.status === "PENDING") {
+              const isOwnRequest =
+                currentUserId &&
+                String(req.requested_by) === String(currentUserId);
+              const hasAlreadyVoted =
+                currentUserId &&
+                req.request_approvals &&
+                req.request_approvals.some(
+                  (app) => String(app.approved_by) === String(currentUserId),
+                );
+
               actionBarHtml = `
-                    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
-                       ${
-                         isCurrentUserAdmin
-                           ? `<button onclick="rejectRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:#fee2e2; color:#b91c1c; font-size:14px;">👎 Reject</button>`
-                           : ""
-                       }
-                       <button onclick="approveRequest('${
-                         req.id
-                       }')" class="btn" style="width:auto; padding:8px 20px; background:var(--primary); font-size:14px;">👍 Approve</button>
-                    </div>`;
+    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+      ${
+        isOwnRequest
+          ? `<span style="font-size: 12px; color: var(--text-light); font-weight: 600; margin-right: auto;">⏳ Your request (awaiting votes)</span>
+             <button onclick="deleteOwnRequest('${req.id}')" class="btn" style="width:auto; padding:8px 16px; background:#fee2e2; color:#b91c1c; font-size:13px;">🗑️ Delete Request</button>`
+          : ""
+      }
+      ${
+        isCurrentUserAdmin && !isOwnRequest
+          ? `<button onclick="rejectRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:#fee2e2; color:#b91c1c; font-size:14px;">👎 Reject</button>`
+          : ""
+      }
+      ${
+        !isOwnRequest && !hasAlreadyVoted
+          ? `<button onclick="approveRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:var(--primary); font-size:14px;">👍 Approve</button>`
+          : ""
+      }
+      ${
+        !isOwnRequest && hasAlreadyVoted
+          ? `<span style="font-size: 13px; color: var(--success-text); font-weight: 600; padding: 6px 12px; background: var(--success-bg); border-radius: 8px;">✓ You Voted</span>`
+          : ""
+      }
+    </div>`;
             } else if (req.status === "APPROVED") {
               actionBarHtml = `<div style="text-align: right; color: var(--success-text); font-weight: 600; font-size: 13px; margin-top: 12px;">✅ Request Approved & Merged</div>`;
             } else if (req.status === "REJECTED") {
@@ -6851,6 +6881,36 @@
         );
       }
 
+      async function deleteOwnRequest(reqId) {
+        showCustomConfirm(
+          "Delete Your Request?",
+          "Are you sure you want to withdraw and delete this pending request?",
+          "Delete Request",
+          async () => {
+            // Optimistic UI: Instantly hide the card
+            const card = document.getElementById("approval-card-" + reqId);
+            if (card) card.style.display = "none";
+
+            try {
+              const { error } = await supabaseClient
+                .from("edit_requests")
+                .delete()
+                .eq("id", reqId)
+                .eq("status", "PENDING");
+
+              if (error) throw error;
+
+              showToast("🗑️ Your request has been deleted.");
+              invalidateApprovalsCache();
+              switchApprovalTab(currentApprovalTab, true);
+            } catch (err) {
+              if (card) card.style.display = "block"; // Revert UI if it failed
+              alert("Error deleting request: " + err.message);
+            }
+          },
+        );
+      }
+
       // Add 'settings' to your viewOrder array for swipe navigation
       const viewOrder = [
         "favorites",
@@ -6944,6 +7004,7 @@
         showToast("⚙️ Export button preference saved!");
       }
       let isCurrentUserAdmin = false;
+      let currentUserId = null;
 
       // Ask Supabase directly if this user's UUID exists in the database admins table
       async function checkIfAdmin(userId) {
