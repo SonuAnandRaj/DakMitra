@@ -574,17 +574,49 @@
         z-index: 100;
         border-bottom: 1px solid var(--border);
       }
-      .hamburger {
-        background: none;
-        border: none;
-        font-size: 24px;
-        color: var(--text);
+      .profile-menu-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px; /* Modern squircle matching your theme */
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+        color: #ffffff;
+        border: 2px solid var(--card-bg);
+        box-shadow:
+          0 4px 10px -2px rgba(79, 70, 229, 0.35),
+          0 0 0 1.5px var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 800;
         cursor: pointer;
-        padding: 4px;
-        transition: color 0.2s;
+        padding: 0;
+        overflow: hidden;
+        flex-shrink: 0;
+        touch-action: pan-y; /* Allows smooth horizontal drag detection */
+        transition:
+          transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+          box-shadow 0.2s ease;
       }
-      .hamburger:hover {
-        color: var(--primary);
+      .profile-menu-btn:hover {
+        transform: scale(1.06);
+        box-shadow:
+          0 6px 14px -2px rgba(79, 70, 229, 0.5),
+          0 0 0 2px var(--primary);
+      }
+      .profile-menu-btn:active {
+        transform: scale(0.92);
+      }
+      .profile-menu-btn img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        pointer-events: none; /* Prevents image ghost-dragging */
       }
 
       /* --- SIDEBAR (DRAWER) --- */
@@ -2469,7 +2501,15 @@
     <div id="dashboard-view" class="hidden">
       <!-- Top App Bar -->
       <header class="app-bar" style="position: sticky">
-        <button class="hamburger" onclick="toggleSidebar()">☰</button>
+        <button
+          type="button"
+          class="profile-menu-btn"
+          id="top-profile-btn"
+          onclick="toggleSidebar()"
+          title="Open Menu"
+        >
+          <span id="top-avatar-content">U</span>
+        </button>
 
         <!-- LOCKED CENTER TITLE -->
         <h1>DakMitra</h1>
@@ -5718,6 +5758,10 @@
                   ).textContent = data.designation;
                   document.getElementById("avatar-letter").textContent =
                     data.name.charAt(0).toUpperCase();
+                  const topBtn = document.getElementById("top-profile-btn");
+                  if (topBtn && !topBtn.querySelector("img")) {
+                    topBtn.textContent = data.name.charAt(0).toUpperCase();
+                  }
                 }
               })
               .catch(() => {});
@@ -7401,17 +7445,20 @@
         if (desigSelect && profileData?.designation)
           desigSelect.value = profileData.designation;
 
-        // 2. Update Sidebar & Profile Page Avatars
+        // 2. Update Top Button, Sidebar & Profile Page Avatars
+        const topAvatar = document.getElementById("top-profile-btn");
         const sidebarAvatar = document.getElementById("avatar-letter");
         const pageAvatar = document.getElementById("profile-page-avatar");
         const removeBtn = document.getElementById("remove-avatar-btn");
 
         if (avatarUrl) {
           const imgTag = `<img src="${escapeHTML(avatarUrl)}" alt="Profile" />`;
+          if (topAvatar) topAvatar.innerHTML = imgTag;
           sidebarAvatar.innerHTML = imgTag;
           pageAvatar.innerHTML = imgTag;
           removeBtn?.classList.remove("hidden");
         } else {
+          if (topAvatar) topAvatar.textContent = initial;
           sidebarAvatar.textContent = initial;
           pageAvatar.textContent = initial;
           removeBtn?.classList.add("hidden");
@@ -7548,6 +7595,101 @@
           },
         );
       }
+
+      // --- PROFILE BUTTON & LEFT-EDGE DRAG TO OPEN SIDEBAR ---
+      (function initSidebarDragOpen() {
+        const profileBtn = document.getElementById("top-profile-btn");
+        let startX = null;
+        let startY = null;
+        let dragTriggered = false;
+
+        if (profileBtn) {
+          // Touch drag on the profile button
+          profileBtn.addEventListener(
+            "touchstart",
+            (e) => {
+              startX = e.touches[0].clientX;
+              startY = e.touches[0].clientY;
+              dragTriggered = false;
+            },
+            { passive: true },
+          );
+
+          profileBtn.addEventListener(
+            "touchmove",
+            (e) => {
+              if (startX === null) return;
+              const dx = e.touches[0].clientX - startX;
+              const dy = Math.abs(e.touches[0].clientY - startY);
+
+              // If dragged right by > 18px
+              if (dx > 18 && dx > dy) {
+                e.stopPropagation(); // Prevents background tab swipe
+                const sidebar = document.getElementById("sidebar");
+                if (!sidebar.classList.contains("open")) {
+                  toggleSidebar();
+                  dragTriggered = true;
+                }
+                startX = null;
+              }
+            },
+            { passive: true },
+          );
+
+          profileBtn.addEventListener(
+            "touchend",
+            (e) => {
+              if (dragTriggered) {
+                e.stopPropagation();
+                // Prevent the subsequent click event from immediately closing the sidebar
+                const preventClick = (clickEvent) => {
+                  clickEvent.stopPropagation();
+                  clickEvent.preventDefault();
+                };
+                profileBtn.addEventListener("click", preventClick, {
+                  once: true,
+                  capture: true,
+                });
+                dragTriggered = false;
+              }
+              startX = null;
+            },
+            { passive: true },
+          );
+
+          // Mouse drag support for desktop
+          let mouseDownX = null;
+          profileBtn.addEventListener("mousedown", (e) => {
+            mouseDownX = e.clientX;
+            dragTriggered = false;
+          });
+          window.addEventListener("mousemove", (e) => {
+            if (mouseDownX === null) return;
+            if (e.clientX - mouseDownX > 20) {
+              const sidebar = document.getElementById("sidebar");
+              if (!sidebar.classList.contains("open")) {
+                toggleSidebar();
+                dragTriggered = true;
+              }
+              mouseDownX = null;
+            }
+          });
+          window.addEventListener("mouseup", () => {
+            if (dragTriggered) {
+              const preventClick = (clickEvent) => {
+                clickEvent.stopPropagation();
+                clickEvent.preventDefault();
+              };
+              profileBtn.addEventListener("click", preventClick, {
+                once: true,
+                capture: true,
+              });
+              dragTriggered = false;
+            }
+            mouseDownX = null;
+          });
+        }
+      })();
 
       // BOOTSTRAP APP
       checkEmailVerificationRedirect();
