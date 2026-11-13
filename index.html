@@ -466,15 +466,15 @@
         bottom: calc(16px + env(safe-area-inset-bottom));
         left: 50%;
         transform: translateX(-50%);
-        width: calc(100% - 24px);
-        max-width: 420px; /* Keeps it compact on desktop */
+        width: calc(100% - 20px); /* Slightly wider to give larger icons room */
+        max-width: 440px; /* Increased from 420px */
         background: var(--card-bg);
         border: 1px solid var(--border);
-        border-radius: 32px;
+        border-radius: 36px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 6px 8px;
+        padding: 7px 10px; /* Slightly taller bar */
         gap: 2px;
         z-index: 900;
         overflow: hidden; /* Hard stop: prevents any child from ever spilling out */
@@ -494,19 +494,23 @@
         background: transparent;
         border: none;
         color: var(--text-light);
-        font-size: clamp(11px, 3.2vw, 13.5px);
+        font-size: clamp(12px, 3.5vw, 14px); /* Slightly larger label text */
         font-weight: 700;
         cursor: pointer;
-        padding: 9px clamp(8px, 2.5vw, 14px);
+        padding: 11px clamp(9px, 2.6vw, 14px); /* Increased button touch area */
         border-radius: 100px;
-        min-width: 0; /* Allows flex items to shrink below content size if needed */
+        min-width: 0;
         flex-shrink: 1;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .bottom-nav-item svg {
-        width: clamp(18px, 5vw, 22px);
-        height: clamp(18px, 5vw, 22px);
+        width: clamp(
+          22px,
+          5.8vw,
+          24px
+        ); /* Increased from 18px-22px to 22px-24px */
+        height: clamp(22px, 5.8vw, 24px);
         flex-shrink: 0;
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       }
