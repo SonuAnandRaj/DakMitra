@@ -166,6 +166,73 @@
         border-radius: 12px;
         margin-bottom: 0;
       }
+
+      /* --- APPROVALS SKELETON & LOADER ANIMATIONS --- */
+      .approval-skeleton-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: var(--shadow-sm);
+        animation: fadeIn 0.3s ease;
+      }
+
+      .skeleton-pill {
+        width: 72px;
+        height: 24px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+      }
+
+      .skeleton-meta-box {
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 12px;
+      }
+
+      .skeleton-action-row {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .skeleton-btn {
+        width: 105px;
+        height: 36px;
+        border-radius: 12px;
+        margin-bottom: 0;
+      }
+
+      /* Animated Dual-Ring Theme Spinner for Infinite Scroll */
+      .approvals-loader-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 8px 18px;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow: var(--shadow-sm);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-light);
+      }
+
+      .approvals-spinner {
+        width: 18px;
+        height: 18px;
+        border: 2.5px solid var(--border);
+        border-top-color: var(--primary);
+        border-right-color: var(--accent);
+        border-radius: 50%;
+        animation: spin 0.75s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
       /* --- VOICE SEARCH RIPPLE ANIMATION --- */
       @keyframes ripple {
         0% {
@@ -2963,9 +3030,17 @@
             class="results-container-scroll expanded"
             id="approvals-display-area"
           >
-            <ul class="list-container">
-              <li class="list-empty">Loading requests...</li>
-            </ul>
+            <div id="approvals-content" style="padding: 4px"></div>
+            <div
+              id="approvals-sentinel"
+              style="
+                min-height: 54px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 10px;
+              "
+            ></div>
           </div>
         </section>
         <!-- SEARCH VIEW (Default) -->
@@ -6171,8 +6246,36 @@
       }
       let currentApprovalTab = "pending";
 
+      // Helper to generate themed skeleton cards matching Pending vs Resolved layout
+      function getApprovalsSkeletonHTML(count = 3) {
+        let html = "";
+        for (let i = 0; i < count; i++) {
+          html += `
+            <div class="approval-skeleton-card">
+              <div class="skeleton-line skeleton-pill"></div>
+              <div class="skeleton-line medium" style="height: 15px; margin-bottom: 8px;"></div>
+              <div class="skeleton-line short" style="height: 14px; margin-bottom: 8px;"></div>
+              <div class="skeleton-line" style="width: 28%; height: 14px; margin-bottom: 0;"></div>
+              <div class="skeleton-meta-box">
+                <div class="skeleton-line medium" style="height: 12px; margin-bottom: 8px;"></div>
+                <div class="skeleton-line short" style="height: 12px; margin-bottom: 0;"></div>
+              </div>
+              ${
+                currentApprovalTab === "pending"
+                  ? `<div class="skeleton-action-row">
+                       <div class="skeleton-line skeleton-btn"></div>
+                     </div>`
+                  : `<div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+                       <div class="skeleton-line" style="width: 170px; height: 14px; margin-bottom: 0;"></div>
+                     </div>`
+              }
+            </div>
+          `;
+        }
+        return html;
+      }
+
       function switchApprovalTab(tab, forceLoad = false) {
-        // If the user clicks the same tab they are already on, do nothing (unless forced)
         if (currentApprovalTab === tab && !forceLoad) return;
 
         currentApprovalTab = tab;
@@ -6195,36 +6298,52 @@
             .classList.remove("active");
         }
 
-        // Clear the display area and reload the first batch
+        // Inject Skeletons immediately while first batch is fetched
         const displayArea = document.getElementById("approvals-display-area");
+        displayArea.scrollTop = 0;
         displayArea.innerHTML = `
-            <div id="approvals-content" style="padding: 4px;"></div>
-            <div id="approvals-sentinel" style="height: 40px; text-align: center; color: var(--text-light); font-size: 13px; padding: 10px;">Loading requests...</div>
+            <div id="approvals-content" style="padding: 4px;">
+              ${getApprovalsSkeletonHTML(3)}
+            </div>
+            <div id="approvals-sentinel" style="min-height: 54px; display: flex; align-items: center; justify-content: center; padding: 10px;"></div>
         `;
 
         setupApprovalsObserver();
         loadApprovalsBatch();
       }
+
       async function loadApprovalsBatch() {
         if (isApprovalsLoading || !hasMoreApprovals) return;
         isApprovalsLoading = true;
 
         const displayArea = document.getElementById("approvals-display-area");
-        const contentDiv = document.getElementById("approvals-content");
-        const sentinel = document.getElementById("approvals-sentinel");
+        let contentDiv = document.getElementById("approvals-content");
+        let sentinel = document.getElementById("approvals-sentinel");
 
-        // Initial setup if it's the first page load and the containers don't exist
+        // Initial setup if containers don't exist yet
         if (!contentDiv) {
           displayArea.innerHTML = `
-                <div id="approvals-content" style="padding: 4px;"></div>
-                <div id="approvals-sentinel" style="height: 40px; text-align: center; color: var(--text-light); font-size: 13px; padding: 10px;">Loading requests...</div>
-            `;
+              <div id="approvals-content" style="padding: 4px;">
+                ${getApprovalsSkeletonHTML(3)}
+              </div>
+              <div id="approvals-sentinel" style="min-height: 54px; display: flex; align-items: center; justify-content: center; padding: 10px;"></div>
+          `;
           setupApprovalsObserver();
-          // Need to re-select elements after injecting HTML
+          isApprovalsLoading = false;
           return setTimeout(loadApprovalsBatch, 0);
         }
 
-        if (sentinel) sentinel.textContent = "Loading more...";
+        // Show skeleton cards on initial page load, or pill spinner when scrolling for more
+        if (approvalsCurrentPage === 0) {
+          contentDiv.innerHTML = getApprovalsSkeletonHTML(3);
+          if (sentinel) sentinel.innerHTML = "";
+        } else if (sentinel) {
+          sentinel.innerHTML = `
+            <div class="approvals-loader-pill">
+              <div class="approvals-spinner"></div>
+              <span>Fetching more requests...</span>
+            </div>`;
+        }
 
         try {
           const fromIndex = approvalsCurrentPage * APPROVALS_PAGE_SIZE;
@@ -6248,6 +6367,11 @@
           const { data, error, count } = await query;
           if (error) throw error;
 
+          // Clear the initial skeleton cards before inserting real data
+          if (approvalsCurrentPage === 0) {
+            contentDiv.innerHTML = "";
+          }
+
           if (!data || data.length === 0) {
             hasMoreApprovals = false;
             if (approvalsCurrentPage === 0) {
@@ -6262,13 +6386,17 @@
             return;
           }
 
-          // If we received fewer items than requested, we've hit the end
+          // Check if we've reached the end of the records
           if (
             data.length < APPROVALS_PAGE_SIZE ||
             fromIndex + data.length >= count
           ) {
             hasMoreApprovals = false;
-            if (sentinel) sentinel.textContent = "End of requests";
+            if (sentinel) {
+              sentinel.innerHTML = `<span style="color: var(--text-light); font-size: 13px;">End of requests</span>`;
+            }
+          } else if (sentinel) {
+            sentinel.innerHTML = "";
           }
 
           // Gather all unique user IDs to fetch in one batch
@@ -6449,22 +6577,22 @@
             html += `
             <div id="approval-card-${
               req.id
-            }" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm);">                      <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
-                      <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
-                        <div>👤 Requested by: <b>${escapeHTML(
-                          requesterName,
-                        )}</b> (${escapeHTML(requesterId)})</div>
-                        <div>📅 ${dateStr}</div>
-                        ${
-                          req.status === "PENDING"
-                            ? `<div style="margin-top: 4px;">🗳️ Community Votes: <b style="color: var(--primary);">${voteCount} / 5</b></div>`
-                            : ""
-                        }
-                        ${approverDetailsHtml}
-                      </div>
-                      ${actionBarHtml}
-                  </div>
-                  `;
+            }" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); animation: fadeIn 0.3s ease;">
+              <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
+              <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
+                <div>👤 Requested by: <b>${escapeHTML(
+                  requesterName,
+                )}</b> (${escapeHTML(requesterId)})</div>
+                <div>📅 ${dateStr}</div>
+                ${
+                  req.status === "PENDING"
+                    ? `<div style="margin-top: 4px;">🗳️ Community Votes: <b style="color: var(--primary);">${voteCount} / 5</b></div>`
+                    : ""
+                }
+                ${approverDetailsHtml}
+              </div>
+              ${actionBarHtml}
+            </div>`;
           });
 
           contentDiv.insertAdjacentHTML("beforeend", html);
@@ -6476,7 +6604,6 @@
             contentDiv.innerHTML = `<div class="list-empty" style="color: red;">Error loading requests: ${err.message}</div>`;
         }
       }
-
       function setupApprovalsObserver() {
         const sentinel = document.getElementById("approvals-sentinel");
         const displayArea = document.getElementById("approvals-display-area");
