@@ -1228,7 +1228,7 @@
         border: 1px solid rgba(79, 70, 229, 0.1);
         margin-bottom: 24px;
         position: relative;
-        overflow: hidden;
+        overflow: visible; /* Allows the filter autocomplete dropdown to pop out */
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
@@ -1240,6 +1240,7 @@
         left: 0;
         width: 100%;
         height: 4px;
+        border-radius: 24px 24px 0 0;
         background: linear-gradient(
           135deg,
           var(--primary) 0%,
@@ -1254,6 +1255,7 @@
         padding: 0;
         border-width: 0;
         box-shadow: none;
+        overflow: hidden;
       }
 
       .search-hero h2 {
@@ -1493,11 +1495,11 @@
         animation: fadeInDown 0.3s ease;
         width: 100%;
       }
-      @media (min-width: 600px) {
+      /*@media (min-width: 600px) {
         .advanced-filters-panel {
           flex-direction: row;
         }
-      }
+      }*/
 
       .filter-wrapper {
         background: var(--card-bg);
@@ -3209,30 +3211,36 @@
 
               <!-- SECONDARY FILTERS (Row 2) -->
               <div class="advanced-filters-inputs">
-                <div class="search-input-wrapper filter-wrapper">
-                  <span class="filter-icon">🏢</span>
-                  <input
-                    type="text"
-                    id="filter-office"
-                    placeholder="Must be in Office..."
-                    oninput="
-                      toggleClearBtn('filter-office', 'clear-office-btn');
-                      triggerSearch();
-                    "
-                    autocomplete="off"
-                  />
-                  <button
-                    type="button"
-                    id="clear-office-btn"
-                    class="clear-btn hidden"
-                    onclick="
-                      clearFilterInput('filter-office', 'clear-office-btn')
-                    "
-                    title="Clear Office Filter"
-                  >
-                    ✕
-                  </button>
+                <div class="autocomplete-wrapper" style="flex: 1; min-width: 0">
+                  <div class="search-input-wrapper filter-wrapper">
+                    <span class="filter-icon">🏢</span>
+                    <input
+                      type="text"
+                      id="filter-office"
+                      placeholder="Must be in Office..."
+                      oninput="handleSearchOfficeFilterInput(this)"
+                      onfocus="handleSearchOfficeFilterInput(this)"
+                      onblur="setTimeout(closeAllDropdowns, 200)"
+                      autocomplete="off"
+                    />
+                    <button
+                      type="button"
+                      id="clear-office-btn"
+                      class="clear-btn hidden"
+                      onclick="
+                        clearFilterInput('filter-office', 'clear-office-btn')
+                      "
+                      title="Clear Office Filter"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div
+                    id="filter-office-dropdown"
+                    class="autocomplete-dropdown"
+                  ></div>
                 </div>
+
                 <div class="search-input-wrapper filter-wrapper">
                   <span class="filter-icon">📍</span>
                   <input
@@ -6277,9 +6285,15 @@
         else clearBtn.classList.add("hidden");
       }
       function clearFilterInput(inputId, btnId) {
-        document.getElementById(inputId).value = "";
+        const input = document.getElementById(inputId);
+        input.value = "";
         document.getElementById(btnId).classList.add("hidden");
         triggerSearch();
+
+        if (inputId === "filter-office") {
+          input.focus();
+          handleSearchOfficeFilterInput(input);
+        }
       }
 
       // Helper to generate themed skeleton cards matching Pending vs Resolved layout
@@ -6998,6 +7012,7 @@
         return html;
       }
 
+      // 1. MANUAL UPLOAD OFFICE AUTOCOMPLETE (Restored)
       function handleOfficeInput(inputElement) {
         const val = inputElement.value;
         const wrapper = inputElement.closest(".autocomplete-wrapper");
@@ -7007,11 +7022,9 @@
           .closest(".manual-entry-row")
           .querySelector(".manual-Pin");
 
-        // 1. Toggle Clear Button
         if (val.length > 0) clearBtn.classList.remove("hidden");
         else clearBtn.classList.add("hidden");
 
-        // 2. Extract Unique Offices from Database
         const officeMap = new Map();
         if (cachedPostOffices) {
           cachedPostOffices.forEach((row) => {
@@ -7021,7 +7034,6 @@
           });
         }
 
-        // 3. Filter Offices based on input
         let matchedOffices = Array.from(officeMap.keys());
         if (val) {
           const lowerVal = val.toLowerCase();
@@ -7031,15 +7043,13 @@
         }
         matchedOffices.sort();
 
-        // 4. Update Dropdown HTML
         if (matchedOffices.length === 0) {
           dropdown.classList.remove("show");
         } else {
           let html = "";
-          // Limit to top 10 matches for performance
           matchedOffices.slice(0, 10).forEach((office) => {
             const pin = officeMap.get(office);
-            html += `<div class="autocomplete-item" onclick="selectCustomOffice(this, '${escapeForOnclick(
+            html += `<div class="autocomplete-item" onmousedown="event.preventDefault(); selectCustomOffice(this, '${escapeForOnclick(
               office,
             )}', '${escapeForOnclick(pin)}')">🏢 ${escapeHTML(office)}</div>`;
           });
@@ -7047,7 +7057,6 @@
           dropdown.classList.add("show");
         }
 
-        // 5. Auto-fill or clear PIN based on exact match or empty input
         if (pinInput) {
           if (val.trim() === "") {
             pinInput.value = "";
@@ -7068,12 +7077,12 @@
           .closest(".manual-entry-row")
           .querySelector(".manual-Pin");
 
-        // Set values
         input.value = officeName;
         if (pinInput) pinInput.value = pinNumber;
         clearBtn.classList.remove("hidden");
 
         closeAllDropdowns();
+        input.blur();
       }
 
       function clearOfficeInput(btnElement) {
@@ -7081,8 +7090,59 @@
         const input = wrapper.querySelector(".manual-office");
 
         input.value = "";
-        input.focus(); // Re-trigger the dropdown
+        input.focus();
         handleOfficeInput(input);
+      }
+
+      // 2. SEARCH OPTIONS OFFICE FILTER AUTOCOMPLETE
+      function handleSearchOfficeFilterInput(inputElement) {
+        const val = inputElement.value;
+        const dropdown = document.getElementById("filter-office-dropdown");
+        if (!dropdown) return;
+
+        toggleClearBtn("filter-office", "clear-office-btn");
+        triggerSearch();
+
+        const officeSet = new Set();
+        if (cachedPostOffices) {
+          cachedPostOffices.forEach((row) => {
+            if (row.Office) officeSet.add(row.Office);
+          });
+        }
+
+        let matchedOffices = Array.from(officeSet);
+        if (val) {
+          const lowerVal = val.toLowerCase();
+          matchedOffices = matchedOffices.filter((o) =>
+            o.toLowerCase().includes(lowerVal),
+          );
+        }
+        matchedOffices.sort();
+
+        if (matchedOffices.length === 0) {
+          dropdown.classList.remove("show");
+        } else {
+          let html = "";
+          matchedOffices.slice(0, 10).forEach((office) => {
+            html += `<div class="autocomplete-item" onmousedown="event.preventDefault(); selectSearchOfficeFilter('${escapeForOnclick(
+              office,
+            )}')">🏢 ${escapeHTML(office)}</div>`;
+          });
+          dropdown.innerHTML = html;
+          dropdown.classList.add("show");
+        }
+      }
+
+      function selectSearchOfficeFilter(officeName) {
+        const input = document.getElementById("filter-office");
+        const dropdown = document.getElementById("filter-office-dropdown");
+        if (!input) return;
+
+        input.value = officeName;
+        toggleClearBtn("filter-office", "clear-office-btn");
+        if (dropdown) dropdown.classList.remove("show");
+        input.blur();
+        triggerSearch();
       }
 
       function closeAllDropdowns() {
@@ -7090,7 +7150,6 @@
           .querySelectorAll(".autocomplete-dropdown.show")
           .forEach((el) => el.classList.remove("show"));
       }
-
       // Safely remove the old function call without causing errors in the app lifecycle
       function refreshOfficeDropdowns() {
         // Left intentionally blank - the custom dropdown handles its own state now.
