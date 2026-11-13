@@ -577,17 +577,15 @@
       .profile-menu-btn {
         width: 40px;
         height: 40px;
-        border-radius: 14px; /* Modern squircle matching your theme */
+        border-radius: 50%; /* Perfect circle */
         background: linear-gradient(
           135deg,
           var(--primary) 0%,
           var(--accent) 100%
         );
         color: #ffffff;
-        border: 2px solid var(--card-bg);
-        box-shadow:
-          0 4px 10px -2px rgba(79, 70, 229, 0.35),
-          0 0 0 1.5px var(--primary);
+        border: none; /* No border */
+        box-shadow: 0 4px 10px -2px rgba(79, 70, 229, 0.35); /* Soft shadow only, no ring */
         display: flex;
         align-items: center;
         justify-content: center;
@@ -597,16 +595,14 @@
         padding: 0;
         overflow: hidden;
         flex-shrink: 0;
-        touch-action: pan-y; /* Allows smooth horizontal drag detection */
+        touch-action: pan-y;
         transition:
           transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
           box-shadow 0.2s ease;
       }
       .profile-menu-btn:hover {
         transform: scale(1.06);
-        box-shadow:
-          0 6px 14px -2px rgba(79, 70, 229, 0.5),
-          0 0 0 2px var(--primary);
+        box-shadow: 0 6px 14px -2px rgba(79, 70, 229, 0.5);
       }
       .profile-menu-btn:active {
         transform: scale(0.92);
@@ -616,7 +612,7 @@
         height: 100%;
         object-fit: cover;
         display: block;
-        pointer-events: none; /* Prevents image ghost-dragging */
+        pointer-events: none;
       }
 
       /* --- SIDEBAR (DRAWER) --- */
