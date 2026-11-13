@@ -4236,10 +4236,61 @@
           .getElementById("bottom-nav-" + viewId)
           ?.classList.add("active");
 
+        // Check if search bar and filters are blank
+        const searchVal = document.getElementById("search-input")?.value.trim();
+        const officeFilterVal = document
+          .getElementById("filter-office")
+          ?.value.trim();
+        const pinFilterVal = document
+          .getElementById("filter-pin")
+          ?.value.trim();
+        const isSearchBlank = !searchVal && !officeFilterVal && !pinFilterVal;
+
+        if (viewId !== "search") {
+          // 1. Leaving Search: Stop the observer so it cannot fire in the background
+          if (window.searchObserver) window.searchObserver.disconnect();
+
+          // If search is blank, trim the hidden DOM back to 10 cards to free memory immediately
+          if (isSearchBlank && window.searchDisplayLimit > 10) {
+            window.searchDisplayLimit = 10;
+            renderResults(false);
+            if (window.searchObserver) window.searchObserver.disconnect();
+          }
+        } else {
+          // 2. Returning to Search: Now that #view-search is visible, reset to initial state if blank
+          if (isSearchBlank) {
+            const hero = document.querySelector("#view-search .search-hero");
+            const area = document.getElementById("results-display-area");
+
+            if (hero) hero.classList.remove("collapsed");
+            if (area) {
+              area.classList.remove("expanded");
+              area.style.maxHeight = "";
+              area.scrollTop = 0; // Works reliably now that #view-search is active/visible!
+            }
+
+            // Reset scroll tracker & panels so it's identical to first-time opening
+            lastScrollTop = 0;
+            isAnimating = false;
+            document
+              .getElementById("advanced-filters-panel")
+              ?.classList.add("hidden");
+            document
+              .getElementById("search-history-panel")
+              ?.classList.add("hidden");
+            closeAllDropdowns();
+
+            // Render default 10 cards and re-attach observer
+            renderResults(false);
+          } else {
+            // If user had an active search/filter, keep their exact results & re-enable observer
+            setupSearchObserver();
+          }
+        }
+
         if (viewId === "favorites") {
           renderFavorites();
         } else if (viewId === "approvals") {
-          // Passing 'true' forces the database query to run when opening the view
           switchApprovalTab(currentApprovalTab);
         } else if (viewId === "directory") {
           renderDirectory();
@@ -4247,7 +4298,6 @@
 
         closeSidebar();
       }
-
       // XSS Protection Helper
       function escapeHTML(str) {
         if (str === null || str === undefined) return "";
@@ -4900,21 +4950,29 @@
 
         if (window.searchObserver) window.searchObserver.disconnect();
 
+        // Do not observe if Search tab is currently hidden
+        const searchSection = document.getElementById("view-search");
+        if (!searchSection || !searchSection.classList.contains("active")) {
+          return;
+        }
+
         window.searchObserver = new IntersectionObserver(
           (entries) => {
-            if (entries[0].isIntersecting) {
+            if (
+              entries[0].isIntersecting &&
+              searchSection.classList.contains("active")
+            ) {
               if (window.searchDisplayLimit < currentFilteredData.length) {
-                window.searchDisplayLimit += 10; // Load 50 more
-                renderResults(true); // The 'true' flag prevents scrolling back to the top
+                window.searchDisplayLimit += 10;
+                renderResults(true);
               }
             }
           },
           { root: displayArea, rootMargin: "300px" },
-        ); // Pre-load 300px before reaching the bottom
+        );
 
         if (sentinel) window.searchObserver.observe(sentinel);
       }
-
       function renderResults(isLoadMore = false) {
         const displayArea = document.getElementById("results-display-area");
 
