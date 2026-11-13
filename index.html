@@ -5766,7 +5766,7 @@
           // Background Task C: Load Post Offices
           fetchAllPostOffices();
         } else {
-          currentUserId = session.user?.id || null;
+          currentUserId = null;
           authView.classList.remove("hidden");
           dashboardView.classList.add("hidden");
           cachedPostOffices = [];
