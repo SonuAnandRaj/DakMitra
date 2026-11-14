@@ -376,6 +376,81 @@
         border-color: var(--primary);
         background: rgba(79, 70, 229, 0.05); /* Faint primary tint */
       }
+
+      /* Clickable BO / SO / HO Address Chips */
+      .directory-address-chip.clickable-office-chip {
+        cursor: pointer;
+        border-color: rgba(79, 70, 229, 0.35);
+        background: rgba(79, 70, 229, 0.08);
+        color: var(--primary);
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .directory-address-chip.clickable-office-chip:hover {
+        background: var(--primary);
+        color: #ffffff;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+      }
+      .directory-address-chip.clickable-office-chip:active {
+        transform: scale(0.96);
+      }
+
+      /* Office Staff Details Modal Styling */
+      .staff-detail-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        text-align: left;
+        margin-top: 16px;
+        max-height: 60vh;
+        overflow-y: auto;
+      }
+      .staff-detail-card {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .staff-role-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--primary);
+        display: block;
+        margin-bottom: 4px;
+      }
+      .staff-person-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .staff-call-btn {
+        background: var(--success-bg);
+        color: var(--success-text);
+        border: 1px solid var(--success-border);
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+        transition: transform 0.15s ease;
+      }
+      .staff-call-btn:active {
+        transform: scale(0.95);
+      }
+
       /* --- BEAUTIFUL GRADIENT BRANDING --- */
       .app-bar h1,
       #auth-view h1 {
@@ -4626,6 +4701,82 @@
         </div>
       </div>
     </div>
+
+    <!-- OFFICE DETAILS MODAL (BO / SO / HO) -->
+    <div
+      id="office-details-modal-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeOfficeDetailsModal();"
+    >
+      <div
+        class="modal-card"
+        style="max-width: 420px; width: 92%; text-align: left"
+      >
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
+          "
+        >
+          <div>
+            <span
+              id="office-modal-badge"
+              class="badge badge-primary"
+              style="margin-bottom: 6px; font-size: 11px; padding: 4px 10px"
+              >OFFICE</span
+            >
+            <h3
+              id="office-modal-title"
+              class="modal-title"
+              style="margin: 0; font-size: 20px"
+            >
+              Office Name
+            </h3>
+            <p
+              id="office-modal-subtitle"
+              style="font-size: 12px; color: var(--text-light); margin-top: 2px"
+            ></p>
+          </div>
+          <button
+            type="button"
+            onclick="closeOfficeDetailsModal()"
+            style="
+              background: var(--btn-secondary);
+              border: none;
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              font-size: 15px;
+              cursor: pointer;
+              color: var(--text-light);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+            "
+          >
+            ✕
+          </button>
+        </div>
+
+        <div id="office-modal-body" class="staff-detail-list"></div>
+
+        <div class="modal-actions" style="margin-top: 20px">
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="closeOfficeDetailsModal()"
+            style="width: 100%"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- CUSTOM ALERT MODAL -->
     <div id="alert-modal-overlay" class="modal-overlay">
       <div class="modal-card">
@@ -6132,9 +6283,20 @@
               `;
 
           data.addresses.forEach((address) => {
-            html += `<span class="directory-address-chip">${escapeHTML(
-              address,
-            )}</span>`;
+            const officeType = detectOfficeType(address);
+            if (officeType) {
+              html += `<span class="directory-address-chip clickable-office-chip" onclick="showOfficeDetailsModal('${escapeForOnclick(
+                address,
+              )}', '${escapeForOnclick(
+                data.office,
+              )}')" title="Tap to view ${officeType} details">📮 ${escapeHTML(
+                address,
+              )}</span>`;
+            } else {
+              html += `<span class="directory-address-chip">${escapeHTML(
+                address,
+              )}</span>`;
+            }
           });
 
           html += `
@@ -6155,6 +6317,207 @@
             sentinel.textContent = "Loading more...";
           }
         }
+      }
+
+      // Detects whole-word BO, SO, or HO (case-insensitive, supports dots like B.O / S.O / H.O)
+      function detectOfficeType(address) {
+        if (!address) return null;
+        const clean = String(address).replace(/\./g, "");
+        if (/\bBO\b/i.test(clean)) return "BO";
+        if (/\bSO\b/i.test(clean)) return "SO";
+        if (/\bHO\b/i.test(clean)) return "HO";
+        return null;
+      }
+
+      // Checks if a database value is non-empty
+      function hasValidValue(val) {
+        return (
+          val !== null &&
+          val !== undefined &&
+          String(val).trim() !== "" &&
+          String(val).trim().toLowerCase() !== "null" &&
+          String(val).trim().toLowerCase() !== "n/a"
+        );
+      }
+
+      // Renders a single staff card only if name or contact exists
+      function buildStaffCardHTML(roleLabel, personName, contactNumber) {
+        const hasName = hasValidValue(personName);
+        const hasContact = hasValidValue(contactNumber);
+
+        // Hide the field completely if both name and contact are empty in DB
+        if (!hasName && !hasContact) return "";
+
+        const cleanPhone = hasContact
+          ? String(contactNumber).replace(/[^\d+]/g, "")
+          : "";
+
+        return `
+          <div class="staff-detail-card">
+            <div style="min-width: 0; flex: 1;">
+              <span class="staff-role-label">${escapeHTML(roleLabel)}</span>
+              ${
+                hasName
+                  ? `<div class="staff-person-name">${escapeHTML(personName)}</div>`
+                  : ""
+              }
+              ${
+                hasContact
+                  ? `<div style="font-size: 13px; color: var(--text-light); margin-top: 2px;">📞 ${escapeHTML(
+                      contactNumber,
+                    )}</div>`
+                  : ""
+              }
+            </div>
+            ${
+              cleanPhone
+                ? `<a href="tel:${escapeHTML(
+                    cleanPhone,
+                  )}" class="staff-call-btn">📞 Call</a>`
+                : ""
+            }
+          </div>
+        `;
+      }
+
+      function showOfficeDetailsModal(addressName, parentOfficeName) {
+        const officeType = detectOfficeType(addressName);
+        if (!officeType) return;
+
+        // Find the matching record in cachedPostOffices
+        const record =
+          cachedPostOffices.find(
+            (r) =>
+              String(r.Address || "")
+                .trim()
+                .toLowerCase() === String(addressName).trim().toLowerCase() &&
+              String(r.Office || "")
+                .trim()
+                .toLowerCase() ===
+                String(parentOfficeName).trim().toLowerCase(),
+          ) ||
+          cachedPostOffices.find(
+            (r) =>
+              String(r.Address || "")
+                .trim()
+                .toLowerCase() === String(addressName).trim().toLowerCase(),
+          ) ||
+          {};
+
+        const badgeLabels = {
+          BO: "Branch Office (BO)",
+          SO: "Sub Office (SO)",
+          HO: "Head Office (HO)",
+        };
+
+        document.getElementById("office-modal-badge").textContent =
+          badgeLabels[officeType] || officeType;
+        document.getElementById("office-modal-title").textContent = addressName;
+        document.getElementById("office-modal-subtitle").textContent =
+          `🏢 ${record.Office || parentOfficeName || "N/A"} • 📍 PIN: ${
+            record.Pin || "N/A"
+          }`;
+
+        let cardsHtml = "";
+
+        if (officeType === "BO") {
+          // Branch Office: BPM & ABPM
+          cardsHtml += buildStaffCardHTML(
+            "Branch Post Master (BPM)",
+            record.bpm_name || record.BPM || record.bpm,
+            record.bpm_contact || record.BPM_Contact || record.bpm_mobile,
+          );
+          cardsHtml += buildStaffCardHTML(
+            "Assistant Branch Post Master (ABPM)",
+            record.abpm_name || record.ABPM || record.abpm,
+            record.abpm_contact || record.ABPM_Contact || record.abpm_mobile,
+          );
+        } else if (officeType === "SO") {
+          // Sub Office: 1 SPM & any number of PAs
+          cardsHtml += buildStaffCardHTML(
+            "Sub Post Master (SPM)",
+            record.spm_name || record.SPM || record.spm,
+            record.spm_contact || record.SPM_Contact || record.spm_mobile,
+          );
+
+          // Parse Postal Assistants (supports JSON array in `pa_list` or numbered columns)
+          let paEntries = [];
+          const rawPaList =
+            record.pa_list || record.PA_List || record.postal_assistants;
+
+          if (Array.isArray(rawPaList)) {
+            paEntries = rawPaList;
+          } else if (typeof rawPaList === "string" && rawPaList.trim() !== "") {
+            try {
+              const parsed = JSON.parse(rawPaList);
+              if (Array.isArray(parsed)) paEntries = parsed;
+            } catch (e) {
+              // Fallback: support comma/newline separated "Name - 9876543210"
+              rawPaList.split(/[\n,;]+/).forEach((entry) => {
+                const parts = entry.split(/[-:]/);
+                if (parts.length >= 2) {
+                  paEntries.push({
+                    name: parts[0].trim(),
+                    contact: parts.slice(1).join("-").trim(),
+                  });
+                } else if (parts[0].trim()) {
+                  paEntries.push({ name: parts[0].trim(), contact: "" });
+                }
+              });
+            }
+          }
+
+          // Also support single PA columns if used (e.g., pa_name / pa_contact)
+          if (
+            paEntries.length === 0 &&
+            (hasValidValue(record.pa_name) || hasValidValue(record.pa_contact))
+          ) {
+            paEntries.push({
+              name: record.pa_name,
+              contact: record.pa_contact,
+            });
+          }
+
+          paEntries.forEach((pa, idx) => {
+            const label =
+              paEntries.length > 1
+                ? `Postal Assistant (PA #${idx + 1})`
+                : "Postal Assistant (PA)";
+            cardsHtml += buildStaffCardHTML(
+              label,
+              pa.name || pa.pa_name,
+              pa.contact || pa.mobile || pa.phone || pa.pa_contact,
+            );
+          });
+        } else if (officeType === "HO") {
+          // Head Office: Post Master (PM)
+          cardsHtml += buildStaffCardHTML(
+            "Post Master (PM)",
+            record.pm_name || record.PM || record.pm,
+            record.pm_contact || record.PM_Contact || record.pm_mobile,
+          );
+        }
+
+        const bodyEl = document.getElementById("office-modal-body");
+        if (!cardsHtml.trim()) {
+          bodyEl.innerHTML = `
+            <div class="list-empty" style="padding: 24px 16px; margin: 0;">
+              <span>No staff or contact details stored for this ${officeType} yet.</span>
+            </div>
+          `;
+        } else {
+          bodyEl.innerHTML = cardsHtml;
+        }
+
+        document
+          .getElementById("office-details-modal-overlay")
+          .classList.add("show");
+      }
+
+      function closeOfficeDetailsModal() {
+        document
+          .getElementById("office-details-modal-overlay")
+          .classList.remove("show");
       }
 
       function setupDirectoryObserver() {
