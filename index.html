@@ -862,6 +862,205 @@
         word-break: break-all;
       }
 
+      /* --- MODERN EDIT PROFILE CARD & ANIMATED SAVE BUTTON --- */
+      .profile-edit-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 28px 24px;
+        box-shadow: var(--shadow-md);
+        text-align: left;
+        position: relative;
+        overflow: hidden;
+      }
+      .profile-edit-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+      }
+      .profile-edit-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      .profile-edit-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      [data-theme="dark"] .profile-edit-icon {
+        background: rgba(129, 140, 248, 0.15);
+      }
+      .profile-input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .profile-input-wrapper .field-icon {
+        position: absolute;
+        left: 14px;
+        width: 18px;
+        height: 18px;
+        color: var(--text-light);
+        pointer-events: none;
+        transition:
+          color 0.25s ease,
+          transform 0.25s ease;
+      }
+      .profile-input-wrapper input,
+      .profile-input-wrapper select {
+        padding-left: 44px !important;
+        border-radius: 14px !important;
+        border: 1.5px solid var(--input-border) !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      }
+      .profile-input-wrapper:focus-within .field-icon {
+        color: var(--primary);
+        transform: scale(1.1);
+      }
+      .profile-input-wrapper:focus-within input,
+      .profile-input-wrapper:focus-within select {
+        background: var(--card-bg) !important;
+        border-color: var(--primary) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px -4px rgba(79, 70, 229, 0.15) !important;
+      }
+
+      /* Animated Gradient Save Button */
+      .btn-save-profile {
+        position: relative;
+        width: 100%;
+        height: 54px;
+        border-radius: 16px;
+        border: none;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          #6366f1 50%,
+          var(--accent) 100%
+        );
+        background-size: 200% 200%;
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        cursor: pointer;
+        overflow: hidden;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.5);
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-top: 6px;
+      }
+      /* Subtle sweeping light sheen */
+      .btn-save-profile::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -120%;
+        width: 60%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.28),
+          transparent
+        );
+        transform: skewX(-25deg);
+        animation: btnShine 4s infinite ease-in-out;
+      }
+      @keyframes btnShine {
+        0%,
+        65% {
+          left: -120%;
+        }
+        100% {
+          left: 160%;
+        }
+      }
+      .btn-save-profile:hover {
+        transform: translateY(-2px);
+        background-position: 100% 50%;
+        box-shadow: 0 12px 24px -6px rgba(79, 70, 229, 0.65);
+      }
+      .btn-save-profile:active {
+        transform: scale(0.96);
+      }
+      .btn-save-profile .btn-content {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        transition:
+          transform 0.3s ease,
+          opacity 0.25s ease;
+      }
+      .btn-save-profile svg {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+
+      /* Loading State */
+      .btn-save-profile.is-loading {
+        pointer-events: none;
+        background: var(--primary);
+        box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.35);
+      }
+      .btn-save-profile.is-loading::after {
+        display: none;
+      }
+      .btn-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2.5px solid rgba(255, 255, 255, 0.3);
+        border-top-color: #ffffff;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+
+      /* Success State */
+      .btn-save-profile.is-success {
+        pointer-events: none;
+        background: linear-gradient(
+          135deg,
+          #10b981 0%,
+          #059669 100%
+        ) !important;
+        box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.5) !important;
+        transform: scale(1.01);
+      }
+      .btn-save-profile.is-success::after {
+        display: none;
+      }
+      .checkmark-path {
+        stroke-dasharray: 30;
+        stroke-dashoffset: 30;
+        animation: drawCheck 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+      @keyframes drawCheck {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
       /* --- SIDEBAR STATS GRID --- */
       .sidebar-stats-grid {
         display: grid;
@@ -2241,6 +2440,110 @@
         background: #dc2626;
       }
 
+      /* --- IMAGE CROPPER & PREVIEW MODAL --- */
+      .crop-workspace {
+        position: relative;
+        width: 240px;
+        height: 240px;
+        margin: 0 auto 16px;
+        border-radius: 24px;
+        overflow: hidden;
+        background: var(--input-bg);
+        border: 2px solid var(--primary);
+        touch-action: none; /* Prevents page scrolling while dragging image */
+        cursor: grab;
+        box-shadow: var(--shadow-md);
+      }
+      .crop-workspace:active {
+        cursor: grabbing;
+      }
+      #crop-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      /* Subtle rule-of-thirds grid overlay */
+      .crop-grid-overlay {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        border-radius: 22px;
+        background-image:
+          linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0.2) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.2) 1px,
+            transparent 1px
+          );
+        background-size: 33.33% 33.33%;
+      }
+      .crop-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 18px;
+        padding: 0 8px;
+      }
+      .crop-zoom-slider {
+        flex: 1;
+        accent-color: var(--primary);
+        height: 6px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      .crop-preview-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px;
+        margin-bottom: 20px;
+      }
+      .crop-preview-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .preview-squircle {
+        width: 54px;
+        height: 54px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 2px solid var(--primary);
+        box-shadow: var(--shadow-sm);
+        background: var(--card-bg);
+      }
+      .preview-circle {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 2px solid var(--accent);
+        box-shadow: var(--shadow-sm);
+        background: var(--card-bg);
+      }
+      .preview-squircle img,
+      .preview-circle img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
       /* Dark mode adjustment for the cancel button */
       [data-theme="dark"] .modal-btn-cancel {
         background: var(--input-bg);
@@ -2993,55 +3296,154 @@
           </div>
 
           <!-- Update Profile Details Card -->
-          <div class="upload-card" style="text-align: left">
-            <h3 style="margin-bottom: 16px; color: var(--primary)">
-              Edit Profile Details
-            </h3>
+          <div class="profile-edit-card">
+            <div class="profile-edit-header">
+              <div class="profile-edit-icon">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 20h9"></path>
+                  <path
+                    d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
+                  ></path>
+                </svg>
+              </div>
+              <div>
+                <h3
+                  style="
+                    font-size: 18px;
+                    font-weight: 800;
+                    color: var(--text);
+                    margin: 0;
+                  "
+                >
+                  Edit Profile Details
+                </h3>
+                <span
+                  style="
+                    font-size: 12px;
+                    color: var(--text-light);
+                    font-weight: 500;
+                  "
+                >
+                  Keep your employee details up to date
+                </span>
+              </div>
+            </div>
+
             <div class="input-group">
               <label>Full Name</label>
-              <input
-                type="text"
-                id="edit-profile-name"
-                placeholder="Your Full Name"
-              />
+              <div class="profile-input-wrapper">
+                <svg
+                  class="field-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <input
+                  type="text"
+                  id="edit-profile-name"
+                  placeholder="Your Full Name"
+                />
+              </div>
             </div>
+
             <div class="input-group">
               <label>Mobile Number</label>
-              <input
-                type="tel"
-                id="edit-profile-mobile"
-                placeholder="10-digit mobile number"
-                maxlength="10"
-              />
+              <div class="profile-input-wrapper">
+                <svg
+                  class="field-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                  <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                </svg>
+                <input
+                  type="tel"
+                  id="edit-profile-mobile"
+                  placeholder="10-digit mobile number"
+                  maxlength="10"
+                />
+              </div>
             </div>
+
             <div class="input-group">
               <label>Designation</label>
-              <select id="edit-profile-designation">
-                <option value="Sorting Assistant (SA)">
-                  Sorting Assistant (SA)
-                </option>
-                <option value="Postal Assistant (PA)">
-                  Postal Assistant (PA)
-                </option>
-                <option value="Post Man">Post Man</option>
-                <option value="Multi Tasking Staff (MTS)">
-                  Multi Tasking Staff (MTS)
-                </option>
-                <option value="Branch Post Master (BPM)">
-                  Branch Post Master (BPM)
-                </option>
-                <option value="Assistant Branch Post Master (ABPM)">
-                  Assistant Branch Post Master (ABPM)
-                </option>
-              </select>
+              <div class="profile-input-wrapper">
+                <svg
+                  class="field-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                </svg>
+                <select id="edit-profile-designation">
+                  <option value="Sorting Assistant (SA)">
+                    Sorting Assistant (SA)
+                  </option>
+                  <option value="Postal Assistant (PA)">
+                    Postal Assistant (PA)
+                  </option>
+                  <option value="Post Man">Post Man</option>
+                  <option value="Multi Tasking Staff (MTS)">
+                    Multi Tasking Staff (MTS)
+                  </option>
+                  <option value="Branch Post Master (BPM)">
+                    Branch Post Master (BPM)
+                  </option>
+                  <option value="Assistant Branch Post Master (ABPM)">
+                    Assistant Branch Post Master (ABPM)
+                  </option>
+                </select>
+              </div>
             </div>
+
             <button
               type="button"
-              class="btn"
+              class="btn-save-profile"
               id="save-profile-btn"
               onclick="saveProfileDetails()"
             >
-              💾 Save Profile Changes
+              <span class="btn-content" id="save-profile-btn-content">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                  ></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                <span>Save Profile Changes</span>
+              </span>
             </button>
           </div>
         </section>
@@ -4233,6 +4635,85 @@
             class="btn modal-btn-danger"
           >
             Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE PICTURE CROP & PREVIEW MODAL -->
+    <div id="crop-modal-overlay" class="modal-overlay">
+      <div class="modal-card" style="max-width: 380px; padding: 24px">
+        <h3 class="modal-title" style="margin-bottom: 4px">
+          Crop Profile Photo
+        </h3>
+        <p
+          style="font-size: 12px; color: var(--text-light); margin-bottom: 14px"
+        >
+          Drag photo to reposition and pinch/slide to zoom
+        </p>
+
+        <!-- Interactive Drag & Crop Area -->
+        <div class="crop-workspace" id="crop-workspace">
+          <canvas id="crop-canvas" width="256" height="256"></canvas>
+          <div class="crop-grid-overlay"></div>
+        </div>
+
+        <!-- Zoom Slider -->
+        <div class="crop-controls">
+          <span style="font-size: 13px; color: var(--text-light)">🔍</span>
+          <input
+            type="range"
+            id="crop-zoom-slider"
+            class="crop-zoom-slider"
+            min="1"
+            max="3"
+            step="0.02"
+            value="1"
+            oninput="handleCropZoom(this.value)"
+          />
+          <span
+            style="
+              font-size: 12px;
+              font-weight: 700;
+              color: var(--primary);
+              min-width: 34px;
+            "
+            id="crop-zoom-label"
+            >1.0x</span
+          >
+        </div>
+
+        <!-- Live Shape Previews -->
+        <div class="crop-preview-bar">
+          <div class="crop-preview-item">
+            <div class="preview-squircle">
+              <img id="crop-preview-squircle" src="" alt="Profile Preview" />
+            </div>
+            <span>Profile Card</span>
+          </div>
+          <div class="crop-preview-item">
+            <div class="preview-circle">
+              <img id="crop-preview-circle" src="" alt="Header Preview" />
+            </div>
+            <span>Top Bar</span>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="closeCropModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn"
+            id="apply-crop-btn"
+            onclick="applyCropAndUpload()"
+          >
+            ✨ Save Photo
           </button>
         </div>
       </div>
@@ -7622,12 +8103,29 @@
         }
 
         const btn = document.getElementById("save-profile-btn");
-        btn.textContent = "Saving...";
+        const btnContent = document.getElementById("save-profile-btn-content");
+
+        const defaultHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span>Save Profile Changes</span>
+        `;
+
+        // 1. Trigger Loading Animation
+        btn.classList.add("is-loading");
         btn.disabled = true;
+        btnContent.innerHTML = `
+          <div class="btn-spinner"></div>
+          <span>Updating Profile...</span>
+        `;
 
         const {
           data: { session },
         } = await supabaseClient.auth.getSession();
+
         if (session) {
           const { error } = await supabaseClient
             .from("profiles")
@@ -7639,27 +8137,62 @@
             .eq("id", session.user.id);
 
           if (error) {
+            btn.classList.remove("is-loading");
+            btn.disabled = false;
+            btnContent.innerHTML = defaultHTML;
             alert("Error updating profile: " + error.message);
-          } else {
-            let cachedProfile =
-              JSON.parse(localStorage.getItem("dakmitra_cached_profile")) || {};
-            cachedProfile.name = newName;
-            cachedProfile.mobile = newMobile || null;
-            cachedProfile.designation = newDesignation;
-            localStorage.setItem(
-              "dakmitra_cached_profile",
-              JSON.stringify(cachedProfile),
-            );
-
-            renderUserProfileUI(cachedProfile, session.user.email);
-            showToast("✅ Profile updated!");
+            return;
           }
-        }
-        btn.textContent = "💾 Save Profile Changes";
-        btn.disabled = false;
-      }
 
+          let cachedProfile =
+            JSON.parse(localStorage.getItem("dakmitra_cached_profile")) || {};
+          cachedProfile.name = newName;
+          cachedProfile.mobile = newMobile || null;
+          cachedProfile.designation = newDesignation;
+          localStorage.setItem(
+            "dakmitra_cached_profile",
+            JSON.stringify(cachedProfile),
+          );
+
+          renderUserProfileUI(cachedProfile, session.user.email);
+
+          // 2. Trigger Animated Checkmark Success State
+          btn.classList.remove("is-loading");
+          btn.classList.add("is-success");
+          btnContent.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>Changes Saved!</span>
+          `;
+          showToast("✨ Profile updated successfully!");
+
+          // 3. Smoothly revert button back to normal after 2.2 seconds
+          setTimeout(() => {
+            btn.classList.remove("is-success");
+            btn.disabled = false;
+            btnContent.innerHTML = defaultHTML;
+          }, 2200);
+        } else {
+          btn.classList.remove("is-loading");
+          btn.disabled = false;
+          btnContent.innerHTML = defaultHTML;
+          showToast("⚠️ Session expired. Please sign in again.");
+        }
+      }
       // Compresses the image into a crisp 256x256 square WebP/JPEG and saves to Supabase
+      // --- INTERACTIVE IMAGE CROPPER & LIVE PREVIEW ---
+      let cropState = {
+        img: null,
+        scale: 1,
+        minScale: 1,
+        offsetX: 0,
+        offsetY: 0,
+        isDragging: false,
+        startX: 0,
+        startY: 0,
+      };
+
       function handleProfilePicUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -7671,28 +8204,184 @@
         const reader = new FileReader();
         reader.onload = function (e) {
           const img = new Image();
-          img.onload = async function () {
-            const canvas = document.createElement("canvas");
-            const SIZE = 256; // Crisp square avatar
-            canvas.width = SIZE;
-            canvas.height = SIZE;
-            const ctx = canvas.getContext("2d");
-
-            // Center-crop square calculation
-            const minDim = Math.min(img.width, img.height);
-            const sx = (img.width - minDim) / 2;
-            const sy = (img.height - minDim) / 2;
-
-            ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, SIZE, SIZE);
-            const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.82);
-
-            await updateAvatarInDatabase(compressedDataUrl);
+          img.onload = function () {
+            openCropModal(img);
           };
           img.src = e.target.result;
         };
         reader.readAsDataURL(file);
       }
 
+      function openCropModal(img) {
+        const canvas = document.getElementById("crop-canvas");
+        const SIZE = canvas.width; // 256x256 output
+
+        // Calculate base scale so the shortest side fills the 256x256 square
+        const minScale = Math.max(SIZE / img.width, SIZE / img.height);
+        cropState.img = img;
+        cropState.minScale = minScale;
+        cropState.scale = minScale;
+
+        // Center image initially
+        cropState.offsetX = (SIZE - img.width * minScale) / 2;
+        cropState.offsetY = (SIZE - img.height * minScale) / 2;
+
+        // Reset Slider UI
+        const slider = document.getElementById("crop-zoom-slider");
+        slider.value = 1;
+        document.getElementById("crop-zoom-label").textContent = "1.0x";
+
+        drawCropCanvas();
+        document.getElementById("crop-modal-overlay").classList.add("show");
+      }
+
+      function closeCropModal() {
+        document.getElementById("crop-modal-overlay").classList.remove("show");
+        document.getElementById("profile-pic-input").value = "";
+        cropState.img = null;
+      }
+
+      function clampCropOffsets() {
+        const canvas = document.getElementById("crop-canvas");
+        const SIZE = canvas.width;
+        const drawW = cropState.img.width * cropState.scale;
+        const drawH = cropState.img.height * cropState.scale;
+
+        // Prevent empty borders around the image when panning
+        if (cropState.offsetX > 0) cropState.offsetX = 0;
+        if (cropState.offsetY > 0) cropState.offsetY = 0;
+        if (cropState.offsetX < SIZE - drawW) cropState.offsetX = SIZE - drawW;
+        if (cropState.offsetY < SIZE - drawH) cropState.offsetY = SIZE - drawH;
+      }
+
+      function handleCropZoom(multiplier) {
+        if (!cropState.img) return;
+        const canvas = document.getElementById("crop-canvas");
+        const SIZE = canvas.width;
+        const zoomFactor = parseFloat(multiplier);
+
+        const prevScale = cropState.scale;
+        const newScale = cropState.minScale * zoomFactor;
+
+        // Zoom towards the center of the canvas
+        const center = SIZE / 2;
+        cropState.offsetX =
+          center - ((center - cropState.offsetX) / prevScale) * newScale;
+        cropState.offsetY =
+          center - ((center - cropState.offsetY) / prevScale) * newScale;
+        cropState.scale = newScale;
+
+        document.getElementById("crop-zoom-label").textContent =
+          zoomFactor.toFixed(1) + "x";
+        clampCropOffsets();
+        drawCropCanvas();
+      }
+
+      function drawCropCanvas() {
+        if (!cropState.img) return;
+        const canvas = document.getElementById("crop-canvas");
+        const ctx = canvas.getContext("2d");
+        const SIZE = canvas.width;
+
+        ctx.clearRect(0, 0, SIZE, SIZE);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+
+        ctx.drawImage(
+          cropState.img,
+          cropState.offsetX,
+          cropState.offsetY,
+          cropState.img.width * cropState.scale,
+          cropState.img.height * cropState.scale,
+        );
+
+        // Update live preview thumbnails
+        const previewDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        document.getElementById("crop-preview-squircle").src = previewDataUrl;
+        document.getElementById("crop-preview-circle").src = previewDataUrl;
+      }
+
+      async function applyCropAndUpload() {
+        if (!cropState.img) return;
+        const canvas = document.getElementById("crop-canvas");
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.82);
+
+        const btn = document.getElementById("apply-crop-btn");
+        btn.textContent = "Saving...";
+        btn.disabled = true;
+
+        await updateAvatarInDatabase(compressedDataUrl);
+
+        btn.textContent = "✨ Save Photo";
+        btn.disabled = false;
+        closeCropModal();
+      }
+
+      // Bind Touch & Mouse Drag Listeners to the Crop Workspace
+      (function initCropDragEvents() {
+        const workspace = document.getElementById("crop-workspace");
+        if (!workspace) return;
+
+        const startDrag = (clientX, clientY) => {
+          if (!cropState.img) return;
+          cropState.isDragging = true;
+          cropState.startX = clientX - cropState.offsetX;
+          cropState.startY = clientY - cropState.offsetY;
+        };
+
+        const moveDrag = (clientX, clientY) => {
+          if (!cropState.isDragging || !cropState.img) return;
+          cropState.offsetX = clientX - cropState.startX;
+          cropState.offsetY = clientY - cropState.startY;
+          clampCropOffsets();
+          drawCropCanvas();
+        };
+
+        const endDrag = () => {
+          cropState.isDragging = false;
+        };
+
+        // Touch Events (Mobile)
+        workspace.addEventListener(
+          "touchstart",
+          (e) => {
+            e.stopPropagation(); // Prevents dashboard tab swipe
+            if (e.touches.length === 1) {
+              startDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }
+          },
+          { passive: true },
+        );
+
+        workspace.addEventListener(
+          "touchmove",
+          (e) => {
+            e.stopPropagation();
+            if (e.touches.length === 1) {
+              moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+            }
+          },
+          { passive: true },
+        );
+
+        workspace.addEventListener(
+          "touchend",
+          (e) => {
+            e.stopPropagation();
+            endDrag();
+          },
+          { passive: true },
+        );
+
+        // Mouse Events (Desktop)
+        workspace.addEventListener("mousedown", (e) =>
+          startDrag(e.clientX, e.clientY),
+        );
+        window.addEventListener("mousemove", (e) =>
+          moveDrag(e.clientX, e.clientY),
+        );
+        window.addEventListener("mouseup", endDrag);
+      })();
       async function updateAvatarInDatabase(avatarDataUrl) {
         const {
           data: { session },
