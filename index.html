@@ -2948,43 +2948,56 @@
       }
 
       /* --- FORCE AI BUTTON IN SEARCH BAR & BOTTOM PROMPT --- */
+      /* --- BORDERLESS AI SEARCH BUTTON (Matching Mic Button Style) --- */
       .ai-search-bar-btn {
-        background: linear-gradient(
-          135deg,
-          rgba(79, 70, 229, 0.14) 0%,
-          rgba(245, 158, 11, 0.18) 100%
-        );
+        background: transparent;
         color: var(--primary);
-        border: 1px solid rgba(79, 70, 229, 0.3);
-        height: 36px;
-        padding: 0 11px;
-        border-radius: 18px;
-        display: inline-flex;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
         align-items: center;
         justify-content: center;
-        gap: 4px;
-        font-size: 12px;
-        font-weight: 800;
         cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         flex-shrink: 0;
         margin-left: 4px;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      .ai-search-bar-btn:hover {
-        background: linear-gradient(
-          135deg,
-          var(--primary) 0%,
-          var(--accent) 100%
-        );
-        color: #ffffff;
-        border-color: transparent;
-        transform: scale(1.06);
-        box-shadow: 0 4px 10px -2px rgba(79, 70, 229, 0.4);
+      @media (hover: hover) and (pointer: fine) {
+        .ai-search-bar-btn:hover {
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          transform: scale(1.1);
+        }
       }
 
       .ai-search-bar-btn:active {
-        transform: scale(0.94);
+        transform: scale(0.95);
+      }
+
+      .ai-search-bar-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+      /* --- ACTIVE LOADING STATE (Mirrors Mic Button Ripple & Red Color) --- */
+      .ai-search-bar-btn.loading {
+        position: relative;
+        color: #ef4444 !important; /* Force red when active */
+      }
+
+      .ai-search-bar-btn.loading::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(239, 68, 68, 0.4);
+        border-radius: 50%;
+        z-index: -1;
+        animation: ripple 1.2s infinite ease-out;
       }
 
       .ask-ai-bottom-box {
@@ -3892,7 +3905,7 @@
                 >
                   ✕
                 </button>
-                <!-- NEW: Force AI Search Button -->
+                <!-- NEW: Force AI Search Button (Borderless SVG) -->
                 <button
                   type="button"
                   id="force-ai-search-btn"
@@ -3900,7 +3913,18 @@
                   onclick="forceAiSearch()"
                   title="Force Online AI Postal Estimation"
                 >
-                  ✨ AI
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"
+                    ></path>
+                  </svg>
                 </button>
                 <!-- Mic Button -->
                 <button
@@ -6953,10 +6977,15 @@
         );
         if (!container) return;
 
+        // Turn on red pulsing animation on the AI button
+        const aiBtn = document.getElementById("force-ai-search-btn");
+        if (aiBtn) aiBtn.classList.add("loading");
+
         const exactUserQuery = query.trim();
         const cacheKey = exactUserQuery.toLowerCase();
 
         if (aiMemoryCache[cacheKey]) {
+          if (aiBtn) aiBtn.classList.remove("loading");
           renderAiEstimationCards(exactUserQuery, aiMemoryCache[cacheKey]);
           return;
         }
@@ -6966,48 +6995,15 @@
         try {
           const apiKey = getGeminiApiKey();
 
-          // Step A: Fetch Live Web Search + Map + India Post clues for the exact village
           const geoHints = await fetchVillageGeoContext(
             exactUserQuery,
             aiActiveAbortController.signal,
           );
 
-          // Step B: Build full Mirzapur (16) & Sonbhadra (19) delivery office directory from cachedPostOffices
           const divisionDirectoryContext =
             buildDivisionOfficeDirectoryContext(exactUserQuery);
 
-          const prompt = `
-You are an expert India Post sorting assistant for Mirzapur Postal Division (covering the 16 delivery post offices of Mirzapur District and 19 delivery post offices of Sonbhadra District, PIN codes 231xxx).
-
-The sorting staff searched for this EXACT village/locality name: "${exactUserQuery}"
-
-=== LIVE WEB SEARCH & GEOGRAPHIC DATA FOR "${exactUserQuery}" ===
-${
-  geoHints.length > 0
-    ? geoHints.join("\n")
-    : "No direct web snippet returned; use your exact knowledge of Mirzapur & Sonbhadra blocks (Majhawa/Kachhwa, Kon, Chhanvey, Pahari, City, Narayanpur, Jamalpur, Sikhar, Rajgarh, Lalganj, Hallia, Robertsganj, Ghorawal, Chatra, Nagwa,Chopan, Myorpur, Dudhi, Babhani) and their PIN codes."
-}
-
-=== OUR 35 DELIVERY SUB OFFICES (SO) & HEAD OFFICES (HO) IN MIRZAPUR & SONBHADRA ===
-${divisionDirectoryContext || "No local offices loaded"}
-
-CRITICAL RULES (READ CAREFULLY):
-1. If "${exactUserQuery}" is random keyboard gibberish (like "asdf", "fdsf", "hkjhkj"), return an empty JSON array: []
-2. DO NOT substitute "${exactUserQuery}" with a different rhyming village or BO (for example, if the user searched "Nauha", DO NOT guess "Dhauha BO" or "Naudiha BO"!). Look for the actual village "${exactUserQuery}" itself! (e.g., Nauha is a village in Majhawa/Kachhwa area of Mirzapur under Kachhwa SO 231501 / Meoli BO).
-3. Pay close attention to the LIVE WEB SEARCH results above! If a web snippet mentions a PIN code (like 231501 for Kachhwa SO, 231307 for Vindhyachal SO, 231304 for Chunar SO, etc.) or a block/post office alongside "${exactUserQuery}", match that PIN code to the corresponding Delivery Office (SO/HO) in our database list above.
-4. NEVER append "BO", "SO", or "HO" to "searched_text". Keep "searched_text" as "${exactUserQuery}".
-5. Return ONLY valid JSON (no markdown backticks) in this exact array format:
-[
-  {
-    "searched_text": "${exactUserQuery}",
-    "serving_bo_or_beat": "Actual BO or Block/Area serving this village (e.g. 'Meoli BO / Kachhwa')",
-    "recommended_office": "Exact SO or HO name from our Delivery Office list (e.g. 'Kachhwa SO')",
-    "district": "Mirzapur or Sonbhadra",
-    "pin": "6-digit PIN code",
-    "confidence": "High | Medium | Low",
-    "reason": "Specific geographic/postal reason based on the village's actual location and block/PIN"
-  }
-]`;
+          const prompt = `...`; // (Keep your existing prompt text here)
 
           const candidateModels = [
             cachedWorkingModel,
@@ -7074,8 +7070,12 @@ CRITICAL RULES (READ CAREFULLY):
           const parsedResults = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
           aiMemoryCache[cacheKey] = parsedResults;
+
+          // Stop pulsing red
+          if (aiBtn) aiBtn.classList.remove("loading");
           renderAiEstimationCards(exactUserQuery, parsedResults);
         } catch (err) {
+          if (aiBtn) aiBtn.classList.remove("loading");
           if (err.name === "AbortError") return;
           if (container) {
             container.innerHTML = `
@@ -7092,7 +7092,6 @@ CRITICAL RULES (READ CAREFULLY):
           }
         }
       }
-
       function renderAiEstimationCards(query, estimations) {
         const container = document.getElementById(
           "ai-search-results-container",
