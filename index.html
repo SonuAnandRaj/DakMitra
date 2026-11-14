@@ -451,6 +451,67 @@
         transform: scale(0.95);
       }
 
+      .staff-edit-group {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .staff-edit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .staff-edit-inputs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .staff-edit-inputs input {
+        flex: 1 1 130px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--input-border);
+        background: var(--card-bg);
+        color: var(--text);
+        font-size: 13px;
+        outline: none;
+      }
+      .staff-edit-inputs input:focus {
+        border-color: var(--primary);
+      }
+      .staff-icon-btn {
+        background: var(--btn-secondary);
+        color: var(--text);
+        border: 1px solid var(--border);
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: 0.2s;
+      }
+      .staff-icon-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+      }
+      .staff-remove-btn {
+        background: #fee2e2;
+        color: #b91c1c;
+        border: none;
+        border-radius: 8px;
+        padding: 4px 8px;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
       /* --- BEAUTIFUL GRADIENT BRANDING --- */
       .app-bar h1,
       #auth-view h1 {
@@ -4710,7 +4771,7 @@
     >
       <div
         class="modal-card"
-        style="max-width: 420px; width: 92%; text-align: left"
+        style="max-width: 440px; width: 92%; text-align: left"
       >
         <div
           style="
@@ -4721,7 +4782,7 @@
             margin-bottom: 8px;
           "
         >
-          <div>
+          <div style="flex: 1; min-width: 0">
             <span
               id="office-modal-badge"
               class="badge badge-primary"
@@ -4731,7 +4792,7 @@
             <h3
               id="office-modal-title"
               class="modal-title"
-              style="margin: 0; font-size: 20px"
+              style="margin: 0; font-size: 20px; word-break: break-word"
             >
               Office Name
             </h3>
@@ -4740,31 +4801,51 @@
               style="font-size: 12px; color: var(--text-light); margin-top: 2px"
             ></p>
           </div>
-          <button
-            type="button"
-            onclick="closeOfficeDetailsModal()"
-            style="
-              background: var(--btn-secondary);
-              border: none;
-              width: 32px;
-              height: 32px;
-              border-radius: 50%;
-              font-size: 15px;
-              cursor: pointer;
-              color: var(--text-light);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              flex-shrink: 0;
-            "
+
+          <div
+            style="display: flex; align-items: center; gap: 6px; flex-shrink: 0"
           >
-            ✕
-          </button>
+            <!-- Plus / Edit Toggle Button -->
+            <button
+              type="button"
+              id="office-modal-edit-btn"
+              class="staff-icon-btn"
+              onclick="openOfficeStaffEditor()"
+              title="Add or Edit Staff Details"
+            >
+              ➕ Add
+            </button>
+            <button
+              type="button"
+              onclick="closeOfficeDetailsModal()"
+              style="
+                background: var(--btn-secondary);
+                border: none;
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                font-size: 15px;
+                cursor: pointer;
+                color: var(--text-light);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+              "
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
+        <!-- Dynamic Body (Switches between View Cards & CRUD Form) -->
         <div id="office-modal-body" class="staff-detail-list"></div>
 
-        <div class="modal-actions" style="margin-top: 20px">
+        <!-- Default View Footer -->
+        <div
+          id="office-modal-view-actions"
+          class="modal-actions"
+          style="margin-top: 20px"
+        >
           <button
             type="button"
             class="btn modal-btn-cancel"
@@ -4772,6 +4853,29 @@
             style="width: 100%"
           >
             Close
+          </button>
+        </div>
+
+        <!-- CRUD Edit Footer (Hidden in View Mode) -->
+        <div
+          id="office-modal-edit-actions"
+          class="modal-actions hidden"
+          style="margin-top: 20px"
+        >
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="renderOfficeStaffViewMode()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="save-office-staff-btn"
+            class="btn"
+            onclick="saveOfficeStaffDetails()"
+          >
+            💾 Save
           </button>
         </div>
       </div>
@@ -6319,7 +6423,10 @@
         }
       }
 
-      // Detects whole-word BO, SO, or HO (case-insensitive, supports dots like B.O / S.O / H.O)
+      // Holds currently opened office record for direct CRUD
+      let activeOfficeRecord = null;
+      let activeOfficeType = null;
+
       function detectOfficeType(address) {
         if (!address) return null;
         const clean = String(address).replace(/\./g, "");
@@ -6329,7 +6436,6 @@
         return null;
       }
 
-      // Checks if a database value is non-empty
       function hasValidValue(val) {
         return (
           val !== null &&
@@ -6340,12 +6446,49 @@
         );
       }
 
-      // Renders a single staff card only if name or contact exists
+      // Normalizes `pa_list` from DB into a clean array of { name, contact }
+      function parsePaList(record) {
+        let paEntries = [];
+        const rawPaList =
+          record?.pa_list || record?.PA_List || record?.postal_assistants;
+
+        if (Array.isArray(rawPaList)) {
+          paEntries = rawPaList.map((p) => ({
+            name: p.name || p.pa_name || "",
+            contact: p.contact || p.mobile || p.phone || p.pa_contact || "",
+          }));
+        } else if (typeof rawPaList === "string" && rawPaList.trim() !== "") {
+          try {
+            const parsed = JSON.parse(rawPaList);
+            if (Array.isArray(parsed)) {
+              paEntries = parsed.map((p) => ({
+                name: p.name || p.pa_name || "",
+                contact: p.contact || p.mobile || p.phone || p.pa_contact || "",
+              }));
+            }
+          } catch (e) {
+            rawPaList.split(/[\n,;]+/).forEach((entry) => {
+              const parts = entry.split(/[-:]/);
+              if (parts.length >= 2) {
+                paEntries.push({
+                  name: parts[0].trim(),
+                  contact: parts.slice(1).join("-").trim(),
+                });
+              } else if (parts[0].trim()) {
+                paEntries.push({ name: parts[0].trim(), contact: "" });
+              }
+            });
+          }
+        }
+        return paEntries.filter(
+          (pa) => hasValidValue(pa.name) || hasValidValue(pa.contact),
+        );
+      }
+
       function buildStaffCardHTML(roleLabel, personName, contactNumber) {
         const hasName = hasValidValue(personName);
         const hasContact = hasValidValue(contactNumber);
 
-        // Hide the field completely if both name and contact are empty in DB
         if (!hasName && !hasContact) return "";
 
         const cleanPhone = hasContact
@@ -6384,7 +6527,6 @@
         const officeType = detectOfficeType(addressName);
         if (!officeType) return;
 
-        // Find the matching record in cachedPostOffices
         const record =
           cachedPostOffices.find(
             (r) =>
@@ -6401,8 +6543,14 @@
               String(r.Address || "")
                 .trim()
                 .toLowerCase() === String(addressName).trim().toLowerCase(),
-          ) ||
-          {};
+          );
+
+        if (!record) {
+          return showToast("⚠️ Office record not found in local database.");
+        }
+
+        activeOfficeRecord = record;
+        activeOfficeType = officeType;
 
         const badgeLabels = {
           BO: "Branch Office (BO)",
@@ -6412,106 +6560,313 @@
 
         document.getElementById("office-modal-badge").textContent =
           badgeLabels[officeType] || officeType;
-        document.getElementById("office-modal-title").textContent = addressName;
+        document.getElementById("office-modal-title").textContent =
+          record.Address || addressName;
         document.getElementById("office-modal-subtitle").textContent =
           `🏢 ${record.Office || parentOfficeName || "N/A"} • 📍 PIN: ${
             record.Pin || "N/A"
           }`;
 
+        renderOfficeStaffViewMode();
+        document
+          .getElementById("office-details-modal-overlay")
+          .classList.add("show");
+      }
+
+      // Renders View Mode (only non-empty fields are shown)
+      function renderOfficeStaffViewMode() {
+        const record = activeOfficeRecord || {};
+        const officeType = activeOfficeType;
+
+        document
+          .getElementById("office-modal-edit-btn")
+          .classList.remove("hidden");
+        document
+          .getElementById("office-modal-view-actions")
+          .classList.remove("hidden");
+        document
+          .getElementById("office-modal-edit-actions")
+          .classList.add("hidden");
+
         let cardsHtml = "";
 
         if (officeType === "BO") {
-          // Branch Office: BPM & ABPM
           cardsHtml += buildStaffCardHTML(
             "Branch Post Master (BPM)",
-            record.bpm_name || record.BPM || record.bpm,
-            record.bpm_contact || record.BPM_Contact || record.bpm_mobile,
+            record.bpm_name,
+            record.bpm_contact,
           );
           cardsHtml += buildStaffCardHTML(
             "Assistant Branch Post Master (ABPM)",
-            record.abpm_name || record.ABPM || record.abpm,
-            record.abpm_contact || record.ABPM_Contact || record.abpm_mobile,
+            record.abpm_name,
+            record.abpm_contact,
           );
         } else if (officeType === "SO") {
-          // Sub Office: 1 SPM & any number of PAs
           cardsHtml += buildStaffCardHTML(
             "Sub Post Master (SPM)",
-            record.spm_name || record.SPM || record.spm,
-            record.spm_contact || record.SPM_Contact || record.spm_mobile,
+            record.spm_name,
+            record.spm_contact,
           );
 
-          // Parse Postal Assistants (supports JSON array in `pa_list` or numbered columns)
-          let paEntries = [];
-          const rawPaList =
-            record.pa_list || record.PA_List || record.postal_assistants;
-
-          if (Array.isArray(rawPaList)) {
-            paEntries = rawPaList;
-          } else if (typeof rawPaList === "string" && rawPaList.trim() !== "") {
-            try {
-              const parsed = JSON.parse(rawPaList);
-              if (Array.isArray(parsed)) paEntries = parsed;
-            } catch (e) {
-              // Fallback: support comma/newline separated "Name - 9876543210"
-              rawPaList.split(/[\n,;]+/).forEach((entry) => {
-                const parts = entry.split(/[-:]/);
-                if (parts.length >= 2) {
-                  paEntries.push({
-                    name: parts[0].trim(),
-                    contact: parts.slice(1).join("-").trim(),
-                  });
-                } else if (parts[0].trim()) {
-                  paEntries.push({ name: parts[0].trim(), contact: "" });
-                }
-              });
-            }
-          }
-
-          // Also support single PA columns if used (e.g., pa_name / pa_contact)
-          if (
-            paEntries.length === 0 &&
-            (hasValidValue(record.pa_name) || hasValidValue(record.pa_contact))
-          ) {
-            paEntries.push({
-              name: record.pa_name,
-              contact: record.pa_contact,
-            });
-          }
-
+          const paEntries = parsePaList(record);
           paEntries.forEach((pa, idx) => {
             const label =
               paEntries.length > 1
                 ? `Postal Assistant (PA #${idx + 1})`
                 : "Postal Assistant (PA)";
-            cardsHtml += buildStaffCardHTML(
-              label,
-              pa.name || pa.pa_name,
-              pa.contact || pa.mobile || pa.phone || pa.pa_contact,
-            );
+            cardsHtml += buildStaffCardHTML(label, pa.name, pa.contact);
           });
         } else if (officeType === "HO") {
-          // Head Office: Post Master (PM)
           cardsHtml += buildStaffCardHTML(
             "Post Master (PM)",
-            record.pm_name || record.PM || record.pm,
-            record.pm_contact || record.PM_Contact || record.pm_mobile,
+            record.pm_name,
+            record.pm_contact,
           );
         }
 
+        const editBtn = document.getElementById("office-modal-edit-btn");
         const bodyEl = document.getElementById("office-modal-body");
+
         if (!cardsHtml.trim()) {
+          // Empty state: show "+ Add" button both in header and center
+          editBtn.innerHTML = "➕ Add";
           bodyEl.innerHTML = `
-            <div class="list-empty" style="padding: 24px 16px; margin: 0;">
-              <span>No staff or contact details stored for this ${officeType} yet.</span>
+            <div class="list-empty" style="padding: 24px 16px; margin: 0; gap: 10px;">
+              <span>No staff details stored for this ${officeType} yet.</span>
+              <button type="button" class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="openOfficeStaffEditor()">
+                ➕ Add ${officeType} Details
+              </button>
             </div>
           `;
         } else {
+          editBtn.innerHTML = "✎ Edit";
           bodyEl.innerHTML = cardsHtml;
         }
+      }
+
+      // Switches modal into CRUD Form Mode (Create / Update / Clear fields)
+      function openOfficeStaffEditor() {
+        const record = activeOfficeRecord || {};
+        const officeType = activeOfficeType;
 
         document
-          .getElementById("office-details-modal-overlay")
-          .classList.add("show");
+          .getElementById("office-modal-edit-btn")
+          .classList.add("hidden");
+        document
+          .getElementById("office-modal-view-actions")
+          .classList.add("hidden");
+        document
+          .getElementById("office-modal-edit-actions")
+          .classList.remove("hidden");
+
+        const bodyEl = document.getElementById("office-modal-body");
+        let formHtml = "";
+
+        if (officeType === "BO") {
+          formHtml = `
+            <div class="staff-edit-group">
+              <div class="staff-edit-header">
+                <span class="staff-role-label" style="margin:0;">Branch Post Master (BPM)</span>
+                <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-bpm-name', 'crud-bpm-contact')">Clear</button>
+              </div>
+              <div class="staff-edit-inputs">
+                <input type="text" id="crud-bpm-name" placeholder="BPM Full Name" value="${escapeHTML(
+                  record.bpm_name || "",
+                )}" />
+                <input type="tel" id="crud-bpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                  record.bpm_contact || "",
+                )}" />
+              </div>
+            </div>
+
+            <div class="staff-edit-group">
+              <div class="staff-edit-header">
+                <span class="staff-role-label" style="margin:0;">Assistant Branch Post Master (ABPM)</span>
+                <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-abpm-name', 'crud-abpm-contact')">Clear</button>
+              </div>
+              <div class="staff-edit-inputs">
+                <input type="text" id="crud-abpm-name" placeholder="ABPM Full Name" value="${escapeHTML(
+                  record.abpm_name || "",
+                )}" />
+                <input type="tel" id="crud-abpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                  record.abpm_contact || "",
+                )}" />
+              </div>
+            </div>
+          `;
+        } else if (officeType === "SO") {
+          const existingPAs = parsePaList(record);
+          formHtml = `
+            <div class="staff-edit-group">
+              <div class="staff-edit-header">
+                <span class="staff-role-label" style="margin:0;">Sub Post Master (SPM)</span>
+                <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-spm-name', 'crud-spm-contact')">Clear</button>
+              </div>
+              <div class="staff-edit-inputs">
+                <input type="text" id="crud-spm-name" placeholder="SPM Full Name" value="${escapeHTML(
+                  record.spm_name || "",
+                )}" />
+                <input type="tel" id="crud-spm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                  record.spm_contact || "",
+                )}" />
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+              <span class="staff-role-label" style="margin: 0;">Postal Assistants (PA)</span>
+              <button type="button" class="staff-icon-btn" onclick="addPaInputRow()">➕ Add PA</button>
+            </div>
+            <div id="crud-pa-list-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+          `;
+
+          bodyEl.innerHTML = formHtml;
+
+          if (existingPAs.length === 0) {
+            addPaInputRow("", "");
+          } else {
+            existingPAs.forEach((pa) => addPaInputRow(pa.name, pa.contact));
+          }
+          return;
+        } else if (officeType === "HO") {
+          formHtml = `
+            <div class="staff-edit-group">
+              <div class="staff-edit-header">
+                <span class="staff-role-label" style="margin:0;">Post Master (PM)</span>
+                <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-pm-name', 'crud-pm-contact')">Clear</button>
+              </div>
+              <div class="staff-edit-inputs">
+                <input type="text" id="crud-pm-name" placeholder="Post Master Name" value="${escapeHTML(
+                  record.pm_name || "",
+                )}" />
+                <input type="tel" id="crud-pm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                  record.pm_contact || "",
+                )}" />
+              </div>
+            </div>
+          `;
+        }
+
+        bodyEl.innerHTML = formHtml;
+      }
+
+      function clearStaffFieldGroup(nameInputId, contactInputId) {
+        const n = document.getElementById(nameInputId);
+        const c = document.getElementById(contactInputId);
+        if (n) n.value = "";
+        if (c) c.value = "";
+      }
+
+      function addPaInputRow(name = "", contact = "") {
+        const container = document.getElementById("crud-pa-list-container");
+        if (!container) return;
+
+        const row = document.createElement("div");
+        row.className = "staff-edit-group pa-crud-row";
+        row.innerHTML = `
+          <div class="staff-edit-header">
+            <span class="staff-role-label" style="margin:0;">Postal Assistant (PA)</span>
+            <button type="button" class="staff-remove-btn" onclick="this.closest('.pa-crud-row').remove()">✕ Remove</button>
+          </div>
+          <div class="staff-edit-inputs">
+            <input type="text" class="crud-pa-name" placeholder="PA Full Name" value="${escapeHTML(
+              name,
+            )}" />
+            <input type="tel" class="crud-pa-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+              contact,
+            )}" />
+          </div>
+        `;
+        container.appendChild(row);
+      }
+
+      // Direct CRUD Save to `post_offices` (No approval queue, no history log)
+      async function saveOfficeStaffDetails() {
+        if (!activeOfficeRecord || !activeOfficeRecord.id) return;
+
+        const saveBtn = document.getElementById("save-office-staff-btn");
+        saveBtn.textContent = "Saving...";
+        saveBtn.disabled = true;
+
+        let updatePayload = {};
+
+        if (activeOfficeType === "BO") {
+          const bpmName = document
+            .getElementById("crud-bpm-name")
+            ?.value.trim();
+          const bpmContact = document
+            .getElementById("crud-bpm-contact")
+            ?.value.trim();
+          const abpmName = document
+            .getElementById("crud-abpm-name")
+            ?.value.trim();
+          const abpmContact = document
+            .getElementById("crud-abpm-contact")
+            ?.value.trim();
+
+          updatePayload = {
+            bpm_name: bpmName || null,
+            bpm_contact: bpmContact || null,
+            abpm_name: abpmName || null,
+            abpm_contact: abpmContact || null,
+          };
+        } else if (activeOfficeType === "SO") {
+          const spmName = document
+            .getElementById("crud-spm-name")
+            ?.value.trim();
+          const spmContact = document
+            .getElementById("crud-spm-contact")
+            ?.value.trim();
+
+          const paRows = document.querySelectorAll(".pa-crud-row");
+          const paList = [];
+          paRows.forEach((row) => {
+            const n = row.querySelector(".crud-pa-name")?.value.trim() || "";
+            const c = row.querySelector(".crud-pa-contact")?.value.trim() || "";
+            if (n || c) {
+              paList.push({ name: n, contact: c });
+            }
+          });
+
+          updatePayload = {
+            spm_name: spmName || null,
+            spm_contact: spmContact || null,
+            pa_list: paList,
+          };
+        } else if (activeOfficeType === "HO") {
+          const pmName = document.getElementById("crud-pm-name")?.value.trim();
+          const pmContact = document
+            .getElementById("crud-pm-contact")
+            ?.value.trim();
+
+          updatePayload = {
+            pm_name: pmName || null,
+            pm_contact: pmContact || null,
+          };
+        }
+
+        try {
+          const { error } = await supabaseClient
+            .from("post_offices")
+            .update(updatePayload)
+            .eq("id", activeOfficeRecord.id);
+
+          if (error) throw error;
+
+          // Update in-memory record & offline localStorage cache immediately
+          Object.assign(activeOfficeRecord, updatePayload);
+          localStorage.setItem(
+            "dakmitra_offline_db",
+            JSON.stringify(cachedPostOffices),
+          );
+
+          showToast("✅ Office details updated!");
+          renderOfficeStaffViewMode();
+        } catch (err) {
+          alert("Failed to update office details: " + err.message);
+        } finally {
+          saveBtn.textContent = "💾 Save";
+          saveBtn.disabled = false;
+        }
       }
 
       function closeOfficeDetailsModal() {
@@ -6519,7 +6874,6 @@
           .getElementById("office-details-modal-overlay")
           .classList.remove("show");
       }
-
       function setupDirectoryObserver() {
         const sentinel = document.getElementById("directory-sentinel");
         const displayArea = document.getElementById("directory-display-area");
