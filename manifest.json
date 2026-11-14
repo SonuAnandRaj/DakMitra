@@ -5,9 +5,9 @@
   "version": "1.0.0",
   "version_name": "1.0.0",
   "start_url": "./index.html",
+  "background_color": "#f8fafc",
+  "theme_color": "#f8fafc",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
   "color_scheme": "light dark",
   "orientation": "portrait",
   "icons": [
