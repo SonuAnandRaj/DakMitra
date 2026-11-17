@@ -8150,6 +8150,16 @@
           window.speechSynthesis.cancel();
         });
 
+      // Add the new listener here
+      document
+        .getElementById("search-input")
+        .addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.keyCode === 13) {
+            this.blur();
+            triggerSearch();
+          }
+        });
+
       let searchTimeout;
       document
         .getElementById("search-input")
