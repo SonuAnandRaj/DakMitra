@@ -972,7 +972,80 @@
         border: 4px solid var(--card-bg);
         box-shadow: var(--shadow-lg);
         overflow: hidden;
+        cursor: pointer;
+        transition:
+          transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+          box-shadow 0.25s ease;
       }
+      .profile-avatar-large:hover {
+        transform: scale(1.04);
+      }
+      .profile-avatar-large:active {
+        transform: scale(0.96);
+      }
+
+      /* --- PROFILE PHOTO LIGHTBOX MODAL --- */
+      .avatar-lightbox-content {
+        position: relative;
+        width: 88vw;
+        max-width: 360px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transform: scale(0.85);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .modal-overlay.show .avatar-lightbox-content {
+        transform: scale(1);
+      }
+      .avatar-lightbox-frame {
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        border-radius: 28px;
+        overflow: hidden;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+        border: 3px solid var(--card-bg);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-size: 110px;
+        font-weight: 800;
+      }
+      .avatar-lightbox-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .avatar-lightbox-close {
+        margin-top: 18px;
+        background: rgba(255, 255, 255, 0.16);
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        padding: 10px 24px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition:
+          background 0.2s ease,
+          transform 0.15s ease;
+      }
+      .avatar-lightbox-close:hover {
+        background: rgba(255, 255, 255, 0.26);
+      }
+      .avatar-lightbox-close:active {
+        transform: scale(0.95);
+      }
+
       .avatar-Upload-fab {
         position: absolute;
         bottom: -4px;
@@ -3586,7 +3659,14 @@
             <div class="profile-cover-banner"></div>
 
             <div class="profile-avatar-wrapper">
-              <div class="profile-avatar-large" id="profile-page-avatar">U</div>
+              <div
+                class="profile-avatar-large"
+                id="profile-page-avatar"
+                onclick="openProfilePhotoModal()"
+                title="Tap to view full profile photo"
+              >
+                U
+              </div>
               <label
                 for="profile-pic-input"
                 class="avatar-Upload-fab"
@@ -5260,6 +5340,24 @@
             ✨ Save Photo
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- PROFILE PHOTO FULL VIEW LIGHTBOX MODAL -->
+    <div
+      id="avatar-lightbox-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeProfilePhotoModal();"
+    >
+      <div class="avatar-lightbox-content">
+        <div class="avatar-lightbox-frame" id="avatar-lightbox-frame">U</div>
+        <button
+          type="button"
+          class="avatar-lightbox-close"
+          onclick="closeProfilePhotoModal()"
+        >
+          ✕ Close
+        </button>
       </div>
     </div>
 
@@ -10174,6 +10272,30 @@
             document.getElementById("profile-pic-input").value = "";
           },
         );
+      }
+
+      function openProfilePhotoModal() {
+        const pageAvatar = document.getElementById("profile-page-avatar");
+        const lightboxFrame = document.getElementById("avatar-lightbox-frame");
+        const overlay = document.getElementById("avatar-lightbox-overlay");
+        if (!pageAvatar || !lightboxFrame || !overlay) return;
+
+        const img = pageAvatar.querySelector("img");
+        if (img && img.getAttribute("src")) {
+          lightboxFrame.innerHTML = `<img src="${escapeHTML(
+            img.getAttribute("src"),
+          )}" alt="Full Profile Photo" />`;
+        } else {
+          lightboxFrame.textContent = pageAvatar.textContent.trim() || "U";
+        }
+
+        overlay.classList.add("show");
+      }
+
+      function closeProfilePhotoModal() {
+        document
+          .getElementById("avatar-lightbox-overlay")
+          ?.classList.remove("show");
       }
 
       // --- PROFILE BUTTON & LEFT-EDGE DRAG TO OPEN SIDEBAR ---
