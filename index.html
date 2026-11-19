@@ -395,6 +395,58 @@
         transform: scale(0.96);
       }
 
+      /* Highlight chip only while its long-press action tray is open */
+      .directory-address-chip.selected-chip {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
+      }
+
+      /* Directory Long-Press Action Tray */
+      .directory-action-tray {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .directory-action-tray.open {
+        max-height: 140px;
+        opacity: 1;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--border);
+      }
+      .directory-action-tray-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .directory-action-tray-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .directory-action-tray-close {
+        background: transparent;
+        border: none;
+        color: var(--text-light);
+        font-size: 14px;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 6px;
+        flex-shrink: 0;
+      }
+      .directory-action-tray.open .card-actions {
+        max-height: 100px;
+        opacity: 1;
+        margin-top: 0;
+        transform: translateY(0);
+      }
+
       /* Office Staff Details Modal Styling */
       .staff-detail-list {
         display: flex;
@@ -5932,24 +5984,40 @@
         }
         refreshOfficeDropdowns();
         // Pre-build directory in the background once
-        if (directoryGroupedData.length === 0 && cachedPostOffices.length > 0) {
-          const grouped = {};
-          cachedPostOffices.forEach((row) => {
-            const office = row.Office || "Unknown Office";
-            if (!grouped[office])
-              grouped[office] = { pin: row.Pin || "N/A", addresses: [] };
-            grouped[office].addresses.push(row.Address);
-          });
-          directoryGroupedData = Object.keys(grouped)
-            .sort()
-            .map((office) => ({
-              office: office,
-              pin: grouped[office].pin,
-              addresses: grouped[office].addresses.sort(),
-              searchString: (office + " " + grouped[office].pin).toLowerCase(),
-            }));
-        }
+        buildDirectoryGroupedData();
       }
+
+      function buildDirectoryGroupedData() {
+        if (!cachedPostOffices || cachedPostOffices.length === 0) {
+          directoryGroupedData = [];
+          return;
+        }
+        const grouped = {};
+        cachedPostOffices.forEach((row) => {
+          const office = row.Office || "Unknown Office";
+          if (!grouped[office]) {
+            grouped[office] = { pin: row.Pin || "N/A", addresses: [] };
+          }
+          grouped[office].addresses.push({
+            id: row.id,
+            Address: row.Address || "",
+            Office: office,
+            Pin: row.Pin || "",
+          });
+        });
+
+        directoryGroupedData = Object.keys(grouped)
+          .sort()
+          .map((office) => ({
+            office: office,
+            pin: grouped[office].pin,
+            addresses: grouped[office].addresses.sort((a, b) =>
+              String(a.Address).localeCompare(String(b.Address))
+            ),
+            searchString: (office + " " + grouped[office].pin).toLowerCase(),
+          }));
+      }
+
       function setViewMode(mode) {
         viewMode = mode;
         document
@@ -7532,17 +7600,19 @@ Exact JSON format:
           return;
         }
 
+        if (directoryGroupedData.length === 0) {
+          buildDirectoryGroupedData();
+        }
+
         directoryFilteredData = [...directoryGroupedData];
         directoryCurrentPage = 0;
 
-        // 3. Prepare the DOM container and the infinite-scroll trigger element (sentinel)
         displayArea.innerHTML = `
               <div id="directory-content" style="padding: 4px;"></div>
               <div id="directory-sentinel" style="height: 40px; text-align: center; color: var(--text-light); font-size: 13px; padding: 10px;"></div>
             `;
         displayArea.scrollTop = 0;
 
-        // 4. Initialize Infinite Scroll Observer and render the first 25
         setupDirectoryObserver();
         renderDirectoryBatch();
       }
@@ -7591,34 +7661,51 @@ Exact JSON format:
                   <div class="directory-address-list">
               `;
 
-          addressList.forEach((address) => {
-            const officeType = detectOfficeType(address);
+          addressList.forEach((item) => {
+            const addressText = typeof item === "object" ? item.Address : item;
+            const recordId = typeof item === "object" ? item.id : "";
+            const officeName =
+              typeof item === "object" ? item.Office : data.office;
+            const pinVal = typeof item === "object" ? item.Pin : data.pin;
+            const officeType = detectOfficeType(addressText);
+
             if (officeType) {
-              html += `<span class="directory-address-chip clickable-office-chip" onclick="showOfficeDetailsModal('${escapeForOnclick(
-                address
-              )}', '${escapeForOnclick(
-                data.office
-              )}')" title="Tap to view ${officeType} details">📮 ${escapeHTML(
-                address
+              html += `<span class="directory-address-chip clickable-office-chip" data-record-id="${escapeHTML(
+                recordId
+              )}" data-address="${escapeHTML(
+                addressText
+              )}" data-office="${escapeHTML(
+                officeName
+              )}" data-pin="${escapeHTML(
+                pinVal || ""
+              )}" title="Long press for options">📮 ${escapeHTML(
+                addressText
               )}</span>`;
             } else {
-              html += `<span class="directory-address-chip">${escapeHTML(
-                address
+              html += `<span class="directory-address-chip" data-record-id="${escapeHTML(
+                recordId
+              )}" data-address="${escapeHTML(
+                addressText
+              )}" data-office="${escapeHTML(
+                officeName
+              )}" data-pin="${escapeHTML(
+                pinVal || ""
+              )}" title="Long press for options">${escapeHTML(
+                addressText
               )}</span>`;
             }
           });
 
           html += `
                   </div>
+                  <div class="directory-action-tray"></div>
                 </div>
               `;
         });
 
-        // Inject only the new batch without destroying existing cards
         contentDiv.insertAdjacentHTML("beforeend", html);
         directoryCurrentPage++;
 
-        // Update the loading indicator at the bottom
         if (sentinel) {
           if (endIndex >= directoryFilteredData.length) {
             sentinel.textContent = "End of directory";
@@ -7627,6 +7714,187 @@ Exact JSON format:
           }
         }
       }
+
+      function closeAllDirectoryActionTrays() {
+        document
+          .querySelectorAll(".directory-action-tray.open")
+          .forEach((tray) => {
+            tray.classList.remove("open");
+            tray.innerHTML = "";
+          });
+        document
+          .querySelectorAll(".directory-address-chip.selected-chip")
+          .forEach((c) => c.classList.remove("selected-chip"));
+      }
+
+      function openDirectoryChipActions(chipEl) {
+        if (!chipEl) return;
+        const card = chipEl.closest(".directory-card");
+        const tray = card?.querySelector(".directory-action-tray");
+        if (!tray) return;
+
+        // If already selected, toggle it closed
+        if (chipEl.classList.contains("selected-chip")) {
+          closeAllDirectoryActionTrays();
+          return;
+        }
+
+        closeAllDirectoryActionTrays();
+
+        let recordId = chipEl.getAttribute("data-record-id") || "";
+        const address = chipEl.getAttribute("data-address") || "";
+        const office = chipEl.getAttribute("data-office") || "";
+        const pin = chipEl.getAttribute("data-pin") || "";
+
+        // Safety fallback if recordId is missing
+        if (!recordId && cachedPostOffices.length > 0) {
+          const match = cachedPostOffices.find(
+            (r) =>
+              String(r.Address || "")
+                .trim()
+                .toLowerCase() === address.trim().toLowerCase() &&
+              String(r.Office || "")
+                .trim()
+                .toLowerCase() === office.trim().toLowerCase()
+          );
+          if (match) recordId = String(match.id);
+        }
+
+        const favorites = getSafeStorage(FAV_KEY);
+        const isFav = favorites.some((f) => String(f.id) === String(recordId));
+        const favStyle = getFavoriteBtnStyles(isFav, false);
+
+        const officeType = detectOfficeType(address);
+        const infoBtnHtml = officeType
+          ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
+              address
+            )}', '${escapeForOnclick(
+              office
+            )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️</button>`
+          : "";
+
+        tray.innerHTML = `
+          <div class="directory-action-tray-header">
+            <span class="directory-action-tray-title">${escapeHTML(
+              address
+            )}</span>
+            <button type="button" class="directory-action-tray-close" onclick="event.stopPropagation(); closeAllDirectoryActionTrays()" title="Close">✕</button>
+          </div>
+          <div class="card-actions">
+            ${infoBtnHtml}
+            <button onclick="event.stopPropagation(); viewHistory('${escapeForOnclick(
+              recordId
+            )}')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
+            <button onclick="event.stopPropagation(); toggleFavorite('${escapeForOnclick(
+              recordId
+            )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
+          office
+        )}', '${escapeForOnclick(pin)}', this)" class="toolbar-btn" style="${
+          favStyle.style
+        }">${favStyle.icon}</button>
+            <button onclick="event.stopPropagation(); updateRecord('${escapeForOnclick(
+              recordId
+            )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
+          office
+        )}', '${escapeForOnclick(
+          pin
+        )}')" class="toolbar-btn" style="background: var(--input-bg);">Edit</button>
+            <button onclick="event.stopPropagation(); deleteRecord('${escapeForOnclick(
+              recordId
+            )}')" class="toolbar-btn" style="background: #fee2e2; color: #b91c1c;">Delete</button>
+          </div>
+        `;
+
+        chipEl.classList.add("selected-chip");
+        tray.classList.add("open");
+        if (navigator.vibrate) navigator.vibrate(40);
+      }
+
+      // Delegated Long-Press Handler for Directory Address Chips (Mobile Touch + Desktop Mouse/Right-Click)
+      (function initDirectoryLongPress() {
+        const dirArea = document.getElementById("directory-display-area");
+        if (!dirArea) return;
+
+        let pressTimer = null;
+        let startX = 0;
+        let startY = 0;
+        const LONG_PRESS_MS = 450;
+
+        const cancelPress = () => {
+          if (pressTimer) {
+            clearTimeout(pressTimer);
+            pressTimer = null;
+          }
+        };
+
+        // Mobile Touch Long-Press
+        dirArea.addEventListener(
+          "touchstart",
+          (e) => {
+            const chip = e.target.closest(".directory-address-chip");
+            if (!chip) return;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            cancelPress();
+            pressTimer = setTimeout(() => {
+              pressTimer = null;
+              openDirectoryChipActions(chip);
+            }, LONG_PRESS_MS);
+          },
+          { passive: true }
+        );
+
+        dirArea.addEventListener(
+          "touchmove",
+          (e) => {
+            if (!pressTimer) return;
+            const dx = Math.abs(e.touches[0].clientX - startX);
+            const dy = Math.abs(e.touches[0].clientY - startY);
+            if (dx > 10 || dy > 10) cancelPress(); // Cancel if user is scrolling
+          },
+          { passive: true }
+        );
+
+        dirArea.addEventListener("touchend", cancelPress, { passive: true });
+        dirArea.addEventListener("touchcancel", cancelPress, { passive: true });
+
+        // Desktop Mouse Long-Press
+        dirArea.addEventListener("mousedown", (e) => {
+          if (e.button !== 0) return;
+          const chip = e.target.closest(".directory-address-chip");
+          if (!chip) return;
+          startX = e.clientX;
+          startY = e.clientY;
+          cancelPress();
+          pressTimer = setTimeout(() => {
+            pressTimer = null;
+            openDirectoryChipActions(chip);
+          }, LONG_PRESS_MS);
+        });
+
+        dirArea.addEventListener("mousemove", (e) => {
+          if (!pressTimer) return;
+          if (
+            Math.abs(e.clientX - startX) > 10 ||
+            Math.abs(e.clientY - startY) > 10
+          ) {
+            cancelPress();
+          }
+        });
+
+        dirArea.addEventListener("mouseup", cancelPress);
+        dirArea.addEventListener("mouseleave", cancelPress);
+
+        // Suppress native Android context menu & allow desktop right-click on chips
+        dirArea.addEventListener("contextmenu", (e) => {
+          const chip = e.target.closest(".directory-address-chip");
+          if (!chip) return;
+          e.preventDefault();
+          cancelPress();
+          openDirectoryChipActions(chip);
+        });
+      })();
+
       // Holds currently opened office record for direct CRUD
       let activeOfficeRecord = null;
       let activeOfficeType = null;
