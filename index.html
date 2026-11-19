@@ -2732,6 +2732,177 @@
         opacity: 1;
         transform: translateX(-50%) translateY(0);
       }
+
+      /* --- IN-PLACE EDIT MODAL VISUALS & ANIMATIONS --- */
+      .edit-modal-card {
+        position: relative;
+        max-width: 440px;
+        width: 92%;
+        text-align: left;
+        overflow: visible; /* Keeps Office autocomplete dropdown unclipped */
+        padding: 28px 24px 24px;
+        border-radius: 24px;
+        background: var(--card-bg);
+        border: 1px solid rgba(79, 70, 229, 0.18);
+        box-shadow: 0 24px 48px -12px rgba(15, 23, 42, 0.25),
+          0 0 0 1px rgba(79, 70, 229, 0.08);
+        transform: translateY(24px) scale(0.92);
+        transition: transform 0.36s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      [data-theme="dark"] .edit-modal-card {
+        border-color: rgba(129, 140, 248, 0.24);
+        box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.7),
+          0 0 0 1px rgba(129, 140, 248, 0.12);
+      }
+
+      .modal-overlay.show .edit-modal-card {
+        transform: translateY(0) scale(1);
+      }
+
+      /* Signature DakMitra Gradient Top Accent Bar */
+      .edit-modal-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        border-radius: 24px 24px 0 0;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+      }
+
+      .edit-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      .edit-modal-header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .edit-modal-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: linear-gradient(
+          135deg,
+          rgba(79, 70, 229, 0.14) 0%,
+          rgba(245, 158, 11, 0.14) 100%
+        );
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      [data-theme="dark"] .edit-modal-icon {
+        background: linear-gradient(
+          135deg,
+          rgba(129, 140, 248, 0.18) 0%,
+          rgba(251, 191, 36, 0.15) 100%
+        );
+      }
+
+      .edit-modal-close-btn {
+        background: var(--btn-secondary);
+        border: 1px solid var(--border);
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        font-size: 14px;
+        cursor: pointer;
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.25s ease, background 0.2s ease, color 0.2s ease;
+      }
+
+      .edit-modal-close-btn:hover {
+        background: var(--border);
+        color: var(--text);
+        transform: rotate(90deg);
+      }
+
+      .edit-modal-close-btn:active {
+        transform: scale(0.9) rotate(90deg);
+      }
+
+      /* Staggered Field Entrance */
+      @keyframes editFieldSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .modal-overlay.show .edit-modal-field {
+        animation: editFieldSlideIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+      .modal-overlay.show .edit-modal-field:nth-of-type(1) {
+        animation-delay: 0.04s;
+      }
+      .modal-overlay.show .edit-modal-field:nth-of-type(2) {
+        animation-delay: 0.09s;
+      }
+      .modal-overlay.show .edit-modal-field:nth-of-type(3) {
+        animation-delay: 0.14s;
+      }
+
+      .edit-modal-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-top: 22px;
+      }
+
+      .edit-modal-actions .modal-btn-cancel {
+        flex: 0.42;
+        height: 50px;
+        border-radius: 16px;
+        margin: 0;
+      }
+
+      .edit-modal-actions .btn-save-profile {
+        flex: 1;
+        height: 50px;
+        margin-top: 0;
+      }
+
+      /* Post-Save Glow Pulse on the Updated Card / Row / Chip */
+      @keyframes recordUpdatedPulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.45);
+          border-color: var(--primary);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(79, 70, 229, 0);
+          border-color: var(--accent);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+        }
+      }
+
+      .record-updated-flash {
+        animation: recordUpdatedPulse 1.1s ease-out;
+      }
+
       /* --- CUSTOM MODAL --- */
       .modal-overlay {
         position: fixed;
@@ -5353,6 +5524,204 @@
             onclick="saveOfficeStaffDetails()"
           >
             💾 Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IN-PLACE EDIT RECORD MODAL -->
+    <div
+      id="edit-record-modal-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeEditRecordModal();"
+    >
+      <div class="modal-card edit-modal-card">
+        <div class="edit-modal-header">
+          <div class="edit-modal-header-left">
+            <div class="edit-modal-icon">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 20h9"></path>
+                <path
+                  d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"
+                ></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="modal-title" style="margin: 0; font-size: 19px">
+                Edit Record
+              </h3>
+              <span
+                style="
+                  font-size: 12px;
+                  color: var(--text-light);
+                  font-weight: 500;
+                "
+              >
+                Changes apply immediately on the spot
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="edit-modal-close-btn"
+            onclick="closeEditRecordModal()"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="input-group edit-modal-field" style="margin-bottom: 14px">
+          <label>Address</label>
+          <div class="profile-input-wrapper">
+            <svg
+              class="field-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <input
+              type="text"
+              id="inline-edit-address"
+              placeholder="Address"
+              autocomplete="off"
+              onkeydown="if (event.key === 'Enter') { event.preventDefault(); saveInlineEditRecord(); }"
+            />
+          </div>
+        </div>
+
+        <div class="input-group edit-modal-field" style="margin-bottom: 14px">
+          <label>Office</label>
+          <div class="autocomplete-wrapper">
+            <div class="profile-input-wrapper">
+              <svg
+                class="field-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                <path d="M9 22v-4h6v4"></path>
+                <path d="M8 6h.01"></path>
+                <path d="M16 6h.01"></path>
+                <path d="M12 6h.01"></path>
+                <path d="M12 10h.01"></path>
+              </svg>
+              <input
+                type="text"
+                id="inline-edit-office"
+                placeholder="Search & Select Office..."
+                autocomplete="off"
+                oninput="handleInlineEditOfficeInput(this)"
+                onfocus="handleInlineEditOfficeInput(this)"
+                onblur="setTimeout(closeAllDropdowns, 200)"
+                onkeydown="if (event.key === 'Enter') { event.preventDefault(); saveInlineEditRecord(); }"
+                style="padding-right: 40px; width: 100%"
+              />
+              <button
+                type="button"
+                id="inline-edit-office-clear"
+                class="clear-btn hidden"
+                style="
+                  position: absolute;
+                  right: 6px;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  width: 34px;
+                  height: 34px;
+                  padding: 0;
+                  margin: 0;
+                  z-index: 2;
+                "
+                onclick="clearInlineEditOffice()"
+                title="Clear Office"
+              >
+                ✕
+              </button>
+            </div>
+            <div
+              id="inline-edit-office-dropdown"
+              class="autocomplete-dropdown"
+            ></div>
+          </div>
+        </div>
+
+        <div class="input-group edit-modal-field" style="margin-bottom: 6px">
+          <label>Pin</label>
+          <div class="profile-input-wrapper">
+            <svg
+              class="field-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="4" y1="9" x2="20" y2="9"></line>
+              <line x1="4" y1="15" x2="20" y2="15"></line>
+              <line x1="10" y1="3" x2="8" y2="21"></line>
+              <line x1="16" y1="3" x2="14" y2="21"></line>
+            </svg>
+            <input
+              type="text"
+              id="inline-edit-pin"
+              placeholder="e.g. 231305"
+              autocomplete="off"
+              onkeydown="if (event.key === 'Enter') { event.preventDefault(); saveInlineEditRecord(); }"
+            />
+          </div>
+        </div>
+
+        <div class="edit-modal-actions">
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="closeEditRecordModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="inline-edit-save-btn"
+            class="btn-save-profile"
+            onclick="saveInlineEditRecord()"
+          >
+            <span class="btn-content" id="inline-edit-save-btn-content">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                ></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>Save Changes</span>
+            </span>
           </button>
         </div>
       </div>
@@ -8740,44 +9109,407 @@ Exact JSON format:
         btn.textContent = "Submit All";
         btn.disabled = false;
       }
-      function updateRecord(id, currentAddress, currentOffice, currentPin) {
-        switchDashboardView("upload");
-        const container = document.getElementById("manual-entries-container");
-        const safePin = !currentPin || currentPin === "null" ? "" : currentPin;
+      let activeInlineEditRecord = null;
 
-        const escapedAddress = escapeHTML(currentAddress);
-        const escapedOffice = escapeHTML(currentOffice);
-        const escapedPin = escapeHTML(safePin);
-
-        container.innerHTML = `
-  <div class="manual-entry-row" data-edit-id="${id}" data-old-addr="${escapedAddress}" data-old-off="${escapedOffice}" data-old-pin="${escapedPin}">
-    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-      <label style="color: var(--primary);">Address (Editing)</label>
-      <input type="text" class="manual-address" value="${escapedAddress}" autocomplete="off" />
-    </div>
-    <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-      <label style="color: var(--primary);">Office</label>
-      <div class="autocomplete-wrapper">
-        <input type="text" class="manual-office" value="${escapedOffice}" placeholder="Search & Select Office..." autocomplete="off" oninput="handleOfficeInput(this)" onfocus="handleOfficeInput(this)" onblur="setTimeout(closeAllDropdowns, 200)" style="padding-right: 40px; width: 100%;" />
-        <button type="button" class="clear-btn ${
-          escapedOffice ? "" : "hidden"
-        }" style="position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; padding: 0; margin: 0; z-index: 2;" onclick="clearOfficeInput(this)" title="Clear Office">✕</button>
-        <div class="autocomplete-dropdown"></div>
-      </div>
-    </div>
-    <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-      <label style="color: var(--primary);">Pin</label>
-      <input type="text" class="manual-Pin" value="${escapedPin}" autocomplete="off" />
-    </div>
-    <button type="button" class="btn" style="width: auto; background: #fee2e2; color: #b91c1c; padding: 14px;" onclick="this.parentElement.remove()" title="Cancel Edit">✕</button>
-  </div>
-  `;
-
-        document.getElementById("submit-multiple-btn").textContent =
-          "Save Changes";
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        showToast("✏️ Ready to edit.");
+      function closeEditRecordModal() {
+        document
+          .getElementById("edit-record-modal-overlay")
+          .classList.remove("show");
+        closeAllDropdowns();
+        activeInlineEditRecord = null;
       }
+
+      function handleInlineEditOfficeInput(inputElement) {
+        const val = inputElement.value;
+        const dropdown = document.getElementById("inline-edit-office-dropdown");
+        const clearBtn = document.getElementById("inline-edit-office-clear");
+        const pinInput = document.getElementById("inline-edit-pin");
+
+        if (val.length > 0) clearBtn.classList.remove("hidden");
+        else clearBtn.classList.add("hidden");
+
+        const officeMap = new Map();
+        if (cachedPostOffices) {
+          cachedPostOffices.forEach((row) => {
+            if (row.Office && !officeMap.has(row.Office)) {
+              officeMap.set(row.Office, row.Pin || "");
+            }
+          });
+        }
+
+        let matchedOffices = Array.from(officeMap.keys());
+        if (val) {
+          const lowerVal = val.toLowerCase();
+          matchedOffices = matchedOffices.filter((o) =>
+            o.toLowerCase().includes(lowerVal)
+          );
+        }
+        matchedOffices.sort();
+
+        if (matchedOffices.length === 0) {
+          dropdown.classList.remove("show");
+        } else {
+          let html = "";
+          matchedOffices.slice(0, 10).forEach((office) => {
+            const pin = officeMap.get(office);
+            html += `<div class="autocomplete-item" onmousedown="event.preventDefault(); selectInlineEditOffice('${escapeForOnclick(
+              office
+            )}', '${escapeForOnclick(pin)}')">🏢 ${escapeHTML(office)}</div>`;
+          });
+          dropdown.innerHTML = html;
+          dropdown.classList.add("show");
+        }
+
+        if (pinInput) {
+          if (val.trim() === "") {
+            pinInput.value = "";
+          } else {
+            const exactMatch = Array.from(officeMap.keys()).find(
+              (k) => k.toLowerCase() === val.toLowerCase()
+            );
+            if (exactMatch) pinInput.value = officeMap.get(exactMatch);
+          }
+        }
+      }
+
+      function selectInlineEditOffice(officeName, pinNumber) {
+        const offInput = document.getElementById("inline-edit-office");
+        const pinInput = document.getElementById("inline-edit-pin");
+        const clearBtn = document.getElementById("inline-edit-office-clear");
+
+        offInput.value = officeName;
+        if (pinInput) pinInput.value = pinNumber;
+        clearBtn.classList.remove("hidden");
+
+        closeAllDropdowns();
+        offInput.blur();
+      }
+
+      function clearInlineEditOffice() {
+        const offInput = document.getElementById("inline-edit-office");
+        offInput.value = "";
+        offInput.focus();
+        handleInlineEditOfficeInput(offInput);
+      }
+
+      function applyLocalRecordEdit(id, newAddress, newOffice, newPin) {
+        const normalizedPin = newPin || null;
+
+        // 1. Update in-memory database
+        const targetRecord = cachedPostOffices.find(
+          (r) => String(r.id) === String(id)
+        );
+        if (targetRecord) {
+          targetRecord.Address = newAddress;
+          targetRecord.Office = newOffice;
+          targetRecord.Pin = normalizedPin;
+        }
+
+        // 2. Persist immediately to offline localStorage cache
+        try {
+          localStorage.setItem(
+            "dakmitra_offline_db",
+            JSON.stringify(cachedPostOffices)
+          );
+        } catch (e) {
+          console.warn("Could not update offline cache:", e);
+        }
+
+        // 3. Keep Favorites in sync if this record is favorited
+        const favorites = getSafeStorage(FAV_KEY);
+        const favIdx = favorites.findIndex((f) => String(f.id) === String(id));
+        if (favIdx > -1) {
+          favorites[favIdx].address = newAddress;
+          favorites[favIdx].office = newOffice;
+          favorites[favIdx].pin = normalizedPin || "";
+          localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
+          renderFavorites();
+        }
+
+        // 4. Update sidebar stats & rebuild Fuse search index
+        const statAddrEl = document.getElementById("stat-addresses");
+        const statOffEl = document.getElementById("stat-offices");
+        if (statAddrEl) statAddrEl.textContent = cachedPostOffices.length;
+        if (statOffEl) {
+          statOffEl.textContent = new Set(
+            cachedPostOffices.map((o) => o.Office)
+          ).size;
+        }
+
+        if (window.Fuse) {
+          fuse = new Fuse(cachedPostOffices, {
+            keys: ["Address", "Office", "Pin"],
+            threshold: 0.3,
+            ignoreLocation: false,
+            location: 0,
+            distance: 100,
+            includeMatches: true,
+          });
+        }
+
+        // 5. Refresh Search & Directory in place (preserving filters & scroll position)
+        refreshSearchInPlace();
+        refreshDirectoryInPlace();
+      }
+
+      function getInlineSaveBtnDefaultHTML() {
+        const label = isCurrentUserAdmin ? "Save Changes" : "Submit Edit";
+        return `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span>${label}</span>
+        `;
+      }
+
+      function updateRecord(id, currentAddress, currentOffice, currentPin) {
+        closeAllDirectoryActionTrays();
+
+        const safePin =
+          !currentPin || currentPin === "null" || currentPin === "undefined"
+            ? ""
+            : String(currentPin).trim();
+
+        activeInlineEditRecord = {
+          id: id,
+          oldAddress: currentAddress || "",
+          oldOffice: currentOffice || "",
+          oldPin: safePin,
+        };
+
+        const addrInput = document.getElementById("inline-edit-address");
+        const offInput = document.getElementById("inline-edit-office");
+        const pinInput = document.getElementById("inline-edit-pin");
+        const clearOffBtn = document.getElementById("inline-edit-office-clear");
+        const saveBtn = document.getElementById("inline-edit-save-btn");
+        const saveBtnContent = document.getElementById(
+          "inline-edit-save-btn-content"
+        );
+
+        addrInput.value = activeInlineEditRecord.oldAddress;
+        offInput.value = activeInlineEditRecord.oldOffice;
+        pinInput.value = activeInlineEditRecord.oldPin;
+
+        if (offInput.value.length > 0) clearOffBtn.classList.remove("hidden");
+        else clearOffBtn.classList.add("hidden");
+
+        // Reset button visual state
+        saveBtn.classList.remove("is-loading", "is-success");
+        saveBtn.disabled = false;
+        saveBtnContent.innerHTML = getInlineSaveBtnDefaultHTML();
+
+        document
+          .getElementById("edit-record-modal-overlay")
+          .classList.add("show");
+
+        setTimeout(() => addrInput.focus(), 140);
+      }
+
+      async function saveInlineEditRecord() {
+        if (!activeInlineEditRecord) return;
+
+        const newAddress = document
+          .getElementById("inline-edit-address")
+          .value.trim();
+        const newOffice = document
+          .getElementById("inline-edit-office")
+          .value.trim();
+        const newPin = document.getElementById("inline-edit-pin").value.trim();
+
+        if (!newAddress || !newOffice) {
+          return showToast("⚠️ Address and Office are required.");
+        }
+
+        if (
+          newAddress === activeInlineEditRecord.oldAddress &&
+          newOffice === activeInlineEditRecord.oldOffice &&
+          newPin === activeInlineEditRecord.oldPin
+        ) {
+          closeEditRecordModal();
+          return showToast("No changes made.");
+        }
+
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+
+        if (!session || !session.user) {
+          closeEditRecordModal();
+          checkUserSession();
+          return alert("Your session has expired. Please sign in again.");
+        }
+
+        const saveBtn = document.getElementById("inline-edit-save-btn");
+        const saveBtnContent = document.getElementById(
+          "inline-edit-save-btn-content"
+        );
+        const editedId = activeInlineEditRecord.id;
+
+        // 1. Loading Spinner State
+        saveBtn.classList.add("is-loading");
+        saveBtn.disabled = true;
+        saveBtnContent.innerHTML = `
+          <div class="btn-spinner"></div>
+          <span>Saving...</span>
+        `;
+
+        const reqData = {
+          post_office_id: editedId,
+          action_type: "EDIT",
+          proposed_data: {
+            Address: newAddress,
+            Office: newOffice,
+            Pin: newPin || null,
+          },
+          original_data: {
+            Address: activeInlineEditRecord.oldAddress,
+            Office: activeInlineEditRecord.oldOffice,
+            Pin: activeInlineEditRecord.oldPin || null,
+          },
+          requested_by: session.user.id,
+        };
+
+        try {
+          if (isCurrentUserAdmin) {
+            const { error } = await supabaseClient.rpc("admin_direct_submit", {
+              request_payloads: [reqData],
+            });
+            if (error) throw error;
+
+            applyLocalRecordEdit(editedId, newAddress, newOffice, newPin);
+            invalidateApprovalsCache();
+
+            // 2. Animated Checkmark Success State
+            saveBtn.classList.remove("is-loading");
+            saveBtn.classList.add("is-success");
+            saveBtnContent.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Saved!</span>
+            `;
+            showToast("✨ Changes saved instantly!");
+
+            setTimeout(() => {
+              closeEditRecordModal();
+              highlightUpdatedRecord(editedId);
+            }, 650);
+          } else {
+            const { error } = await supabaseClient
+              .from("edit_requests")
+              .insert([reqData]);
+            if (error) throw error;
+
+            invalidateApprovalsCache();
+
+            saveBtn.classList.remove("is-loading");
+            saveBtn.classList.add("is-success");
+            saveBtnContent.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Submitted!</span>
+            `;
+            showToast("✅ Edit request submitted for approval!");
+
+            setTimeout(() => {
+              closeEditRecordModal();
+            }, 650);
+          }
+        } catch (err) {
+          saveBtn.classList.remove("is-loading", "is-success");
+          saveBtn.disabled = false;
+          saveBtnContent.innerHTML = getInlineSaveBtnDefaultHTML();
+          alert("Error saving edit: " + err.message);
+        }
+      }
+
+      function highlightUpdatedRecord(id) {
+        const safeId = CSS.escape(String(id));
+        document
+          .querySelectorAll(`[data-record-id="${safeId}"]`)
+          .forEach((el) => {
+            el.classList.remove("record-updated-flash");
+            void el.offsetWidth; // Restart animation cleanly
+            el.classList.add("record-updated-flash");
+            setTimeout(() => el.classList.remove("record-updated-flash"), 1200);
+          });
+      }
+
+      function refreshSearchInPlace() {
+        const displayArea = document.getElementById("results-display-area");
+        const prevScroll = displayArea ? displayArea.scrollTop : 0;
+        const prevLimit = window.searchDisplayLimit || 10;
+
+        triggerSearch();
+
+        if (prevLimit > 10 && currentFilteredData.length > 10) {
+          window.searchDisplayLimit = Math.min(
+            prevLimit,
+            currentFilteredData.length
+          );
+          renderResults(true);
+        }
+
+        if (displayArea) {
+          displayArea.scrollTop = prevScroll;
+        }
+      }
+
+      function refreshDirectoryInPlace() {
+        buildDirectoryGroupedData();
+
+        const dirView = document.getElementById("view-directory");
+        if (!dirView || !dirView.classList.contains("active")) return;
+
+        const displayArea = document.getElementById("directory-display-area");
+        const prevScroll = displayArea ? displayArea.scrollTop : 0;
+        const pagesToRender = Math.max(1, directoryCurrentPage);
+
+        const filterInput = document.getElementById("directory-filter-input");
+        const filterValue = filterInput
+          ? filterInput.value.toLowerCase().trim()
+          : "";
+
+        directoryFilteredData = filterValue
+          ? directoryGroupedData.filter((item) =>
+              item.searchString.includes(filterValue)
+            )
+          : [...directoryGroupedData];
+
+        directoryCurrentPage = 0;
+        const contentDiv = document.getElementById("directory-content");
+        if (contentDiv) contentDiv.innerHTML = "";
+
+        for (let i = 0; i < pagesToRender; i++) {
+          if (
+            directoryCurrentPage * DIRECTORY_PAGE_SIZE <
+              directoryFilteredData.length ||
+            i === 0
+          ) {
+            renderDirectoryBatch();
+          }
+        }
+
+        if (displayArea) {
+          displayArea.scrollTop = prevScroll;
+        }
+      }
+
+      // Close edit modal on Escape key
+      document.addEventListener("keydown", (e) => {
+        if (
+          e.key === "Escape" &&
+          document
+            .getElementById("edit-record-modal-overlay")
+            ?.classList.contains("show")
+        ) {
+          closeEditRecordModal();
+        }
+      });
+
       function deleteRecord(id) {
         let title = "Request Deletion?";
         let message =
