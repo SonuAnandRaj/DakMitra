@@ -4186,7 +4186,7 @@
                 id="view-fav-shortcut-btn"
                 onclick="switchDashboardView('favorites')"
                 title="View Saved Favorites"
-                style="color: #f59e0b; font-size: 16px; font-weight: 700"
+                style="color: #f59e0b; font-size: 14px; font-weight: 700"
               >
                 ⭐
               </button>
@@ -6330,6 +6330,15 @@
               );
               const favStyle = getFavoriteBtnStyles(isFav, false);
 
+              const officeType = detectOfficeType(row.Address);
+              const infoBtnHtml = officeType
+                ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
+                    row.Address
+                  )}', '${escapeForOnclick(
+                    row.Office
+                  )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️ Info</button>`
+                : "";
+
               html += `
               <li class="list-item" onclick="toggleCardExpansion(this)" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
                   <div style="width: 100%;">
@@ -6344,6 +6353,7 @@
                     </div>
                   </div>
                   <div class="card-actions">
+                    ${infoBtnHtml}
                     <button onclick="event.stopPropagation(); viewHistory('${
                       row.id
                     }')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
@@ -6408,6 +6418,15 @@
               );
               const favStyle = getFavoriteBtnStyles(isFav, true);
 
+              const officeType = detectOfficeType(row.Address);
+              const infoBtnHtml = officeType
+                ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
+                    row.Address
+                  )}', '${escapeForOnclick(
+                    row.Office
+                  )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️ Info</button>`
+                : "";
+
               html += `<tr class="list-item" onclick="toggleCardExpansion(this)">
                   <td>${addressHtml}</td>
                 <td style="cursor: pointer; color: var(--primary);" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
@@ -6422,33 +6441,34 @@
                 </td>
                </tr>
                <tr class="card-actions-row">
-  <td colspan="3" style="padding: 0; border: none;">
-    <div class="card-actions" style="padding: 0 16px 12px 16px;">
-      <button onclick="event.stopPropagation(); viewHistory('${
-        row.id
-      }')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
-      <button onclick="event.stopPropagation(); toggleFavorite('${
-        row.id
-      }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-                row.Office
-              )}', '${escapeForOnclick(
+                 <td colspan="3" style="padding: 0; border: none;">
+                   <div class="card-actions" style="padding: 0 16px 12px 16px;">
+                     ${infoBtnHtml}
+                     <button onclick="event.stopPropagation(); viewHistory('${
+                       row.id
+                     }')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
+                     <button onclick="event.stopPropagation(); toggleFavorite('${
+                       row.id
+                     }', '${escapeForOnclick(
+                row.Address
+              )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
                 row.Pin
               )}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
                 favStyle.style
               }" title="Toggle Favorite">${favStyle.icon}</button>
-      <button onclick="event.stopPropagation(); updateRecord('${
-        row.id
-      }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-                row.Office
-              )}', '${escapeForOnclick(
+                     <button onclick="event.stopPropagation(); updateRecord('${
+                       row.id
+                     }', '${escapeForOnclick(
+                row.Address
+              )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
                 row.Pin
               )}')" class="toolbar-btn" style="padding: 4px 8px;">✎ Edit</button>
-      <button onclick="event.stopPropagation(); deleteRecord('${
-        row.id
-      }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑 Delete</button>
-    </div>
-  </td>
-</tr>`;
+                     <button onclick="event.stopPropagation(); deleteRecord('${
+                       row.id
+                     }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑 Delete</button>
+                   </div>
+                 </td>
+               </tr>`;
             });
           html += `</tbody></table>`;
 
@@ -7544,7 +7564,14 @@ Exact JSON format:
               `;
 
           data.addresses.forEach((address) => {
-            const officeType = detectOfficeType(address);
+            const officeType = detectOfficeType(row.Address);
+            const infoBtnHtml = officeType
+              ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
+                  row.Address
+                )}', '${escapeForOnclick(
+                  row.Office
+                )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️ Info</button>`
+              : "";
             if (officeType) {
               html += `<span class="directory-address-chip clickable-office-chip" onclick="showOfficeDetailsModal('${escapeForOnclick(
                 address
