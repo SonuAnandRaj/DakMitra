@@ -7398,8 +7398,12 @@
             const formattedData = jsonData.map((row) => ({
               Address: row["Address"],
               Office: row["Office"],
-              Pin: row["Pin"] ? String(row["Pin"]) : null,
+              Pin: row["Pin"] ? parseInt(row["Pin"], 10) || null : null,
               user_id: session.user.id,
+              last_modified_by: session.user.id,
+              last_approved_by: session.user.id,
+              upload_method: "excel_bulk",
+              is_deleted: false,
             }));
 
             const { error } = await supabaseClient
@@ -8788,6 +8792,23 @@
                     `;
             }
 
+            const isBulkExcelUpload =
+              log.action === "INSERT" &&
+              log.new_data?.upload_method === "excel_bulk";
+
+            const attributionHtml = isBulkExcelUpload
+              ? `<div style="font-size: 12px; color: var(--success-text); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
+                   📊 <b>Added via Excel Bulk Upload</b> by Admin <b>${escapeHTML(
+                     requesterName
+                   )}</b> (${escapeHTML(requesterId)})
+                 </div>`
+              : `<div style="font-size: 12px; color: var(--text-light); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
+                   <div>👤 Requested by: <b>${escapeHTML(
+                     requesterName
+                   )}</b> (${escapeHTML(requesterId)})</div>
+                   ${approverHtml}
+                 </div>`;
+
             html += `
                   <div style="background: var(--btn-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -8797,13 +8818,7 @@
                     <div style="font-size: 14px; margin-bottom: 8px; color: var(--text); line-height: 1.4;">
                       ${changesHtml}
                     </div>
-
-                    <div style="font-size: 12px; color: var(--text-light); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
-                      <div>👤 Requested by: <b>${escapeHTML(
-                        requesterName
-                      )}</b> (${escapeHTML(requesterId)})</div>
-                      ${approverHtml}
-                    </div>
+                    ${attributionHtml}
                   </div>
                 `;
           });
