@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -87,10 +87,9 @@
         --mic-bg: #ef4444;
         --mic-hover: #dc2626;
         --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        --shadow-md:
-          0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        --shadow-lg:
-          0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
           0 4px 6px -2px rgba(0, 0, 0, 0.05);
         --stripe-bg: rgba(79, 70, 229, 0.04);
       }
@@ -302,9 +301,7 @@
         min-height: 100vh;
         display: flex;
         flex-direction: column;
-        transition:
-          background-color 0.3s ease,
-          color 0.3s ease;
+        transition: background-color 0.3s ease, color 0.3s ease;
         overflow-x: hidden;
       }
 
@@ -561,10 +558,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition:
-          background 0.3s,
-          transform 0.2s,
-          color 0.3s;
+        transition: background 0.3s, transform 0.2s, color 0.3s;
       }
       .theme-toggle-btn:active {
         transform: scale(0.85) rotate(20deg);
@@ -624,9 +618,7 @@
       .bottom-nav-item svg {
         width: 24px;
         height: 24px;
-        transition:
-          stroke 0.2s,
-          fill 0.2s;
+        transition: stroke 0.2s, fill 0.2s;
       }
       /* --- FLOATING MODERN BOTTOM NAVIGATION --- */
       .bottom-nav {
@@ -646,8 +638,7 @@
         gap: 2px;
         z-index: 900;
         overflow: hidden; /* Hard stop: prevents any child from ever spilling out */
-        box-shadow:
-          0 10px 25px -5px rgba(0, 0, 0, 0.1),
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
           0 8px 10px -6px rgba(0, 0, 0, 0.1);
 
         /* Adds a native-app glassmorphism effect if the background has slight transparency */
@@ -770,8 +761,7 @@
         overflow: hidden;
         flex-shrink: 0;
         touch-action: pan-y;
-        transition:
-          transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
           box-shadow 0.2s ease;
       }
       .profile-menu-btn:hover {
@@ -906,9 +896,7 @@
         padding: 8px;
         margin: -8px -8px 16px -8px;
         border-radius: 16px;
-        transition:
-          background 0.2s ease,
-          transform 0.1s ease;
+        transition: background 0.2s ease, transform 0.1s ease;
       }
       .sidebar-profile-row:hover {
         background: var(--btn-secondary);
@@ -973,8 +961,7 @@
         box-shadow: var(--shadow-lg);
         overflow: hidden;
         cursor: pointer;
-        transition:
-          transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
           box-shadow 0.25s ease;
       }
       .profile-avatar-large:hover {
@@ -1035,9 +1022,7 @@
         cursor: pointer;
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
-        transition:
-          background 0.2s ease,
-          transform 0.15s ease;
+        transition: background 0.2s ease, transform 0.15s ease;
       }
       .avatar-lightbox-close:hover {
         background: rgba(255, 255, 255, 0.26);
@@ -1061,9 +1046,7 @@
         justify-content: center;
         cursor: pointer;
         box-shadow: var(--shadow-md);
-        transition:
-          transform 0.2s,
-          background 0.2s;
+        transition: transform 0.2s, background 0.2s;
       }
       .avatar-Upload-fab:hover {
         transform: scale(1.08);
@@ -1159,9 +1142,7 @@
         height: 18px;
         color: var(--text-light);
         pointer-events: none;
-        transition:
-          color 0.25s ease,
-          transform 0.25s ease;
+        transition: color 0.25s ease, transform 0.25s ease;
       }
       .profile-input-wrapper input,
       .profile-input-wrapper select {
@@ -1249,9 +1230,7 @@
         align-items: center;
         justify-content: center;
         gap: 10px;
-        transition:
-          transform 0.3s ease,
-          opacity 0.25s ease;
+        transition: transform 0.3s ease, opacity 0.25s ease;
       }
       .btn-save-profile svg {
         width: 20px;
@@ -1323,9 +1302,7 @@
 
         gap: 8px; /* Tightens the space between icon and text slightly */
         box-shadow: var(--shadow-sm);
-        transition:
-          transform 0.2s,
-          box-shadow 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
       }
 
       .stat-box.clickable {
@@ -1418,8 +1395,7 @@
         width: 22px;
         height: 22px;
         flex-shrink: 0;
-        transition:
-          transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
           stroke 0.3s ease;
       }
 
@@ -1519,9 +1495,7 @@
         font-size: 14px;
         font-weight: 500;
         color: var(--text);
-        transition:
-          background 0.2s,
-          color 0.2s;
+        transition: background 0.2s, color 0.2s;
       }
       .autocomplete-item:last-child {
         border-bottom: none;
@@ -1622,9 +1596,7 @@
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;
-        transition:
-          background 0.2s,
-          transform 0.1s;
+        transition: background 0.2s, transform 0.1s;
       }
       .btn:hover {
         background: var(--primary-hover);
@@ -1777,8 +1749,7 @@
       .search-input-wrapper:focus-within {
         border-color: var(--primary);
         background: var(--card-bg);
-        box-shadow:
-          0 0 0 4px rgba(79, 70, 229, 0.12),
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12),
           0 8px 16px -4px rgba(79, 70, 229, 0.1);
         transform: translateY(-2px);
       }
@@ -2498,9 +2469,7 @@
         align-items: center;
         gap: 4px;
         box-shadow: var(--shadow-sm);
-        transition:
-          transform 0.2s,
-          box-shadow 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
       }
 
       .footer-developer-chip:hover {
@@ -2604,9 +2573,7 @@
         justify-content: center;
         opacity: 0;
         visibility: hidden;
-        transition:
-          opacity 0.3s ease,
-          visibility 0.3s ease;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
       }
 
       .modal-overlay.show {
@@ -2710,8 +2677,7 @@
         pointer-events: none;
         border: 2px solid rgba(255, 255, 255, 0.5);
         border-radius: 22px;
-        background-image:
-          linear-gradient(
+        background-image: linear-gradient(
             to right,
             rgba(255, 255, 255, 0.2) 1px,
             transparent 1px
@@ -2824,9 +2790,7 @@
         place-items: center;
         margin: 0;
         contain: layout paint style;
-        transition:
-          opacity 0.2s ease-out,
-          visibility 0.2s ease-out;
+        transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
       }
       .splash-screen.hidden-splash {
         opacity: 0;
@@ -2841,13 +2805,8 @@
         transform: translateZ(0); /* Hardware acceleration lock */
       }
       .splash-title {
-        font-family:
-          system-ui,
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          Roboto,
-          sans-serif;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
         font-size: 42px;
         line-height: 52px; /* Fixed line-height prevents vertical font shift */
         height: 52px;
@@ -4490,6 +4449,39 @@
                 Export
               </button>
             </div>
+
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+              "
+            >
+              <div>
+                <strong style="display: block; color: var(--text)"
+                  >Export Full Excel</strong
+                >
+                <span style="font-size: 13px; color: var(--text-light)"
+                  >Download entire active database as .xlsx</span
+                >
+              </div>
+              <button
+                type="button"
+                id="export-excel-btn"
+                class="btn"
+                style="
+                  width: auto;
+                  padding: 8px 16px;
+                  background: var(--success-bg);
+                  color: var(--success-text);
+                "
+                onclick="exportFullTableToExcel()"
+              >
+                📊 .xlsx
+              </button>
+            </div>
+
             <!-- Spacer between Export and Sync -->
             <div style="margin-bottom: 16px"></div>
 
@@ -5418,7 +5410,7 @@
               auth: {
                 experimental: { passkey: true },
               },
-            },
+            }
           );
         }
         return supabaseClient;
@@ -5526,7 +5518,7 @@
         // Clear all active states efficiently
         document
           .querySelectorAll(
-            ".view-section, .sidebar-menu-item, .bottom-nav-item",
+            ".view-section, .sidebar-menu-item, .bottom-nav-item"
           )
           .forEach((el) => {
             el.classList.remove("active");
@@ -5658,8 +5650,8 @@
           .map(
             (term) =>
               `<button class="badge" style="cursor: pointer;" onclick="applyHistorySearch('${escapeForOnclick(
-                term,
-              )}')">${escapeHTML(term)}</button>`,
+                term
+              )}')">${escapeHTML(term)}</button>`
           )
           .join("");
       }
@@ -5707,7 +5699,7 @@
       function toggleFavorite(id, address, office, pin, btnElement) {
         let favorites = getSafeStorage(FAV_KEY);
         const existingIndex = favorites.findIndex(
-          (f) => String(f.id) === String(id),
+          (f) => String(f.id) === String(id)
         );
         const isFavNow = existingIndex === -1;
 
@@ -5764,7 +5756,7 @@
                     <div class="office-title">${escapeHTML(row.address)}</div>
                     <div class="sub-office">
                       <span class="badge badge-primary">🏢 ${escapeHTML(
-                        row.office,
+                        row.office
                       )}</span>
                       <span class="badge">📍 ${
                         escapeHTML(row.pin) || "N/A"
@@ -5775,12 +5767,12 @@
                     <button onclick="toggleFavorite('${
                       row.id
                     }', '${escapeForOnclick(row.address)}', '${escapeForOnclick(
-                      row.office,
-                    )}', '${escapeForOnclick(
-                      row.pin,
-                    )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
-                      favStyle.style
-                    }">
+            row.office
+          )}', '${escapeForOnclick(
+            row.pin
+          )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
+            favStyle.style
+          }">
                       ${favStyle.icon}
                     </button>
                   </div>
@@ -5797,7 +5789,7 @@
           isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
           document.documentElement.setAttribute(
             "data-theme",
-            isDark ? "dark" : "light",
+            isDark ? "dark" : "light"
           );
         } else {
           isDark = theme === "dark";
@@ -5876,26 +5868,40 @@
         if (!hasInternet) {
           console.log("Offline mode: Skipping background sync.");
           if (!cachedPostOffices || cachedPostOffices.length === 0) {
-            document.getElementById("results-display-area").innerHTML =
-              `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
+            document.getElementById(
+              "results-display-area"
+            ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
           }
           return false;
         }
 
         try {
-          // Since we know the internet is real, just run the normal query
-          const { data, error } = await supabaseClient
-            .from("post_offices")
-            .select("*")
-            .eq("is_deleted", false);
+          let allRows = [];
+          let from = 0;
+          const batchSize = 1000;
 
-          if (error) throw error;
+          // Fetch in 1,000-row pages so Supabase never truncates at 1,000 rows
+          while (true) {
+            const { data, error } = await supabaseClient
+              .from("post_offices")
+              .select("*")
+              .eq("is_deleted", false)
+              .order("id", { ascending: true })
+              .range(from, from + batchSize - 1);
 
-          if (data && data.length > 0) {
-            cachedPostOffices = data;
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+
+            allRows = allRows.concat(data);
+            if (data.length < batchSize) break;
+            from += batchSize;
+          }
+
+          if (allRows.length > 0) {
+            cachedPostOffices = allRows;
             localStorage.setItem(
               "dakmitra_offline_db",
-              JSON.stringify(cachedPostOffices),
+              JSON.stringify(cachedPostOffices)
             );
             initializeSearchAndRender();
             return true;
@@ -5906,14 +5912,12 @@
           return false;
         }
       }
-
       function initializeSearchAndRender() {
-        const uniqueAddresses = new Set(cachedPostOffices.map((o) => o.Address))
-          .size;
+        const totalRecords = cachedPostOffices.length;
         const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office))
           .size;
 
-        document.getElementById("stat-addresses").textContent = uniqueAddresses;
+        document.getElementById("stat-addresses").textContent = totalRecords;
         document.getElementById("stat-offices").textContent = uniqueOffices;
 
         fuse = new Fuse(cachedPostOffices, {
@@ -5970,7 +5974,7 @@
         if (voices.length === 0) return; // Wait for the event if array is empty
         preferredIndianVoice =
           voices.find(
-            (v) => v.lang.includes("en-IN") || v.name.includes("India"),
+            (v) => v.lang.includes("en-IN") || v.name.includes("India")
           ) || voices.find((v) => v.lang.includes("hi-IN"));
       }
       loadIndianVoice();
@@ -6040,7 +6044,7 @@
           .getElementById("search-input")
           .value.trim();
         const filterVal = document.querySelector(
-          'input[name="searchFilter"]:checked',
+          'input[name="searchFilter"]:checked'
         ).value;
         const filterOffice = document
           .getElementById("filter-office")
@@ -6142,7 +6146,7 @@
             // Added PO, GPO, and RMS as well since they are common postal acronyms
             speechText = speechText.replace(
               /\b(BO|HO|SO|PO|GPO|RMS|TPS)\b/g,
-              (match) => match.split("").join(" "),
+              (match) => match.split("").join(" ")
             );
           }
           const utterance = new SpeechSynthesisUtterance(speechText);
@@ -6210,10 +6214,10 @@
           if (exactIndex !== -1) {
             const before = escapeHTML(text.substring(0, exactIndex));
             const highlighted = escapeHTML(
-              text.substring(exactIndex, exactIndex + searchInput.length),
+              text.substring(exactIndex, exactIndex + searchInput.length)
             );
             const after = escapeHTML(
-              text.substring(exactIndex + searchInput.length),
+              text.substring(exactIndex + searchInput.length)
             );
             return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
           }
@@ -6278,7 +6282,7 @@
               }
             }
           },
-          { root: displayArea, rootMargin: "300px" },
+          { root: displayArea, rootMargin: "300px" }
         );
 
         if (sentinel) window.searchObserver.observe(sentinel);
@@ -6301,7 +6305,9 @@
               <div class="ai-fallback-banner-text">
                 <strong>No Match in Local Database</strong>
                 <span>
-                  "${escapeHTML(rawQuery)}" is not listed in DakMitra's verified records.
+                  "${escapeHTML(
+                    rawQuery
+                  )}" is not listed in DakMitra's verified records.
                   ${
                     rawQuery.length >= 3
                       ? "Showing <b>AI-estimated postal routing</b> below—please verify before sorting."
@@ -6342,17 +6348,17 @@
               const addressHtml = highlightText(
                 row.Address,
                 result.matches,
-                "Address",
+                "Address"
               );
               const officeHtml = highlightText(
                 row.Office,
                 result.matches,
-                "Office",
+                "Office"
               );
               const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
               const isFav = favorites.some(
-                (f) => String(f.id) === String(row.id),
+                (f) => String(f.id) === String(row.id)
               );
               const favStyle = getFavoriteBtnStyles(isFav, false);
 
@@ -6362,10 +6368,10 @@
                     <div class="office-title">${addressHtml}</div>
                     <div class="sub-office">
                       <span class="badge badge-primary" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                        row.Office,
+                        row.Office
                       )}')">🏢 ${officeHtml}</span>
                       <span class="badge" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                        row.Office,
+                        row.Office
                       )}')">📍 ${PinHtml || "N/A"}</span>
                     </div>
                   </div>
@@ -6376,19 +6382,19 @@
                     <button onclick="event.stopPropagation(); toggleFavorite('${
                       row.id
                     }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-                      row.Office,
-                    )}', '${escapeForOnclick(
-                      row.Pin,
-                    )}', this)" class="toolbar-btn" style="${favStyle.style}">${
-                      favStyle.icon
-                    }</button>
+                row.Office
+              )}', '${escapeForOnclick(
+                row.Pin
+              )}', this)" class="toolbar-btn" style="${favStyle.style}">${
+                favStyle.icon
+              }</button>
                     <button onclick="event.stopPropagation(); updateRecord('${
                       row.id
                     }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-                      row.Office,
-                    )}', '${escapeForOnclick(
-                      row.Pin,
-                    )}')" class="toolbar-btn" style="background: var(--input-bg);">Edit</button>
+                row.Office
+              )}', '${escapeForOnclick(
+                row.Pin
+              )}')" class="toolbar-btn" style="background: var(--input-bg);">Edit</button>
                     <button onclick="event.stopPropagation(); deleteRecord('${
                       row.id
                     }')" class="toolbar-btn" style="background: #fee2e2; color: #b91c1c;">Delete</button>
@@ -6420,29 +6426,29 @@
               const addressHtml = highlightText(
                 row.Address,
                 result.matches,
-                "Address",
+                "Address"
               );
               const officeHtml = highlightText(
                 row.Office,
                 result.matches,
-                "Office",
+                "Office"
               );
               const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
               const isFav = favorites.some(
-                (f) => String(f.id) === String(row.id),
+                (f) => String(f.id) === String(row.id)
               );
               const favStyle = getFavoriteBtnStyles(isFav, true);
 
               html += `<tr class="list-item" onclick="toggleCardExpansion(this)">
                   <td>${addressHtml}</td>
                 <td style="cursor: pointer; color: var(--primary);" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                  row.Office,
+                  row.Office
                 )}')">
                    ${officeHtml}
                 </td>
                 <td style="cursor: pointer; color: var(--primary);" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                  row.Office,
+                  row.Office
                 )}')">
                    ${PinHtml || "-"}
                 </td>
@@ -6453,19 +6459,19 @@
                      <button onclick="event.stopPropagation(); toggleFavorite('${
                        row.id
                      }', '${escapeForOnclick(
-                       row.Address,
-                     )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
-                       row.Pin,
-                     )}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
-                       favStyle.style
-                     }" title="Toggle Favorite">${favStyle.icon}</button>
+                row.Address
+              )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
+                row.Pin
+              )}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
+                favStyle.style
+              }" title="Toggle Favorite">${favStyle.icon}</button>
                      <button onclick="event.stopPropagation(); updateRecord('${
                        row.id
                      }', '${escapeForOnclick(
-                       row.Address,
-                     )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
-                       row.Pin,
-                     )}')" class="toolbar-btn" style="padding: 4px 8px;">✎ Edit</button>
+                row.Address
+              )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
+                row.Pin
+              )}')" class="toolbar-btn" style="padding: 4px 8px;">✎ Edit</button>
                      <button onclick="event.stopPropagation(); deleteRecord('${
                        row.id
                      }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑 Delete</button>
@@ -6498,14 +6504,14 @@
                 type="button"
                 class="ask-ai-bottom-btn"
                 onclick="triggerInlineAiBelowResults('${escapeForOnclick(
-                  activeQuery,
+                  activeQuery
                 )}')"
               >
                 ✨ Ask AI for "${escapeHTML(activeQuery)}"
               </button>
             </div>
             <div id="ai-search-results-container"></div>
-          `,
+          `
           );
         }
 
@@ -6558,7 +6564,7 @@
               <strong>AI Online Estimation (Requested Manually)</strong>
               <span>
                 Local results didn't match "${escapeHTML(
-                  query,
+                  query
                 )}". Showing <b>AI-estimated postal routing</b> below—please verify before sorting.
               </span>
             </div>
@@ -6570,7 +6576,7 @@
 
         // Smoothly scroll the AI container into view
         const aiContainer = document.getElementById(
-          "ai-search-results-container",
+          "ai-search-results-container"
         );
         if (aiContainer) {
           setTimeout(() => {
@@ -6590,7 +6596,7 @@
         if (rawQuery.length < 3) {
           if (searchInput) searchInput.focus();
           return showToast(
-            "✍️ Type at least 3 letters in the search bar to ask AI!",
+            "✍️ Type at least 3 letters in the search bar to ask AI!"
           );
         }
 
@@ -6608,14 +6614,14 @@
               <strong>Forced Online AI Postal Lookup</strong>
               <span>
                 Showing <b>AI-estimated routing</b> for "${escapeHTML(
-                  rawQuery,
+                  rawQuery
                 )}"${
-                  localCount > 0
-                    ? ` (bypassed ${localCount} local fuzzy ${
-                        localCount === 1 ? "match" : "matches"
-                      })`
-                    : " (no exact match in local database)"
-                }. Please verify before sorting.
+          localCount > 0
+            ? ` (bypassed ${localCount} local fuzzy ${
+                localCount === 1 ? "match" : "matches"
+              })`
+            : " (no exact match in local database)"
+        }. Please verify before sorting.
               </span>
             </div>
             ${
@@ -6637,7 +6643,7 @@
         }
 
         const container = document.getElementById(
-          "ai-search-results-container",
+          "ai-search-results-container"
         );
         if (!container) return;
 
@@ -6670,7 +6676,9 @@
           <div style="text-align: center; padding: 20px 12px;">
             <div class="approvals-loader-pill">
               <div class="approvals-spinner"></div>
-              <span>✨ AI is searching online for "${escapeHTML(query)}"...</span>
+              <span>✨ AI is searching online for "${escapeHTML(
+                query
+              )}"...</span>
             </div>
           </div>`;
 
@@ -6679,7 +6687,7 @@
           () => {
             executeAiOfficeEstimation(query);
           },
-          immediate ? 0 : 700,
+          immediate ? 0 : 700
         );
       }
 
@@ -6721,7 +6729,7 @@
           // Include up to 18 localities/BOs per Delivery Office so AI knows each office's exact beat area
           const sampleStr = sortedLocs.slice(0, 18).join(", ");
           summaryLines.push(
-            `- Delivery Office: "${officeName}" (PIN: ${info.pin}) -> Serves areas/BOs: [${sampleStr}]`,
+            `- Delivery Office: "${officeName}" (PIN: ${info.pin}) -> Serves areas/BOs: [${sampleStr}]`
           );
         });
 
@@ -6995,7 +7003,9 @@
       // Helper: Fetches any URL through 3 independent free CORS proxies so it NEVER fails in browser
       async function fetchTextViaCorsProxy(targetUrl, signal) {
         const proxies = [
-          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(
+            targetUrl
+          )}`,
           `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
           `https://r.jina.ai/${targetUrl}`,
         ];
@@ -7028,9 +7038,9 @@
         try {
           const postRes = await fetch(
             `https://api.postalpincode.in/postoffice/${encodeURIComponent(
-              cleanQuery,
+              cleanQuery
             )}`,
-            { signal },
+            { signal }
           );
           if (postRes.ok) {
             const postData = await postRes.json();
@@ -7040,13 +7050,13 @@
             const localOffices = offices.filter(
               (o) =>
                 /mirzapur|sonbhadra|sonebhadra|bhadohi|varanasi/i.test(
-                  o.District || "",
-                ) || /^231/.test(String(o.Pincode || "")),
+                  o.District || ""
+                ) || /^231/.test(String(o.Pincode || ""))
             );
 
             localOffices.forEach((o) => {
               geoHints.push(
-                `Official India Post Database Match: Office/Branch "${o.Name}" (${o.BranchType}) | Block: ${o.Block} | District: ${o.District} | PIN Code: ${o.Pincode}`,
+                `Official India Post Database Match: Office/Branch "${o.Name}" (${o.BranchType}) | Block: ${o.Block} | District: ${o.District} | PIN Code: ${o.Pincode}`
               );
             });
           }
@@ -7062,7 +7072,7 @@
           lowerQ.includes("khutaha")
         ) {
           geoHints.push(
-            `CRITICAL LOCAL KNOWLEDGE: Village "${cleanQuery}" is located in the Kachhwa / Majhawa block of Mirzapur district. Its sorting office is Kachhwa SO with PIN code 231501.`,
+            `CRITICAL LOCAL KNOWLEDGE: Village "${cleanQuery}" is located in the Kachhwa / Majhawa block of Mirzapur district. Its sorting office is Kachhwa SO with PIN code 231501.`
           );
         }
 
@@ -7071,7 +7081,7 @@
       }
       async function executeAiOfficeEstimation(query) {
         const container = document.getElementById(
-          "ai-search-results-container",
+          "ai-search-results-container"
         );
         if (!container) return;
 
@@ -7095,7 +7105,7 @@
 
           const geoHints = await fetchVillageGeoContext(
             exactUserQuery,
-            aiActiveAbortController.signal,
+            aiActiveAbortController.signal
           );
 
           const divisionDirectoryContext =
@@ -7119,7 +7129,7 @@
 
             response = await fetch(
               `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(
-                apiKey,
+                apiKey
               )}`,
               {
                 method: "POST",
@@ -7131,7 +7141,7 @@
                     temperature: 0.1,
                   },
                 }),
-              },
+              }
             );
 
             if (response.ok) {
@@ -7144,7 +7154,7 @@
               errData?.error?.message || `API Error (${response.status})`;
 
             const suggestedMatch = lastErrorMsg.match(
-              /models\/([a-zA-Z0-9.-]+)/,
+              /models\/([a-zA-Z0-9.-]+)/
             );
             if (suggestedMatch && suggestedMatch[1]) {
               const suggestedModel = suggestedMatch[1];
@@ -7180,10 +7190,10 @@
               <ul class="list-container">
                 <li class="list-empty" style="margin-top:0; gap:8px;">
                   <span style="color:#ef4444;">⚠️ AI Lookup Error: ${escapeHTML(
-                    err.message,
+                    err.message
                   )}</span>
                   <button type="button" class="toolbar-btn" style="background:var(--input-bg);" onclick="scheduleAutoAiSearch('${escapeForOnclick(
-                    exactUserQuery,
+                    exactUserQuery
                   )}', true)">🔄 Retry AI Search</button>
                 </li>
               </ul>`;
@@ -7192,7 +7202,7 @@
       }
       function renderAiEstimationCards(query, estimations) {
         const container = document.getElementById(
-          "ai-search-results-container",
+          "ai-search-results-container"
         );
         if (!container) return;
 
@@ -7201,7 +7211,7 @@
             <ul class="list-container">
               <li class="list-empty" style="margin-top:0;">
                 <span>🤖 AI could not confidently identify a serving Post Office in Mirzapur or Sonbhadra for "${escapeHTML(
-                  query,
+                  query
                 )}".</span>
               </li>
             </ul>`;
@@ -7225,7 +7235,7 @@
             (r) =>
               String(r.Office || "")
                 .trim()
-                .toLowerCase() === office.trim().toLowerCase(),
+                .toLowerCase() === office.trim().toLowerCase()
           );
 
           html += `
@@ -7233,7 +7243,7 @@
               <div class="ai-card-top-row">
                 <span class="ai-badge">✨ AI Estimated Route (Not in DB)</span>
                 <span class="ai-confidence-pill">🎯 Confidence: ${escapeHTML(
-                  confidence,
+                  confidence
                 )}</span>
               </div>
 
@@ -7243,7 +7253,7 @@
                   servingBeat &&
                   servingBeat.toLowerCase() !== locality.toLowerCase()
                     ? `<span style="font-size: 13px; font-weight: 600; color: var(--text-light);"> (via ${escapeHTML(
-                        servingBeat,
+                        servingBeat
                       )})</span>`
                     : ""
                 }
@@ -7251,11 +7261,11 @@
 
               <div class="sub-office">
                 <span class="badge badge-primary" style="cursor: pointer;" onclick="goToDirectoryOffice('${escapeForOnclick(
-                  office,
+                  office
                 )}')">
                   🏢 Sort to Office: ${escapeHTML(office)} ${
-                    existsInLocalDb ? "✓" : ""
-                  }
+            existsInLocalDb ? "✓" : ""
+          }
                 </span>
                 <span class="badge">📍 PIN: ${escapeHTML(pin)}</span>
                 ${
@@ -7273,13 +7283,15 @@
                 ${
                   existsInLocalDb
                     ? `<button type="button" class="toolbar-btn" style="background: var(--input-bg);" onclick="goToDirectoryOffice('${escapeForOnclick(
-                        office,
+                        office
                       )}')">📂 View Office in Directory</button>`
                     : ""
                 }
                 <button type="button" class="toolbar-btn" style="background: var(--primary); color: #ffffff;" onclick="prefillUploadFromAi('${escapeForOnclick(
-                  locality,
-                )}', '${escapeForOnclick(office)}', '${escapeForOnclick(pin)}')">
+                  locality
+                )}', '${escapeForOnclick(office)}', '${escapeForOnclick(
+            pin
+          )}')">
                   ➕ Propose "${escapeHTML(locality)}" to DB
                 </button>
               </div>
@@ -7312,7 +7324,7 @@
         const text = currentFilteredData
           .map(
             (r) =>
-              `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin ${r.item.Pin}`,
+              `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin ${r.item.Pin}`
           )
           .join("\n");
         navigator.clipboard
@@ -7333,7 +7345,7 @@
         let csv = "Address,Office,Pin\n";
         currentFilteredData.forEach((row) => {
           csv += `"${escapeCSV(row.item.Address)}","${escapeCSV(
-            row.item.Office,
+            row.item.Office
           )}","${escapeCSV(row.item.Pin)}"\n`;
         });
 
@@ -7364,7 +7376,7 @@
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: "array" });
             const jsonData = XLSX.utils.sheet_to_json(
-              workbook.Sheets[workbook.SheetNames[0]],
+              workbook.Sheets[workbook.SheetNames[0]]
             );
             if (jsonData.length === 0) {
               alert("The Excel file is empty.");
@@ -7463,7 +7475,7 @@
           if (event.results?.[0]?.[0]) {
             searchInput.value = event.results[0][0].transcript.replace(
               /\.$/,
-              "",
+              ""
             );
             document
               .getElementById("clear-search-btn")
@@ -7574,11 +7586,11 @@
                     <div class="directory-badges">
                       <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2);">
                         📑 ${totalAddresses} ${
-                          totalAddresses === 1 ? "Address" : "Addresses"
-                        }
+            totalAddresses === 1 ? "Address" : "Addresses"
+          }
                       </span>
                       <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px;">📍 ${escapeHTML(
-                        data.pin,
+                        data.pin
                       )}</span>
                     </div>
                   </div>
@@ -7589,15 +7601,15 @@
             const officeType = detectOfficeType(address);
             if (officeType) {
               html += `<span class="directory-address-chip clickable-office-chip" onclick="showOfficeDetailsModal('${escapeForOnclick(
-                address,
+                address
               )}', '${escapeForOnclick(
-                data.office,
+                data.office
               )}')" title="Tap to view ${officeType} details">📮 ${escapeHTML(
-                address,
+                address
               )}</span>`;
             } else {
               html += `<span class="directory-address-chip">${escapeHTML(
-                address,
+                address
               )}</span>`;
             }
           });
@@ -7680,7 +7692,7 @@
           }
         }
         return paEntries.filter(
-          (pa) => hasValidValue(pa.name) || hasValidValue(pa.contact),
+          (pa) => hasValidValue(pa.name) || hasValidValue(pa.contact)
         );
       }
 
@@ -7700,13 +7712,15 @@
               <span class="staff-role-label">${escapeHTML(roleLabel)}</span>
               ${
                 hasName
-                  ? `<div class="staff-person-name">${escapeHTML(personName)}</div>`
+                  ? `<div class="staff-person-name">${escapeHTML(
+                      personName
+                    )}</div>`
                   : ""
               }
               ${
                 hasContact
                   ? `<div style="font-size: 13px; color: var(--text-light); margin-top: 2px;">📞 ${escapeHTML(
-                      contactNumber,
+                      contactNumber
                     )}</div>`
                   : ""
               }
@@ -7714,7 +7728,7 @@
             ${
               cleanPhone
                 ? `<a href="tel:${escapeHTML(
-                    cleanPhone,
+                    cleanPhone
                   )}" class="staff-call-btn">📞 Call</a>`
                 : ""
             }
@@ -7734,14 +7748,13 @@
                 .toLowerCase() === String(addressName).trim().toLowerCase() &&
               String(r.Office || "")
                 .trim()
-                .toLowerCase() ===
-                String(parentOfficeName).trim().toLowerCase(),
+                .toLowerCase() === String(parentOfficeName).trim().toLowerCase()
           ) ||
           cachedPostOffices.find(
             (r) =>
               String(r.Address || "")
                 .trim()
-                .toLowerCase() === String(addressName).trim().toLowerCase(),
+                .toLowerCase() === String(addressName).trim().toLowerCase()
           );
 
         if (!record) {
@@ -7761,10 +7774,9 @@
           badgeLabels[officeType] || officeType;
         document.getElementById("office-modal-title").textContent =
           record.Address || addressName;
-        document.getElementById("office-modal-subtitle").textContent =
-          `🏢 ${record.Office || parentOfficeName || "N/A"} • 📍 PIN: ${
-            record.Pin || "N/A"
-          }`;
+        document.getElementById("office-modal-subtitle").textContent = `🏢 ${
+          record.Office || parentOfficeName || "N/A"
+        } • 📍 PIN: ${record.Pin || "N/A"}`;
 
         renderOfficeStaffViewMode();
         document
@@ -7793,18 +7805,18 @@
           cardsHtml += buildStaffCardHTML(
             "Branch Post Master (BPM)",
             record.bpm_name,
-            record.bpm_contact,
+            record.bpm_contact
           );
           cardsHtml += buildStaffCardHTML(
             "Assistant Branch Post Master (ABPM)",
             record.abpm_name,
-            record.abpm_contact,
+            record.abpm_contact
           );
         } else if (officeType === "SO") {
           cardsHtml += buildStaffCardHTML(
             "Sub Post Master (SPM)",
             record.spm_name,
-            record.spm_contact,
+            record.spm_contact
           );
 
           const paEntries = parsePaList(record);
@@ -7819,7 +7831,7 @@
           cardsHtml += buildStaffCardHTML(
             "Post Master (PM)",
             record.pm_name,
-            record.pm_contact,
+            record.pm_contact
           );
         }
 
@@ -7870,10 +7882,10 @@
               </div>
               <div class="staff-edit-inputs">
                 <input type="text" id="crud-bpm-name" placeholder="BPM Full Name" value="${escapeHTML(
-                  record.bpm_name || "",
+                  record.bpm_name || ""
                 )}" />
                 <input type="tel" id="crud-bpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-                  record.bpm_contact || "",
+                  record.bpm_contact || ""
                 )}" />
               </div>
             </div>
@@ -7885,10 +7897,10 @@
               </div>
               <div class="staff-edit-inputs">
                 <input type="text" id="crud-abpm-name" placeholder="ABPM Full Name" value="${escapeHTML(
-                  record.abpm_name || "",
+                  record.abpm_name || ""
                 )}" />
                 <input type="tel" id="crud-abpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-                  record.abpm_contact || "",
+                  record.abpm_contact || ""
                 )}" />
               </div>
             </div>
@@ -7903,10 +7915,10 @@
               </div>
               <div class="staff-edit-inputs">
                 <input type="text" id="crud-spm-name" placeholder="SPM Full Name" value="${escapeHTML(
-                  record.spm_name || "",
+                  record.spm_name || ""
                 )}" />
                 <input type="tel" id="crud-spm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-                  record.spm_contact || "",
+                  record.spm_contact || ""
                 )}" />
               </div>
             </div>
@@ -7935,10 +7947,10 @@
               </div>
               <div class="staff-edit-inputs">
                 <input type="text" id="crud-pm-name" placeholder="Post Master Name" value="${escapeHTML(
-                  record.pm_name || "",
+                  record.pm_name || ""
                 )}" />
                 <input type="tel" id="crud-pm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-                  record.pm_contact || "",
+                  record.pm_contact || ""
                 )}" />
               </div>
             </div>
@@ -7968,10 +7980,10 @@
           </div>
           <div class="staff-edit-inputs">
             <input type="text" class="crud-pa-name" placeholder="PA Full Name" value="${escapeHTML(
-              name,
+              name
             )}" />
             <input type="tel" class="crud-pa-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-              contact,
+              contact
             )}" />
           </div>
         `;
@@ -8055,7 +8067,7 @@
           Object.assign(activeOfficeRecord, updatePayload);
           localStorage.setItem(
             "dakmitra_offline_db",
-            JSON.stringify(cachedPostOffices),
+            JSON.stringify(cachedPostOffices)
           );
 
           showToast("✅ Office details updated!");
@@ -8095,7 +8107,7 @@
             root: displayArea,
             rootMargin: "300px", // Pre-load 300px before the user actually hits the bottom
             threshold: 0.1,
-          },
+          }
         );
 
         if (sentinel) directoryObserver.observe(sentinel);
@@ -8147,7 +8159,7 @@
           showToast("✉️ Account created!");
           showAlert(
             "Registration successful! Check your email to verify.",
-            "success",
+            "success"
           );
           switchTab("signin");
         } else {
@@ -8173,7 +8185,7 @@
             await supabaseClient
               .from("profiles")
               .select(
-                "device_id, name, designation, employee_id, mobile, avatar_url",
+                "device_id, name, designation, employee_id, mobile, avatar_url"
               )
               .eq("id", authData.user.id)
               .single();
@@ -8191,7 +8203,7 @@
             await supabaseClient.auth.signOut();
             splashScreen.classList.add("hidden-splash");
             return showAlert(
-              "Login Denied: Account already registered on another device.",
+              "Login Denied: Account already registered on another device."
             );
           }
 
@@ -8205,7 +8217,7 @@
           // Cache profile locally to instantly load UI without secondary queries
           localStorage.setItem(
             "dakmitra_cached_profile",
-            JSON.stringify(profileData),
+            JSON.stringify(profileData)
           );
           checkUserSession();
         }
@@ -8226,10 +8238,10 @@
                 window.history.replaceState(
                   {},
                   document.title,
-                  window.location.pathname,
+                  window.location.pathname
                 );
                 switchTab("signin");
-              },
+              }
             );
           }, 1000);
         }
@@ -8440,7 +8452,7 @@
               "admin_direct_submit",
               {
                 request_payloads: adminDirectEdits,
-              },
+              }
             );
 
             if (error) throw error;
@@ -8547,7 +8559,7 @@
                 "admin_direct_submit",
                 {
                   request_payloads: [reqData],
-                },
+                }
               );
               if (error) throw error;
               showToast("🗑️ Admin: Record deleted instantly.");
@@ -8571,7 +8583,7 @@
         title,
         message,
         confirmText,
-        onConfirmCallback,
+        onConfirmCallback
       ) {
         document.getElementById("confirm-modal-title").textContent = title;
         document.getElementById("confirm-modal-message").textContent = message;
@@ -8627,7 +8639,7 @@
                   *,
                   requester:profiles!changed_by(name, employee_id),
                   approver:profiles!approved_by(name, employee_id)
-                `,
+                `
             )
             .eq("post_office_id", postOfficeId)
             .order("changed_at", { ascending: false });
@@ -8677,14 +8689,14 @@
                 approverHtml = `
                         <div style="font-size: 12px; color: var(--success-text); margin-top: 4px;">
                           ✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
-                            log.approver.name,
+                            log.approver.name
                           )} - ${escapeHTML(log.approver.employee_id)})
                         </div>`;
               } else {
                 approverHtml = `
                         <div style="font-size: 12px; color: var(--primary); margin-top: 4px;">
                           👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
-                            log.approver.name,
+                            log.approver.name
                           )} - ${escapeHTML(log.approver.employee_id)})
                         </div>`;
               }
@@ -8697,7 +8709,7 @@
               oldVal,
               newVal,
               prefix = "",
-              fallback = "N/A",
+              fallback = "N/A"
             ) => {
               // Safely parse to string and remove invisible spaces
               const rawOld =
@@ -8714,12 +8726,12 @@
 
               if (sOld !== sNew) {
                 return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${escapeHTML(
-                  sOld,
+                  sOld
                 )}</span> ➡️ <b>${escapeHTML(sNew)}</b></div>`;
               }
 
               return `<div style="margin-bottom: 4px;">${prefix} ${escapeHTML(
-                sNew,
+                sNew
               )}</div>`;
             };
 
@@ -8727,10 +8739,10 @@
               actionBadge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px;">➕ CREATED</span>`;
               changesHtml = `
                       <div style="margin-bottom: 4px;"><b>${escapeHTML(
-                        log.new_data?.Address,
+                        log.new_data?.Address
                       )}</b></div>
                       <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
-                        log.new_data?.Office,
+                        log.new_data?.Office
                       )}</div>
                       <div>📍 ${escapeHTML(log.new_data?.Pin || "N/A")}</div>
                     `;
@@ -8764,13 +8776,13 @@
               actionBadge = `<span class="badge" style="background:#fee2e2;color:#991b1b; padding: 4px 8px; font-size: 12px;">🗑️ DELETED</span>`;
               changesHtml = `
                       <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
-                        log.old_data?.Address,
+                        log.old_data?.Address
                       )}</b></div>
                       <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
-                        log.old_data?.Office,
+                        log.old_data?.Office
                       )}</div>
                       <div style="text-decoration: line-through; color: var(--text-light);">📍 ${escapeHTML(
-                        log.old_data?.Pin || "N/A",
+                        log.old_data?.Pin || "N/A"
                       )}</div>
                       <div style="margin-top: 8px; color: #991b1b; font-weight: 600;">Record was permanently deleted.</div>
                     `;
@@ -8788,7 +8800,7 @@
 
                     <div style="font-size: 12px; color: var(--text-light); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
                       <div>👤 Requested by: <b>${escapeHTML(
-                        requesterName,
+                        requesterName
                       )}</b> (${escapeHTML(requesterId)})</div>
                       ${approverHtml}
                     </div>
@@ -8944,7 +8956,9 @@
           cache.page = 1;
           cache.hasMore = cache.initialHasMore;
           displayArea.innerHTML = `
-            <div id="approvals-content" style="padding: 4px;">${cache.html}</div>
+            <div id="approvals-content" style="padding: 4px;">${
+              cache.html
+            }</div>
             <div id="approvals-sentinel" style="min-height: 54px; display: ${
               cache.html.includes("list-empty") ? "none" : "flex"
             }; align-items: center; justify-content: center; padding: 10px;">
@@ -9018,7 +9032,7 @@
             .from("edit_requests")
             .select(
               "*, post_offices(Address, Office, Pin), request_approvals(approved_by, is_admin)",
-              { count: "exact" },
+              { count: "exact" }
             )
             .order("created_at", { ascending: false })
             .range(fromIndex, toIndex);
@@ -9111,7 +9125,7 @@
               oldVal,
               newVal,
               prefix = "",
-              fallback = "N/A",
+              fallback = "N/A"
             ) => {
               const rawOld =
                 oldVal === undefined || oldVal === null
@@ -9126,11 +9140,11 @@
 
               if (sOld !== sNew) {
                 return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${escapeHTML(
-                  sOld,
+                  sOld
                 )}</span> ➡️ <b>${escapeHTML(sNew)}</b></div>`;
               }
               return `<div style="margin-bottom: 4px;">${prefix} ${escapeHTML(
-                sNew,
+                sNew
               )}</div>`;
             };
 
@@ -9139,10 +9153,10 @@
               changesHtml = `
                     ${badge}
                     <div style="margin-bottom: 4px;"><b>${escapeHTML(
-                      req.proposed_data.Address,
+                      req.proposed_data.Address
                     )}</b></div>
                     <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
-                      req.proposed_data.Office,
+                      req.proposed_data.Office
                     )}</div>
                     <div>📍 ${escapeHTML(req.proposed_data.Pin || "N/A")}</div>
                   `;
@@ -9157,19 +9171,19 @@
                   oldD.Address || oldD.address,
                   newD.Address || newD.address,
                   "📮",
-                  "Unknown Address",
+                  "Unknown Address"
                 ) +
                 formatApprovalField(
                   oldD.Office || oldD.office,
                   newD.Office || newD.office,
                   "🏢",
-                  "Unknown Office",
+                  "Unknown Office"
                 ) +
                 formatApprovalField(
                   oldD.Pin || oldD.pin,
                   newD.Pin || newD.pin,
                   "📍",
-                  "N/A",
+                  "N/A"
                 );
             } else if (req.action_type === "DELETE") {
               const badge = `<span class="badge" style="background:#fee2e2;color:#991b1b; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">🗑️ DELETE</span>`;
@@ -9177,13 +9191,13 @@
               changesHtml = `
                     ${badge}
                     <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
-                      oldD.Address || "Unknown",
+                      oldD.Address || "Unknown"
                     )}</b></div>
                     <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
-                      oldD.Office || "Unknown",
+                      oldD.Office || "Unknown"
                     )}</div>
                     <div style="text-decoration: line-through; color: var(--text-light);">📍 ${escapeHTML(
-                      oldD.Pin || "N/A",
+                      oldD.Pin || "N/A"
                     )}</div>
                   `;
             }
@@ -9215,11 +9229,11 @@
               if (approverProfile) {
                 if (lastApproval.is_admin) {
                   approverDetailsHtml = `<div style="font-size: 12px; color: var(--success-text); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
-                    approverProfile.name,
+                    approverProfile.name
                   )} - ${escapeHTML(approverProfile.employee_id)})</div>`;
                 } else {
                   approverDetailsHtml = `<div style="font-size: 12px; color: var(--primary); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
-                    approverProfile.name,
+                    approverProfile.name
                   )} - ${escapeHTML(approverProfile.employee_id)})</div>`;
                 }
               }
@@ -9233,7 +9247,7 @@
                 currentUserId &&
                 req.request_approvals &&
                 req.request_approvals.some(
-                  (app) => String(app.approved_by) === String(currentUserId),
+                  (app) => String(app.approved_by) === String(currentUserId)
                 );
 
               actionBarHtml = `
@@ -9267,7 +9281,7 @@
               if (req.last_approved_by && profilesMap[req.last_approved_by]) {
                 const rej = profilesMap[req.last_approved_by];
                 rejecterText = ` (Rejected by: ${escapeHTML(
-                  rej.name,
+                  rej.name
                 )} - ${escapeHTML(rej.employee_id)})`;
               }
               actionBarHtml = `<div style="text-align: right; color: #b91c1c; font-weight: 600; font-size: 13px; margin-top: 12px;">❌ Request Rejected${rejecterText}</div>`;
@@ -9280,7 +9294,7 @@
               <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
               <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
                 <div>👤 Requested by: <b>${escapeHTML(
-                  requesterName,
+                  requesterName
                 )}</b> (${escapeHTML(requesterId)})</div>
                 <div>📅 ${dateStr}</div>
                 ${
@@ -9331,7 +9345,7 @@
               loadApprovalsBatch();
             }
           },
-          { root: displayArea, rootMargin: "200px", threshold: 0.1 },
+          { root: displayArea, rootMargin: "200px", threshold: 0.1 }
         );
 
         if (sentinel) approvalsObserver.observe(sentinel);
@@ -9375,7 +9389,7 @@
             try {
               const { data, error } = await supabaseClient.rpc(
                 "reject_request",
-                { req_id: reqId },
+                { req_id: reqId }
               );
               if (error) throw error;
               showToast("❌ Request rejected and closed.");
@@ -9385,7 +9399,7 @@
               if (card) card.style.display = "block"; // Revert UI if it failed
               alert(err.message);
             }
-          },
+          }
         );
       }
 
@@ -9415,7 +9429,7 @@
               if (card) card.style.display = "block"; // Revert UI if it failed
               alert("Error deleting request: " + err.message);
             }
-          },
+          }
         );
       }
 
@@ -9453,7 +9467,7 @@
             showToast("🧹 Cache cleared successfully!");
             loadSearchHistory();
             invalidateApprovalsCache();
-          },
+          }
         );
       }
 
@@ -9548,6 +9562,85 @@
         }
       }
 
+      async function exportFullTableToExcel(includeDeleted = true) {
+        const btn = document.getElementById("export-excel-btn");
+        if (!supabaseClient || !window.XLSX) {
+          return showToast("⚠️ Exporter still loading. Try again in a moment.");
+        }
+
+        const hasInternet = await checkActualInternet();
+        if (!hasInternet) {
+          return showToast(
+            "⚠️ No internet connection for full database export."
+          );
+        }
+
+        const originalText = btn ? btn.textContent : "📊 .xlsx";
+        if (btn) {
+          btn.textContent = "Exporting...";
+          btn.disabled = true;
+        }
+        showToast("⏳ Preparing Excel export...");
+
+        try {
+          let allRows = [];
+          let from = 0;
+          const batchSize = 1000;
+
+          while (true) {
+            let query = supabaseClient
+              .from("post_offices")
+              .select("Address, Office, Pin, is_deleted")
+              .order("Office", { ascending: true })
+              .range(from, from + batchSize - 1);
+
+            if (!includeDeleted) {
+              query = query.eq("is_deleted", false);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+            if (!data || data.length === 0) break;
+
+            allRows = allRows.concat(data);
+            if (data.length < batchSize) break;
+            from += batchSize;
+          }
+
+          if (allRows.length === 0) {
+            showToast("No records found to export.");
+            return;
+          }
+
+          const formattedRows = allRows.map((row) => ({
+            Address: row.Address,
+            Office: row.Office,
+            Pin: row.Pin ?? "",
+            Status: row.is_deleted ? "Deleted" : "Active",
+          }));
+
+          const worksheet = XLSX.utils.json_to_sheet(formattedRows);
+          worksheet["!cols"] = [
+            { wch: 28 },
+            { wch: 22 },
+            { wch: 12 },
+            { wch: 12 },
+          ];
+
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "Post Offices");
+          XLSX.writeFile(workbook, "DakMitra_Database_With_History.xlsx");
+
+          showToast(`📥 Exported ${formattedRows.length} rows to Excel!`);
+        } catch (err) {
+          alert("Excel export failed: " + err.message);
+        } finally {
+          if (btn) {
+            btn.textContent = originalText;
+            btn.disabled = false;
+          }
+        }
+      }
       // Load the saved Export preference when the app starts
       const savedExportMode =
         localStorage.getItem("dakmitra_export_mode") || "show";
@@ -9574,7 +9667,7 @@
           touchStartX = e.changedTouches[0].screenX;
           touchStartY = e.changedTouches[0].screenY;
         },
-        { passive: true },
+        { passive: true }
       );
 
       swipeArea.addEventListener(
@@ -9584,7 +9677,7 @@
           touchEndY = e.changedTouches[0].screenY;
           handleSwipeGesture();
         },
-        { passive: true },
+        { passive: true }
       );
 
       function handleSwipeGesture() {
@@ -9596,9 +9689,7 @@
         if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
           // Find which view is currently active
           const currentActiveId = viewOrder.find((view) =>
-            document
-              .getElementById("view-" + view)
-              .classList.contains("active"),
+            document.getElementById("view-" + view).classList.contains("active")
           );
 
           let currentIndex = viewOrder.indexOf(currentActiveId);
@@ -9645,7 +9736,7 @@
         sortedOffices.forEach((office) => {
           const pin = officeMap.get(office);
           html += `<option value="${escapeHTML(office)}" data-pin="${escapeHTML(
-            pin,
+            pin
           )}"></option>`;
         });
         return html;
@@ -9677,7 +9768,7 @@
         if (val) {
           const lowerVal = val.toLowerCase();
           matchedOffices = matchedOffices.filter((o) =>
-            o.toLowerCase().includes(lowerVal),
+            o.toLowerCase().includes(lowerVal)
           );
         }
         matchedOffices.sort();
@@ -9689,7 +9780,7 @@
           matchedOffices.slice(0, 10).forEach((office) => {
             const pin = officeMap.get(office);
             html += `<div class="autocomplete-item" onmousedown="event.preventDefault(); selectCustomOffice(this, '${escapeForOnclick(
-              office,
+              office
             )}', '${escapeForOnclick(pin)}')">🏢 ${escapeHTML(office)}</div>`;
           });
           dropdown.innerHTML = html;
@@ -9701,7 +9792,7 @@
             pinInput.value = "";
           } else {
             const exactMatch = Array.from(officeMap.keys()).find(
-              (k) => k.toLowerCase() === val.toLowerCase(),
+              (k) => k.toLowerCase() === val.toLowerCase()
             );
             if (exactMatch) pinInput.value = officeMap.get(exactMatch);
           }
@@ -9753,7 +9844,7 @@
         if (val) {
           const lowerVal = val.toLowerCase();
           matchedOffices = matchedOffices.filter((o) =>
-            o.toLowerCase().includes(lowerVal),
+            o.toLowerCase().includes(lowerVal)
           );
         }
         matchedOffices.sort();
@@ -9764,7 +9855,7 @@
           let html = "";
           matchedOffices.slice(0, 10).forEach((office) => {
             html += `<div class="autocomplete-item" onmousedown="event.preventDefault(); selectSearchOfficeFilter('${escapeForOnclick(
-              office,
+              office
             )}')">🏢 ${escapeHTML(office)}</div>`;
           });
           dropdown.innerHTML = html;
@@ -9837,7 +9928,7 @@
         } else {
           // Filter against the pre-computed lowercase string in memory
           directoryFilteredData = directoryGroupedData.filter((item) =>
-            item.searchString.includes(filterValue),
+            item.searchString.includes(filterValue)
           );
         }
 
@@ -9876,7 +9967,7 @@
 
           if (isLoggedIn) {
             console.log(
-              "App returned to foreground. Silently fetching fresh data...",
+              "App returned to foreground. Silently fetching fresh data..."
             );
             // fetchFromServerBackground() handles the internet check and silent update automatically
             fetchFromServerBackground();
@@ -9943,7 +10034,7 @@
           .getElementById("edit-profile-mobile")
           .value.trim();
         const newDesignation = document.getElementById(
-          "edit-profile-designation",
+          "edit-profile-designation"
         ).value;
 
         if (!newName) return showToast("⚠️ Name cannot be empty.");
@@ -10000,7 +10091,7 @@
           cachedProfile.designation = newDesignation;
           localStorage.setItem(
             "dakmitra_cached_profile",
-            JSON.stringify(cachedProfile),
+            JSON.stringify(cachedProfile)
           );
 
           renderUserProfileUI(cachedProfile, session.user.email);
@@ -10141,7 +10232,7 @@
           cropState.offsetX,
           cropState.offsetY,
           cropState.img.width * cropState.scale,
-          cropState.img.height * cropState.scale,
+          cropState.img.height * cropState.scale
         );
 
         // Update live preview thumbnails
@@ -10199,7 +10290,7 @@
               startDrag(e.touches[0].clientX, e.touches[0].clientY);
             }
           },
-          { passive: true },
+          { passive: true }
         );
 
         workspace.addEventListener(
@@ -10210,7 +10301,7 @@
               moveDrag(e.touches[0].clientX, e.touches[0].clientY);
             }
           },
-          { passive: true },
+          { passive: true }
         );
 
         workspace.addEventListener(
@@ -10219,15 +10310,15 @@
             e.stopPropagation();
             endDrag();
           },
-          { passive: true },
+          { passive: true }
         );
 
         // Mouse Events (Desktop)
         workspace.addEventListener("mousedown", (e) =>
-          startDrag(e.clientX, e.clientY),
+          startDrag(e.clientX, e.clientY)
         );
         window.addEventListener("mousemove", (e) =>
-          moveDrag(e.clientX, e.clientY),
+          moveDrag(e.clientX, e.clientY)
         );
         window.addEventListener("mouseup", endDrag);
       })();
@@ -10255,7 +10346,7 @@
         cachedProfile.avatar_url = avatarDataUrl;
         localStorage.setItem(
           "dakmitra_cached_profile",
-          JSON.stringify(cachedProfile),
+          JSON.stringify(cachedProfile)
         );
 
         renderUserProfileUI(cachedProfile, session.user.email);
@@ -10270,7 +10361,7 @@
           async () => {
             await updateAvatarInDatabase(null);
             document.getElementById("profile-pic-input").value = "";
-          },
+          }
         );
       }
 
@@ -10283,7 +10374,7 @@
         const img = pageAvatar.querySelector("img");
         if (img && img.getAttribute("src")) {
           lightboxFrame.innerHTML = `<img src="${escapeHTML(
-            img.getAttribute("src"),
+            img.getAttribute("src")
           )}" alt="Full Profile Photo" />`;
         } else {
           lightboxFrame.textContent = pageAvatar.textContent.trim() || "U";
@@ -10314,7 +10405,7 @@
               startY = e.touches[0].clientY;
               dragTriggered = false;
             },
-            { passive: true },
+            { passive: true }
           );
 
           profileBtn.addEventListener(
@@ -10335,7 +10426,7 @@
                 startX = null;
               }
             },
-            { passive: true },
+            { passive: true }
           );
 
           profileBtn.addEventListener(
@@ -10356,7 +10447,7 @@
               }
               startX = null;
             },
-            { passive: true },
+            { passive: true }
           );
 
           // Mouse drag support for desktop
@@ -10425,7 +10516,7 @@
           let profileData = null;
           try {
             profileData = JSON.parse(
-              localStorage.getItem("dakmitra_cached_profile"),
+              localStorage.getItem("dakmitra_cached_profile")
             );
           } catch (e) {}
 
@@ -10501,7 +10592,7 @@
                 if (prof) {
                   localStorage.setItem(
                     "dakmitra_cached_profile",
-                    JSON.stringify(prof),
+                    JSON.stringify(prof)
                   );
                   renderUserProfileUI(prof, userEmail);
                 }
