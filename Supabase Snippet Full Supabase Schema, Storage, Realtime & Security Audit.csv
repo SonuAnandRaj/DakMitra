@@ -1,82 +1,91 @@
 category,object_name,definition
-1_TABLE_COLUMN,admins,id (uuid) NOT NULL
-1_TABLE_COLUMN,admins,email (text) NOT NULL
-1_TABLE_COLUMN,admins,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-1_TABLE_COLUMN,edit_requests,proposed_data (jsonb) NOT NULL
-1_TABLE_COLUMN,edit_requests,action_type (text) NOT NULL
-1_TABLE_COLUMN,edit_requests,id (uuid) NOT NULL DEFAULT gen_random_uuid()
-1_TABLE_COLUMN,edit_requests,post_office_id (bigint)
-1_TABLE_COLUMN,edit_requests,requested_by (uuid) NOT NULL
-1_TABLE_COLUMN,edit_requests,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-1_TABLE_COLUMN,edit_requests,last_approved_by (uuid)
-1_TABLE_COLUMN,edit_requests,original_data (jsonb)
-1_TABLE_COLUMN,edit_requests,status (text) NOT NULL DEFAULT 'PENDING'::text
-1_TABLE_COLUMN,post_offices,Pin (integer)
-1_TABLE_COLUMN,post_offices,is_deleted (boolean) DEFAULT false
-1_TABLE_COLUMN,post_offices,last_modified_by (uuid)
-1_TABLE_COLUMN,post_offices,last_approved_by (uuid)
-1_TABLE_COLUMN,post_offices,pa_list (jsonb) DEFAULT '[]'::jsonb
-1_TABLE_COLUMN,post_offices,abpm_contact (text)
-1_TABLE_COLUMN,post_offices,spm_name (text)
-1_TABLE_COLUMN,post_offices,pm_name (text)
-1_TABLE_COLUMN,post_offices,Address (text) NOT NULL
-1_TABLE_COLUMN,post_offices,Office (text) NOT NULL
-1_TABLE_COLUMN,post_offices,spm_contact (text)
-1_TABLE_COLUMN,post_offices,pm_contact (text)
-1_TABLE_COLUMN,post_offices,upload_method (text) DEFAULT 'manual'::text
-1_TABLE_COLUMN,post_offices,abpm_name (text)
-1_TABLE_COLUMN,post_offices,bpm_contact (text)
-1_TABLE_COLUMN,post_offices,bpm_name (text)
-1_TABLE_COLUMN,post_offices,id (bigint) NOT NULL
-1_TABLE_COLUMN,post_offices,user_id (uuid)
-1_TABLE_COLUMN,post_offices,"inserted_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-1_TABLE_COLUMN,post_offices_history,post_office_id (bigint) NOT NULL
-1_TABLE_COLUMN,post_offices_history,old_data (jsonb)
-1_TABLE_COLUMN,post_offices_history,new_data (jsonb)
-1_TABLE_COLUMN,post_offices_history,changed_by (uuid)
-1_TABLE_COLUMN,post_offices_history,"changed_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-1_TABLE_COLUMN,post_offices_history,approved_by (uuid)
-1_TABLE_COLUMN,post_offices_history,id (uuid) NOT NULL DEFAULT gen_random_uuid()
-1_TABLE_COLUMN,post_offices_history,action (text) NOT NULL
-1_TABLE_COLUMN,profiles,id (uuid) NOT NULL
-1_TABLE_COLUMN,profiles,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-1_TABLE_COLUMN,profiles,mobile (text)
-1_TABLE_COLUMN,profiles,name (text) NOT NULL
-1_TABLE_COLUMN,profiles,employee_id (text) NOT NULL
-1_TABLE_COLUMN,profiles,designation (text) NOT NULL
-1_TABLE_COLUMN,profiles,email (text) NOT NULL
-1_TABLE_COLUMN,profiles,device_id (text)
-1_TABLE_COLUMN,profiles,avatar_url (text)
-1_TABLE_COLUMN,request_approvals,"approved_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-1_TABLE_COLUMN,request_approvals,request_id (uuid) NOT NULL
-1_TABLE_COLUMN,request_approvals,id (uuid) NOT NULL DEFAULT gen_random_uuid()
-1_TABLE_COLUMN,request_approvals,approved_by (uuid) NOT NULL
-1_TABLE_COLUMN,request_approvals,is_admin (boolean) DEFAULT false
-2_CONSTRAINT,admins,admins_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
-2_CONSTRAINT,admins,admins_pkey: PRIMARY KEY (id)
-2_CONSTRAINT,admins,admins_email_key: UNIQUE (email)
-2_CONSTRAINT,edit_requests,"edit_requests_status_check: CHECK ((status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text])))"
-2_CONSTRAINT,edit_requests,fk_edit_requests_last_approved_by: FOREIGN KEY (last_approved_by) REFERENCES profiles(id) ON DELETE SET NULL
-2_CONSTRAINT,edit_requests,"edit_requests_action_type_check: CHECK ((action_type = ANY (ARRAY['ADD'::text, 'EDIT'::text, 'DELETE'::text])))"
-2_CONSTRAINT,edit_requests,edit_requests_pkey: PRIMARY KEY (id)
-2_CONSTRAINT,edit_requests,edit_requests_post_office_id_fkey: FOREIGN KEY (post_office_id) REFERENCES post_offices(id) ON DELETE SET NULL
-2_CONSTRAINT,edit_requests,edit_requests_requested_by_fkey: FOREIGN KEY (requested_by) REFERENCES profiles(id)
-2_CONSTRAINT,post_offices,post_offices_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
-2_CONSTRAINT,post_offices,post_offices_last_approved_by_fkey: FOREIGN KEY (last_approved_by) REFERENCES auth.users(id)
-2_CONSTRAINT,post_offices,post_offices_last_modified_by_fkey: FOREIGN KEY (last_modified_by) REFERENCES auth.users(id)
-2_CONSTRAINT,post_offices,post_offices_pkey: PRIMARY KEY (id)
-2_CONSTRAINT,post_offices_history,post_offices_history_approved_by_fkey: FOREIGN KEY (approved_by) REFERENCES profiles(id)
-2_CONSTRAINT,post_offices_history,post_offices_history_changed_by_fkey: FOREIGN KEY (changed_by) REFERENCES profiles(id)
-2_CONSTRAINT,post_offices_history,post_offices_history_pkey: PRIMARY KEY (id)
-2_CONSTRAINT,post_offices_history,"post_offices_history_action_check: CHECK ((action = ANY (ARRAY['INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))"
-2_CONSTRAINT,profiles,profiles_pkey: PRIMARY KEY (id)
-2_CONSTRAINT,profiles,profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
-2_CONSTRAINT,profiles,profiles_email_key: UNIQUE (email)
-2_CONSTRAINT,request_approvals,request_approvals_approved_by_fkey: FOREIGN KEY (approved_by) REFERENCES auth.users(id)
-2_CONSTRAINT,request_approvals,request_approvals_pkey: PRIMARY KEY (id)
-2_CONSTRAINT,request_approvals,"request_approvals_request_id_approved_by_key: UNIQUE (request_id, approved_by)"
-2_CONSTRAINT,request_approvals,request_approvals_request_id_fkey: FOREIGN KEY (request_id) REFERENCES edit_requests(id) ON DELETE CASCADE
-3_FUNCTION,admin_direct_submit,"CREATE OR REPLACE FUNCTION public.admin_direct_submit(request_payloads jsonb)
+01_TABLE_COLUMN,admins,id (uuid) NOT NULL
+01_TABLE_COLUMN,admins,email (text) NOT NULL
+01_TABLE_COLUMN,admins,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,edit_requests,proposed_data (jsonb) NOT NULL
+01_TABLE_COLUMN,edit_requests,action_type (text) NOT NULL
+01_TABLE_COLUMN,edit_requests,id (uuid) NOT NULL DEFAULT gen_random_uuid()
+01_TABLE_COLUMN,edit_requests,post_office_id (bigint)
+01_TABLE_COLUMN,edit_requests,requested_by (uuid) NOT NULL
+01_TABLE_COLUMN,edit_requests,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,edit_requests,last_approved_by (uuid)
+01_TABLE_COLUMN,edit_requests,original_data (jsonb)
+01_TABLE_COLUMN,edit_requests,status (text) NOT NULL DEFAULT 'PENDING'::text
+01_TABLE_COLUMN,post_offices,Pin (integer)
+01_TABLE_COLUMN,post_offices,is_deleted (boolean) DEFAULT false
+01_TABLE_COLUMN,post_offices,last_modified_by (uuid)
+01_TABLE_COLUMN,post_offices,last_approved_by (uuid)
+01_TABLE_COLUMN,post_offices,pa_list (jsonb) DEFAULT '[]'::jsonb
+01_TABLE_COLUMN,post_offices,abpm_contact (text)
+01_TABLE_COLUMN,post_offices,spm_name (text)
+01_TABLE_COLUMN,post_offices,pm_name (text)
+01_TABLE_COLUMN,post_offices,Address (text) NOT NULL
+01_TABLE_COLUMN,post_offices,Office (text) NOT NULL
+01_TABLE_COLUMN,post_offices,spm_contact (text)
+01_TABLE_COLUMN,post_offices,pm_contact (text)
+01_TABLE_COLUMN,post_offices,upload_method (text) DEFAULT 'manual'::text
+01_TABLE_COLUMN,post_offices,abpm_name (text)
+01_TABLE_COLUMN,post_offices,bpm_contact (text)
+01_TABLE_COLUMN,post_offices,bpm_name (text)
+01_TABLE_COLUMN,post_offices,id (bigint) NOT NULL
+01_TABLE_COLUMN,post_offices,user_id (uuid)
+01_TABLE_COLUMN,post_offices,"inserted_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,post_offices_history,action (text) NOT NULL
+01_TABLE_COLUMN,post_offices_history,old_data (jsonb)
+01_TABLE_COLUMN,post_offices_history,new_data (jsonb)
+01_TABLE_COLUMN,post_offices_history,changed_by (uuid)
+01_TABLE_COLUMN,post_offices_history,"changed_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,post_offices_history,approved_by (uuid)
+01_TABLE_COLUMN,post_offices_history,id (uuid) NOT NULL DEFAULT gen_random_uuid()
+01_TABLE_COLUMN,post_offices_history,post_office_id (bigint) NOT NULL
+01_TABLE_COLUMN,profiles,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,profiles,id (uuid) NOT NULL
+01_TABLE_COLUMN,profiles,mobile (text)
+01_TABLE_COLUMN,profiles,name (text) NOT NULL
+01_TABLE_COLUMN,profiles,employee_id (text) NOT NULL
+01_TABLE_COLUMN,profiles,designation (text) NOT NULL
+01_TABLE_COLUMN,profiles,email (text) NOT NULL
+01_TABLE_COLUMN,profiles,device_id (text)
+01_TABLE_COLUMN,profiles,avatar_url (text)
+01_TABLE_COLUMN,request_approvals,request_id (uuid) NOT NULL
+01_TABLE_COLUMN,request_approvals,"approved_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,request_approvals,is_admin (boolean) DEFAULT false
+01_TABLE_COLUMN,request_approvals,approved_by (uuid) NOT NULL
+01_TABLE_COLUMN,request_approvals,id (uuid) NOT NULL DEFAULT gen_random_uuid()
+02_CONSTRAINT,admins,admins_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,admins,admins_email_key: UNIQUE (email)
+02_CONSTRAINT,admins,admins_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+02_CONSTRAINT,edit_requests,edit_requests_post_office_id_fkey: FOREIGN KEY (post_office_id) REFERENCES post_offices(id) ON DELETE SET NULL
+02_CONSTRAINT,edit_requests,fk_edit_requests_last_approved_by: FOREIGN KEY (last_approved_by) REFERENCES profiles(id) ON DELETE SET NULL
+02_CONSTRAINT,edit_requests,edit_requests_requested_by_fkey: FOREIGN KEY (requested_by) REFERENCES profiles(id)
+02_CONSTRAINT,edit_requests,"edit_requests_status_check: CHECK ((status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text])))"
+02_CONSTRAINT,edit_requests,edit_requests_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,edit_requests,"edit_requests_action_type_check: CHECK ((action_type = ANY (ARRAY['ADD'::text, 'EDIT'::text, 'DELETE'::text])))"
+02_CONSTRAINT,post_offices,post_offices_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,post_offices,post_offices_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+02_CONSTRAINT,post_offices,post_offices_last_approved_by_fkey: FOREIGN KEY (last_approved_by) REFERENCES auth.users(id)
+02_CONSTRAINT,post_offices,post_offices_last_modified_by_fkey: FOREIGN KEY (last_modified_by) REFERENCES auth.users(id)
+02_CONSTRAINT,post_offices_history,"post_offices_history_action_check: CHECK ((action = ANY (ARRAY['INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))"
+02_CONSTRAINT,post_offices_history,post_offices_history_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,post_offices_history,post_offices_history_approved_by_fkey: FOREIGN KEY (approved_by) REFERENCES profiles(id)
+02_CONSTRAINT,post_offices_history,post_offices_history_changed_by_fkey: FOREIGN KEY (changed_by) REFERENCES profiles(id)
+02_CONSTRAINT,profiles,profiles_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,profiles,profiles_email_key: UNIQUE (email)
+02_CONSTRAINT,profiles,profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+02_CONSTRAINT,request_approvals,request_approvals_approved_by_fkey: FOREIGN KEY (approved_by) REFERENCES auth.users(id)
+02_CONSTRAINT,request_approvals,"request_approvals_request_id_approved_by_key: UNIQUE (request_id, approved_by)"
+02_CONSTRAINT,request_approvals,request_approvals_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,request_approvals,request_approvals_request_id_fkey: FOREIGN KEY (request_id) REFERENCES edit_requests(id) ON DELETE CASCADE
+03_INDEX,admins -> admins_email_key,CREATE UNIQUE INDEX admins_email_key ON public.admins USING btree (email)
+03_INDEX,admins -> admins_pkey,CREATE UNIQUE INDEX admins_pkey ON public.admins USING btree (id)
+03_INDEX,edit_requests -> edit_requests_pkey,CREATE UNIQUE INDEX edit_requests_pkey ON public.edit_requests USING btree (id)
+03_INDEX,post_offices -> post_offices_pkey,CREATE UNIQUE INDEX post_offices_pkey ON public.post_offices USING btree (id)
+03_INDEX,post_offices_history -> post_offices_history_pkey,CREATE UNIQUE INDEX post_offices_history_pkey ON public.post_offices_history USING btree (id)
+03_INDEX,profiles -> profiles_email_key,CREATE UNIQUE INDEX profiles_email_key ON public.profiles USING btree (email)
+03_INDEX,profiles -> profiles_pkey,CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
+03_INDEX,request_approvals -> request_approvals_pkey,CREATE UNIQUE INDEX request_approvals_pkey ON public.request_approvals USING btree (id)
+03_INDEX,request_approvals -> request_approvals_request_id_approved_by_key,"CREATE UNIQUE INDEX request_approvals_request_id_approved_by_key ON public.request_approvals USING btree (request_id, approved_by)"
+06_FUNCTION,admin_direct_submit,"CREATE OR REPLACE FUNCTION public.admin_direct_submit(request_payloads jsonb)
  RETURNS text
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -170,7 +179,7 @@ BEGIN
 END;
 $function$
 "
-3_FUNCTION,check_self_vote,"CREATE OR REPLACE FUNCTION public.check_self_vote()
+06_FUNCTION,check_self_vote,"CREATE OR REPLACE FUNCTION public.check_self_vote()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -196,7 +205,7 @@ BEGIN
 END;
 $function$
 "
-3_FUNCTION,format_title_case,"CREATE OR REPLACE FUNCTION public.format_title_case()
+06_FUNCTION,format_title_case,"CREATE OR REPLACE FUNCTION public.format_title_case()
  RETURNS trigger
  LANGUAGE plpgsql
 AS $function$
@@ -213,7 +222,7 @@ BEGIN
 END;
 $function$
 "
-3_FUNCTION,handle_new_user,"CREATE OR REPLACE FUNCTION public.handle_new_user()
+06_FUNCTION,handle_new_user,"CREATE OR REPLACE FUNCTION public.handle_new_user()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -230,7 +239,7 @@ AS $function$BEGIN
   RETURN new;
 END;$function$
 "
-3_FUNCTION,log_post_office_history,"CREATE OR REPLACE FUNCTION public.log_post_office_history()
+06_FUNCTION,log_post_office_history,"CREATE OR REPLACE FUNCTION public.log_post_office_history()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -285,7 +294,7 @@ BEGIN
 END;
 $function$
 "
-3_FUNCTION,postal_phonetic_key,"CREATE OR REPLACE FUNCTION public.postal_phonetic_key(addr text)
+06_FUNCTION,postal_phonetic_key,"CREATE OR REPLACE FUNCTION public.postal_phonetic_key(addr text)
  RETURNS text
  LANGUAGE plpgsql
  IMMUTABLE
@@ -341,7 +350,7 @@ BEGIN
 END;
 $function$
 "
-3_FUNCTION,prevent_duplicate_post_office,"CREATE OR REPLACE FUNCTION public.prevent_duplicate_post_office()
+06_FUNCTION,prevent_duplicate_post_office,"CREATE OR REPLACE FUNCTION public.prevent_duplicate_post_office()
  RETURNS trigger
  LANGUAGE plpgsql
  SET statement_timeout TO '30s'
@@ -387,7 +396,7 @@ BEGIN
 END;
 $function$
 "
-3_FUNCTION,reject_request,"CREATE OR REPLACE FUNCTION public.reject_request(req_id uuid)
+06_FUNCTION,reject_request,"CREATE OR REPLACE FUNCTION public.reject_request(req_id uuid)
  RETURNS text
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -421,7 +430,7 @@ BEGIN
 END;
 $function$
 "
-3_FUNCTION,smart_capitalize,"CREATE OR REPLACE FUNCTION public.smart_capitalize(input_string text)
+06_FUNCTION,smart_capitalize,"CREATE OR REPLACE FUNCTION public.smart_capitalize(input_string text)
  RETURNS text
  LANGUAGE plpgsql
  IMMUTABLE
@@ -464,7 +473,7 @@ BEGIN
 END;
 $function$
 "
-3_FUNCTION,submit_approval,"CREATE OR REPLACE FUNCTION public.submit_approval(req_id uuid)
+06_FUNCTION,submit_approval,"CREATE OR REPLACE FUNCTION public.submit_approval(req_id uuid)
  RETURNS text
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -574,33 +583,43 @@ BEGIN
 END;
 $function$
 "
-4_TRIGGER,auth.users -> on_auth_user_created,CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()
-4_TRIGGER,public.post_offices -> post_offices_audit_trigger,CREATE TRIGGER post_offices_audit_trigger AFTER INSERT OR DELETE OR UPDATE ON public.post_offices FOR EACH ROW EXECUTE FUNCTION log_post_office_history()
-4_TRIGGER,public.post_offices -> trg_auto_title_case,CREATE TRIGGER trg_auto_title_case BEFORE INSERT OR UPDATE ON public.post_offices FOR EACH ROW EXECUTE FUNCTION format_title_case()
-4_TRIGGER,public.post_offices -> trg_prevent_duplicate_post_office,CREATE TRIGGER trg_prevent_duplicate_post_office BEFORE INSERT ON public.post_offices FOR EACH ROW EXECUTE FUNCTION prevent_duplicate_post_office()
-5_RLS_STATUS,admins,RLS ENABLED
-5_RLS_STATUS,edit_requests,RLS ENABLED
-5_RLS_STATUS,post_offices,RLS ENABLED
-5_RLS_STATUS,post_offices_history,RLS ENABLED
-5_RLS_STATUS,profiles,RLS ENABLED
-5_RLS_STATUS,request_approvals,RLS ENABLED
-6_RLS_POLICY,admins -> Admins are viewable by everyone,FOR SELECT TO public | USING: true
-6_RLS_POLICY,edit_requests -> Authenticated users can insert requests,FOR INSERT TO public | WITH CHECK: (auth.role() = 'authenticated'::text)
-6_RLS_POLICY,edit_requests -> Authenticated users can view requests,FOR SELECT TO public | USING: (auth.role() = 'authenticated'::text)
-6_RLS_POLICY,edit_requests -> Only admins can update requests,"FOR UPDATE TO public | USING: (EXISTS ( SELECT 1
+07_TRIGGER,auth.users -> on_auth_user_created,CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()
+07_TRIGGER,public.post_offices -> post_offices_audit_trigger,CREATE TRIGGER post_offices_audit_trigger AFTER INSERT OR DELETE OR UPDATE ON public.post_offices FOR EACH ROW EXECUTE FUNCTION log_post_office_history()
+07_TRIGGER,public.post_offices -> trg_auto_title_case,CREATE TRIGGER trg_auto_title_case BEFORE INSERT OR UPDATE ON public.post_offices FOR EACH ROW EXECUTE FUNCTION format_title_case()
+07_TRIGGER,public.post_offices -> trg_prevent_duplicate_post_office,CREATE TRIGGER trg_prevent_duplicate_post_office BEFORE INSERT ON public.post_offices FOR EACH ROW EXECUTE FUNCTION prevent_duplicate_post_office()
+07_TRIGGER,storage.objects -> protect_objects_delete,CREATE TRIGGER protect_objects_delete BEFORE DELETE ON storage.objects FOR EACH STATEMENT EXECUTE FUNCTION storage.protect_delete()
+07_TRIGGER,storage.objects -> update_objects_updated_at,CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.update_updated_at_column()
+08_RLS_STATUS,public.admins,RLS ENABLED
+08_RLS_STATUS,public.edit_requests,RLS ENABLED
+08_RLS_STATUS,public.post_offices,RLS ENABLED
+08_RLS_STATUS,public.post_offices_history,RLS ENABLED
+08_RLS_STATUS,public.profiles,RLS ENABLED
+08_RLS_STATUS,public.request_approvals,RLS ENABLED
+08_RLS_STATUS,storage.buckets,RLS ENABLED
+08_RLS_STATUS,storage.objects,RLS ENABLED
+09_RLS_POLICY,public.admins -> Admins are viewable by everyone,FOR SELECT TO public | USING: true
+09_RLS_POLICY,public.edit_requests -> Authenticated users can insert requests,FOR INSERT TO public | WITH CHECK: (auth.role() = 'authenticated'::text)
+09_RLS_POLICY,public.edit_requests -> Authenticated users can view requests,FOR SELECT TO public | USING: (auth.role() = 'authenticated'::text)
+09_RLS_POLICY,public.edit_requests -> Only admins can update requests,"FOR UPDATE TO public | USING: (EXISTS ( SELECT 1
    FROM admins
   WHERE (admins.id = auth.uid())))"
-6_RLS_POLICY,edit_requests -> Users can delete their own pending requests,FOR DELETE TO authenticated | USING: ((auth.uid() = requested_by) AND (status = 'PENDING'::text))
-6_RLS_POLICY,post_offices -> Allow authenticated users to update office staff details,FOR UPDATE TO authenticated | USING: true | WITH CHECK: true
-6_RLS_POLICY,post_offices -> Anyone can read active post offices,FOR SELECT TO public | USING: (is_deleted = false)
-6_RLS_POLICY,post_offices -> Only admins can modify post offices,"FOR ALL TO public | USING: (EXISTS ( SELECT 1
+09_RLS_POLICY,public.edit_requests -> Users can delete their own pending requests,FOR DELETE TO authenticated | USING: ((auth.uid() = requested_by) AND (status = 'PENDING'::text))
+09_RLS_POLICY,public.post_offices -> Allow authenticated users to update office staff details,FOR UPDATE TO authenticated | USING: true | WITH CHECK: true
+09_RLS_POLICY,public.post_offices -> Anyone can read active post offices,FOR SELECT TO public | USING: (is_deleted = false)
+09_RLS_POLICY,public.post_offices -> Only admins can modify post offices,"FOR ALL TO public | USING: (EXISTS ( SELECT 1
    FROM admins
   WHERE (admins.id = auth.uid())))"
-6_RLS_POLICY,post_offices -> Users can insert own post offices,FOR INSERT TO public | WITH CHECK: (auth.uid() = user_id)
-6_RLS_POLICY,post_offices -> Users can view own post offices,FOR SELECT TO public | USING: (auth.uid() = user_id)
-6_RLS_POLICY,post_offices_history -> Anyone can view history,FOR SELECT TO public | USING: true
-6_RLS_POLICY,profiles -> Public profiles are viewable by everyone.,FOR SELECT TO public | USING: true
-6_RLS_POLICY,profiles -> Users can insert own profile,FOR INSERT TO authenticated | WITH CHECK: (auth.uid() = id)
-6_RLS_POLICY,profiles -> Users can update own profile,FOR UPDATE TO authenticated | USING: (auth.uid() = id)
-6_RLS_POLICY,request_approvals -> Authenticated users can view votes,FOR SELECT TO public | USING: (auth.role() = 'authenticated'::text)
-6_RLS_POLICY,request_approvals -> Authenticated users can vote,FOR INSERT TO public | WITH CHECK: (auth.role() = 'authenticated'::text)
+09_RLS_POLICY,public.post_offices -> Users can insert own post offices,FOR INSERT TO public | WITH CHECK: (auth.uid() = user_id)
+09_RLS_POLICY,public.post_offices -> Users can view own post offices,FOR SELECT TO public | USING: (auth.uid() = user_id)
+09_RLS_POLICY,public.post_offices_history -> Anyone can view history,FOR SELECT TO public | USING: true
+09_RLS_POLICY,public.profiles -> Public profiles are viewable by everyone.,FOR SELECT TO public | USING: true
+09_RLS_POLICY,public.profiles -> Users can insert own profile,FOR INSERT TO authenticated | WITH CHECK: (auth.uid() = id)
+09_RLS_POLICY,public.profiles -> Users can update own profile,FOR UPDATE TO authenticated | USING: (auth.uid() = id)
+09_RLS_POLICY,public.request_approvals -> Authenticated users can view votes,FOR SELECT TO public | USING: (auth.role() = 'authenticated'::text)
+09_RLS_POLICY,public.request_approvals -> Authenticated users can vote,FOR INSERT TO public | WITH CHECK: (auth.role() = 'authenticated'::text)
+11_REALTIME_TABLE,public.edit_requests,Published in supabase_realtime
+12_EXTENSION,pg_stat_statements,version 1.11
+12_EXTENSION,pgcrypto,version 1.3
+12_EXTENSION,plpgsql,version 1.0
+12_EXTENSION,supabase_vault,version 0.3.1
+12_EXTENSION,uuid-ossp,version 1.1
