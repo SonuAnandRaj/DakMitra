@@ -4556,40 +4556,6 @@
             </button>
           </div>
 
-          <!-- AI Smart Search Settings Card in Settings View -->
-          <div class="upload-card" style="text-align: left; margin-top: 24px">
-            <h3 style="margin-bottom: 12px; color: var(--primary)">
-              ✨ AI Smart Postal Lookup
-            </h3>
-            <p
-              style="
-                font-size: 13px;
-                color: var(--text-light);
-                margin: 0 0 14px;
-              "
-            >
-              Automatically estimates the serving Post Office & PIN using Google
-              AI when a searched village is missing from the local database.
-            </p>
-            <div class="input-group" style="margin-bottom: 12px">
-              <label>Gemini API Key</label>
-              <input
-                type="password"
-                id="gemini-api-key-input"
-                placeholder="Paste your AIzaSy... Gemini key"
-                autocomplete="off"
-              />
-            </div>
-            <button
-              type="button"
-              class="btn"
-              style="background: var(--primary); color: #ffffff; width: 100%"
-              onclick="saveGeminiApiKey()"
-            >
-              💾 Save AI Key
-            </button>
-          </div>
-
           <!-- App Information Card in Settings View -->
           <div class="upload-card" style="text-align: left; margin-top: 24px">
             <h3 style="margin-bottom: 16px; color: var(--primary)">
@@ -6521,17 +6487,14 @@
 
       // --- ONLINE AI FALLBACK SEARCH (GEMINI + GOOGLE SEARCH GROUNDING) ---
       // Optional: You can also put a default shared key inside DEFAULT_GEMINI_KEY
-      const DEFAULT_GEMINI_KEY = "";
+      // Universal Gemini API Key for all DakMitra users
       let aiSearchDebounceTimer = null;
       let aiActiveAbortController = null;
-      let aiMemoryCache = {}; // Prevents re-billing for the same village in one session
+      let aiMemoryCache = {};
+      let aiLatestRequestId = 0;
 
       function getGeminiApiKey() {
-        return (
-          localStorage.getItem("dakmitra_gemini_api_key") ||
-          DEFAULT_GEMINI_KEY ||
-          ""
-        ).trim();
+        return (DEFAULT_GEMINI_KEY || "").trim();
       }
 
       function saveGeminiApiKey() {
@@ -6652,20 +6615,6 @@
             <ul class="list-container">
               <li class="list-empty" style="margin-top:0;">
                 <span>📴 You are offline. Connect to the internet for AI postal estimation.</span>
-              </li>
-            </ul>`;
-          return;
-        }
-
-        const apiKey = getGeminiApiKey();
-        if (!apiKey) {
-          container.innerHTML = `
-            <ul class="list-container">
-              <li class="list-empty" style="margin-top:0; gap: 10px;">
-                <span>🔑 Set your Gemini API Key in Settings to enable automatic AI village-to-office estimation.</span>
-                <button type="button" class="btn" style="width:auto; padding:8px 16px; font-size:13px;" onclick="switchDashboardView('settings')">
-                  ⚙️ Open Settings
-                </button>
               </li>
             </ul>`;
           return;
@@ -7085,7 +7034,6 @@
         );
         if (!container) return;
 
-        // Turn on red pulsing animation on the AI button
         const aiBtn = document.getElementById("force-ai-search-btn");
         if (aiBtn) aiBtn.classList.add("loading");
 
@@ -7098,11 +7046,10 @@
           return;
         }
 
+        const thisRequestId = ++aiLatestRequestId;
         aiActiveAbortController = new AbortController();
 
         try {
-          const apiKey = getGeminiApiKey();
-
           const geoHints = await fetchVillageGeoContext(
             exactUserQuery,
             aiActiveAbortController.signal
@@ -7111,80 +7058,70 @@
           const divisionDirectoryContext =
             buildDivisionOfficeDirectoryContext(exactUserQuery);
 
-          const prompt = `...`; // (Keep your existing prompt text here)
+          const prompt = `You are an expert India Post mail sorting assistant for Mirzapur and Sonbhadra districts (Uttar Pradesh, PIN 231xxx).
 
-          const candidateModels = [
-            cachedWorkingModel,
-            "gemini-3.5-flash",
-            "gemini-3.5-flash-lite",
-            "gemini-flash-latest",
-          ];
-          const uniqueModels = [...new Set(candidateModels)];
+The user searched for a village, mohalla, locality, or post office that was NOT found in the local database:
+User Search: "${exactUserQuery}"
 
-          let response = null;
-          let lastErrorMsg = "AI Lookup Error";
+Live Postal & Local Hints Found:
+${
+  geoHints.length > 0
+    ? geoHints.join("\n")
+    : "No direct online hints found. Use your geographic knowledge of Mirzapur and Sonbhadra districts."
+}
 
-          for (let i = 0; i < uniqueModels.length; i++) {
-            const modelName = uniqueModels[i];
+Official Delivery Offices (SO/HO) in our DakMitra Database:
+${divisionDirectoryContext}
 
-            response = await fetch(
-              `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(
-                apiKey
-              )}`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                signal: aiActiveAbortController.signal,
-                body: JSON.stringify({
-                  contents: [{ parts: [{ text: prompt }] }],
-                  generationConfig: {
-                    temperature: 0.1,
-                  },
-                }),
-              }
-            );
+Rules:
+1. Identify the most likely serving Delivery Post Office (SO or HO) from the list above for "${exactUserQuery}" in Mirzapur or Sonbhadra district.
+2. Keep "searched_text" strictly as "${exactUserQuery}" (do not add "BO" or rename what the user typed).
+3. Put the nearest Branch Office (BO) or beat area in "serving_bo_or_beat" if known, otherwise leave it as "".
+4. Pick "recommended_office" using the EXACT office name from the Delivery Office list above whenever possible.
+5. Return ONLY a valid JSON array with 1 to 2 best matches (no markdown, no extra explanation outside JSON). If the place clearly does not exist in Mirzapur or Sonbhadra, return [].
 
-            if (response.ok) {
-              cachedWorkingModel = modelName;
-              break;
-            }
+Exact JSON format:
+[
+  {
+    "searched_text": "${exactUserQuery}",
+    "serving_bo_or_beat": "Nearest BO or Block Name (or empty string)",
+    "recommended_office": "Exact SO/HO Name from list",
+    "district": "Mirzapur or Sonbhadra",
+    "pin": "6-digit PIN code",
+    "confidence": "High, Medium, or Low",
+    "reason": "Short 1-2 line explanation of why mail for this locality routes to this office."
+  }
+]`;
 
-            const errData = await response.json().catch(() => ({}));
-            lastErrorMsg =
-              errData?.error?.message || `API Error (${response.status})`;
+          const { data, error } = await supabaseClient.functions.invoke(
+            "ai-postal-search",
+            { body: { prompt } }
+          );
 
-            const suggestedMatch = lastErrorMsg.match(
-              /models\/([a-zA-Z0-9.-]+)/
-            );
-            if (suggestedMatch && suggestedMatch[1]) {
-              const suggestedModel = suggestedMatch[1];
-              if (!uniqueModels.includes(suggestedModel)) {
-                uniqueModels.splice(i + 1, 0, suggestedModel);
-              }
-            }
+          // Ignore result if user started a newer search while waiting
+          if (thisRequestId !== aiLatestRequestId) return;
+
+          if (error) {
+            let errMsg = error.message || "AI Lookup Error";
+            try {
+              const errBody = await error.context?.json();
+              if (errBody?.error) errMsg = errBody.error;
+            } catch (_) {}
+            throw new Error(errMsg);
           }
 
-          if (!response || !response.ok) {
-            throw new Error(lastErrorMsg);
-          }
-
-          const data = await response.json();
-          const rawText =
-            data?.candidates?.[0]?.content?.parts
-              ?.map((p) => p.text || "")
-              .join("") || "[]";
-
+          const rawText = data?.text || "[]";
           const jsonMatch = rawText.match(/\[[\s\S]*\]/);
           const parsedResults = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
           aiMemoryCache[cacheKey] = parsedResults;
 
-          // Stop pulsing red
           if (aiBtn) aiBtn.classList.remove("loading");
           renderAiEstimationCards(exactUserQuery, parsedResults);
         } catch (err) {
           if (aiBtn) aiBtn.classList.remove("loading");
-          if (err.name === "AbortError") return;
+          if (err.name === "AbortError" || thisRequestId !== aiLatestRequestId)
+            return;
           if (container) {
             container.innerHTML = `
               <ul class="list-container">
