@@ -402,6 +402,16 @@
         box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
       }
 
+      /* Highlight active Search card / table row while floating popover is open */
+      li.list-item.selected-chip {
+        border-color: var(--primary) !important;
+        background-color: var(--btn-secondary) !important;
+      }
+      table.data-table tr.list-item.selected-chip td {
+        background-color: rgba(79, 70, 229, 0.1) !important;
+        color: var(--primary);
+      }
+
       /* Anchored Floating Popover — Glassmorphism + Gradient Accent + Spring Pop */
       .directory-floating-bar {
         position: fixed;
@@ -5652,9 +5662,7 @@
       }
 
       function switchDashboardView(viewId) {
-        if (viewId !== "directory") {
-          closeAllDirectoryActionTrays();
-        }
+        closeAllDirectoryActionTrays();
 
         // Clear all active states efficiently
         document
@@ -6074,6 +6082,10 @@
         });
 
         // If the user hasn't typed anything yet, load the whole DB (Infinite Scroll handles rendering)
+        const displayArea = document.getElementById("results-display-area");
+        const alreadyRendered =
+          displayArea && displayArea.querySelector(".list-item");
+
         if (
           !document.getElementById("search-input").value.trim() &&
           (dataChanged || !alreadyRendered)
@@ -6496,13 +6508,8 @@
           localStorage.getItem("dakmitra_action_mode") || "tap";
 
         if (viewMode === "list") {
-          const containerClass =
-            actionMode === "always"
-              ? "list-container always-show-actions"
-              : "list-container";
-          let html = `<ul class="${containerClass}" style="margin:0; padding:0; list-style:none;">`;
+          let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
 
-          // SLICE BASED ON DYNAMIC LIMIT
           currentFilteredData
             .slice(0, window.searchDisplayLimit)
             .forEach((result) => {
@@ -6519,78 +6526,41 @@
               );
               const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
-              const isFav = favorites.some(
-                (f) => String(f.id) === String(row.id)
-              );
-              const favStyle = getFavoriteBtnStyles(isFav, false);
-
-              const officeType = detectOfficeType(row.Address);
-              const infoBtnHtml = officeType
-                ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
-                    row.Address
-                  )}', '${escapeForOnclick(
-                    row.Office
-                  )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️</button>`
-                : "";
-
               html += `
-              <li class="list-item" onclick="toggleCardExpansion(this)" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <li class="list-item"
+                  onclick="openDirectoryChipActions(this)"
+                  data-record-id="${escapeHTML(row.id)}"
+                  data-address="${escapeHTML(row.Address)}"
+                  data-office="${escapeHTML(row.Office)}"
+                  data-pin="${escapeHTML(row.Pin || "")}"
+                  style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
                   <div style="width: 100%;">
                     <div class="office-title">${addressHtml}</div>
                     <div class="sub-office">
-                      <span class="badge badge-primary" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+                      <span class="badge badge-primary" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
                         row.Office
-                      )}')">🏢 ${officeHtml}</span>
-                      <span class="badge" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+                      )}')" title="Double-click to open in Directory">🏢 ${officeHtml}</span>
+                      <span class="badge" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
                         row.Office
-                      )}')">📍 ${PinHtml || "N/A"}</span>
+                      )}')" title="Double-click to open in Directory">📍 ${
+                PinHtml || "N/A"
+              }</span>
                     </div>
-                  </div>
-                  <div class="card-actions">
-                    ${infoBtnHtml}
-                    <button onclick="event.stopPropagation(); viewHistory('${
-                      row.id
-                    }')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
-                    <button onclick="event.stopPropagation(); toggleFavorite('${
-                      row.id
-                    }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-                row.Office
-              )}', '${escapeForOnclick(
-                row.Pin
-              )}', this)" class="toolbar-btn" style="${favStyle.style}">${
-                favStyle.icon
-              }</button>
-                    <button onclick="event.stopPropagation(); updateRecord('${
-                      row.id
-                    }', '${escapeForOnclick(row.Address)}', '${escapeForOnclick(
-                row.Office
-              )}', '${escapeForOnclick(
-                row.Pin
-              )}')" class="toolbar-btn" style="background: var(--input-bg);">Edit</button>
-                    <button onclick="event.stopPropagation(); deleteRecord('${
-                      row.id
-                    }')" class="toolbar-btn" style="background: #fee2e2; color: #b91c1c;">Delete</button>
                   </div>
               </li>`;
             });
           html += `</ul>`;
 
-          // APPEND SENTINEL IF MORE DATA EXISTS
           if (window.searchDisplayLimit < currentFilteredData.length) {
             html += `<div id="search-sentinel" style="height: 40px; text-align: center; padding: 10px; color: var(--text-light); font-size: 13px;">Loading more results...</div>`;
           }
 
           displayArea.innerHTML = html;
         } else {
-          const tableClass =
-            actionMode === "always"
-              ? "data-table always-show-actions"
-              : "data-table";
-          let html = `<table class="${tableClass}">
+          let html = `<table class="data-table">
                   <thead><tr><th>Address</th><th>Office</th><th>Pin</th></tr></thead>
                   <tbody>`;
 
-          // SLICE BASED ON DYNAMIC LIMIT
           currentFilteredData
             .slice(0, window.searchDisplayLimit)
             .forEach((result) => {
@@ -6607,66 +6577,27 @@
               );
               const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
-              const isFav = favorites.some(
-                (f) => String(f.id) === String(row.id)
-              );
-              const favStyle = getFavoriteBtnStyles(isFav, true);
-
-              const officeType = detectOfficeType(row.Address);
-              const infoBtnHtml = officeType
-                ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
-                    row.Address
-                  )}', '${escapeForOnclick(
-                    row.Office
-                  )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️</button>`
-                : "";
-
-              html += `<tr class="list-item" onclick="toggleCardExpansion(this)">
+              html += `<tr class="list-item"
+                  onclick="openDirectoryChipActions(this)"
+                  data-record-id="${escapeHTML(row.id)}"
+                  data-address="${escapeHTML(row.Address)}"
+                  data-office="${escapeHTML(row.Office)}"
+                  data-pin="${escapeHTML(row.Pin || "")}">
                   <td>${addressHtml}</td>
-                <td style="cursor: pointer; color: var(--primary);" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                  row.Office
-                )}')">
-                   ${officeHtml}
-                </td>
-                <td style="cursor: pointer; color: var(--primary);" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                  row.Office
-                )}')">
-                   ${PinHtml || "-"}
-                </td>
-               </tr>
-               <tr class="card-actions-row">
-                 <td colspan="3" style="padding: 0; border: none;">
-                   <div class="card-actions" style="padding: 0 16px 12px 16px;">
-                     ${infoBtnHtml}
-                     <button onclick="event.stopPropagation(); viewHistory('${
-                       row.id
-                     }')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
-                     <button onclick="event.stopPropagation(); toggleFavorite('${
-                       row.id
-                     }', '${escapeForOnclick(
-                row.Address
-              )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
-                row.Pin
-              )}', this)" class="toolbar-btn" style="padding: 6px; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
-                favStyle.style
-              }" title="Toggle Favorite">${favStyle.icon}</button>
-                     <button onclick="event.stopPropagation(); updateRecord('${
-                       row.id
-                     }', '${escapeForOnclick(
-                row.Address
-              )}', '${escapeForOnclick(row.Office)}', '${escapeForOnclick(
-                row.Pin
-              )}')" class="toolbar-btn" style="padding: 4px 8px;">✎ Edit</button>
-                     <button onclick="event.stopPropagation(); deleteRecord('${
-                       row.id
-                     }')" class="toolbar-btn" style="padding: 4px 8px; color: #ef4444;">🗑 Delete</button>
-                   </div>
-                 </td>
+                  <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+                    row.Office
+                  )}')" title="Double-click to open in Directory">
+                     ${officeHtml}
+                  </td>
+                  <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+                    row.Office
+                  )}')" title="Double-click to open in Directory">
+                     ${PinHtml || "-"}
+                  </td>
                </tr>`;
             });
           html += `</tbody></table>`;
 
-          // APPEND SENTINEL IF MORE DATA EXISTS
           if (window.searchDisplayLimit < currentFilteredData.length) {
             html += `<div id="search-sentinel" style="height: 40px; text-align: center; padding: 10px; color: var(--text-light); font-size: 13px;">Loading more results...</div>`;
           }
@@ -7818,7 +7749,9 @@ Exact JSON format:
           bar.classList.remove("open");
         }
         document
-          .querySelectorAll(".directory-address-chip.selected-chip")
+          .querySelectorAll(
+            ".directory-address-chip.selected-chip, .list-item.selected-chip"
+          )
           .forEach((c) => c.classList.remove("selected-chip"));
       }
 
@@ -7835,7 +7768,9 @@ Exact JSON format:
 
         // Clear previous selection
         document
-          .querySelectorAll(".directory-address-chip.selected-chip")
+          .querySelectorAll(
+            ".directory-address-chip.selected-chip, .list-item.selected-chip"
+          )
           .forEach((c) => c.classList.remove("selected-chip"));
 
         let recordId = chipEl.getAttribute("data-record-id") || "";
@@ -7928,15 +7863,28 @@ Exact JSON format:
         ?.addEventListener("scroll", closeAllDirectoryActionTrays, {
           passive: true,
         });
-      // Close floating bar if user taps outside a chip or the bar itself
+      // Close floating bar if user taps outside a chip, search row, or the bar itself
       document.addEventListener("click", (e) => {
         if (
           !e.target.closest(".directory-address-chip") &&
+          !e.target.closest(".list-item") &&
           !e.target.closest("#directory-floating-bar")
         ) {
           closeAllDirectoryActionTrays();
         }
       });
+
+      // Close popover when scrolling either Directory or Search results
+      document
+        .getElementById("directory-display-area")
+        ?.addEventListener("scroll", closeAllDirectoryActionTrays, {
+          passive: true,
+        });
+      document
+        .getElementById("results-display-area")
+        ?.addEventListener("scroll", closeAllDirectoryActionTrays, {
+          passive: true,
+        });
       // Holds currently opened office record for direct CRUD
       let activeOfficeRecord = null;
       let activeOfficeType = null;
