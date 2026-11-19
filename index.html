@@ -367,6 +367,7 @@
         border-radius: 8px;
         border: 1px solid var(--border);
         transition: all 0.2s;
+        cursor: pointer;
       }
 
       .directory-address-chip:hover {
@@ -401,19 +402,37 @@
         box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
       }
 
-      /* Directory Long-Press Action Tray */
-      .directory-action-tray {
-        max-height: 0;
+      /* Floating Directory Action Bar (Sits cleanly above Bottom Nav) */
+      .directory-floating-bar {
+        position: fixed;
+        bottom: calc(88px + env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        width: calc(100% - 24px);
+        max-width: 440px;
+        background: var(--card-bg);
+        border: 1.5px solid var(--primary);
+        border-radius: 20px;
+        padding: 12px 14px;
+        z-index: 950;
+        box-shadow: 0 14px 32px -6px rgba(0, 0, 0, 0.22);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
         opacity: 0;
-        overflow: hidden;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       }
-      .directory-action-tray.open {
-        max-height: 140px;
+      .directory-floating-bar.open {
         opacity: 1;
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px dashed var(--border);
+        pointer-events: auto;
+        transform: translateX(-50%) translateY(0);
+      }
+      .directory-floating-bar .card-actions {
+        max-height: 100px;
+        opacity: 1;
+        margin-top: 0;
+        transform: translateY(0);
+        justify-content: center !important;
       }
       .directory-action-tray-header {
         display: flex;
@@ -439,12 +458,6 @@
         padding: 2px 6px;
         border-radius: 6px;
         flex-shrink: 0;
-      }
-      .directory-action-tray.open .card-actions {
-        max-height: 100px;
-        opacity: 1;
-        margin-top: 0;
-        transform: translateY(0);
       }
 
       /* Office Staff Details Modal Styling */
@@ -5084,6 +5097,10 @@
       </main>
       <!-- This is your existing closing main tag -->
     </div>
+
+    <!-- FLOATING DIRECTORY ACTION BAR -->
+    <div id="directory-floating-bar" class="directory-floating-bar"></div>
+
     <!-- CUSTOM HISTORY MODAL -->
     <div id="history-modal-overlay" class="modal-overlay">
       <div
@@ -5560,6 +5577,11 @@
       }
 
       function switchDashboardView(viewId) {
+
+        if (viewId !== "directory") {
+          closeAllDirectoryActionTrays();
+        }
+
         // Clear all active states efficiently
         document
           .querySelectorAll(
@@ -7670,7 +7692,7 @@ Exact JSON format:
             const officeType = detectOfficeType(addressText);
 
             if (officeType) {
-              html += `<span class="directory-address-chip clickable-office-chip" data-record-id="${escapeHTML(
+              html += `<span class="directory-address-chip clickable-office-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
                 recordId
               )}" data-address="${escapeHTML(
                 addressText
@@ -7678,11 +7700,11 @@ Exact JSON format:
                 officeName
               )}" data-pin="${escapeHTML(
                 pinVal || ""
-              )}" title="Long press for options">📮 ${escapeHTML(
+              )}" title="Tap for options">📮 ${escapeHTML(
                 addressText
               )}</span>`;
             } else {
-              html += `<span class="directory-address-chip" data-record-id="${escapeHTML(
+              html += `<span class="directory-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
                 recordId
               )}" data-address="${escapeHTML(
                 addressText
@@ -7690,7 +7712,7 @@ Exact JSON format:
                 officeName
               )}" data-pin="${escapeHTML(
                 pinVal || ""
-              )}" title="Long press for options">${escapeHTML(
+              )}" title="Tap for options">${escapeHTML(
                 addressText
               )}</span>`;
             }
@@ -7716,12 +7738,10 @@ Exact JSON format:
       }
 
       function closeAllDirectoryActionTrays() {
-        document
-          .querySelectorAll(".directory-action-tray.open")
-          .forEach((tray) => {
-            tray.classList.remove("open");
-            tray.innerHTML = "";
-          });
+        const bar = document.getElementById("directory-floating-bar");
+        if (bar) {
+          bar.classList.remove("open");
+        }
         document
           .querySelectorAll(".directory-address-chip.selected-chip")
           .forEach((c) => c.classList.remove("selected-chip"));
@@ -7729,24 +7749,25 @@ Exact JSON format:
 
       function openDirectoryChipActions(chipEl) {
         if (!chipEl) return;
-        const card = chipEl.closest(".directory-card");
-        const tray = card?.querySelector(".directory-action-tray");
-        if (!tray) return;
+        const bar = document.getElementById("directory-floating-bar");
+        if (!bar) return;
 
-        // If already selected, toggle it closed
+        // If the same chip is clicked again, close the bar
         if (chipEl.classList.contains("selected-chip")) {
           closeAllDirectoryActionTrays();
           return;
         }
 
-        closeAllDirectoryActionTrays();
+        // Clear previous selection
+        document
+          .querySelectorAll(".directory-address-chip.selected-chip")
+          .forEach((c) => c.classList.remove("selected-chip"));
 
         let recordId = chipEl.getAttribute("data-record-id") || "";
         const address = chipEl.getAttribute("data-address") || "";
         const office = chipEl.getAttribute("data-office") || "";
         const pin = chipEl.getAttribute("data-pin") || "";
 
-        // Safety fallback if recordId is missing
         if (!recordId && cachedPostOffices.length > 0) {
           const match = cachedPostOffices.find(
             (r) =>
@@ -7773,7 +7794,7 @@ Exact JSON format:
             )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️</button>`
           : "";
 
-        tray.innerHTML = `
+        bar.innerHTML = `
           <div class="directory-action-tray-header">
             <span class="directory-action-tray-title">${escapeHTML(
               address
@@ -7806,95 +7827,19 @@ Exact JSON format:
         `;
 
         chipEl.classList.add("selected-chip");
-        tray.classList.add("open");
-        if (navigator.vibrate) navigator.vibrate(40);
+        bar.classList.add("open");
+        if (navigator.vibrate) navigator.vibrate(30);
       }
 
-      // Delegated Long-Press Handler for Directory Address Chips (Mobile Touch + Desktop Mouse/Right-Click)
-      (function initDirectoryLongPress() {
-        const dirArea = document.getElementById("directory-display-area");
-        if (!dirArea) return;
-
-        let pressTimer = null;
-        let startX = 0;
-        let startY = 0;
-        const LONG_PRESS_MS = 450;
-
-        const cancelPress = () => {
-          if (pressTimer) {
-            clearTimeout(pressTimer);
-            pressTimer = null;
-          }
-        };
-
-        // Mobile Touch Long-Press
-        dirArea.addEventListener(
-          "touchstart",
-          (e) => {
-            const chip = e.target.closest(".directory-address-chip");
-            if (!chip) return;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            cancelPress();
-            pressTimer = setTimeout(() => {
-              pressTimer = null;
-              openDirectoryChipActions(chip);
-            }, LONG_PRESS_MS);
-          },
-          { passive: true }
-        );
-
-        dirArea.addEventListener(
-          "touchmove",
-          (e) => {
-            if (!pressTimer) return;
-            const dx = Math.abs(e.touches[0].clientX - startX);
-            const dy = Math.abs(e.touches[0].clientY - startY);
-            if (dx > 10 || dy > 10) cancelPress(); // Cancel if user is scrolling
-          },
-          { passive: true }
-        );
-
-        dirArea.addEventListener("touchend", cancelPress, { passive: true });
-        dirArea.addEventListener("touchcancel", cancelPress, { passive: true });
-
-        // Desktop Mouse Long-Press
-        dirArea.addEventListener("mousedown", (e) => {
-          if (e.button !== 0) return;
-          const chip = e.target.closest(".directory-address-chip");
-          if (!chip) return;
-          startX = e.clientX;
-          startY = e.clientY;
-          cancelPress();
-          pressTimer = setTimeout(() => {
-            pressTimer = null;
-            openDirectoryChipActions(chip);
-          }, LONG_PRESS_MS);
-        });
-
-        dirArea.addEventListener("mousemove", (e) => {
-          if (!pressTimer) return;
-          if (
-            Math.abs(e.clientX - startX) > 10 ||
-            Math.abs(e.clientY - startY) > 10
-          ) {
-            cancelPress();
-          }
-        });
-
-        dirArea.addEventListener("mouseup", cancelPress);
-        dirArea.addEventListener("mouseleave", cancelPress);
-
-        // Suppress native Android context menu & allow desktop right-click on chips
-        dirArea.addEventListener("contextmenu", (e) => {
-          const chip = e.target.closest(".directory-address-chip");
-          if (!chip) return;
-          e.preventDefault();
-          cancelPress();
-          openDirectoryChipActions(chip);
-        });
-      })();
-
+      // Close floating bar if user taps outside a chip or the bar itself
+      document.addEventListener("click", (e) => {
+        if (
+          !e.target.closest(".directory-address-chip") &&
+          !e.target.closest("#directory-floating-bar")
+        ) {
+          closeAllDirectoryActionTrays();
+        }
+      });
       // Holds currently opened office record for direct CRUD
       let activeOfficeRecord = null;
       let activeOfficeType = null;
