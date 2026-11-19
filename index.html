@@ -6039,12 +6039,15 @@
           }
 
           if (allRows.length > 0) {
-            cachedPostOffices = allRows;
-            localStorage.setItem(
-              "dakmitra_offline_db",
-              JSON.stringify(cachedPostOffices)
-            );
-            initializeSearchAndRender();
+            const newJson = JSON.stringify(allRows);
+            const oldJson = localStorage.getItem("dakmitra_offline_db");
+
+            // Only re-render if the server actually has new/changed records
+            if (newJson !== oldJson) {
+              cachedPostOffices = allRows;
+              localStorage.setItem("dakmitra_offline_db", newJson);
+              initializeSearchAndRender(true);
+            }
             return true;
           }
           return false;
@@ -6053,7 +6056,7 @@
           return false;
         }
       }
-      function initializeSearchAndRender() {
+      function initializeSearchAndRender(dataChanged = false) {
         const totalRecords = cachedPostOffices.length;
         const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office))
           .size;
@@ -6071,7 +6074,10 @@
         });
 
         // If the user hasn't typed anything yet, load the whole DB (Infinite Scroll handles rendering)
-        if (!document.getElementById("search-input").value.trim()) {
+        if (
+          !document.getElementById("search-input").value.trim() &&
+          (dataChanged || !alreadyRendered)
+        ) {
           currentFilteredData = cachedPostOffices.map((item) => ({
             item,
             matches: [],
@@ -6079,7 +6085,6 @@
           renderResults();
         }
         refreshOfficeDropdowns();
-        // Pre-build directory in the background once
         buildDirectoryGroupedData();
       }
 
