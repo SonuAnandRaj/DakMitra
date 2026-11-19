@@ -2074,6 +2074,31 @@
         margin-top: 12px;
       }
 
+      /* --- SINGLE-ROW ACTION BAR ON MOBILE --- */
+      .card-actions {
+        flex-wrap: nowrap !important;
+        gap: 5px !important;
+        justify-content: flex-end !important;
+      }
+      .card-actions .toolbar-btn {
+        padding: 6px 8px !important;
+        font-size: 11.5px !important;
+        white-space: nowrap !important;
+        flex-shrink: 1;
+        min-width: 0;
+      }
+      .card-actions .info-i-btn {
+        width: 28px;
+        height: 28px;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        font-family: Georgia, serif;
+        font-style: italic;
+        font-weight: 800 !important;
+        font-size: 14px !important;
+        flex-shrink: 0 !important;
+      }
+
       /* Reveal for Table View (Next Row Sibling) */
       .list-item.expanded + .card-actions-row .card-actions {
         max-height: 100px;
@@ -6336,7 +6361,7 @@
                     row.Address
                   )}', '${escapeForOnclick(
                     row.Office
-                  )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️ Info</button>`
+                  )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️</button>`
                 : "";
 
               html += `
@@ -6424,7 +6449,7 @@
                     row.Address
                   )}', '${escapeForOnclick(
                     row.Office
-                  )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️ Info</button>`
+                  )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️</button>`
                 : "";
 
               html += `<tr class="list-item" onclick="toggleCardExpansion(this)">
@@ -7540,7 +7565,10 @@ Exact JSON format:
         let html = "";
         batch.forEach((data) => {
           const safeId = "dir-office-" + data.office.replace(/\W/g, "-");
-          const totalAddresses = data.addresses.length;
+          const addressList = Array.isArray(data.addresses)
+            ? data.addresses
+            : [];
+          const totalAddresses = addressList.length;
 
           html += `
                 <div class="directory-card" id="${safeId}">
@@ -7563,15 +7591,8 @@ Exact JSON format:
                   <div class="directory-address-list">
               `;
 
-          data.addresses.forEach((address) => {
-            const officeType = detectOfficeType(row.Address);
-            const infoBtnHtml = officeType
-              ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
-                  row.Address
-                )}', '${escapeForOnclick(
-                  row.Office
-                )}')" class="toolbar-btn" style="background: rgba(79, 70, 229, 0.12); color: var(--primary);" title="View ${officeType} Staff Details">ℹ️ Info</button>`
-              : "";
+          addressList.forEach((address) => {
+            const officeType = detectOfficeType(address);
             if (officeType) {
               html += `<span class="directory-address-chip clickable-office-chip" onclick="showOfficeDetailsModal('${escapeForOnclick(
                 address
@@ -7606,7 +7627,6 @@ Exact JSON format:
           }
         }
       }
-
       // Holds currently opened office record for direct CRUD
       let activeOfficeRecord = null;
       let activeOfficeType = null;
