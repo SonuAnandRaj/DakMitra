@@ -402,37 +402,112 @@
         box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
       }
 
-      /* Floating Directory Action Bar (Sits cleanly above Bottom Nav) */
+      /* Anchored Floating Popover — Glassmorphism + Gradient Accent + Spring Pop */
       .directory-floating-bar {
         position: fixed;
-        bottom: calc(88px + env(safe-area-inset-bottom));
-        left: 50%;
-        transform: translateX(-50%) translateY(20px);
-        width: calc(100% - 24px);
-        max-width: 440px;
-        background: var(--card-bg);
-        border: 1.5px solid var(--primary);
+        top: 0;
+        left: 0;
+        width: max-content;
+        max-width: calc(100vw - 24px);
+        background: rgba(255, 255, 255, 0.88);
+        border: 1px solid rgba(79, 70, 229, 0.22);
         border-radius: 20px;
-        padding: 12px 14px;
+        padding: 11px 10px 9px;
         z-index: 950;
-        box-shadow: 0 14px 32px -6px rgba(0, 0, 0, 0.22);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
+        overflow: hidden;
+        box-shadow: 0 18px 36px -8px rgba(15, 23, 42, 0.18),
+          0 6px 14px -4px rgba(79, 70, 229, 0.16),
+          inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(18px) saturate(160%);
+        -webkit-backdrop-filter: blur(18px) saturate(160%);
         opacity: 0;
         pointer-events: none;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: scale(0.84) translateY(-8px);
+        transform-origin: top center;
+        transition: opacity 0.2s ease,
+          transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
+
+      /* Dark Mode Frosted OLED Glass */
+      [data-theme="dark"] .directory-floating-bar {
+        background: rgba(17, 24, 39, 0.86);
+        border-color: rgba(129, 140, 248, 0.28);
+        box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.65),
+          0 0 0 1px rgba(129, 140, 248, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+
+      /* Signature DakMitra Gradient Top Accent Bar */
+      .directory-floating-bar::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+      }
+
       .directory-floating-bar.open {
         opacity: 1;
         pointer-events: auto;
-        transform: translateX(-50%) translateY(0);
+        transform: scale(1) translateY(0);
       }
+
       .directory-floating-bar .card-actions {
         max-height: 100px;
         opacity: 1;
         margin-top: 0;
         transform: translateY(0);
         justify-content: center !important;
+        gap: 6px !important;
+      }
+
+      /* Staggered Pop-In for Action Buttons */
+      @keyframes popoverBtnPop {
+        0% {
+          opacity: 0;
+          transform: translateY(6px) scale(0.9);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .directory-floating-bar .toolbar-btn {
+        border-radius: 12px !important;
+        padding: 7px 10px !important;
+        font-weight: 700 !important;
+        transition: transform 0.15s ease, background 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      .directory-floating-bar.open .toolbar-btn {
+        animation: popoverBtnPop 0.26s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      .directory-floating-bar.open .toolbar-btn:nth-child(1) {
+        animation-delay: 0.02s;
+      }
+      .directory-floating-bar.open .toolbar-btn:nth-child(2) {
+        animation-delay: 0.05s;
+      }
+      .directory-floating-bar.open .toolbar-btn:nth-child(3) {
+        animation-delay: 0.08s;
+      }
+      .directory-floating-bar.open .toolbar-btn:nth-child(4) {
+        animation-delay: 0.11s;
+      }
+      .directory-floating-bar.open .toolbar-btn:nth-child(5) {
+        animation-delay: 0.14s;
+      }
+
+      .directory-floating-bar .toolbar-btn:active {
+        transform: scale(0.92);
       }
       .directory-action-tray-header {
         display: flex;
@@ -5577,7 +5652,6 @@
       }
 
       function switchDashboardView(viewId) {
-
         if (viewId !== "directory") {
           closeAllDirectoryActionTrays();
         }
@@ -7700,9 +7774,7 @@ Exact JSON format:
                 officeName
               )}" data-pin="${escapeHTML(
                 pinVal || ""
-              )}" title="Tap for options">📮 ${escapeHTML(
-                addressText
-              )}</span>`;
+              )}" title="Tap for options">📮 ${escapeHTML(addressText)}</span>`;
             } else {
               html += `<span class="directory-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
                 recordId
@@ -7712,9 +7784,7 @@ Exact JSON format:
                 officeName
               )}" data-pin="${escapeHTML(
                 pinVal || ""
-              )}" title="Tap for options">${escapeHTML(
-                addressText
-              )}</span>`;
+              )}" title="Tap for options">${escapeHTML(addressText)}</span>`;
             }
           });
 
@@ -7752,7 +7822,7 @@ Exact JSON format:
         const bar = document.getElementById("directory-floating-bar");
         if (!bar) return;
 
-        // If the same chip is clicked again, close the bar
+        // If the same chip is clicked again, close the popover
         if (chipEl.classList.contains("selected-chip")) {
           closeAllDirectoryActionTrays();
           return;
@@ -7795,12 +7865,6 @@ Exact JSON format:
           : "";
 
         bar.innerHTML = `
-          <div class="directory-action-tray-header">
-            <span class="directory-action-tray-title">${escapeHTML(
-              address
-            )}</span>
-            <button type="button" class="directory-action-tray-close" onclick="event.stopPropagation(); closeAllDirectoryActionTrays()" title="Close">✕</button>
-          </div>
           <div class="card-actions">
             ${infoBtnHtml}
             <button onclick="event.stopPropagation(); viewHistory('${escapeForOnclick(
@@ -7826,11 +7890,39 @@ Exact JSON format:
           </div>
         `;
 
+        // Measure chip & popover to place it right at the clicked spot
+        const rect = chipEl.getBoundingClientRect();
+        const barWidth = bar.offsetWidth;
+        const barHeight = bar.offsetHeight;
+        const margin = 12;
+
+        // Center horizontally on the chip, clamped inside the screen
+        let left = rect.left + rect.width / 2 - barWidth / 2;
+        left = Math.max(
+          margin,
+          Math.min(left, window.innerWidth - barWidth - margin)
+        );
+
+        // Place directly below the chip; flip above if near the bottom nav
+        let top = rect.bottom + 8;
+        if (top + barHeight > window.innerHeight - 90) {
+          top = rect.top - barHeight - 8;
+        }
+
+        bar.style.left = `${left}px`;
+        bar.style.top = `${top}px`;
+
         chipEl.classList.add("selected-chip");
         bar.classList.add("open");
         if (navigator.vibrate) navigator.vibrate(30);
       }
 
+      // Close popover when scrolling the directory list so it never floats detached
+      document
+        .getElementById("directory-display-area")
+        ?.addEventListener("scroll", closeAllDirectoryActionTrays, {
+          passive: true,
+        });
       // Close floating bar if user taps outside a chip or the bar itself
       document.addEventListener("click", (e) => {
         if (
