@@ -619,6 +619,7 @@ $function$
 09_RLS_POLICY,public.request_approvals -> Authenticated users can vote,FOR INSERT TO public | WITH CHECK: (auth.role() = 'authenticated'::text)
 11_REALTIME_TABLE,public.edit_requests,Published in supabase_realtime
 12_EXTENSION,pg_stat_statements,version 1.11
+12_EXTENSION,pg_trgm,version 1.6
 12_EXTENSION,pgcrypto,version 1.3
 12_EXTENSION,plpgsql,version 1.0
 12_EXTENSION,supabase_vault,version 0.3.1
