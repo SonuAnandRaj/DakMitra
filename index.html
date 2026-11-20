@@ -3468,7 +3468,7 @@
     <div id="toast" class="toast">Action Successful!</div>
 
     <!-- AUTH VIEW (Shows only when logged out) -->
-    <div id="auth-view" class="container">
+    <div id="auth-view" class="container hidden">
       <div style="text-align: center; margin-top: 20px">
         <h1 style="font-size: 32px; font-weight: 800; color: var(--primary)">
           DakMitra
@@ -5590,7 +5590,7 @@
                   font-weight: 500;
                 "
               >
-                Changes apply immediately on the spot
+                Changes apply immediately
               </span>
             </div>
           </div>
@@ -6403,9 +6403,7 @@
 
       async function fetchFromServerBackground() {
         // Fast 1.5s true internet check
-        const hasInternet = await checkActualInternet();
-
-        if (!hasInternet) {
+        if (!navigator.onLine) {
           console.log("Offline mode: Skipping background sync.");
           if (!cachedPostOffices || cachedPostOffices.length === 0) {
             document.getElementById(
@@ -6437,19 +6435,16 @@
             from += batchSize;
           }
 
-          if (allRows.length > 0) {
-            const newJson = JSON.stringify(allRows);
-            const oldJson = localStorage.getItem("dakmitra_offline_db");
+          const newJson = JSON.stringify(allRows);
+          const oldJson = localStorage.getItem("dakmitra_offline_db");
 
-            // Only re-render if the server actually has new/changed records
-            if (newJson !== oldJson) {
-              cachedPostOffices = allRows;
-              localStorage.setItem("dakmitra_offline_db", newJson);
-              initializeSearchAndRender(true);
-            }
-            return true;
+          // Only re-render if the server actually has new/changed records
+          if (newJson !== oldJson) {
+            cachedPostOffices = allRows;
+            localStorage.setItem("dakmitra_offline_db", newJson);
+            initializeSearchAndRender(true);
           }
-          return false;
+          return true;
         } catch (error) {
           console.error("Background sync failed:", error);
           return false;
@@ -6472,25 +6467,20 @@
           includeMatches: true,
         });
 
-        // If the user hasn't typed anything yet, load the whole DB (Infinite Scroll handles rendering)
+        syncFavoritesWithCache();
+
         const displayArea = document.getElementById("results-display-area");
         const alreadyRendered =
           displayArea && displayArea.querySelector(".list-item");
 
-        if (
-          !document.getElementById("search-input").value.trim() &&
-          (dataChanged || !alreadyRendered)
-        ) {
-          currentFilteredData = cachedPostOffices.map((item) => ({
-            item,
-            matches: [],
-          }));
-          renderResults();
+        if (dataChanged || !alreadyRendered) {
+          refreshSearchInPlace();
+          refreshDirectoryInPlace();
+        } else {
+          buildDirectoryGroupedData();
         }
         refreshOfficeDropdowns();
-        buildDirectoryGroupedData();
       }
-
       function buildDirectoryGroupedData() {
         if (!cachedPostOffices || cachedPostOffices.length === 0) {
           directoryGroupedData = [];
@@ -7900,7 +7890,7 @@ Exact JSON format:
                 uploadBtn.disabled = false;
               }, 3000);
               fileInput.value = "";
-              fetchAllPostOffices();
+              await fetchAllPostOffices(true);
             }
           } catch (err) {
             console.error(err);
@@ -8890,6 +8880,7 @@ Exact JSON format:
       }
 
       async function signOutApp() {
+        teardownRealtimeSync();
         await supabaseClient.auth.signOut();
         localStorage.removeItem("dakmitra_cached_profile");
         closeSidebar();
@@ -9099,7 +9090,7 @@ Exact JSON format:
 
             if (error) throw error;
             showToast(`✅ Admin: Changes applied instantly!`);
-            fetchAllPostOffices(true); // Force sync to reflect changes
+            await fetchAllPostOffices(true); // Force sync to reflect changes
           } else {
             // Standard User Flow: Insert pending request
             const { error } = await supabaseClient
@@ -9215,64 +9206,233 @@ Exact JSON format:
       }
 
       function applyLocalRecordEdit(id, newAddress, newOffice, newPin) {
-        const normalizedPin = newPin || null;
+        upsertLocalPostOffice({
+          id: id,
+          Address: newAddress,
+          Office: newOffice,
+          Pin: newPin || null,
+        });
+      }
+      // --- UNIFIED REALTIME & LOCAL CACHE STORE ---
+      let uiRefreshTimer = null;
 
-        // 1. Update in-memory database
-        const targetRecord = cachedPostOffices.find(
-          (r) => String(r.id) === String(id)
-        );
-        if (targetRecord) {
-          targetRecord.Address = newAddress;
-          targetRecord.Office = newOffice;
-          targetRecord.Pin = normalizedPin;
-        }
-
-        // 2. Persist immediately to offline localStorage cache
+      function persistPostOfficeCache() {
         try {
           localStorage.setItem(
             "dakmitra_offline_db",
             JSON.stringify(cachedPostOffices)
           );
         } catch (e) {
-          console.warn("Could not update offline cache:", e);
+          console.warn("Failed to persist offline DB:", e);
         }
-
-        // 3. Keep Favorites in sync if this record is favorited
-        const favorites = getSafeStorage(FAV_KEY);
-        const favIdx = favorites.findIndex((f) => String(f.id) === String(id));
-        if (favIdx > -1) {
-          favorites[favIdx].address = newAddress;
-          favorites[favIdx].office = newOffice;
-          favorites[favIdx].pin = normalizedPin || "";
-          localStorage.setItem(FAV_KEY, JSON.stringify(favorites));
-          renderFavorites();
-        }
-
-        // 4. Update sidebar stats & rebuild Fuse search index
-        const statAddrEl = document.getElementById("stat-addresses");
-        const statOffEl = document.getElementById("stat-offices");
-        if (statAddrEl) statAddrEl.textContent = cachedPostOffices.length;
-        if (statOffEl) {
-          statOffEl.textContent = new Set(
-            cachedPostOffices.map((o) => o.Office)
-          ).size;
-        }
-
-        if (window.Fuse) {
-          fuse = new Fuse(cachedPostOffices, {
-            keys: ["Address", "Office", "Pin"],
-            threshold: 0.3,
-            ignoreLocation: false,
-            location: 0,
-            distance: 100,
-            includeMatches: true,
-          });
-        }
-
-        // 5. Refresh Search & Directory in place (preserving filters & scroll position)
-        refreshSearchInPlace();
-        refreshDirectoryInPlace();
       }
+
+      function syncFavoritesWithCache() {
+        const favorites = getSafeStorage(FAV_KEY);
+        if (!favorites.length) return;
+
+        const byId = new Map(cachedPostOffices.map((r) => [String(r.id), r]));
+        let changed = false;
+
+        const updatedFavs = [];
+        favorites.forEach((fav) => {
+          const live = byId.get(String(fav.id));
+          if (!live) {
+            changed = true; // Prune deleted record from favorites
+            return;
+          }
+          const nextPin = live.Pin ?? "";
+          if (
+            fav.address !== live.Address ||
+            fav.office !== live.Office ||
+            String(fav.pin ?? "") !== String(nextPin)
+          ) {
+            changed = true;
+            updatedFavs.push({
+              id: live.id,
+              address: live.Address,
+              office: live.Office,
+              pin: nextPin,
+            });
+          } else {
+            updatedFavs.push(fav);
+          }
+        });
+
+        if (changed) {
+          localStorage.setItem(FAV_KEY, JSON.stringify(updatedFavs));
+          if (
+            document
+              .getElementById("view-favorites")
+              ?.classList.contains("active")
+          ) {
+            renderFavorites();
+          }
+        }
+      }
+
+      function upsertLocalPostOffice(row) {
+        if (!row || row.id === undefined || row.id === null) return;
+
+        // Treat soft-deletes as removals
+        if (row.is_deleted === true) {
+          removeLocalPostOffice(row.id);
+          return;
+        }
+
+        const idx = cachedPostOffices.findIndex(
+          (r) => String(r.id) === String(row.id)
+        );
+        if (idx > -1) {
+          cachedPostOffices[idx] = { ...cachedPostOffices[idx], ...row };
+        } else {
+          cachedPostOffices.push(row);
+        }
+
+        // Keep open Office Staff Details modal live if viewing this exact record
+        if (
+          activeOfficeRecord &&
+          String(activeOfficeRecord.id) === String(row.id)
+        ) {
+          activeOfficeRecord =
+            cachedPostOffices[idx > -1 ? idx : cachedPostOffices.length - 1];
+          const isModalOpen = document
+            .getElementById("office-details-modal-overlay")
+            ?.classList.contains("show");
+          const isViewMode = !document
+            .getElementById("office-modal-view-actions")
+            ?.classList.contains("hidden");
+          if (isModalOpen && isViewMode) {
+            renderOfficeStaffViewMode();
+          }
+        }
+
+        persistPostOfficeCache();
+        scheduleLocalUiRefresh();
+      }
+
+      function removeLocalPostOffice(id) {
+        if (id === undefined || id === null) return;
+
+        const beforeLen = cachedPostOffices.length;
+        cachedPostOffices = cachedPostOffices.filter(
+          (r) => String(r.id) !== String(id)
+        );
+        if (cachedPostOffices.length === beforeLen) return;
+
+        // Close Office Details modal if the deleted record is currently open
+        if (
+          activeOfficeRecord &&
+          String(activeOfficeRecord.id) === String(id)
+        ) {
+          closeOfficeDetailsModal();
+        }
+
+        persistPostOfficeCache();
+        scheduleLocalUiRefresh();
+      }
+
+      // Debounced (80ms) so bulk Excel uploads trigger only 1 smooth UI rebuild
+      function scheduleLocalUiRefresh() {
+        clearTimeout(uiRefreshTimer);
+        uiRefreshTimer = setTimeout(() => {
+          const statAddrEl = document.getElementById("stat-addresses");
+          const statOffEl = document.getElementById("stat-offices");
+          if (statAddrEl) statAddrEl.textContent = cachedPostOffices.length;
+          if (statOffEl) {
+            statOffEl.textContent = new Set(
+              cachedPostOffices.map((o) => o.Office)
+            ).size;
+          }
+
+          if (window.Fuse) {
+            fuse = new Fuse(cachedPostOffices, {
+              keys: ["Address", "Office", "Pin"],
+              threshold: 0.3,
+              ignoreLocation: false,
+              location: 0,
+              distance: 100,
+              includeMatches: true,
+            });
+          }
+
+          syncFavoritesWithCache();
+          refreshSearchInPlace();
+          refreshDirectoryInPlace();
+        }, 80);
+      }
+
+      let realtimeChannel = null;
+
+      function initRealtimeSync() {
+        if (!supabaseClient || realtimeChannel) return;
+
+        realtimeChannel = supabaseClient
+          .channel("dakmitra-live-sync")
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "post_offices" },
+            (payload) => {
+              upsertLocalPostOffice(payload.new);
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "post_offices" },
+            (payload) => {
+              upsertLocalPostOffice(payload.new);
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "DELETE", schema: "public", table: "post_offices" },
+            (payload) => {
+              if (payload.old?.id) removeLocalPostOffice(payload.old.id);
+            }
+          )
+          .on(
+            "postgres_changes",
+            { event: "*", schema: "public", table: "edit_requests" },
+            () => {
+              invalidateApprovalsCache();
+              if (
+                document
+                  .getElementById("view-approvals")
+                  ?.classList.contains("active")
+              ) {
+                switchApprovalTab(currentApprovalTab, true);
+              }
+            }
+          )
+          .subscribe((status) => {
+            if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+              // Reconnect and catch up on missed rows
+              teardownRealtimeSync();
+              setTimeout(() => {
+                initRealtimeSync();
+                fetchFromServerBackground();
+              }, 3000);
+            }
+          });
+      }
+
+      function teardownRealtimeSync() {
+        if (realtimeChannel && supabaseClient) {
+          supabaseClient.removeChannel(realtimeChannel);
+          realtimeChannel = null;
+        }
+      }
+
+      // Auto-sync & reconnect the instant the phone regains internet
+      window.addEventListener("online", () => {
+        const isLoggedIn = !document
+          .getElementById("dashboard-view")
+          .classList.contains("hidden");
+        if (isLoggedIn) {
+          initRealtimeSync();
+          fetchFromServerBackground();
+        }
+      });
 
       function getInlineSaveBtnDefaultHTML() {
         const label = isCurrentUserAdmin ? "Save Changes" : "Submit Edit";
@@ -9567,8 +9727,9 @@ Exact JSON format:
                 }
               );
               if (error) throw error;
+              removeLocalPostOffice(id); // Instantly removes from UI, cache, Directory & Favorites
+              closeAllDirectoryActionTrays();
               showToast("🗑️ Admin: Record deleted instantly.");
-              fetchAllPostOffices(true); // Force sync
             } catch (err) {
               alert("Error: " + err.message);
             }
@@ -10379,7 +10540,7 @@ Exact JSON format:
 
           if (data === "APPROVED") {
             showToast("✅ Request approved and executed!");
-            fetchAllPostOffices(true); // Refresh local cache in the background
+            await fetchAllPostOffices(true); // Refresh local cache in the background
           } else {
             showToast("👍 Vote recorded!");
           }
@@ -11617,6 +11778,7 @@ Exact JSON format:
           }
 
           fetchAllPostOffices();
+          initRealtimeSync();
         } else {
           currentUserId = null;
           authView.classList.remove("hidden");

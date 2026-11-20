@@ -1,81 +1,81 @@
 category,object_name,definition
-01_TABLE_COLUMN,admins,id (uuid) NOT NULL
 01_TABLE_COLUMN,admins,email (text) NOT NULL
 01_TABLE_COLUMN,admins,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,admins,id (uuid) NOT NULL
 01_TABLE_COLUMN,edit_requests,proposed_data (jsonb) NOT NULL
-01_TABLE_COLUMN,edit_requests,action_type (text) NOT NULL
-01_TABLE_COLUMN,edit_requests,id (uuid) NOT NULL DEFAULT gen_random_uuid()
-01_TABLE_COLUMN,edit_requests,post_office_id (bigint)
 01_TABLE_COLUMN,edit_requests,requested_by (uuid) NOT NULL
 01_TABLE_COLUMN,edit_requests,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
 01_TABLE_COLUMN,edit_requests,last_approved_by (uuid)
 01_TABLE_COLUMN,edit_requests,original_data (jsonb)
 01_TABLE_COLUMN,edit_requests,status (text) NOT NULL DEFAULT 'PENDING'::text
-01_TABLE_COLUMN,post_offices,Pin (integer)
+01_TABLE_COLUMN,edit_requests,action_type (text) NOT NULL
+01_TABLE_COLUMN,edit_requests,id (uuid) NOT NULL DEFAULT gen_random_uuid()
+01_TABLE_COLUMN,edit_requests,post_office_id (bigint)
 01_TABLE_COLUMN,post_offices,is_deleted (boolean) DEFAULT false
 01_TABLE_COLUMN,post_offices,last_modified_by (uuid)
 01_TABLE_COLUMN,post_offices,last_approved_by (uuid)
 01_TABLE_COLUMN,post_offices,pa_list (jsonb) DEFAULT '[]'::jsonb
-01_TABLE_COLUMN,post_offices,abpm_contact (text)
-01_TABLE_COLUMN,post_offices,spm_name (text)
-01_TABLE_COLUMN,post_offices,pm_name (text)
-01_TABLE_COLUMN,post_offices,Address (text) NOT NULL
-01_TABLE_COLUMN,post_offices,Office (text) NOT NULL
-01_TABLE_COLUMN,post_offices,spm_contact (text)
+01_TABLE_COLUMN,post_offices,Pin (integer)
 01_TABLE_COLUMN,post_offices,pm_contact (text)
-01_TABLE_COLUMN,post_offices,upload_method (text) DEFAULT 'manual'::text
-01_TABLE_COLUMN,post_offices,abpm_name (text)
-01_TABLE_COLUMN,post_offices,bpm_contact (text)
 01_TABLE_COLUMN,post_offices,bpm_name (text)
+01_TABLE_COLUMN,post_offices,bpm_contact (text)
+01_TABLE_COLUMN,post_offices,Office (text) NOT NULL
+01_TABLE_COLUMN,post_offices,Address (text) NOT NULL
+01_TABLE_COLUMN,post_offices,abpm_name (text)
+01_TABLE_COLUMN,post_offices,abpm_contact (text)
 01_TABLE_COLUMN,post_offices,id (bigint) NOT NULL
 01_TABLE_COLUMN,post_offices,user_id (uuid)
 01_TABLE_COLUMN,post_offices,"inserted_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,post_offices,pm_name (text)
+01_TABLE_COLUMN,post_offices,spm_name (text)
+01_TABLE_COLUMN,post_offices,spm_contact (text)
+01_TABLE_COLUMN,post_offices,upload_method (text) DEFAULT 'manual'::text
 01_TABLE_COLUMN,post_offices_history,action (text) NOT NULL
-01_TABLE_COLUMN,post_offices_history,old_data (jsonb)
-01_TABLE_COLUMN,post_offices_history,new_data (jsonb)
-01_TABLE_COLUMN,post_offices_history,changed_by (uuid)
-01_TABLE_COLUMN,post_offices_history,"changed_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-01_TABLE_COLUMN,post_offices_history,approved_by (uuid)
 01_TABLE_COLUMN,post_offices_history,id (uuid) NOT NULL DEFAULT gen_random_uuid()
 01_TABLE_COLUMN,post_offices_history,post_office_id (bigint) NOT NULL
-01_TABLE_COLUMN,profiles,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,post_offices_history,old_data (jsonb)
+01_TABLE_COLUMN,post_offices_history,new_data (jsonb)
+01_TABLE_COLUMN,post_offices_history,approved_by (uuid)
+01_TABLE_COLUMN,post_offices_history,"changed_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,post_offices_history,changed_by (uuid)
+01_TABLE_COLUMN,profiles,designation (text) NOT NULL
 01_TABLE_COLUMN,profiles,id (uuid) NOT NULL
+01_TABLE_COLUMN,profiles,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
 01_TABLE_COLUMN,profiles,mobile (text)
 01_TABLE_COLUMN,profiles,name (text) NOT NULL
 01_TABLE_COLUMN,profiles,employee_id (text) NOT NULL
-01_TABLE_COLUMN,profiles,designation (text) NOT NULL
 01_TABLE_COLUMN,profiles,email (text) NOT NULL
 01_TABLE_COLUMN,profiles,device_id (text)
 01_TABLE_COLUMN,profiles,avatar_url (text)
+01_TABLE_COLUMN,request_approvals,approved_by (uuid) NOT NULL
 01_TABLE_COLUMN,request_approvals,request_id (uuid) NOT NULL
+01_TABLE_COLUMN,request_approvals,id (uuid) NOT NULL DEFAULT gen_random_uuid()
 01_TABLE_COLUMN,request_approvals,"approved_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
 01_TABLE_COLUMN,request_approvals,is_admin (boolean) DEFAULT false
-01_TABLE_COLUMN,request_approvals,approved_by (uuid) NOT NULL
-01_TABLE_COLUMN,request_approvals,id (uuid) NOT NULL DEFAULT gen_random_uuid()
+02_CONSTRAINT,admins,admins_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 02_CONSTRAINT,admins,admins_pkey: PRIMARY KEY (id)
 02_CONSTRAINT,admins,admins_email_key: UNIQUE (email)
-02_CONSTRAINT,admins,admins_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
-02_CONSTRAINT,edit_requests,edit_requests_post_office_id_fkey: FOREIGN KEY (post_office_id) REFERENCES post_offices(id) ON DELETE SET NULL
-02_CONSTRAINT,edit_requests,fk_edit_requests_last_approved_by: FOREIGN KEY (last_approved_by) REFERENCES profiles(id) ON DELETE SET NULL
-02_CONSTRAINT,edit_requests,edit_requests_requested_by_fkey: FOREIGN KEY (requested_by) REFERENCES profiles(id)
-02_CONSTRAINT,edit_requests,"edit_requests_status_check: CHECK ((status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text])))"
 02_CONSTRAINT,edit_requests,edit_requests_pkey: PRIMARY KEY (id)
 02_CONSTRAINT,edit_requests,"edit_requests_action_type_check: CHECK ((action_type = ANY (ARRAY['ADD'::text, 'EDIT'::text, 'DELETE'::text])))"
-02_CONSTRAINT,post_offices,post_offices_pkey: PRIMARY KEY (id)
-02_CONSTRAINT,post_offices,post_offices_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+02_CONSTRAINT,edit_requests,edit_requests_post_office_id_fkey: FOREIGN KEY (post_office_id) REFERENCES post_offices(id) ON DELETE SET NULL
+02_CONSTRAINT,edit_requests,edit_requests_requested_by_fkey: FOREIGN KEY (requested_by) REFERENCES profiles(id)
+02_CONSTRAINT,edit_requests,"edit_requests_status_check: CHECK ((status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text])))"
+02_CONSTRAINT,edit_requests,fk_edit_requests_last_approved_by: FOREIGN KEY (last_approved_by) REFERENCES profiles(id) ON DELETE SET NULL
 02_CONSTRAINT,post_offices,post_offices_last_approved_by_fkey: FOREIGN KEY (last_approved_by) REFERENCES auth.users(id)
 02_CONSTRAINT,post_offices,post_offices_last_modified_by_fkey: FOREIGN KEY (last_modified_by) REFERENCES auth.users(id)
-02_CONSTRAINT,post_offices_history,"post_offices_history_action_check: CHECK ((action = ANY (ARRAY['INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))"
+02_CONSTRAINT,post_offices,post_offices_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,post_offices,post_offices_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 02_CONSTRAINT,post_offices_history,post_offices_history_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,post_offices_history,"post_offices_history_action_check: CHECK ((action = ANY (ARRAY['INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))"
 02_CONSTRAINT,post_offices_history,post_offices_history_approved_by_fkey: FOREIGN KEY (approved_by) REFERENCES profiles(id)
 02_CONSTRAINT,post_offices_history,post_offices_history_changed_by_fkey: FOREIGN KEY (changed_by) REFERENCES profiles(id)
-02_CONSTRAINT,profiles,profiles_pkey: PRIMARY KEY (id)
 02_CONSTRAINT,profiles,profiles_email_key: UNIQUE (email)
+02_CONSTRAINT,profiles,profiles_pkey: PRIMARY KEY (id)
 02_CONSTRAINT,profiles,profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 02_CONSTRAINT,request_approvals,request_approvals_approved_by_fkey: FOREIGN KEY (approved_by) REFERENCES auth.users(id)
-02_CONSTRAINT,request_approvals,"request_approvals_request_id_approved_by_key: UNIQUE (request_id, approved_by)"
-02_CONSTRAINT,request_approvals,request_approvals_pkey: PRIMARY KEY (id)
 02_CONSTRAINT,request_approvals,request_approvals_request_id_fkey: FOREIGN KEY (request_id) REFERENCES edit_requests(id) ON DELETE CASCADE
+02_CONSTRAINT,request_approvals,request_approvals_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,request_approvals,"request_approvals_request_id_approved_by_key: UNIQUE (request_id, approved_by)"
 03_INDEX,admins -> admins_email_key,CREATE UNIQUE INDEX admins_email_key ON public.admins USING btree (email)
 03_INDEX,admins -> admins_pkey,CREATE UNIQUE INDEX admins_pkey ON public.admins USING btree (id)
 03_INDEX,edit_requests -> edit_requests_pkey,CREATE UNIQUE INDEX edit_requests_pkey ON public.edit_requests USING btree (id)
@@ -606,6 +606,7 @@ $function$
 09_RLS_POLICY,public.edit_requests -> Users can delete their own pending requests,FOR DELETE TO authenticated | USING: ((auth.uid() = requested_by) AND (status = 'PENDING'::text))
 09_RLS_POLICY,public.post_offices -> Allow authenticated users to update office staff details,FOR UPDATE TO authenticated | USING: true | WITH CHECK: true
 09_RLS_POLICY,public.post_offices -> Anyone can read active post offices,FOR SELECT TO public | USING: (is_deleted = false)
+09_RLS_POLICY,public.post_offices -> Authenticated users can read all post offices for realtime sync,FOR SELECT TO authenticated | USING: true
 09_RLS_POLICY,public.post_offices -> Only admins can modify post offices,"FOR ALL TO public | USING: (EXISTS ( SELECT 1
    FROM admins
   WHERE (admins.id = auth.uid())))"
@@ -618,6 +619,8 @@ $function$
 09_RLS_POLICY,public.request_approvals -> Authenticated users can view votes,FOR SELECT TO public | USING: (auth.role() = 'authenticated'::text)
 09_RLS_POLICY,public.request_approvals -> Authenticated users can vote,FOR INSERT TO public | WITH CHECK: (auth.role() = 'authenticated'::text)
 11_REALTIME_TABLE,public.edit_requests,Published in supabase_realtime
+11_REALTIME_TABLE,public.post_offices,Published in supabase_realtime
+11_REALTIME_TABLE,public.request_approvals,Published in supabase_realtime
 12_EXTENSION,pg_stat_statements,version 1.11
 12_EXTENSION,pg_trgm,version 1.6
 12_EXTENSION,pgcrypto,version 1.3
