@@ -9444,8 +9444,53 @@
         if (searchHeroWrap) searchHeroWrap.classList.remove("is-animating");
         isHeroTransitioning = false;
         scrollAccum = 0;
-        // Resync scroll baseline after layout settles to prevent bounce-back
-        if (resultsArea) lastScrollTop = Math.max(0, resultsArea.scrollTop);
+
+        if (resultsArea) {
+          lastScrollTop = Math.max(0, resultsArea.scrollTop);
+          // Auto-unfreeze if the list is now too short to scroll
+          const remainingScroll =
+            resultsArea.scrollHeight - resultsArea.clientHeight;
+          if (isSearchHeroCollapsed && remainingScroll <= 20) {
+            setSearchHeroCollapsed(false);
+          }
+        }
+      }
+
+      if (resultsArea) {
+        let pullStartY = 0;
+        resultsArea.addEventListener(
+          "touchstart",
+          (e) => {
+            pullStartY = e.touches[0].clientY;
+          },
+          { passive: true }
+        );
+        resultsArea.addEventListener(
+          "touchmove",
+          (e) => {
+            if (
+              isSearchHeroCollapsed &&
+              resultsArea.scrollTop <= 5 &&
+              e.touches[0].clientY - pullStartY > 25
+            ) {
+              setSearchHeroCollapsed(false);
+            }
+          },
+          { passive: true }
+        );
+        resultsArea.addEventListener(
+          "wheel",
+          (e) => {
+            if (
+              isSearchHeroCollapsed &&
+              resultsArea.scrollTop <= 5 &&
+              e.deltaY < 0
+            ) {
+              setSearchHeroCollapsed(false);
+            }
+          },
+          { passive: true }
+        );
       }
 
       if (searchHeroWrap) {
@@ -9499,7 +9544,7 @@
               const scrollableRange =
                 resultsArea.scrollHeight - resultsArea.clientHeight;
               const minNeededScroll =
-                (searchHeroWrap?.offsetHeight || 160) + 40;
+                (searchHeroWrap?.offsetHeight || 160) + 150;
 
               if (
                 !isSearchHeroCollapsed &&
