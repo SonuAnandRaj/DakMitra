@@ -5924,6 +5924,8 @@
       }
 
       async function checkForAppUpdate() {
+        if (!(await ensureOnline("Connect to internet to save changes.")))
+          return;
         showToast("🔍 Checking for updates...");
         if ("serviceWorker" in navigator) {
           const regs = await navigator.serviceWorker.getRegistrations();
@@ -6044,6 +6046,31 @@
           return false; // Timeout or DNS failure (Lie-Fi)
         }
       }
+
+      // --- UNIFIED OFFLINE TOAST & CHECK HELPER ---
+      let lastOfflineToastTime = 0;
+
+      function showOfflineToast(extraMsg = "Using cached version.") {
+        const now = Date.now();
+        // Prevents spamming multiple toasts within 2 seconds
+        if (now - lastOfflineToastTime < 2000) return;
+        lastOfflineToastTime = now;
+        showToast(`📴 No internet connection. ${extraMsg}`);
+      }
+
+      async function ensureOnline(offlineMsg = "Using cached version.") {
+        const online = await checkActualInternet();
+        if (!online) {
+          showOfflineToast(offlineMsg);
+          return false;
+        }
+        return true;
+      }
+
+      // Notify automatically if internet drops while using the app
+      window.addEventListener("offline", () => {
+        showOfflineToast("Switched to offline cache.");
+      });
 
       // --- UI CONTROLS (Sidebar & Views) ---
       function toggleSidebar() {
@@ -7149,6 +7176,7 @@
         if (!container) return;
 
         if (!navigator.onLine) {
+          showOfflineToast("AI lookup requires internet.");
           container.innerHTML = `
             <ul class="list-container">
               <li class="list-empty" style="margin-top:0;">
@@ -7836,6 +7864,8 @@ Exact JSON format:
       }
 
       async function uploadExcel() {
+        if (!(await ensureOnline("Connect to internet to save changes.")))
+          return;
         const fileInput = document.getElementById("excel-file");
         const file = fileInput.files[0];
         const uploadBtn = document.getElementById("upload-excel-btn");
@@ -8692,6 +8722,8 @@ Exact JSON format:
 
       // Direct CRUD Save to `post_offices` (No approval queue, no history log)
       async function saveOfficeStaffDetails() {
+        if (!(await ensureOnline("Connect to internet to save changes.")))
+          return;
         if (!activeOfficeRecord || !activeOfficeRecord.id) return;
 
         const saveBtn = document.getElementById("save-office-staff-btn");
@@ -9105,6 +9137,8 @@ Exact JSON format:
       }
 
       async function submitMultipleRecords() {
+        if (!(await ensureOnline("Connect to internet to save changes.")))
+          return;
         const rows = document.querySelectorAll(".manual-entry-row");
         const requests = [];
         const adminDirectEdits = []; // Array for immediate execution if Admin
@@ -9584,6 +9618,8 @@ Exact JSON format:
       }
 
       async function saveInlineEditRecord() {
+        if (!(await ensureOnline("Connect to internet to save changes.")))
+          return;
         if (!activeInlineEditRecord) return;
 
         const newAddress = document
@@ -9800,6 +9836,8 @@ Exact JSON format:
         }
 
         showCustomConfirm(title, message, btnText, async () => {
+          if (!(await ensureOnline("Connect to internet to save changes.")))
+            return;
           const {
             data: { session },
           } = await supabaseClient.auth.getSession();
@@ -9889,6 +9927,18 @@ Exact JSON format:
         const contentDiv = document.getElementById("history-modal-content");
         contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty">Fetching records...</li></ul>`;
         document.getElementById("history-modal-overlay").classList.add("show");
+
+        const online = await checkActualInternet();
+        if (!online) {
+          showOfflineToast("Showing cached history.");
+          const savedHistory = localStorage.getItem(
+            "dakmitra_history_" + postOfficeId
+          );
+          contentDiv.innerHTML =
+            savedHistory ||
+            `<ul class="list-container"><li class="list-empty">📴 No internet connection. No cached history for this record.</li></ul>`;
+          return;
+        }
 
         try {
           // 1. Fetch the audit log
@@ -10081,6 +10131,7 @@ Exact JSON format:
 
           html += `</div>`;
           contentDiv.innerHTML = html;
+          localStorage.setItem("dakmitra_history_" + postOfficeId, html);
         } catch (err) {
           contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error: ${err.message}</li></ul>`;
         }
@@ -10261,6 +10312,28 @@ Exact JSON format:
 
         if (isApprovalsLoading || !cache.hasMore) return;
         isApprovalsLoading = true;
+
+        const online = await checkActualInternet();
+        if (!online) {
+          showOfflineToast("Showing cached approvals.");
+          const savedHtml = localStorage.getItem(
+            "dakmitra_approvals_cache_" + activeTab
+          );
+          const contentEl = document.getElementById("approvals-content");
+          const sentinelEl = document.getElementById("approvals-sentinel");
+
+          if (contentEl) {
+            contentEl.innerHTML =
+              savedHtml ||
+              `<div class="list-empty">📴 No internet connection and no cached ${activeTab} approvals saved yet.</div>`;
+          }
+          if (sentinelEl) {
+            sentinelEl.innerHTML = `<span style="color: var(--text-light); font-size: 13px;">📴 Offline cached view</span>`;
+          }
+          cache.hasMore = false;
+          isApprovalsLoading = false;
+          return;
+        }
 
         const displayArea = document.getElementById("approvals-display-area");
         let contentDiv = document.getElementById("approvals-content");
@@ -10581,12 +10654,13 @@ Exact JSON format:
 
           contentDiv.insertAdjacentHTML("beforeend", html);
 
-          // Save ONLY the first 5 cards (page 0) in memory cache
+          // Save ONLY the first 5 cards (page 0) in memory & localStorage cache
           if (cache.page === 0) {
             cache.html = html;
             cache.loaded = true;
             cache.initialHasMore = cache.hasMore;
             cache.page = 1;
+            localStorage.setItem("dakmitra_approvals_cache_" + activeTab, html);
           } else {
             cache.page++;
           }
@@ -10622,6 +10696,8 @@ Exact JSON format:
         if (sentinel) approvalsObserver.observe(sentinel);
       }
       async function approveRequest(reqId) {
+        if (!(await ensureOnline("Connect to internet to save changes.")))
+          return;
         // Optimistic UI: Instantly hide the card so the app feels fast
         const card = document.getElementById("approval-card-" + reqId);
         if (card) card.style.display = "none";
@@ -10653,6 +10729,8 @@ Exact JSON format:
           "Are you sure you want to reject and close this community request?",
           "Reject",
           async () => {
+            if (!(await ensureOnline("Connect to internet to save changes.")))
+              return;
             // Optimistic UI: Instantly hide the card
             const card = document.getElementById("approval-card-" + reqId);
             if (card) card.style.display = "none";
@@ -10680,6 +10758,8 @@ Exact JSON format:
           "Are you sure you want to withdraw and delete this pending request?",
           "Delete Request",
           async () => {
+            if (!(await ensureOnline("Connect to internet to save changes.")))
+              return;
             // Optimistic UI: Instantly hide the card
             const card = document.getElementById("approval-card-" + reqId);
             if (card) card.style.display = "none";
@@ -10755,7 +10835,7 @@ Exact JSON format:
         if (!hasInternet) {
           syncBtn.textContent = "Sync";
           syncBtn.disabled = false;
-          return showToast("⚠️ No internet connection. Cannot sync.");
+          return showOfflineToast("Using cached database.");
         }
 
         syncBtn.textContent = "Syncing...";
@@ -10841,9 +10921,20 @@ Exact JSON format:
 
         const hasInternet = await checkActualInternet();
         if (!hasInternet) {
-          return showToast(
-            "⚠️ No internet connection for full database export."
-          );
+          if (!cachedPostOffices || cachedPostOffices.length === 0) {
+            return showOfflineToast("No cached data available to export.");
+          }
+          const formattedRows = cachedPostOffices.map((row) => ({
+            Address: row.Address,
+            Office: row.Office,
+            Pin: row.Pin ?? "",
+            Status: "Active (Cached)",
+          }));
+          const ws = XLSX.utils.json_to_sheet(formattedRows);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Post Offices");
+          XLSX.writeFile(wb, "DakMitra_Cached_Database.xlsx");
+          return showOfflineToast("Exported cached database instead.");
         }
 
         const originalText = btn ? btn.textContent : "📊 .xlsx";
@@ -11298,6 +11389,8 @@ Exact JSON format:
       }
 
       async function saveProfileDetails() {
+        if (!(await ensureOnline("Connect to internet to save changes.")))
+          return;
         const newName = document
           .getElementById("edit-profile-name")
           .value.trim();
