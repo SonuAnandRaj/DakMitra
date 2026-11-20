@@ -1922,7 +1922,7 @@
         grid-template-rows: 1fr;
         margin-bottom: 20px;
         transition: grid-template-rows 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-          margin-bottom 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+          margin-bottom 0.55s cubic-bezier(0.22, 1, 0.36, 1);
         will-change: grid-template-rows;
       }
 
@@ -1940,8 +1940,8 @@
 
       #view-search .search-hero {
         margin-bottom: 0;
-        transition: opacity 0.22s ease,
-          transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+        transition: opacity 0.42s ease,
+          transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
         transform-origin: top center;
         will-change: transform, opacity;
       }
@@ -9437,7 +9437,7 @@
         }
 
         // Fallback unlock in case transitionend doesn't fire
-        heroTransitionTimer = setTimeout(finishHeroTransition, 320);
+        heroTransitionTimer = setTimeout(finishHeroTransition, 600);
       }
 
       function finishHeroTransition() {
@@ -9548,7 +9548,7 @@
 
               if (
                 !isSearchHeroCollapsed &&
-                scrollAccum > 36 &&
+                scrollAccum > 65 &&
                 currentScroll > 30 &&
                 scrollableRange > minNeededScroll
               ) {
