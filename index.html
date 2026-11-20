@@ -208,7 +208,21 @@
         padding: 16px;
         margin-bottom: 12px;
         box-shadow: var(--shadow-sm);
-        animation: fadeIn 0.3s ease;
+      }
+
+      @keyframes smoothReveal {
+        from {
+          opacity: 0.35;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .approvals-smooth-in {
+        animation: smoothReveal 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
       }
 
       .skeleton-pill {
@@ -10352,7 +10366,9 @@ Exact JSON format:
         }
 
         if (cache.page === 0) {
-          contentDiv.innerHTML = getApprovalsSkeletonHTML(3);
+          if (!contentDiv.querySelector(".approval-skeleton-card")) {
+            contentDiv.innerHTML = getApprovalsSkeletonHTML(3);
+          }
           if (sentinel) sentinel.innerHTML = "";
         } else if (sentinel) {
           sentinel.innerHTML = `
@@ -10649,7 +10665,10 @@ Exact JSON format:
           });
 
           if (cache.page === 0) {
+            contentDiv.classList.remove("approvals-smooth-in");
             contentDiv.innerHTML = html;
+            void contentDiv.offsetWidth; // Restarts animation cleanly
+            contentDiv.classList.add("approvals-smooth-in");
           } else {
             contentDiv.insertAdjacentHTML("beforeend", html);
           }
