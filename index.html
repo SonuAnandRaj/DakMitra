@@ -2,27 +2,28 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Optimized viewport for mobile apps (Accessibility fixed) -->
+    <!-- Edge-to-edge viewport so content blends seamlessly behind the notch -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>DakMitra</title>
 
     <!-- PWA Requirements -->
     <link rel="manifest" href="manifest.json" />
-    <!-- Exact match with --bg (#f8fafc in light, #090e17 in dark) -->
+    <!-- Theme color synced immediately before first paint -->
     <meta name="theme-color" id="meta-theme-color" content="#f8fafc" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <link rel="apple-touch-icon" href="icon-192.png" />
 
-    <!-- iOS specific tags to hide Safari UI -->
+    <!-- iOS specific tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
 
-    <!-- INSTANT THEME & SYSTEM BAR SYNC (Runs BEFORE CSS/Fonts to stop white flash & notch mismatch) -->
+    <!-- INSTANT THEME & SYSTEM BAR SYNC (Zero flash, zero notch mismatch) -->
     <script>
       (function () {
         const savedTheme = localStorage.getItem("app-theme") || "system";
@@ -31,10 +32,12 @@
           (savedTheme === "system" &&
             window.matchMedia("(prefers-color-scheme: dark)").matches);
         const theme = isDark ? "dark" : "light";
-        const bgColor = isDark ? "#090e17" : "#f8fafc"; // Matches --bg exactly!
+        const bgColor = isDark ? "#090e17" : "#f8fafc";
 
-        document.documentElement.setAttribute("data-theme", theme);
-        document.documentElement.style.backgroundColor = bgColor;
+        const root = document.documentElement;
+        root.setAttribute("data-theme", theme);
+        root.style.colorScheme = theme;
+        root.style.backgroundColor = bgColor;
 
         const metaTheme = document.getElementById("meta-theme-color");
         if (metaTheme) metaTheme.setAttribute("content", bgColor);
@@ -93,10 +96,38 @@
           0 4px 6px -2px rgba(0, 0, 0, 0.05);
         --stripe-bg: rgba(79, 70, 229, 0.04);
       }
-      html,
-      body {
-        /* Stops the browser from bouncing or refreshing */
+      html {
+        background-color: var(--bg);
         overscroll-behavior-y: contain;
+        height: 100%;
+      }
+
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        min-height: 100vh; /* fallback for older WebViews */
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow-x: hidden;
+        overscroll-behavior-y: contain;
+      }
+
+      /* Only animate theme changes AFTER initial boot to prevent cold-start flash */
+      body.theme-transitions-ready {
+        transition: background-color 0.25s ease, color 0.25s ease;
+      }
+
+      /* Seamless top notch cover: eliminates the 1px Android subpixel hairline */
+      .status-bar-cover {
+        position: fixed;
+        top: -2px;
+        left: 0;
+        right: 0;
+        height: calc(env(safe-area-inset-top, 0px) + 2px);
+        background-color: var(--bg);
+        z-index: 101; /* Above .app-bar (100), below sidebar (999) & modals (3000) */
+        pointer-events: none;
       }
 
       /* Re-enable text selection ONLY for actual input fields so staff can type */
@@ -308,15 +339,6 @@
         border-radius: 50%;
         z-index: -1;
         animation: ripple 1.2s infinite ease-out;
-      }
-      body {
-        background-color: var(--bg);
-        color: var(--text);
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        transition: background-color 0.3s ease, color 0.3s ease;
-        overflow-x: hidden;
       }
 
       #dashboard-view:not(.hidden) {
@@ -896,12 +918,12 @@
         align-items: center;
         justify-content: space-between;
         background: var(--bg);
-        padding: calc(12px + env(safe-area-inset-top)) 20px 16px;
-        box-shadow: var(--shadow-sm);
+        padding: calc(12px + env(safe-area-inset-top, 0px)) 20px 14px;
         position: sticky;
         top: 0;
         z-index: 100;
         border-bottom: 1px solid var(--border);
+        box-shadow: 0 1px 0 0 rgba(0, 0, 0, 0.03);
       }
       .profile-menu-btn {
         width: 40px;
@@ -3135,44 +3157,87 @@
         display: block;
       }
 
-      /* --- SPLASH SCREEN (Safe-Area Balanced Center) --- */
+      /* --- PROFESSIONAL NATIVE-STYLE SPLASH SCREEN --- */
       .splash-screen {
         position: fixed;
         inset: 0;
         width: 100%;
         height: 100%;
-        /* Balances top status bar vs bottom gesture/button bar so center never shifts */
-        padding-top: env(safe-area-inset-top, 0px);
-        padding-bottom: env(safe-area-inset-bottom, 0px);
         background-color: var(--bg);
         z-index: 9999;
-        display: grid;
-        place-items: center;
         margin: 0;
+        padding: 0;
+        overflow: hidden;
+        touch-action: none;
         contain: layout paint style;
-        transition: opacity 0.2s ease-out, visibility 0.2s ease-out;
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+          visibility 0.34s cubic-bezier(0.22, 1, 0.36, 1);
       }
+
       .splash-screen.hidden-splash {
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
       }
+
+      /* Centered independently of safe-area padding and locked in px on frame 0 */
       .splash-content {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate3d(-50%, -50%, 0) scale(1);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        transform: translateZ(0); /* Hardware acceleration lock */
+        will-change: transform, opacity;
+        transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 0.28s ease-out;
       }
+
+      .splash-screen.hidden-splash .splash-content {
+        transform: translate3d(-50%, -50%, 0) scale(1.04);
+        opacity: 0;
+      }
+
+      .splash-logo-badge {
+        width: 84px;
+        height: 84px;
+        border-radius: 24px;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        box-shadow: 0 16px 36px -8px rgba(79, 70, 229, 0.38);
+        animation: splashLogoIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      [data-theme="dark"] .splash-logo-badge {
+        box-shadow: 0 16px 40px -8px rgba(129, 140, 248, 0.32);
+      }
+
+      .splash-logo-badge svg {
+        width: 44px;
+        height: 44px;
+        color: #ffffff;
+      }
+
       .splash-title {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
           Roboto, sans-serif;
-        font-size: 42px;
-        line-height: 52px; /* Fixed line-height prevents vertical font shift */
-        height: 52px;
+        font-size: 34px;
+        line-height: 42px;
+        height: 42px;
         font-weight: 800;
-        letter-spacing: -1px;
-        margin: 0 0 20px 0;
+        letter-spacing: -0.8px;
+        margin: 0 0 6px 0;
         background: linear-gradient(
           135deg,
           var(--primary) 0%,
@@ -3182,13 +3247,76 @@
         background-clip: text;
         -webkit-text-fill-color: transparent;
       }
-      .splash-spinner {
-        width: 40px;
-        height: 40px;
-        border: 3.5px solid var(--border);
-        border-top-color: var(--primary);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
+
+      .splash-subtitle {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        color: var(--text-light);
+        margin-bottom: 26px;
+      }
+
+      /* Sleek indeterminate progress bar (replaces harsh spinner) */
+      .splash-progress-track {
+        width: 132px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--border);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .splash-progress-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 45%;
+        border-radius: 999px;
+        background: linear-gradient(
+          90deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+        animation: splashIndeterminate 1.15s cubic-bezier(0.4, 0, 0.2, 1)
+          infinite;
+      }
+
+      @keyframes splashLogoIn {
+        0% {
+          opacity: 0;
+          transform: scale(0.88);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes splashIndeterminate {
+        0% {
+          transform: translateX(-110%);
+        }
+        100% {
+          transform: translateX(260%);
+        }
+      }
+
+      /* Smooth entrance for the main app views when splash fades out */
+      #dashboard-view,
+      #auth-view {
+        animation: appReveal 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+
+      @keyframes appReveal {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
       @keyframes pulseText {
         0% {
@@ -3471,13 +3599,54 @@
     </style>
   </head>
   <body>
-    <!-- SPLASH SCREEN (Hidden on initial boot so Android native splash hands off directly to app UI) -->
-    <div id="splash-screen" class="splash-screen hidden-splash">
-      <div class="splash-content">
+    <!-- Seamless top notch backdrop -->
+    <div class="status-bar-cover" aria-hidden="true"></div>
+
+    <!-- SPLASH SCREEN (Visible immediately on boot, fades out smoothly once app is ready) -->
+    <div id="splash-screen" class="splash-screen">
+      <div id="splash-content" class="splash-content">
+        <div class="splash-logo-badge">
+          <!-- Replace this SVG with <img src="icon-192.png" alt="DakMitra" style="width:100%;height:100%;border-radius:24px;object-fit:cover;" /> if you prefer your PNG icon -->
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+            ></path>
+          </svg>
+        </div>
         <h1 class="splash-title">DakMitra</h1>
-        <div class="splash-spinner"></div>
+        <div class="splash-subtitle">Postal Directory</div>
+        <div class="splash-progress-track">
+          <div class="splash-progress-bar"></div>
+        </div>
       </div>
     </div>
+
+    <!-- LOCK SPLASH VERTICAL CENTER ON FRAME 0 (Stops Android Full-Screen / 3-Button Jump) -->
+    <script>
+      (function () {
+        var content = document.getElementById("splash-content");
+        if (!content) return;
+        var h = window.visualViewport
+          ? window.visualViewport.height
+          : window.innerHeight;
+        if (h > 0) {
+          content.style.top = Math.round(h / 2) + "px";
+        }
+        // Enable smooth theme transitions only after initial paint completes
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            document.body.classList.add("theme-transitions-ready");
+          });
+        });
+      })();
+    </script>
     <!-- Toast Notification -->
     <div id="toast" class="toast">Action Successful!</div>
 
@@ -5910,6 +6079,40 @@
     </div>
 
     <script>
+      // --- SMOOTH SPLASH CONTROLLER ---
+      const SPLASH_START_TIME = performance.now();
+      const SPLASH_MIN_DURATION_MS = 280; // Prevents harsh 1-frame flicker on fast cache loads
+
+      function showSplashScreen() {
+        const splash = document.getElementById("splash-screen");
+        const content = document.getElementById("splash-content");
+        if (!splash) return;
+        if (content) {
+          const h = window.visualViewport
+            ? window.visualViewport.height
+            : window.innerHeight;
+          if (h > 0) content.style.top = Math.round(h / 2) + "px";
+        }
+        splash.classList.remove("hidden-splash");
+      }
+
+      function hideSplashScreen() {
+        const splash = document.getElementById("splash-screen");
+        if (!splash || splash.classList.contains("hidden-splash")) return;
+
+        const elapsed = performance.now() - SPLASH_START_TIME;
+        const remaining = Math.max(0, SPLASH_MIN_DURATION_MS - elapsed);
+
+        setTimeout(() => {
+          requestAnimationFrame(() => {
+            splash.classList.add("hidden-splash");
+          });
+        }, remaining);
+      }
+
+      // Failsafe: never allow splash screen to hang if network/CDN stalls
+      setTimeout(hideSplashScreen, 4500);
+
       // --- CENTRAL APP VERSION CONTROL ---
       const APP_VERSION = "1.0.1"; // <-- Change ONLY this when releasing a new version
       const APP_BUILD_CODE = "100"; // <-- Increment for each build (e.g., 101, 102)
@@ -6384,6 +6587,7 @@
 
         // Matches --bg exactly so top notch & bottom gesture bar blend 100%
         const bgColor = isDark ? "#090e17" : "#f8fafc";
+        document.documentElement.style.colorScheme = isDark ? "dark" : "light";
         document.documentElement.style.backgroundColor = bgColor;
         const metaTheme = document.getElementById("meta-theme-color");
         if (metaTheme) {
@@ -11953,6 +12157,7 @@ Exact JSON format:
           currentUserId = session.user.id;
           authView.classList.add("hidden");
           dashboardView.classList.remove("hidden");
+          hideSplashScreen();
           splashScreen.classList.add("hidden-splash");
 
           const userEmail = session.user.email || "user@example.com";

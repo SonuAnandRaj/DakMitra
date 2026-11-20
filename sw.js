@@ -1,4 +1,4 @@
-const CACHE_NAME = "po-directory-v6"; // <-- Bumped from v5 to v6
+const CACHE_NAME = "po-directory-v7"; 
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
