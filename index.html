@@ -3521,6 +3521,7 @@
               <label>Mobile Number</label>
               <input
                 type="tel"
+                inputmode="numeric"
                 id="signup-mobile"
                 placeholder="e.g. 9876543210"
                 maxlength="10"
@@ -4157,6 +4158,7 @@
                 </svg>
                 <input
                   type="tel"
+                  inputmode="numeric"
                   id="edit-profile-mobile"
                   placeholder="10-digit mobile number"
                   maxlength="10"
@@ -4509,6 +4511,7 @@
                   <input
                     type="text"
                     id="filter-pin"
+                    inputmode="numeric"
                     placeholder="Must have Pin..."
                     oninput="
                       toggleClearBtn('filter-pin', 'clear-pin-btn');
@@ -5705,6 +5708,7 @@
             </svg>
             <input
               type="text"
+              inputmode="numeric"
               id="inline-edit-pin"
               placeholder="e.g. 231305"
               autocomplete="off"
@@ -6601,6 +6605,9 @@
         const filterVal = document.querySelector(
           'input[name="searchFilter"]:checked'
         ).value;
+        const searchBox = document.getElementById("search-input");
+        if (searchBox)
+          searchBox.inputMode = filterVal === "pin" ? "numeric" : "text";
         const filterOffice = document
           .getElementById("filter-office")
           .value.trim()
@@ -8516,7 +8523,7 @@ Exact JSON format:
                 <input type="text" id="crud-bpm-name" placeholder="BPM Full Name" value="${escapeHTML(
                   record.bpm_name || ""
                 )}" />
-                <input type="tel" id="crud-bpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                <input type="tel" inputmode="numeric" id="crud-bpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
                   record.bpm_contact || ""
                 )}" />
               </div>
@@ -8531,7 +8538,7 @@ Exact JSON format:
                 <input type="text" id="crud-abpm-name" placeholder="ABPM Full Name" value="${escapeHTML(
                   record.abpm_name || ""
                 )}" />
-                <input type="tel" id="crud-abpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                <input type="tel" inputmode="numeric" id="crud-abpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
                   record.abpm_contact || ""
                 )}" />
               </div>
@@ -8549,7 +8556,7 @@ Exact JSON format:
                 <input type="text" id="crud-spm-name" placeholder="SPM Full Name" value="${escapeHTML(
                   record.spm_name || ""
                 )}" />
-                <input type="tel" id="crud-spm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                <input type="tel" inputmode="numeric" id="crud-spm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
                   record.spm_contact || ""
                 )}" />
               </div>
@@ -8581,7 +8588,7 @@ Exact JSON format:
                 <input type="text" id="crud-pm-name" placeholder="Post Master Name" value="${escapeHTML(
                   record.pm_name || ""
                 )}" />
-                <input type="tel" id="crud-pm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                <input type="tel" inputmode="numeric" id="crud-pm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
                   record.pm_contact || ""
                 )}" />
               </div>
@@ -8614,7 +8621,7 @@ Exact JSON format:
             <input type="text" class="crud-pa-name" placeholder="PA Full Name" value="${escapeHTML(
               name
             )}" />
-            <input type="tel" class="crud-pa-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+            <input type="tel" inputmode="numeric" class="crud-pa-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
               contact
             )}" />
           </div>
@@ -8995,7 +9002,7 @@ Exact JSON format:
     </div>
     <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
       ${showLabels ? "<label>Pin</label>" : ""}
-      <input type="text" class="manual-Pin" placeholder="e.g. 231305" autocomplete="off" />
+      <input type="text" inputmode="numeric" class="manual-Pin" placeholder="e.g. 231305" autocomplete="off" />
     </div>
     <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
   </div>
