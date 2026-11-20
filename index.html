@@ -8296,43 +8296,55 @@ Exact JSON format:
         );
       }
 
-      // Normalizes `pa_list` from DB into a clean array of { name, contact }
-      function parsePaList(record) {
-        let paEntries = [];
-        const rawPaList =
-          record?.pa_list || record?.PA_List || record?.postal_assistants;
+      // Shared normalizer for JSONB staff arrays (`pa_list` & `mts_list`)
+      function normalizeStaffList(rawList, extraNameKey, extraContactKey) {
+        let entries = [];
 
-        if (Array.isArray(rawPaList)) {
-          paEntries = rawPaList.map((p) => ({
-            name: p.name || p.pa_name || "",
-            contact: p.contact || p.mobile || p.phone || p.pa_contact || "",
-          }));
-        } else if (typeof rawPaList === "string" && rawPaList.trim() !== "") {
+        const mapItem = (p) => ({
+          name: p.name || p[extraNameKey] || "",
+          contact: p.contact || p.mobile || p.phone || p[extraContactKey] || "",
+        });
+
+        if (Array.isArray(rawList)) {
+          entries = rawList.map(mapItem);
+        } else if (typeof rawList === "string" && rawList.trim() !== "") {
           try {
-            const parsed = JSON.parse(rawPaList);
+            const parsed = JSON.parse(rawList);
             if (Array.isArray(parsed)) {
-              paEntries = parsed.map((p) => ({
-                name: p.name || p.pa_name || "",
-                contact: p.contact || p.mobile || p.phone || p.pa_contact || "",
-              }));
+              entries = parsed.map(mapItem);
             }
           } catch (e) {
-            rawPaList.split(/[\n,;]+/).forEach((entry) => {
+            rawList.split(/[\n,;]+/).forEach((entry) => {
               const parts = entry.split(/[-:]/);
               if (parts.length >= 2) {
-                paEntries.push({
+                entries.push({
                   name: parts[0].trim(),
                   contact: parts.slice(1).join("-").trim(),
                 });
               } else if (parts[0].trim()) {
-                paEntries.push({ name: parts[0].trim(), contact: "" });
+                entries.push({ name: parts[0].trim(), contact: "" });
               }
             });
           }
         }
-        return paEntries.filter(
-          (pa) => hasValidValue(pa.name) || hasValidValue(pa.contact)
+
+        return entries.filter(
+          (item) => hasValidValue(item.name) || hasValidValue(item.contact)
         );
+      }
+
+      // Normalizes `pa_list` from DB into a clean array of { name, contact }
+      function parsePaList(record) {
+        const rawPaList =
+          record?.pa_list || record?.PA_List || record?.postal_assistants;
+        return normalizeStaffList(rawPaList, "pa_name", "pa_contact");
+      }
+
+      // Normalizes `mts_list` from DB into a clean array of { name, contact }
+      function parseMtsList(record) {
+        const rawMtsList =
+          record?.mts_list || record?.MTS_List || record?.multi_tasking_staff;
+        return normalizeStaffList(rawMtsList, "mts_name", "mts_contact");
       }
 
       function buildStaffCardHTML(roleLabel, personName, contactNumber) {
@@ -8451,12 +8463,20 @@ Exact JSON format:
             record.abpm_name,
             record.abpm_contact
           );
-        } else if (officeType === "SO") {
-          cardsHtml += buildStaffCardHTML(
-            "Sub Post Master (SPM)",
-            record.spm_name,
-            record.spm_contact
-          );
+        } else if (officeType === "SO" || officeType === "HO") {
+          if (officeType === "SO") {
+            cardsHtml += buildStaffCardHTML(
+              "Sub Post Master (SPM)",
+              record.spm_name,
+              record.spm_contact
+            );
+          } else {
+            cardsHtml += buildStaffCardHTML(
+              "Post Master (PM)",
+              record.pm_name,
+              record.pm_contact
+            );
+          }
 
           const paEntries = parsePaList(record);
           paEntries.forEach((pa, idx) => {
@@ -8466,12 +8486,15 @@ Exact JSON format:
                 : "Postal Assistant (PA)";
             cardsHtml += buildStaffCardHTML(label, pa.name, pa.contact);
           });
-        } else if (officeType === "HO") {
-          cardsHtml += buildStaffCardHTML(
-            "Post Master (PM)",
-            record.pm_name,
-            record.pm_contact
-          );
+
+          const mtsEntries = parseMtsList(record);
+          mtsEntries.forEach((mts, idx) => {
+            const label =
+              mtsEntries.length > 1
+                ? `Multi Tasking Staff (MTS #${idx + 1})`
+                : "Multi Tasking Staff (MTS)";
+            cardsHtml += buildStaffCardHTML(label, mts.name, mts.contact);
+          });
         }
 
         const editBtn = document.getElementById("office-modal-edit-btn");
@@ -8544,9 +8567,14 @@ Exact JSON format:
               </div>
             </div>
           `;
-        } else if (officeType === "SO") {
+          bodyEl.innerHTML = formHtml;
+        } else if (officeType === "SO" || officeType === "HO") {
           const existingPAs = parsePaList(record);
-          formHtml = `
+          const existingMTS = parseMtsList(record);
+
+          const headRoleHtml =
+            officeType === "SO"
+              ? `
             <div class="staff-edit-group">
               <div class="staff-edit-header">
                 <span class="staff-role-label" style="margin:0;">Sub Post Master (SPM)</span>
@@ -8560,25 +8588,8 @@ Exact JSON format:
                   record.spm_contact || ""
                 )}" />
               </div>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-              <span class="staff-role-label" style="margin: 0;">Postal Assistants (PA)</span>
-              <button type="button" class="staff-icon-btn" onclick="addPaInputRow()">➕ Add PA</button>
-            </div>
-            <div id="crud-pa-list-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
-          `;
-
-          bodyEl.innerHTML = formHtml;
-
-          if (existingPAs.length === 0) {
-            addPaInputRow("", "");
-          } else {
-            existingPAs.forEach((pa) => addPaInputRow(pa.name, pa.contact));
-          }
-          return;
-        } else if (officeType === "HO") {
-          formHtml = `
+            </div>`
+              : `
             <div class="staff-edit-group">
               <div class="staff-edit-header">
                 <span class="staff-role-label" style="margin:0;">Post Master (PM)</span>
@@ -8592,11 +8603,38 @@ Exact JSON format:
                   record.pm_contact || ""
                 )}" />
               </div>
-            </div>
-          `;
-        }
+            </div>`;
 
-        bodyEl.innerHTML = formHtml;
+          formHtml = `
+            ${headRoleHtml}
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+              <span class="staff-role-label" style="margin: 0;">Postal Assistants (PA)</span>
+              <button type="button" class="staff-icon-btn" onclick="addPaInputRow()">➕ Add PA</button>
+            </div>
+            <div id="crud-pa-list-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+              <span class="staff-role-label" style="margin: 0;">Multi Tasking Staff (MTS)</span>
+              <button type="button" class="staff-icon-btn" onclick="addMtsInputRow()">➕ Add MTS</button>
+            </div>
+            <div id="crud-mts-list-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+          `;
+
+          bodyEl.innerHTML = formHtml;
+
+          if (existingPAs.length === 0) {
+            addPaInputRow("", "");
+          } else {
+            existingPAs.forEach((pa) => addPaInputRow(pa.name, pa.contact));
+          }
+
+          if (existingMTS.length === 0) {
+            addMtsInputRow("", "");
+          } else {
+            existingMTS.forEach((mts) => addMtsInputRow(mts.name, mts.contact));
+          }
+        }
       }
 
       function clearStaffFieldGroup(nameInputId, contactInputId) {
@@ -8622,6 +8660,29 @@ Exact JSON format:
               name
             )}" />
             <input type="tel" inputmode="numeric" class="crud-pa-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+              contact
+            )}" />
+          </div>
+        `;
+        container.appendChild(row);
+      }
+
+      function addMtsInputRow(name = "", contact = "") {
+        const container = document.getElementById("crud-mts-list-container");
+        if (!container) return;
+
+        const row = document.createElement("div");
+        row.className = "staff-edit-group mts-crud-row";
+        row.innerHTML = `
+          <div class="staff-edit-header">
+            <span class="staff-role-label" style="margin:0;">Multi Tasking Staff (MTS)</span>
+            <button type="button" class="staff-remove-btn" onclick="this.closest('.mts-crud-row').remove()">✕ Remove</button>
+          </div>
+          <div class="staff-edit-inputs">
+            <input type="text" class="crud-mts-name" placeholder="MTS Full Name" value="${escapeHTML(
+              name
+            )}" />
+            <input type="tel" inputmode="numeric" class="crud-mts-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
               contact
             )}" />
           </div>
@@ -8659,14 +8720,7 @@ Exact JSON format:
             abpm_name: abpmName || null,
             abpm_contact: abpmContact || null,
           };
-        } else if (activeOfficeType === "SO") {
-          const spmName = document
-            .getElementById("crud-spm-name")
-            ?.value.trim();
-          const spmContact = document
-            .getElementById("crud-spm-contact")
-            ?.value.trim();
-
+        } else if (activeOfficeType === "SO" || activeOfficeType === "HO") {
           const paRows = document.querySelectorAll(".pa-crud-row");
           const paList = [];
           paRows.forEach((row) => {
@@ -8677,21 +8731,46 @@ Exact JSON format:
             }
           });
 
-          updatePayload = {
-            spm_name: spmName || null,
-            spm_contact: spmContact || null,
-            pa_list: paList,
-          };
-        } else if (activeOfficeType === "HO") {
-          const pmName = document.getElementById("crud-pm-name")?.value.trim();
-          const pmContact = document
-            .getElementById("crud-pm-contact")
-            ?.value.trim();
+          const mtsRows = document.querySelectorAll(".mts-crud-row");
+          const mtsList = [];
+          mtsRows.forEach((row) => {
+            const n = row.querySelector(".crud-mts-name")?.value.trim() || "";
+            const c =
+              row.querySelector(".crud-mts-contact")?.value.trim() || "";
+            if (n || c) {
+              mtsList.push({ name: n, contact: c });
+            }
+          });
 
-          updatePayload = {
-            pm_name: pmName || null,
-            pm_contact: pmContact || null,
-          };
+          if (activeOfficeType === "SO") {
+            const spmName = document
+              .getElementById("crud-spm-name")
+              ?.value.trim();
+            const spmContact = document
+              .getElementById("crud-spm-contact")
+              ?.value.trim();
+
+            updatePayload = {
+              spm_name: spmName || null,
+              spm_contact: spmContact || null,
+              pa_list: paList,
+              mts_list: mtsList,
+            };
+          } else {
+            const pmName = document
+              .getElementById("crud-pm-name")
+              ?.value.trim();
+            const pmContact = document
+              .getElementById("crud-pm-contact")
+              ?.value.trim();
+
+            updatePayload = {
+              pm_name: pmName || null,
+              pm_contact: pmContact || null,
+              pa_list: paList,
+              mts_list: mtsList,
+            };
+          }
         }
 
         try {
@@ -8718,7 +8797,6 @@ Exact JSON format:
           saveBtn.disabled = false;
         }
       }
-
       function closeOfficeDetailsModal() {
         document
           .getElementById("office-details-modal-overlay")
