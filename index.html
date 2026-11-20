@@ -1908,13 +1908,13 @@
       }
 
       #view-search #results-display-area {
-  flex: 1;
-  min-height: 180px;
-  max-height: none;
-  padding-bottom: 220px;
-  transition: none;
-  overscroll-behavior-y: contain;
-}
+        flex: 1;
+        min-height: 180px;
+        max-height: none;
+        padding-bottom: 500px;
+        transition: none;
+        overscroll-behavior-y: contain;
+      }
 
       /* Smooth GPU-friendly Grid collapse wrapper */
       .search-hero-collapse-wrap {
@@ -9544,8 +9544,7 @@
               // Only collapse if enough content remains to scroll after the header hides
               const scrollableRange =
                 resultsArea.scrollHeight - resultsArea.clientHeight;
-              const minNeededScroll =
-                (searchHeroWrap?.offsetHeight || 160);
+              const minNeededScroll = searchHeroWrap?.offsetHeight || 160;
 
               if (
                 !isSearchHeroCollapsed &&
