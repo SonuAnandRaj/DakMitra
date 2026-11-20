@@ -8898,6 +8898,15 @@ Exact JSON format:
         .getElementById("search-input")
         .addEventListener("focus", function () {
           window.speechSynthesis.cancel();
+
+          // Hide Search Options & Recent Searches as soon as the search bar is tapped
+          document
+            .getElementById("advanced-filters-panel")
+            .classList.add("hidden");
+          document
+            .getElementById("search-history-panel")
+            .classList.add("hidden");
+          closeAllDropdowns();
         });
 
       // Add the new listener here
