@@ -5675,7 +5675,11 @@
     <div id="directory-floating-bar" class="directory-floating-bar"></div>
 
     <!-- CUSTOM HISTORY MODAL -->
-    <div id="history-modal-overlay" class="modal-overlay">
+    <div
+      id="history-modal-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeHistoryModal();"
+    >
       <div
         class="modal-card"
         style="
