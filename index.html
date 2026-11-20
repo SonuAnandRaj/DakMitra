@@ -1896,14 +1896,63 @@
         );
       }
 
-      .search-hero.collapsed {
-        max-height: 0;
-        opacity: 0;
-        margin-bottom: 0;
-        padding: 0;
-        border-width: 0;
-        box-shadow: none;
+      /* Keep Search view locked to viewport so the list resizes frame-by-frame with the header */
+      #view-search.active {
+        display: flex;
+        flex-direction: column;
+        height: calc(
+          100dvh - 184px - env(safe-area-inset-top, 0px) -
+            env(safe-area-inset-bottom, 0px)
+        );
+        min-height: 360px;
+      }
+
+      #view-search #results-display-area {
+        flex: 1;
+        min-height: 180px;
+        max-height: none;
+        transition: none; /* Flexbox resizes smoothly in lockstep with grid-template-rows */
+        overscroll-behavior-y: contain;
+      }
+
+      /* Smooth GPU-friendly Grid collapse wrapper */
+      .search-hero-collapse-wrap {
+        display: grid;
+        grid-template-rows: 1fr;
+        margin-bottom: 20px;
+        transition: grid-template-rows 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+          margin-bottom 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+        will-change: grid-template-rows;
+      }
+
+      .search-hero-collapse-inner {
+        min-height: 0;
+        overflow: visible; /* Keeps office autocomplete dropdown unclipped when open */
+      }
+
+      /* Clip only while animating or collapsed */
+      .search-hero-collapse-wrap.is-animating .search-hero-collapse-inner,
+      .search-hero-collapse-wrap.collapsed .search-hero-collapse-inner {
         overflow: hidden;
+      }
+
+      #view-search .search-hero {
+        margin-bottom: 0;
+        transition: opacity 0.22s ease,
+          transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+        transform-origin: top center;
+        will-change: transform, opacity;
+      }
+
+      .search-hero-collapse-wrap.collapsed {
+        grid-template-rows: 0fr;
+        margin-bottom: 0;
+        pointer-events: none;
+      }
+
+      .search-hero-collapse-wrap.collapsed .search-hero {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.985);
       }
 
       .search-hero h2 {
@@ -4496,238 +4545,251 @@
           </div>
         </section>
         <!-- SEARCH VIEW (Default) -->
+
         <section id="view-search" class="view-section active">
-          <div class="search-hero">
-            <div class="search-bar-modern">
-              <div class="search-input-wrapper">
-                <input
-                  type="text"
-                  id="search-input"
-                  placeholder="Type address, office, or Pin..."
-                  autocomplete="off"
-                />
-                <!-- Clear Button -->
-                <button
-                  type="button"
-                  id="clear-search-btn"
-                  class="clear-btn hidden"
-                  onclick="clearSearchInput()"
-                  title="Clear Search"
-                >
-                  ✕
-                </button>
-                <!-- NEW: Force AI Search Button (Borderless SVG) -->
-                <button
-                  type="button"
-                  id="force-ai-search-btn"
-                  class="ai-search-bar-btn"
-                  onclick="forceAiSearch()"
-                  title="Force Online AI Postal Estimation"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path
-                      d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"
-                    ></path>
-                  </svg>
-                </button>
-                <!-- Mic Button -->
-                <button
-                  type="button"
-                  class="mic-btn"
-                  id="mic-btn"
-                  onclick="startVoiceSearch()"
-                  title="Voice Search"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    height="24px"
-                    viewBox="0 0 24 24"
-                    width="24px"
-                    fill="currentColor"
-                  >
-                    <path d="M0 0h24v24H0V0z" fill="none" />
-                    <path
-                      d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <button
-                type="button"
-                class="btn search-action-btn"
-                onclick="triggerSearch()"
-              >
-                Search
-              </button>
-            </div>
-            <!-- TOGGLE BUTTONS ROW -->
-            <div
-              style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px"
-            >
-              <button
-                type="button"
-                id="history-toggle-btn"
-                class="advanced-filter-toggle hidden"
-                style="
-                  margin-top: 0;
-                  flex: 1 1 130px;
-                  justify-content: center;
-                  padding: 8px 4px;
-                  font-size: 13px;
-                  white-space: nowrap;
-                "
-                onclick="toggleSearchHistory()"
-              >
-                🕒 Recent Searches
-              </button>
-
-              <button
-                type="button"
-                class="advanced-filter-toggle"
-                style="
-                  margin-top: 0;
-                  flex: 1 1 130px;
-                  justify-content: center;
-                  padding: 8px 4px;
-                  font-size: 13px;
-                  white-space: nowrap;
-                "
-                onclick="toggleAdvancedFilters()"
-              >
-                ⚙️ Search Options
-              </button>
-            </div>
-
-            <!-- RECENT SEARCHES PANEL -->
-            <div
-              id="search-history-panel"
-              class="advanced-filters-panel hidden"
-            >
-              <span
-                style="
-                  font-size: 13px;
-                  font-weight: 600;
-                  color: var(--text-light);
-                  display: block;
-                  margin-bottom: 10px;
-                "
-                >Recent Searches:</span
-              >
-              <div
-                id="search-history-chips"
-                style="display: flex; gap: 8px; flex-wrap: wrap"
-              ></div>
-            </div>
-
-            <div
-              id="advanced-filters-panel"
-              class="advanced-filters-panel hidden"
-            >
-              <!-- PRIMARY FILTERS (Row 1) -->
-              <div class="search-filters-row">
-                <span class="filter-label">Search in:</span>
-                <div class="chips-container">
-                  <label class="filter-chip">
-                    <input
-                      type="radio"
-                      name="searchFilter"
-                      value="all"
-                      onchange="triggerSearch()"
-                    />
-                    <span>All</span>
-                  </label>
-                  <label class="filter-chip">
-                    <input
-                      type="radio"
-                      name="searchFilter"
-                      value="address"
-                      checked
-                      onchange="triggerSearch()"
-                    />
-                    <span>Address</span>
-                  </label>
-                  <label class="filter-chip">
-                    <input
-                      type="radio"
-                      name="searchFilter"
-                      value="office"
-                      onchange="triggerSearch()"
-                    />
-                    <span>Office</span>
-                  </label>
-                  <label class="filter-chip">
-                    <input
-                      type="radio"
-                      name="searchFilter"
-                      value="pin"
-                      onchange="triggerSearch()"
-                    />
-                    <span>Pin</span>
-                  </label>
-                </div>
-              </div>
-
-              <!-- SECONDARY FILTERS (Row 2) -->
-              <div class="advanced-filters-inputs">
-                <div class="autocomplete-wrapper" style="flex: 1; min-width: 0">
-                  <div class="search-input-wrapper filter-wrapper">
-                    <span class="filter-icon">🏢</span>
+          <div class="search-hero-collapse-wrap" id="search-hero-collapse-wrap">
+            <div class="search-hero-collapse-inner">
+              <div class="search-hero">
+                <div class="search-bar-modern">
+                  <div class="search-input-wrapper">
                     <input
                       type="text"
-                      id="filter-office"
-                      placeholder="Must be in Office..."
-                      oninput="handleSearchOfficeFilterInput(this)"
-                      onfocus="handleSearchOfficeFilterInput(this)"
-                      onblur="setTimeout(closeAllDropdowns, 200)"
+                      id="search-input"
+                      placeholder="Type address, office, or Pin..."
                       autocomplete="off"
                     />
+                    <!-- Clear Button -->
                     <button
                       type="button"
-                      id="clear-office-btn"
+                      id="clear-search-btn"
                       class="clear-btn hidden"
-                      onclick="
-                        clearFilterInput('filter-office', 'clear-office-btn')
-                      "
-                      title="Clear Office Filter"
+                      onclick="clearSearchInput()"
+                      title="Clear Search"
                     >
                       ✕
                     </button>
+                    <!-- NEW: Force AI Search Button (Borderless SVG) -->
+                    <button
+                      type="button"
+                      id="force-ai-search-btn"
+                      class="ai-search-bar-btn"
+                      onclick="forceAiSearch()"
+                      title="Force Online AI Postal Estimation"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"
+                        ></path>
+                      </svg>
+                    </button>
+                    <!-- Mic Button -->
+                    <button
+                      type="button"
+                      class="mic-btn"
+                      id="mic-btn"
+                      onclick="startVoiceSearch()"
+                      title="Voice Search"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        height="24px"
+                        viewBox="0 0 24 24"
+                        width="24px"
+                        fill="currentColor"
+                      >
+                        <path d="M0 0h24v24H0V0z" fill="none" />
+                        <path
+                          d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+                        />
+                      </svg>
+                    </button>
                   </div>
+                  <button
+                    type="button"
+                    class="btn search-action-btn"
+                    onclick="triggerSearch()"
+                  >
+                    Search
+                  </button>
+                </div>
+                <!-- TOGGLE BUTTONS ROW -->
+                <div
+                  style="
+                    display: flex;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    margin-top: 8px;
+                  "
+                >
+                  <button
+                    type="button"
+                    id="history-toggle-btn"
+                    class="advanced-filter-toggle hidden"
+                    style="
+                      margin-top: 0;
+                      flex: 1 1 130px;
+                      justify-content: center;
+                      padding: 8px 4px;
+                      font-size: 13px;
+                      white-space: nowrap;
+                    "
+                    onclick="toggleSearchHistory()"
+                  >
+                    🕒 Recent Searches
+                  </button>
+
+                  <button
+                    type="button"
+                    class="advanced-filter-toggle"
+                    style="
+                      margin-top: 0;
+                      flex: 1 1 130px;
+                      justify-content: center;
+                      padding: 8px 4px;
+                      font-size: 13px;
+                      white-space: nowrap;
+                    "
+                    onclick="toggleAdvancedFilters()"
+                  >
+                    ⚙️ Search Options
+                  </button>
+                </div>
+
+                <!-- RECENT SEARCHES PANEL -->
+                <div
+                  id="search-history-panel"
+                  class="advanced-filters-panel hidden"
+                >
+                  <span
+                    style="
+                      font-size: 13px;
+                      font-weight: 600;
+                      color: var(--text-light);
+                      display: block;
+                      margin-bottom: 10px;
+                    "
+                    >Recent Searches:</span
+                  >
                   <div
-                    id="filter-office-dropdown"
-                    class="autocomplete-dropdown"
+                    id="search-history-chips"
+                    style="display: flex; gap: 8px; flex-wrap: wrap"
                   ></div>
                 </div>
 
-                <div class="search-input-wrapper filter-wrapper">
-                  <span class="filter-icon">📍</span>
-                  <input
-                    type="text"
-                    id="filter-pin"
-                    inputmode="numeric"
-                    placeholder="Must have Pin..."
-                    oninput="
-                      toggleClearBtn('filter-pin', 'clear-pin-btn');
-                      triggerSearch();
-                    "
-                    autocomplete="off"
-                  />
-                  <button
-                    type="button"
-                    id="clear-pin-btn"
-                    class="clear-btn hidden"
-                    onclick="clearFilterInput('filter-pin', 'clear-pin-btn')"
-                    title="Clear Pin Filter"
-                  >
-                    ✕
-                  </button>
+                <div
+                  id="advanced-filters-panel"
+                  class="advanced-filters-panel hidden"
+                >
+                  <!-- PRIMARY FILTERS (Row 1) -->
+                  <div class="search-filters-row">
+                    <span class="filter-label">Search in:</span>
+                    <div class="chips-container">
+                      <label class="filter-chip">
+                        <input
+                          type="radio"
+                          name="searchFilter"
+                          value="all"
+                          onchange="triggerSearch()"
+                        />
+                        <span>All</span>
+                      </label>
+                      <label class="filter-chip">
+                        <input
+                          type="radio"
+                          name="searchFilter"
+                          value="address"
+                          checked
+                          onchange="triggerSearch()"
+                        />
+                        <span>Address</span>
+                      </label>
+                      <label class="filter-chip">
+                        <input
+                          type="radio"
+                          name="searchFilter"
+                          value="office"
+                          onchange="triggerSearch()"
+                        />
+                        <span>Office</span>
+                      </label>
+                      <label class="filter-chip">
+                        <input
+                          type="radio"
+                          name="searchFilter"
+                          value="pin"
+                          onchange="triggerSearch()"
+                        />
+                        <span>Pin</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- SECONDARY FILTERS (Row 2) -->
+                  <div class="advanced-filters-inputs">
+                    <div
+                      class="autocomplete-wrapper"
+                      style="flex: 1; min-width: 0"
+                    >
+                      <div class="search-input-wrapper filter-wrapper">
+                        <span class="filter-icon">🏢</span>
+                        <input
+                          type="text"
+                          id="filter-office"
+                          placeholder="Must be in Office..."
+                          oninput="handleSearchOfficeFilterInput(this)"
+                          onfocus="handleSearchOfficeFilterInput(this)"
+                          onblur="setTimeout(closeAllDropdowns, 200)"
+                          autocomplete="off"
+                        />
+                        <button
+                          type="button"
+                          id="clear-office-btn"
+                          class="clear-btn hidden"
+                          onclick="
+                            clearFilterInput('filter-office', 'clear-office-btn')
+                          "
+                          title="Clear Office Filter"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div
+                        id="filter-office-dropdown"
+                        class="autocomplete-dropdown"
+                      ></div>
+                    </div>
+
+                    <div class="search-input-wrapper filter-wrapper">
+                      <span class="filter-icon">📍</span>
+                      <input
+                        type="text"
+                        id="filter-pin"
+                        inputmode="numeric"
+                        placeholder="Must have Pin..."
+                        oninput="
+                          toggleClearBtn('filter-pin', 'clear-pin-btn');
+                          triggerSearch();
+                        "
+                        autocomplete="off"
+                      />
+                      <button
+                        type="button"
+                        id="clear-pin-btn"
+                        class="clear-btn hidden"
+                        onclick="clearFilterInput('filter-pin', 'clear-pin-btn')"
+                        title="Clear Pin Filter"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -4778,7 +4840,6 @@
               </button>
             </div>
           </div>
-
           <div class="results-container-scroll" id="results-display-area">
             <ul class="list-container">
               <!-- Skeleton Loaders -->
@@ -4800,6 +4861,7 @@
             </ul>
           </div>
         </section>
+
         <!-- DIRECTORY VIEW -->
         <section id="view-directory" class="view-section">
           <div class="search-hero" style="text-align: center">
@@ -6377,19 +6439,10 @@
         } else {
           // 2. Returning to Search: Now that #view-search is visible, reset to initial state if blank
           if (isSearchBlank) {
-            const hero = document.querySelector("#view-search .search-hero");
             const area = document.getElementById("results-display-area");
+            setSearchHeroCollapsed(false, true);
+            if (area) area.scrollTop = 0;
 
-            if (hero) hero.classList.remove("collapsed");
-            if (area) {
-              area.classList.remove("expanded");
-              area.style.maxHeight = "";
-              area.scrollTop = 0; // Works reliably now that #view-search is active/visible!
-            }
-
-            // Reset scroll tracker & panels so it's identical to first-time opening
-            lastScrollTop = 0;
-            isAnimating = false;
             document
               .getElementById("advanced-filters-panel")
               ?.classList.add("hidden");
@@ -9317,56 +9370,132 @@
           clearTimeout(searchTimeout);
           searchTimeout = setTimeout(triggerSearch, 250);
         });
-
-      let lastScrollTop = 0;
-      let isAnimating = false;
+      // --- ULTRA-SMOOTH COLLAPSIBLE SEARCH BAR ---
       const resultsArea = document.getElementById("results-display-area");
-      const searchHero = document.querySelector("#view-search .search-hero");
+      const searchHeroWrap = document.getElementById(
+        "search-hero-collapse-wrap"
+      );
 
-      resultsArea.addEventListener("scroll", function () {
-        if (isAnimating) return;
-        let currentScroll = this.scrollTop;
+      let isSearchHeroCollapsed = false;
+      let isHeroTransitioning = false;
+      let heroTransitionTimer = null;
+      let lastScrollTop = 0;
+      let scrollAccum = 0;
+      let scrollRafId = null;
 
-        if (currentScroll <= 10) {
-          if (searchHero.classList.contains("collapsed")) {
-            isAnimating = true;
-            searchHero.classList.remove("collapsed");
-            resultsArea.classList.remove("expanded");
-            this.style.maxHeight = "";
-            setTimeout(() => {
-              isAnimating = false;
-            }, 350);
-          }
-          lastScrollTop = currentScroll;
+      function setSearchHeroCollapsed(shouldCollapse, instant = false) {
+        if (!searchHeroWrap || isSearchHeroCollapsed === shouldCollapse) return;
+
+        isSearchHeroCollapsed = shouldCollapse;
+        clearTimeout(heroTransitionTimer);
+
+        if (instant) {
+          searchHeroWrap.classList.remove("is-animating");
+          searchHeroWrap.classList.toggle("collapsed", shouldCollapse);
+          isHeroTransitioning = false;
+          scrollAccum = 0;
+          lastScrollTop = resultsArea ? Math.max(0, resultsArea.scrollTop) : 0;
           return;
         }
 
-        if (currentScroll > lastScrollTop && currentScroll > 20) {
-          if (!searchHero.classList.contains("collapsed")) {
-            isAnimating = true;
-            searchHero.classList.add("collapsed");
-            resultsArea.classList.add("expanded");
-            document.getElementById("search-input").blur();
-            let maxVh = window.innerHeight * 0.7;
-            this.style.maxHeight =
-              Math.min(maxVh, this.scrollHeight - 10) + "px";
-            setTimeout(() => {
-              isAnimating = false;
-            }, 350);
-          }
-        } else if (currentScroll < lastScrollTop - 10) {
-          if (searchHero.classList.contains("collapsed")) {
-            isAnimating = true;
-            searchHero.classList.remove("collapsed");
-            resultsArea.classList.remove("expanded");
-            this.style.maxHeight = "";
-            setTimeout(() => {
-              isAnimating = false;
-            }, 350);
-          }
+        isHeroTransitioning = true;
+        searchHeroWrap.classList.add("is-animating");
+
+        if (shouldCollapse) {
+          document.getElementById("search-input")?.blur();
+          document
+            .getElementById("advanced-filters-panel")
+            ?.classList.add("hidden");
+          document
+            .getElementById("search-history-panel")
+            ?.classList.add("hidden");
+          closeAllDropdowns();
+          searchHeroWrap.classList.add("collapsed");
+        } else {
+          searchHeroWrap.classList.remove("collapsed");
         }
-        lastScrollTop = currentScroll <= 0 ? 0 : currentScroll;
-      });
+
+        // Fallback unlock in case transitionend doesn't fire
+        heroTransitionTimer = setTimeout(finishHeroTransition, 320);
+      }
+
+      function finishHeroTransition() {
+        clearTimeout(heroTransitionTimer);
+        if (searchHeroWrap) searchHeroWrap.classList.remove("is-animating");
+        isHeroTransitioning = false;
+        scrollAccum = 0;
+        // Resync scroll baseline after layout settles to prevent bounce-back
+        if (resultsArea) lastScrollTop = Math.max(0, resultsArea.scrollTop);
+      }
+
+      if (searchHeroWrap) {
+        searchHeroWrap.addEventListener("transitionend", (e) => {
+          if (
+            e.target === searchHeroWrap &&
+            e.propertyName === "grid-template-rows"
+          ) {
+            finishHeroTransition();
+          }
+        });
+      }
+
+      if (resultsArea) {
+        resultsArea.addEventListener(
+          "scroll",
+          () => {
+            if (scrollRafId) return;
+            scrollRafId = requestAnimationFrame(() => {
+              scrollRafId = null;
+              const currentScroll = Math.max(0, resultsArea.scrollTop);
+
+              // Ignore synthetic scroll shifts caused by the header resizing
+              if (isHeroTransitioning) {
+                lastScrollTop = currentScroll;
+                return;
+              }
+
+              // Always re-open cleanly near the top
+              if (currentScroll <= 6) {
+                if (isSearchHeroCollapsed) setSearchHeroCollapsed(false);
+                lastScrollTop = currentScroll;
+                scrollAccum = 0;
+                return;
+              }
+
+              const delta = currentScroll - lastScrollTop;
+              lastScrollTop = currentScroll;
+              if (Math.abs(delta) < 1) return;
+
+              // Reset directional accumulator when scroll direction reverses
+              if (
+                (delta > 0 && scrollAccum < 0) ||
+                (delta < 0 && scrollAccum > 0)
+              ) {
+                scrollAccum = 0;
+              }
+              scrollAccum += delta;
+
+              // Only collapse if enough content remains to scroll after the header hides
+              const scrollableRange =
+                resultsArea.scrollHeight - resultsArea.clientHeight;
+              const minNeededScroll =
+                (searchHeroWrap?.offsetHeight || 160) + 40;
+
+              if (
+                !isSearchHeroCollapsed &&
+                scrollAccum > 36 &&
+                currentScroll > 30 &&
+                scrollableRange > minNeededScroll
+              ) {
+                setSearchHeroCollapsed(true);
+              } else if (isSearchHeroCollapsed && scrollAccum < -40) {
+                setSearchHeroCollapsed(false);
+              }
+            });
+          },
+          { passive: true }
+        );
+      }
 
       function getManualEntryRowHTML(showLabels = false) {
         return `
