@@ -10396,10 +10396,6 @@ Exact JSON format:
             return;
           }
 
-          if (cache.page === 0) {
-            contentDiv.innerHTML = "";
-          }
-
           if (!data || data.length === 0) {
             cache.hasMore = false;
             if (cache.page === 0) {
@@ -10652,7 +10648,11 @@ Exact JSON format:
             </div>`;
           });
 
-          contentDiv.insertAdjacentHTML("beforeend", html);
+          if (cache.page === 0) {
+            contentDiv.innerHTML = html;
+          } else {
+            contentDiv.insertAdjacentHTML("beforeend", html);
+          }
 
           // Save ONLY the first 5 cards (page 0) in memory & localStorage cache
           if (cache.page === 0) {
