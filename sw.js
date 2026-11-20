@@ -1,18 +1,17 @@
-const CACHE_NAME = "po-directory-v7"; 
+const CACHE_NAME = "po-directory-v8";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
   "./manifest.json",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
-  "https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js",
   "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js",
-  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
+  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=optional",
 ];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE)),
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
 });
 
@@ -24,49 +23,50 @@ self.addEventListener("activate", (event) => {
         Promise.all(
           keys.map((key) => {
             if (key !== CACHE_NAME) return caches.delete(key);
-          }),
-        ),
+          })
+        )
       )
-      .then(() => self.clients.claim()),
+      .then(() => self.clients.claim())
   );
 });
 
-// Network-First Strategy (for Static App Shell & CDN Assets)
+// Stale-While-Revalidate: Instant 0ms load from cache, silent update in background
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-
-  // Prevent caching of unsupported schemes like chrome-extension://
   if (!event.request.url.startsWith("http")) return;
 
-  // Bypass Service Worker cache for live Supabase database/auth API requests
-  // and Google's 204 internet check (handled directly in index.html)
+  // Never cache live Supabase API calls or connectivity checks
   if (
     event.request.url.includes("supabase.co") ||
-    event.request.url.includes("generate_204")
+    event.request.url.includes("generate_204") ||
+    event.request.url.includes("postalpincode.in")
   ) {
     return;
   }
 
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        // Only cache complete 200 OK responses to prevent Partial Content 206 errors
-        if (networkResponse && networkResponse.status === 200) {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(event.request).then((cachedResponse) => {
+        const networkFetch = fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch(() => null);
+
+        // Return cached response IMMEDIATELY if we have it; otherwise wait for network
+        if (cachedResponse) {
+          return cachedResponse;
         }
-        return networkResponse;
-      })
-      .catch(() => {
-        // Fallback to cache, and if it's a page navigation request, serve index.html
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) return cachedResponse;
+        return networkFetch.then((res) => {
+          if (res) return res;
           if (event.request.mode === "navigate") {
-            return caches.match("./index.html");
+            return cache.match("./index.html");
           }
         });
-      }),
+      });
+    })
   );
 });
