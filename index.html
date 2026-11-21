@@ -4642,7 +4642,7 @@
                   <button
                     type="button"
                     class="btn search-action-btn"
-                    onclick="triggerSearch()"
+                    onclick="triggerSearch(true)"
                   >
                     Search
                   </button>
@@ -6966,7 +6966,21 @@
         return numStr;
       }
 
-      function triggerSearch() {
+      function triggerSearch(hidePanels = false) {
+        if (hidePanels) {
+          document
+            .getElementById("advanced-filters-panel")
+            ?.classList.add("hidden");
+          document
+            .getElementById("search-history-panel")
+            ?.classList.add("hidden");
+          closeAllDropdowns();
+        }
+
+        // Prevent crashes if the user types before background data finishes loading
+        if (!fuse) return;
+
+        // ... rest of your existing triggerSearch() code
         // Prevent crashes if the user types before background data finishes loading
         if (!fuse) return;
         const searchInput = document
