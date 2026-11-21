@@ -8525,18 +8525,24 @@
         const bar = document.getElementById("directory-floating-bar");
         if (!bar) return;
 
-        // If the same chip is clicked again, close the popover
-        if (chipEl.classList.contains("selected-chip")) {
-          closeAllDirectoryActionTrays();
-          return;
-        }
+        const isSameAlreadyOpen =
+          bar.classList.contains("open") &&
+          (chipEl.classList.contains("selected-chip") ||
+            (chipEl.getAttribute("data-record-id") &&
+              chipEl.getAttribute("data-record-id") ===
+                bar.getAttribute("data-open-record-id")));
 
-        // Clear previous selection
-        document
-          .querySelectorAll(
-            ".directory-address-chip.selected-chip, .list-item.selected-chip"
-          )
-          .forEach((c) => c.classList.remove("selected-chip"));
+        closeAllDirectoryActionTrays();
+        if (isSameAlreadyOpen) return;
+
+        bar.setAttribute(
+          "data-open-record-id",
+          chipEl.getAttribute("data-record-id") || ""
+        );
+        bar.setAttribute(
+          "data-open-address",
+          chipEl.getAttribute("data-address") || ""
+        );
 
         let recordId = chipEl.getAttribute("data-record-id") || "";
         const address = chipEl.getAttribute("data-address") || "";
@@ -8628,16 +8634,23 @@
         ?.addEventListener("scroll", closeAllDirectoryActionTrays, {
           passive: true,
         });
-      // Close floating bar if user taps outside a chip, search row, or the bar itself
-      document.addEventListener("click", (e) => {
-        if (
-          !e.target.closest(".directory-address-chip") &&
-          !e.target.closest(".list-item") &&
-          !e.target.closest("#directory-floating-bar")
-        ) {
+      // First tap outside closes the open options; second tap opens a new address
+      document.addEventListener(
+        "click",
+        (e) => {
+          const bar = document.getElementById("directory-floating-bar");
+          if (!bar || !bar.classList.contains("open")) return;
+          if (e.target.closest("#directory-floating-bar")) return;
+
           closeAllDirectoryActionTrays();
-        }
-      });
+
+          if (e.target.closest(".directory-address-chip, .list-item")) {
+            e.stopPropagation();
+            e.preventDefault();
+          }
+        },
+        true
+      );
 
       // Close popover when scrolling either Directory or Search results
       document
