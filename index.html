@@ -12027,14 +12027,21 @@
 
       function selectSearchOfficeFilter(officeName) {
         const input = document.getElementById("filter-office");
-        const dropdown = document.getElementById("filter-office-dropdown");
-        if (!input) return;
+        if (input) input.value = officeName;
 
-        input.value = officeName;
         toggleClearBtn("filter-office", "clear-office-btn");
-        if (dropdown) dropdown.classList.remove("show");
-        input.blur();
+        closeAllDropdowns();
+        document
+          .getElementById("advanced-filters-panel")
+          ?.classList.add("hidden");
+
         triggerSearch();
+
+        // Move focus directly to the main search bar
+        const searchInput = document.getElementById("search-input");
+        if (searchInput) {
+          searchInput.focus();
+        }
       }
 
       function closeAllDropdowns() {
