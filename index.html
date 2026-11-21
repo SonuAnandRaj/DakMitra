@@ -11890,13 +11890,26 @@
       );
 
       function handleSwipeGesture() {
+        // Don't switch tabs if the sidebar or any modal is open
+        if (
+          document.getElementById("sidebar")?.classList.contains("open") ||
+          document.querySelector(".modal-overlay.show")
+        ) {
+          return;
+        }
+
         const deltaX = touchEndX - touchStartX;
         const deltaY = touchEndY - touchStartY;
 
-        // 1. Ensure the swipe is mostly horizontal (not a vertical scroll)
-        // 2. Ensure it travels at least 50px to prevent accidental taps triggering it
-        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
-          // Find which view is currently active
+        const MIN_SWIPE_DISTANCE = 100; // Was 50px — requires a longer deliberate swipe
+        const MAX_VERTICAL_DRIFT = 60; // Cancels swipe if finger drifts up/down too much
+        const HORIZONTAL_RATIO = 2.2; // Must be >2.2x more horizontal than vertical
+
+        if (
+          Math.abs(deltaX) > MIN_SWIPE_DISTANCE &&
+          Math.abs(deltaY) < MAX_VERTICAL_DRIFT &&
+          Math.abs(deltaX) > Math.abs(deltaY) * HORIZONTAL_RATIO
+        ) {
           const currentActiveId = viewOrder.find((view) =>
             document.getElementById("view-" + view).classList.contains("active")
           );
@@ -11905,12 +11918,12 @@
           if (currentIndex === -1) return;
 
           if (deltaX < 0) {
-            // Swipe Left -> Move to the Next Tab (Right)
+            // Swipe Left -> Next Tab
             if (currentIndex < viewOrder.length - 1) {
               switchDashboardView(viewOrder[currentIndex + 1]);
             }
           } else {
-            // Swipe Right -> Move to the Previous Tab (Left)
+            // Swipe Right -> Previous Tab
             if (currentIndex > 0) {
               switchDashboardView(viewOrder[currentIndex - 1]);
             }
