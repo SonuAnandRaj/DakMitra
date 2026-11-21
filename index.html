@@ -5922,7 +5922,6 @@
               id="inline-edit-address"
               placeholder="Address"
               autocomplete="off"
-              onkeydown="if (event.key === 'Enter') { event.preventDefault(); saveInlineEditRecord(); }"
             />
           </div>
         </div>
@@ -5955,7 +5954,6 @@
                 oninput="handleInlineEditOfficeInput(this)"
                 onfocus="handleInlineEditOfficeInput(this)"
                 onblur="setTimeout(closeAllDropdowns, 200)"
-                onkeydown="if (event.key === 'Enter') { event.preventDefault(); saveInlineEditRecord(); }"
                 style="padding-right: 40px; width: 100%"
               />
               <button
@@ -6007,7 +6005,6 @@
               id="inline-edit-pin"
               placeholder="e.g. 231305"
               autocomplete="off"
-              onkeydown="if (event.key === 'Enter') { event.preventDefault(); saveInlineEditRecord(); }"
             />
           </div>
         </div>
@@ -9402,16 +9399,6 @@
           closeAllDropdowns();
         });
 
-      // Add the new listener here
-      document
-        .getElementById("search-input")
-        .addEventListener("keydown", function (e) {
-          if (e.key === "Enter" || e.keyCode === 13) {
-            this.blur();
-            triggerSearch();
-          }
-        });
-
       let searchTimeout;
       document
         .getElementById("search-input")
@@ -12538,6 +12525,110 @@
           console.warn("Optimistic boot skipped:", e);
         }
       })();
+
+      // --- GLOBAL SMART ENTER-KEY & KEYBOARD NAVIGATION ---
+      (function initSmartEnterNavigation() {
+        const TEXT_INPUT_SELECTOR =
+          'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="button"]):not([type="submit"])';
+
+        // Containers where pressing Enter should move to the next relevant input
+        const GROUP_CONTAINERS = [
+          ".form-body", // Auth (Sign In / Sign Up)
+          ".profile-edit-card", // Edit Profile Details
+          ".advanced-filters-inputs", // Search Options (Office + Pin)
+          "#manual-entries-container", // Manual Upload rows
+          ".edit-modal-card", // In-Place Edit Record Modal
+          "#office-modal-body", // Office Staff CRUD Modal (BO / SO / HO)
+        ].join(", ");
+
+        document.addEventListener("keydown", function (e) {
+          if (e.key !== "Enter" && e.keyCode !== 13) return;
+
+          const currentInput = e.target;
+          if (!currentInput || !currentInput.matches(TEXT_INPUT_SELECTOR))
+            return;
+
+          e.preventDefault();
+
+          // 1. Standalone Search Bar: hide keyboard & run search
+          if (currentInput.id === "search-input") {
+            currentInput.blur();
+            triggerSearch(true);
+            return;
+          }
+
+          // 2. Standalone Directory Filter: hide keyboard
+          if (currentInput.id === "directory-filter-input") {
+            currentInput.blur();
+            return;
+          }
+
+          // 3. Close any open autocomplete dropdown before moving/blurring
+          if (typeof closeAllDropdowns === "function") {
+            closeAllDropdowns();
+          }
+
+          // 4. Multi-field containers: move to next visible input, or hide keyboard if last
+          const container = currentInput.closest(GROUP_CONTAINERS);
+          if (container) {
+            const visibleInputs = Array.from(
+              container.querySelectorAll(TEXT_INPUT_SELECTOR)
+            ).filter(
+              (el) =>
+                el.offsetParent !== null && // Skips hidden fields (e.g. #signup-extra-fields in Sign In mode)
+                !el.disabled &&
+                !el.readOnly
+            );
+
+            const currentIndex = visibleInputs.indexOf(currentInput);
+            const nextInput = visibleInputs[currentIndex + 1];
+
+            if (nextInput) {
+              nextInput.focus();
+              // Smoothly keep the next input visible above the mobile keyboard
+              nextInput.scrollIntoView({ behavior: "smooth", block: "center" });
+              return;
+            }
+          }
+
+          // 5. Fallback / Last field in box: hide the mobile keyboard
+          currentInput.blur();
+        });
+      })();
+
+      // Dynamically set native mobile keyboard button label (Next / Done / Search)
+      document.addEventListener("focusin", function (e) {
+        const input = e.target;
+        if (!input || input.tagName !== "INPUT") return;
+
+        if (
+          input.id === "search-input" ||
+          input.id === "directory-filter-input"
+        ) {
+          input.setAttribute("enterkeyhint", "search");
+          return;
+        }
+
+        const container = input.closest(
+          ".form-body, .profile-edit-card, .advanced-filters-inputs, #manual-entries-container, .edit-modal-card, #office-modal-body"
+        );
+        if (!container) {
+          input.setAttribute("enterkeyhint", "done");
+          return;
+        }
+
+        const visibleInputs = Array.from(
+          container.querySelectorAll(
+            'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="button"]):not([type="submit"])'
+          )
+        ).filter(
+          (el) => el.offsetParent !== null && !el.disabled && !el.readOnly
+        );
+
+        const isLast =
+          visibleInputs.indexOf(input) === visibleInputs.length - 1;
+        input.setAttribute("enterkeyhint", isLast ? "done" : "next");
+      });
     </script>
   </body>
 </html>
