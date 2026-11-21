@@ -7930,6 +7930,37 @@
 
       // 2. Triggered when user taps the "✨ AI" button directly inside the Search Bar
       function forceAiSearch() {
+        const aiBtn = document.getElementById("force-ai-search-btn");
+
+        // If AI search is already running (blinking red), stop it immediately
+        if (aiBtn && aiBtn.classList.contains("loading")) {
+          clearTimeout(aiSearchDebounceTimer);
+          aiLatestRequestId++; // Ignores any delayed response still in flight
+          if (aiActiveAbortController) {
+            aiActiveAbortController.abort();
+            aiActiveAbortController = null;
+          }
+          aiBtn.classList.remove("loading");
+
+          if (currentFilteredData && currentFilteredData.length > 0) {
+            renderResults(false); // Restore local results if available
+          } else {
+            const container = document.getElementById(
+              "ai-search-results-container"
+            );
+            if (container) {
+              container.innerHTML = `
+                <ul class="list-container">
+                  <li class="list-empty" style="margin-top:0;">
+                    <span>⏹️ AI search stopped.</span>
+                  </li>
+                </ul>`;
+            }
+          }
+
+          showToast("⏹️ AI search stopped");
+          return;
+        }
         const searchInput = document.getElementById("search-input");
         const rawQuery = searchInput ? searchInput.value.trim() : "";
 
