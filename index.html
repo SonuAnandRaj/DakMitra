@@ -6887,7 +6887,7 @@
           }));
       }
 
-      function setViewMode(mode) {
+      function setViewMode(mode, shouldRender = true) {
         viewMode = mode;
         document
           .getElementById("view-list-btn")
@@ -6895,7 +6895,7 @@
         document
           .getElementById("view-table-btn")
           .classList.toggle("active", mode === "table");
-        renderResults();
+        if (shouldRender) renderResults();
       }
 
       let preferredIndianVoice = null;
@@ -7402,6 +7402,12 @@
                   <div id="ai-search-results-container"></div>
                 `
           );
+        }
+
+        if (!isLoadMore) {
+          displayArea.classList.remove("approvals-smooth-in");
+          void displayArea.offsetWidth;
+          displayArea.classList.add("approvals-smooth-in");
         }
 
         // START WATCHING THE SENTINEL
@@ -11311,7 +11317,7 @@
       // Ensure this runs when the app loads (add this inside checkUserSession)
       const savedView = localStorage.getItem("dakmitra_default_view") || "list";
       document.getElementById("default-view-select").value = savedView;
-      setViewMode(savedView);
+      setViewMode(savedView, false);
 
       // 2. Clear Cache Logic
       function clearAppCache() {
