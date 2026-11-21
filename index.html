@@ -6755,8 +6755,16 @@
         if (filterOffice) {
           activeFilters.push({ type: "office", label: `🏢 ${filterOffice}` });
         }
+
         if (filterPin) {
           activeFilters.push({ type: "pin", label: `📍 ${filterPin}` });
+        }
+
+        if (window.activeSmartOfficeFilter) {
+          activeFilters.push({
+            type: "smart-office",
+            label: `🏢 ${window.activeSmartOfficeFilter.office} (${window.activeSmartOfficeFilter.suffix})`,
+          });
         }
 
         const toggleBtn = document.getElementById("advanced-filter-toggle-btn");
@@ -6832,7 +6840,14 @@
           const el = document.getElementById("filter-pin");
           if (el) el.value = "";
           document.getElementById("clear-pin-btn")?.classList.add("hidden");
+        } else if (type === "smart-office") {
+          const searchEl = document.getElementById("search-input");
+          if (searchEl && window.activeCleanSearchQuery !== undefined) {
+            searchEl.value = window.activeCleanSearchQuery;
+          }
+          window.activeSmartOfficeFilter = null;
         }
+
         triggerSearch();
       }
 
@@ -7168,7 +7183,75 @@
           return false;
         }
       }
+
+      // --- SMART 3-DIGIT PIN SUFFIX OFFICE FILTER ---
+      let pinSuffixToOfficeMap = new Map();
+      window.activeCleanSearchQuery = "";
+      window.activeSmartOfficeFilter = null;
+
+      function buildPinSuffixIndex() {
+        pinSuffixToOfficeMap.clear();
+        if (!cachedPostOffices) return;
+
+        cachedPostOffices.forEach((row) => {
+          const pinStr = String(row.Pin || "").trim();
+          const officeName = String(row.Office || "").trim();
+          if (/^\d{6}$/.test(pinStr) && officeName) {
+            const suffix = pinStr.slice(-3);
+            if (!pinSuffixToOfficeMap.has(suffix)) {
+              pinSuffixToOfficeMap.set(suffix, officeName);
+            }
+          }
+        });
+      }
+
+      function parseSmartSearchQuery(
+        rawInput,
+        searchMode,
+        manualOfficeFilter,
+        manualPinFilter
+      ) {
+        let text = String(rawInput || "").trim();
+
+        // Do not hijack if user is in "Pin" mode or already set manual Office/Pin filters
+        if (
+          !text ||
+          searchMode === "pin" ||
+          manualOfficeFilter ||
+          manualPinFilter
+        ) {
+          return { cleanQuery: text, detectedSuffix: null, targetOffice: null };
+        }
+
+        // Normalize voice-dictated spaced digits (e.g. "hallia 2 1 1" -> "hallia 211")
+        text = text
+          .replace(/(?:^|\s)(\d)\s+(\d)\s+(\d)$/, " $1$2$3")
+          .replace(/^(\d)\s+(\d)\s+(\d)(?:\s|$)/, "$1$2$3 ")
+          .trim();
+
+        const patterns = [
+          { regex: /^(.*?)\s*[@\-/]\s*(\d{3})\s*$/, queryIdx: 1, suffixIdx: 2 },
+          { regex: /^(.+?[a-zA-Z])\s*(\d{3})$/, queryIdx: 1, suffixIdx: 2 },
+          { regex: /^(\d{3})\s*([a-zA-Z].*)$/, queryIdx: 2, suffixIdx: 1 },
+        ];
+
+        for (const { regex, queryIdx, suffixIdx } of patterns) {
+          const match = text.match(regex);
+          if (match && pinSuffixToOfficeMap.has(match[suffixIdx])) {
+            const suffix = match[suffixIdx];
+            return {
+              cleanQuery: match[queryIdx].trim(),
+              detectedSuffix: suffix,
+              targetOffice: pinSuffixToOfficeMap.get(suffix),
+            };
+          }
+        }
+
+        return { cleanQuery: text, detectedSuffix: null, targetOffice: null };
+      }
+
       function initializeSearchAndRender(dataChanged = false) {
+        buildPinSuffixIndex();
         const totalRecords = cachedPostOffices.length;
         const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office))
           .size;
@@ -7319,10 +7402,9 @@
           closeAllDropdowns();
         }
 
-        updateActiveFilterIndicators();
-
         // Prevent crashes if the user types before background data finishes loading
         if (!fuse) return;
+
         const searchInput = document
           .getElementById("search-input")
           .value.trim();
@@ -7341,6 +7423,22 @@
           .value.trim()
           .toLowerCase();
 
+        // Parse 3-digit PIN suffix into a strict Office filter
+        const { cleanQuery, detectedSuffix, targetOffice } =
+          parseSmartSearchQuery(
+            searchInput,
+            filterVal,
+            filterOffice,
+            filterPin
+          );
+
+        window.activeCleanSearchQuery = cleanQuery;
+        window.activeSmartOfficeFilter = targetOffice
+          ? { suffix: detectedSuffix, office: targetOffice }
+          : null;
+
+        updateActiveFilterIndicators();
+
         if (!searchInput && !filterOffice && !filterPin) {
           currentFilteredData = cachedPostOffices.map((item) => ({
             item,
@@ -7352,9 +7450,19 @@
 
         if (searchInput.length > 2) saveSearchTerm(searchInput);
 
+        // Narrow dataset strictly by Office BEFORE running Fuse.js
+        const searchDataset = targetOffice
+          ? cachedPostOffices.filter(
+              (row) =>
+                String(row.Office || "")
+                  .trim()
+                  .toLowerCase() === targetOffice.toLowerCase()
+            )
+          : cachedPostOffices;
+
         let baseData = [];
-        if (!searchInput) {
-          baseData = cachedPostOffices.map((item) => ({ item, matches: [] }));
+        if (!cleanQuery) {
+          baseData = searchDataset.map((item) => ({ item, matches: [] }));
         } else {
           let keysToSearch = ["Address", "Office", "Pin"];
           if (filterVal === "address") keysToSearch = ["Address"];
@@ -7362,11 +7470,11 @@
           if (filterVal === "pin") keysToSearch = ["Pin"];
 
           // STRICT MODE FOR NUMBERS, FUZZY MODE FOR TEXT
-          let isNumericSearch = /^\d+$/.test(searchInput);
+          let isNumericSearch = /^\d+$/.test(cleanQuery);
           let activeThreshold = isNumericSearch ? 0.0 : 0.3;
           let activeIgnoreLocation = isNumericSearch ? true : false;
 
-          fuse = new Fuse(cachedPostOffices, {
+          fuse = new Fuse(searchDataset, {
             keys: keysToSearch,
             threshold: activeThreshold,
             ignoreLocation: activeIgnoreLocation,
@@ -7379,7 +7487,7 @@
             },
           });
 
-          baseData = fuse.search(searchInput);
+          baseData = fuse.search(cleanQuery);
         }
 
         // Apply secondary MUST-HAVE filters
@@ -7486,9 +7594,10 @@
         const match = matches.find((m) => m.key === key);
         if (!match) return safeText;
 
-        const searchInput = document
-          .getElementById("search-input")
-          .value.trim();
+        const searchInput = (
+          window.activeCleanSearchQuery ||
+          document.getElementById("search-input").value
+        ).trim();
 
         // 2. EXACT SUBSTRING BYPASS (Case-Insensitive)
         // Fixes the "1210" number highlighting issue and cleans up exact word matches.
@@ -10294,6 +10403,7 @@
       function scheduleLocalUiRefresh() {
         clearTimeout(uiRefreshTimer);
         uiRefreshTimer = setTimeout(() => {
+          buildPinSuffixIndex();
           const statAddrEl = document.getElementById("stat-addresses");
           const statOffEl = document.getElementById("stat-offices");
           if (statAddrEl) statAddrEl.textContent = cachedPostOffices.length;
