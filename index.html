@@ -3855,6 +3855,53 @@
           opacity: 0;
         }
       }
+
+      /* --- NO HORIZONTAL SCROLL IN SEARCH TABLE VIEW --- */
+      #view-search #results-display-area {
+        overflow-x: hidden;
+      }
+
+      table.data-table {
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      table.data-table th,
+      table.data-table td {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        white-space: normal;
+      }
+
+      /* Balanced column widths: Address | Office | Pin */
+      table.data-table th:nth-child(1),
+      table.data-table td:nth-child(1) {
+        width: 42%;
+      }
+
+      table.data-table th:nth-child(2),
+      table.data-table td:nth-child(2) {
+        width: 36%;
+      }
+
+      table.data-table th:nth-child(3),
+      table.data-table td:nth-child(3) {
+        width: 22%;
+        white-space: nowrap; /* Keeps 6-digit PINs on one line */
+      }
+
+      /* Tighter padding & font size on mobile so text has plenty of room */
+      @media (max-width: 600px) {
+        table.data-table th {
+          padding: 12px 10px;
+          font-size: 11px;
+        }
+
+        table.data-table td {
+          padding: 12px 10px;
+          font-size: 13.5px;
+        }
+      }
     </style>
   </head>
   <body>
