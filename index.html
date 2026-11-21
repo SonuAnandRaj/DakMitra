@@ -3691,6 +3691,170 @@
       .directory-floating-bar::before {
         background-size: 100% 3px;
       }
+
+      /* --- ACTIVE SEARCH FILTER INDICATORS --- */
+      .advanced-filter-toggle.has-active-filters {
+        background: linear-gradient(
+          135deg,
+          rgba(79, 70, 229, 0.14) 0%,
+          rgba(245, 158, 11, 0.16) 100%
+        );
+        color: var(--primary);
+        border: 1px solid rgba(79, 70, 229, 0.35);
+        box-shadow: 0 4px 12px -4px rgba(79, 70, 229, 0.25);
+      }
+
+      [data-theme="dark"] .advanced-filter-toggle.has-active-filters {
+        background: linear-gradient(
+          135deg,
+          rgba(129, 140, 248, 0.18) 0%,
+          rgba(251, 191, 36, 0.16) 100%
+        );
+        border-color: rgba(129, 140, 248, 0.4);
+      }
+
+      .filter-count-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        color: #ffffff;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--accent) 100%
+        );
+        box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
+        animation: filterBadgePop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      .filter-pulse-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        position: relative;
+        flex-shrink: 0;
+      }
+
+      .filter-pulse-dot::after {
+        content: "";
+        position: absolute;
+        inset: -3px;
+        border-radius: 50%;
+        border: 2px solid var(--accent);
+        animation: filterPulseRing 1.6s cubic-bezier(0.215, 0.61, 0.355, 1)
+          infinite;
+      }
+
+      /* Subtle glow on the main search bar when filters are active */
+      .search-input-wrapper.has-active-filters {
+        border-color: rgba(245, 158, 11, 0.65);
+        box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
+      }
+
+      /* Always-visible Active Filter Chips Bar */
+      .active-filters-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--border);
+        animation: fadeInDown 0.25s ease;
+      }
+
+      .active-filter-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px 5px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--primary);
+        background: rgba(79, 70, 229, 0.1);
+        border: 1px solid rgba(79, 70, 229, 0.25);
+        animation: filterBadgePop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)
+          backwards;
+      }
+
+      [data-theme="dark"] .active-filter-pill {
+        background: rgba(129, 140, 248, 0.16);
+        border-color: rgba(129, 140, 248, 0.35);
+      }
+
+      .active-filter-pill button {
+        background: rgba(79, 70, 229, 0.16);
+        color: var(--primary);
+        border: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        font-size: 10px;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.15s ease, background 0.2s ease;
+      }
+
+      .active-filter-pill button:hover {
+        background: var(--primary);
+        color: #ffffff;
+        transform: scale(1.1);
+      }
+
+      .clear-all-filters-pill {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        padding: 5px 11px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-left: auto;
+        transition: transform 0.15s ease, background 0.2s ease;
+      }
+
+      .clear-all-filters-pill:hover {
+        background: #ef4444;
+        color: #ffffff;
+      }
+
+      .clear-all-filters-pill:active {
+        transform: scale(0.94);
+      }
+
+      @keyframes filterBadgePop {
+        0% {
+          opacity: 0;
+          transform: scale(0.65);
+        }
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes filterPulseRing {
+        0% {
+          transform: scale(0.8);
+          opacity: 0.85;
+        }
+        100% {
+          transform: scale(2.1);
+          opacity: 0;
+        }
+      }
     </style>
   </head>
   <body>
@@ -4676,6 +4840,7 @@
 
                   <button
                     type="button"
+                    id="advanced-filter-toggle-btn"
                     class="advanced-filter-toggle"
                     style="
                       margin-top: 0;
@@ -4690,6 +4855,12 @@
                     ⚙️ Search Options
                   </button>
                 </div>
+
+                <!-- ACTIVE FILTER CHIPS BAR (Auto-shows whenever any filter is active) -->
+                <div
+                  id="active-filters-bar"
+                  class="active-filters-bar hidden"
+                ></div>
 
                 <!-- RECENT SEARCHES PANEL -->
                 <div
@@ -6510,6 +6681,132 @@
           .replace(/'/g, "&#039;");
       }
 
+      // --- ACTIVE SEARCH FILTER VISUAL INDICATORS ---
+      function updateActiveFilterIndicators() {
+        const filterVal =
+          document.querySelector('input[name="searchFilter"]:checked')?.value ||
+          "address";
+        const filterOffice =
+          document.getElementById("filter-office")?.value.trim() || "";
+        const filterPin =
+          document.getElementById("filter-pin")?.value.trim() || "";
+
+        const activeFilters = [];
+
+        // Default is "address", so only flag if user switched to All, Office, or Pin
+        if (filterVal !== "address") {
+          const labels = {
+            all: "All Fields",
+            office: "Office Only",
+            pin: "PIN Only",
+          };
+          activeFilters.push({
+            type: "mode",
+            label: `🔍 ${labels[filterVal] || filterVal}`,
+          });
+        }
+        if (filterOffice) {
+          activeFilters.push({ type: "office", label: `🏢 ${filterOffice}` });
+        }
+        if (filterPin) {
+          activeFilters.push({ type: "pin", label: `📍 ${filterPin}` });
+        }
+
+        const toggleBtn = document.getElementById("advanced-filter-toggle-btn");
+        const bar = document.getElementById("active-filters-bar");
+        const searchWrapper = document.querySelector(
+          "#view-search .search-bar-modern .search-input-wrapper"
+        );
+
+        const count = activeFilters.length;
+
+        if (count === 0) {
+          if (toggleBtn) {
+            toggleBtn.classList.remove("has-active-filters");
+            toggleBtn.innerHTML = "⚙️ Search Options";
+          }
+          if (bar) {
+            bar.classList.add("hidden");
+            bar.innerHTML = "";
+          }
+          if (searchWrapper)
+            searchWrapper.classList.remove("has-active-filters");
+          return;
+        }
+
+        // 1. Light up the Search Options button with pulsing dot + count badge
+        if (toggleBtn) {
+          toggleBtn.classList.add("has-active-filters");
+          toggleBtn.innerHTML = `
+            <span class="filter-pulse-dot"></span>
+            <span>⚙️ Filtered</span>
+            <span class="filter-count-badge">${count}</span>
+          `;
+        }
+
+        // 2. Highlight the main search bar border
+        if (searchWrapper) searchWrapper.classList.add("has-active-filters");
+
+        // 3. Render removable filter pills
+        if (bar) {
+          let html = activeFilters
+            .map(
+              (f) => `
+              <span class="active-filter-pill">
+                <span>${escapeHTML(f.label)}</span>
+                <button type="button" onclick="removeSingleFilter('${
+                  f.type
+                }')" title="Remove filter">✕</button>
+              </span>
+            `
+            )
+            .join("");
+
+          if (count > 1) {
+            html += `<button type="button" class="clear-all-filters-pill" onclick="clearAllSearchFilters()">Clear all</button>`;
+          }
+
+          bar.innerHTML = html;
+          bar.classList.remove("hidden");
+        }
+      }
+
+      function removeSingleFilter(type) {
+        if (type === "mode") {
+          const defaultRadio = document.querySelector(
+            'input[name="searchFilter"][value="address"]'
+          );
+          if (defaultRadio) defaultRadio.checked = true;
+        } else if (type === "office") {
+          const el = document.getElementById("filter-office");
+          if (el) el.value = "";
+          document.getElementById("clear-office-btn")?.classList.add("hidden");
+        } else if (type === "pin") {
+          const el = document.getElementById("filter-pin");
+          if (el) el.value = "";
+          document.getElementById("clear-pin-btn")?.classList.add("hidden");
+        }
+        triggerSearch();
+      }
+
+      function clearAllSearchFilters() {
+        const defaultRadio = document.querySelector(
+          'input[name="searchFilter"][value="address"]'
+        );
+        if (defaultRadio) defaultRadio.checked = true;
+
+        const offEl = document.getElementById("filter-office");
+        const pinEl = document.getElementById("filter-pin");
+        if (offEl) offEl.value = "";
+        if (pinEl) pinEl.value = "";
+
+        document.getElementById("clear-office-btn")?.classList.add("hidden");
+        document.getElementById("clear-pin-btn")?.classList.add("hidden");
+
+        triggerSearch();
+        showToast("🧹 All search filters cleared");
+      }
+
       // Shared Favorite Button Styling Logic
       function getFavoriteBtnStyles(isFav, isTable = false) {
         const starIcon = isFav
@@ -6641,14 +6938,14 @@
 
         if (favorites.length === 0) {
           displayArea.innerHTML = `
-                  <ul class="list-container">
-                    <li class="list-empty">
-                      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                      </svg>
-                      <span>No favorites saved yet.</span>
-                    </li>
-                  </ul>`;
+                        <ul class="list-container">
+                          <li class="list-empty">
+                            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                            <span>No favorites saved yet.</span>
+                          </li>
+                        </ul>`;
           return;
         }
 
@@ -6657,34 +6954,34 @@
           const favStyle = getFavoriteBtnStyles(true); // Always true in favorites view
 
           html += `
-                    <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
-                        <div style="flex: 1 1 200px;">
-                          <div class="office-title">${escapeHTML(
-                            row.address
-                          )}</div>
-                          <div class="sub-office">
-                            <span class="badge badge-primary">🏢 ${escapeHTML(
-                              row.office
-                            )}</span>
-                            <span class="badge">📍 ${
-                              escapeHTML(row.pin) || "N/A"
-                            }</span>
-                          </div>
-                        </div>
-                        <div style="display: flex; justify-content: flex-end;">
-                          <button onclick="toggleFavorite('${
-                            row.id
-                          }', '${escapeForOnclick(
+                          <li class="list-item" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+                              <div style="flex: 1 1 200px;">
+                                <div class="office-title">${escapeHTML(
+                                  row.address
+                                )}</div>
+                                <div class="sub-office">
+                                  <span class="badge badge-primary">🏢 ${escapeHTML(
+                                    row.office
+                                  )}</span>
+                                  <span class="badge">📍 ${
+                                    escapeHTML(row.pin) || "N/A"
+                                  }</span>
+                                </div>
+                              </div>
+                              <div style="display: flex; justify-content: flex-end;">
+                                <button onclick="toggleFavorite('${
+                                  row.id
+                                }', '${escapeForOnclick(
             row.address
           )}', '${escapeForOnclick(row.office)}', '${escapeForOnclick(
             row.pin
           )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
             favStyle.style
           }">
-                            ${favStyle.icon}
-                          </button>
-                        </div>
-                    </li>`;
+                                  ${favStyle.icon}
+                                </button>
+                              </div>
+                          </li>`;
         });
         html += `</ul>`;
         displayArea.innerHTML = html;
@@ -6975,10 +7272,8 @@
           closeAllDropdowns();
         }
 
-        // Prevent crashes if the user types before background data finishes loading
-        if (!fuse) return;
+        updateActiveFilterIndicators();
 
-        // ... rest of your existing triggerSearch() code
         // Prevent crashes if the user types before background data finishes loading
         if (!fuse) return;
         const searchInput = document
@@ -7244,23 +7539,23 @@
           const rawQuery = document.getElementById("search-input").value.trim();
 
           displayArea.innerHTML = `
-                  <div class="ai-fallback-banner">
-                    <div class="ai-fallback-banner-icon">⚠️</div>
-                    <div class="ai-fallback-banner-text">
-                      <strong>No Match in Local Database</strong>
-                      <span>
-                        "${escapeHTML(
-                          rawQuery
-                        )}" is not listed in DakMitra's verified records.
-                        ${
-                          rawQuery.length >= 3
-                            ? "Showing <b>AI-estimated postal routing</b> below—please verify before sorting."
-                            : "Type at least 3 letters to trigger Online AI Postal Estimation."
-                        }
-                      </span>
-                    </div>
-                  </div>
-                  <div id="ai-search-results-container"></div>`;
+                        <div class="ai-fallback-banner">
+                          <div class="ai-fallback-banner-icon">⚠️</div>
+                          <div class="ai-fallback-banner-text">
+                            <strong>No Match in Local Database</strong>
+                            <span>
+                              "${escapeHTML(
+                                rawQuery
+                              )}" is not listed in DakMitra's verified records.
+                              ${
+                                rawQuery.length >= 3
+                                  ? "Showing <b>AI-estimated postal routing</b> below—please verify before sorting."
+                                  : "Type at least 3 letters to trigger Online AI Postal Estimation."
+                              }
+                            </span>
+                          </div>
+                        </div>
+                        <div id="ai-search-results-container"></div>`;
 
           if (rawQuery.length >= 3) {
             scheduleAutoAiSearch(rawQuery);
@@ -7297,27 +7592,27 @@
               const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
               html += `
-                    <li class="list-item"
-                        onclick="openDirectoryChipActions(this)"
-                        data-record-id="${escapeHTML(row.id)}"
-                        data-address="${escapeHTML(row.Address)}"
-                        data-office="${escapeHTML(row.Office)}"
-                        data-pin="${escapeHTML(row.Pin || "")}"
-                        style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
-                        <div style="width: 100%;">
-                          <div class="office-title">${addressHtml}</div>
-                          <div class="sub-office">
-                            <span class="badge badge-primary" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                              row.Office
-                            )}')" title="Double-click to open in Directory">🏢 ${officeHtml}</span>
-                            <span class="badge" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                              row.Office
-                            )}')" title="Double-click to open in Directory">📍 ${
+                          <li class="list-item"
+                              onclick="openDirectoryChipActions(this)"
+                              data-record-id="${escapeHTML(row.id)}"
+                              data-address="${escapeHTML(row.Address)}"
+                              data-office="${escapeHTML(row.Office)}"
+                              data-pin="${escapeHTML(row.Pin || "")}"
+                              style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                              <div style="width: 100%;">
+                                <div class="office-title">${addressHtml}</div>
+                                <div class="sub-office">
+                                  <span class="badge badge-primary" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+                                    row.Office
+                                  )}')" title="Double-click to open in Directory">🏢 ${officeHtml}</span>
+                                  <span class="badge" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+                                    row.Office
+                                  )}')" title="Double-click to open in Directory">📍 ${
                 PinHtml || "N/A"
               }</span>
-                          </div>
-                        </div>
-                    </li>`;
+                                </div>
+                              </div>
+                          </li>`;
             });
           html += `</ul>`;
 
@@ -7328,8 +7623,8 @@
           displayArea.innerHTML = html;
         } else {
           let html = `<table class="data-table">
-                        <thead><tr><th>Address</th><th>Office</th><th>Pin</th></tr></thead>
-                        <tbody>`;
+                              <thead><tr><th>Address</th><th>Office</th><th>Pin</th></tr></thead>
+                              <tbody>`;
 
           currentFilteredData
             .slice(0, window.searchDisplayLimit)
@@ -7348,23 +7643,23 @@
               const PinHtml = highlightText(row.Pin, result.matches, "Pin");
 
               html += `<tr class="list-item"
-                        onclick="openDirectoryChipActions(this)"
-                        data-record-id="${escapeHTML(row.id)}"
-                        data-address="${escapeHTML(row.Address)}"
-                        data-office="${escapeHTML(row.Office)}"
-                        data-pin="${escapeHTML(row.Pin || "")}">
-                        <td>${addressHtml}</td>
-                        <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                          row.Office
-                        )}')" title="Double-click to open in Directory">
-                           ${officeHtml}
-                        </td>
-                        <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                          row.Office
-                        )}')" title="Double-click to open in Directory">
-                           ${PinHtml || "-"}
-                        </td>
-                     </tr>`;
+                              onclick="openDirectoryChipActions(this)"
+                              data-record-id="${escapeHTML(row.id)}"
+                              data-address="${escapeHTML(row.Address)}"
+                              data-office="${escapeHTML(row.Office)}"
+                              data-pin="${escapeHTML(row.Pin || "")}">
+                              <td>${addressHtml}</td>
+                              <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+                                row.Office
+                              )}')" title="Double-click to open in Directory">
+                                 ${officeHtml}
+                              </td>
+                              <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+                                row.Office
+                              )}')" title="Double-click to open in Directory">
+                                 ${PinHtml || "-"}
+                              </td>
+                           </tr>`;
             });
           html += `</tbody></table>`;
 
@@ -7382,22 +7677,22 @@
           displayArea.insertAdjacentHTML(
             "beforeend",
             `
-                  <div class="ask-ai-bottom-box" id="ask-ai-footer-box">
-                    <div class="ask-ai-bottom-text">
-                      🤔 Still not what you're looking for in these local matches?
-                    </div>
-                    <button
-                      type="button"
-                      class="ask-ai-bottom-btn"
-                      onclick="triggerInlineAiBelowResults('${escapeForOnclick(
-                        activeQuery
-                      )}')"
-                    >
-                      ✨ Ask AI for "${escapeHTML(activeQuery)}"
-                    </button>
-                  </div>
-                  <div id="ai-search-results-container"></div>
-                `
+                        <div class="ask-ai-bottom-box" id="ask-ai-footer-box">
+                          <div class="ask-ai-bottom-text">
+                            🤔 Still not what you're looking for in these local matches?
+                          </div>
+                          <button
+                            type="button"
+                            class="ask-ai-bottom-btn"
+                            onclick="triggerInlineAiBelowResults('${escapeForOnclick(
+                              activeQuery
+                            )}')"
+                          >
+                            ✨ Ask AI for "${escapeHTML(activeQuery)}"
+                          </button>
+                        </div>
+                        <div id="ai-search-results-container"></div>
+                      `
           );
         }
 
@@ -7448,16 +7743,16 @@
         const footerBox = document.getElementById("ask-ai-footer-box");
         if (footerBox) {
           footerBox.innerHTML = `
-                  <div class="ai-fallback-banner-icon">⚠️</div>
-                  <div class="ai-fallback-banner-text" style="flex: 1;">
-                    <strong>AI Online Estimation (Requested Manually)</strong>
-                    <span>
-                      Local results didn't match "${escapeHTML(
-                        query
-                      )}". Showing <b>AI-estimated postal routing</b> below—please verify before sorting.
-                    </span>
-                  </div>
-                `;
+                        <div class="ai-fallback-banner-icon">⚠️</div>
+                        <div class="ai-fallback-banner-text" style="flex: 1;">
+                          <strong>AI Online Estimation (Requested Manually)</strong>
+                          <span>
+                            Local results didn't match "${escapeHTML(
+                              query
+                            )}". Showing <b>AI-estimated postal routing</b> below—please verify before sorting.
+                          </span>
+                        </div>
+                      `;
           footerBox.className = "ai-fallback-banner";
         }
 
@@ -7497,29 +7792,29 @@
         const localCount = currentFilteredData ? currentFilteredData.length : 0;
 
         displayArea.innerHTML = `
-                <div class="ai-fallback-banner">
-                  <div class="ai-fallback-banner-icon">✨</div>
-                  <div class="ai-fallback-banner-text" style="flex: 1;">
-                    <strong>Forced Online AI Postal Lookup</strong>
-                    <span>
-                      Showing <b>AI-estimated routing</b> for "${escapeHTML(
-                        rawQuery
-                      )}"${
+                      <div class="ai-fallback-banner">
+                        <div class="ai-fallback-banner-icon">✨</div>
+                        <div class="ai-fallback-banner-text" style="flex: 1;">
+                          <strong>Forced Online AI Postal Lookup</strong>
+                          <span>
+                            Showing <b>AI-estimated routing</b> for "${escapeHTML(
+                              rawQuery
+                            )}"${
           localCount > 0
             ? ` (bypassed ${localCount} local fuzzy ${
                 localCount === 1 ? "match" : "matches"
               })`
             : " (no exact match in local database)"
         }. Please verify before sorting.
-                    </span>
-                  </div>
-                  ${
-                    localCount > 0
-                      ? `<button type="button" class="toolbar-btn" style="background: var(--card-bg); border: 1px solid var(--border); flex-shrink: 0;" onclick="renderResults(false)">↩️ Local (${localCount})</button>`
-                      : ""
-                  }
-                </div>
-                <div id="ai-search-results-container"></div>`;
+                          </span>
+                        </div>
+                        ${
+                          localCount > 0
+                            ? `<button type="button" class="toolbar-btn" style="background: var(--card-bg); border: 1px solid var(--border); flex-shrink: 0;" onclick="renderResults(false)">↩️ Local (${localCount})</button>`
+                            : ""
+                        }
+                      </div>
+                      <div id="ai-search-results-container"></div>`;
 
         scheduleAutoAiSearch(rawQuery, true);
       }
@@ -7539,24 +7834,24 @@
         if (!navigator.onLine) {
           showOfflineToast("AI lookup requires internet.");
           container.innerHTML = `
-                  <ul class="list-container">
-                    <li class="list-empty" style="margin-top:0;">
-                      <span>📴 You are offline. Connect to the internet for AI postal estimation.</span>
-                    </li>
-                  </ul>`;
+                        <ul class="list-container">
+                          <li class="list-empty" style="margin-top:0;">
+                            <span>📴 You are offline. Connect to the internet for AI postal estimation.</span>
+                          </li>
+                        </ul>`;
           return;
         }
 
         // Show AI Loading Spinner immediately so user knows AI is working
         container.innerHTML = `
-                <div style="text-align: center; padding: 20px 12px;">
-                  <div class="approvals-loader-pill">
-                    <div class="approvals-spinner"></div>
-                    <span>✨ AI is searching online for "${escapeHTML(
-                      query
-                    )}"...</span>
-                  </div>
-                </div>`;
+                      <div style="text-align: center; padding: 20px 12px;">
+                        <div class="approvals-loader-pill">
+                          <div class="approvals-spinner"></div>
+                          <span>✨ AI is searching online for "${escapeHTML(
+                            query
+                          )}"...</span>
+                        </div>
+                      </div>`;
 
         // Wait 700ms after typing stops before firing API call
         aiSearchDebounceTimer = setTimeout(
@@ -7987,38 +8282,38 @@
 
           const prompt = `You are an expert India Post mail sorting assistant for Mirzapur and Sonbhadra districts (Uttar Pradesh, PIN 231xxx).
 
-      The user searched for a village, mohalla, locality, or post office that was NOT found in the local database:
-      User Search: "${exactUserQuery}"
+            The user searched for a village, mohalla, locality, or post office that was NOT found in the local database:
+            User Search: "${exactUserQuery}"
 
-      Live Postal & Local Hints Found:
-      ${
-        geoHints.length > 0
-          ? geoHints.join("\n")
-          : "No direct online hints found. Use your geographic knowledge of Mirzapur and Sonbhadra districts."
-      }
+            Live Postal & Local Hints Found:
+            ${
+              geoHints.length > 0
+                ? geoHints.join("\n")
+                : "No direct online hints found. Use your geographic knowledge of Mirzapur and Sonbhadra districts."
+            }
 
-      Official Delivery Offices (SO/HO) in our DakMitra Database:
-      ${divisionDirectoryContext}
+            Official Delivery Offices (SO/HO) in our DakMitra Database:
+            ${divisionDirectoryContext}
 
-      Rules:
-      1. Identify the most likely serving Delivery Post Office (SO or HO) from the list above for "${exactUserQuery}" in Mirzapur or Sonbhadra district.
-      2. Keep "searched_text" strictly as "${exactUserQuery}" (do not add "BO" or rename what the user typed).
-      3. Put the nearest Branch Office (BO) or beat area in "serving_bo_or_beat" if known, otherwise leave it as "".
-      4. Pick "recommended_office" using the EXACT office name from the Delivery Office list above whenever possible.
-      5. Return ONLY a valid JSON array with 1 to 2 best matches (no markdown, no extra explanation outside JSON). If the place clearly does not exist in Mirzapur or Sonbhadra, return [].
+            Rules:
+            1. Identify the most likely serving Delivery Post Office (SO or HO) from the list above for "${exactUserQuery}" in Mirzapur or Sonbhadra district.
+            2. Keep "searched_text" strictly as "${exactUserQuery}" (do not add "BO" or rename what the user typed).
+            3. Put the nearest Branch Office (BO) or beat area in "serving_bo_or_beat" if known, otherwise leave it as "".
+            4. Pick "recommended_office" using the EXACT office name from the Delivery Office list above whenever possible.
+            5. Return ONLY a valid JSON array with 1 to 2 best matches (no markdown, no extra explanation outside JSON). If the place clearly does not exist in Mirzapur or Sonbhadra, return [].
 
-      Exact JSON format:
-      [
-        {
-          "searched_text": "${exactUserQuery}",
-          "serving_bo_or_beat": "Nearest BO or Block Name (or empty string)",
-          "recommended_office": "Exact SO/HO Name from list",
-          "district": "Mirzapur or Sonbhadra",
-          "pin": "6-digit PIN code",
-          "confidence": "High, Medium, or Low",
-          "reason": "Short 1-2 line explanation of why mail for this locality routes to this office."
-        }
-      ]`;
+            Exact JSON format:
+            [
+              {
+                "searched_text": "${exactUserQuery}",
+                "serving_bo_or_beat": "Nearest BO or Block Name (or empty string)",
+                "recommended_office": "Exact SO/HO Name from list",
+                "district": "Mirzapur or Sonbhadra",
+                "pin": "6-digit PIN code",
+                "confidence": "High, Medium, or Low",
+                "reason": "Short 1-2 line explanation of why mail for this locality routes to this office."
+              }
+            ]`;
 
           const { data, error } = await supabaseClient.functions.invoke(
             "ai-postal-search",
@@ -8051,16 +8346,16 @@
             return;
           if (container) {
             container.innerHTML = `
-                    <ul class="list-container">
-                      <li class="list-empty" style="margin-top:0; gap:8px;">
-                        <span style="color:#ef4444;">⚠️ AI Lookup Error: ${escapeHTML(
-                          err.message
-                        )}</span>
-                        <button type="button" class="toolbar-btn" style="background:var(--input-bg);" onclick="scheduleAutoAiSearch('${escapeForOnclick(
-                          exactUserQuery
-                        )}', true)">🔄 Retry AI Search</button>
-                      </li>
-                    </ul>`;
+                          <ul class="list-container">
+                            <li class="list-empty" style="margin-top:0; gap:8px;">
+                              <span style="color:#ef4444;">⚠️ AI Lookup Error: ${escapeHTML(
+                                err.message
+                              )}</span>
+                              <button type="button" class="toolbar-btn" style="background:var(--input-bg);" onclick="scheduleAutoAiSearch('${escapeForOnclick(
+                                exactUserQuery
+                              )}', true)">🔄 Retry AI Search</button>
+                            </li>
+                          </ul>`;
           }
         }
       }
@@ -8072,13 +8367,13 @@
 
         if (!Array.isArray(estimations) || estimations.length === 0) {
           container.innerHTML = `
-                  <ul class="list-container">
-                    <li class="list-empty" style="margin-top:0;">
-                      <span>🤖 AI could not confidently identify a serving Post Office in Mirzapur or Sonbhadra for "${escapeHTML(
-                        query
-                      )}".</span>
-                    </li>
-                  </ul>`;
+                        <ul class="list-container">
+                          <li class="list-empty" style="margin-top:0;">
+                            <span>🤖 AI could not confidently identify a serving Post Office in Mirzapur or Sonbhadra for "${escapeHTML(
+                              query
+                            )}".</span>
+                          </li>
+                        </ul>`;
           return;
         }
 
@@ -8103,66 +8398,69 @@
           );
 
           html += `
-                  <div class="ai-result-card">
-                    <div class="ai-card-top-row">
-                      <span class="ai-badge">✨ AI Estimated Route (Not in Database)</span>
-                      <span class="ai-confidence-pill">🎯 Confidence: ${escapeHTML(
-                        confidence
-                      )}</span>
-                    </div>
+                        <div class="ai-result-card">
+                          <div class="ai-card-top-row">
+                            <span class="ai-badge">✨ AI Estimated Route (Not in Database)</span>
+                            <span class="ai-confidence-pill">🎯 Confidence: ${escapeHTML(
+                              confidence
+                            )}</span>
+                          </div>
 
-                    <div class="office-title" style="margin-bottom: 8px;">
-                      ${escapeHTML(locality)}
-                      ${
-                        servingBeat &&
-                        servingBeat.toLowerCase() !== locality.toLowerCase()
-                          ? `<span style="font-size: 13px; font-weight: 600; color: var(--text-light);"> (via ${escapeHTML(
-                              servingBeat
-                            )})</span>`
-                          : ""
-                      }
-                    </div>
+                          <div class="office-title" style="margin-bottom: 8px;">
+                            ${escapeHTML(locality)}
+                            ${
+                              servingBeat &&
+                              servingBeat.toLowerCase() !==
+                                locality.toLowerCase()
+                                ? `<span style="font-size: 13px; font-weight: 600; color: var(--text-light);"> (via ${escapeHTML(
+                                    servingBeat
+                                  )})</span>`
+                                : ""
+                            }
+                          </div>
 
-                    <div class="sub-office">
-                      <span class="badge badge-primary" style="cursor: pointer;" onclick="goToDirectoryOffice('${escapeForOnclick(
-                        office
-                      )}')">
-                        🏢 Sort to Office: ${escapeHTML(office)} ${
+                          <div class="sub-office">
+                            <span class="badge badge-primary" style="cursor: pointer;" onclick="goToDirectoryOffice('${escapeForOnclick(
+                              office
+                            )}')">
+                              🏢 Sort to Office: ${escapeHTML(office)} ${
             existsInLocalDb ? "✓" : ""
           }
-                      </span>
-                      <span class="badge">📍 PIN: ${escapeHTML(pin)}</span>
-                      ${
-                        district
-                          ? `<span class="badge">🗺️ ${escapeHTML(
+                            </span>
+                            <span class="badge">📍 PIN: ${escapeHTML(
+                              pin
+                            )}</span>
+                            ${
                               district
-                            )}</span>`
-                          : ""
-                      }
-                    </div>
+                                ? `<span class="badge">🗺️ ${escapeHTML(
+                                    district
+                                  )}</span>`
+                                : ""
+                            }
+                          </div>
 
-                    <div class="ai-reason-box">
-                      💡 <b>Routing Reason:</b> ${escapeHTML(reason)}
-                    </div>
+                          <div class="ai-reason-box">
+                            💡 <b>Routing Reason:</b> ${escapeHTML(reason)}
+                          </div>
 
-                    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-                      ${
-                        existsInLocalDb
-                          ? `<button type="button" class="toolbar-btn" style="background: var(--input-bg);" onclick="goToDirectoryOffice('${escapeForOnclick(
-                              office
-                            )}')">📂 View Office in Directory</button>`
-                          : ""
-                      }
-                      <button type="button" class="toolbar-btn" style="background: var(--primary); color: #ffffff;" onclick="prefillUploadFromAi('${escapeForOnclick(
-                        locality
-                      )}', '${escapeForOnclick(office)}', '${escapeForOnclick(
-            pin
-          )}')">
-                        ➕ Propose "${escapeHTML(locality)}" to DB
-                      </button>
-                    </div>
-                  </div>
-                `;
+                          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                            ${
+                              existsInLocalDb
+                                ? `<button type="button" class="toolbar-btn" style="background: var(--input-bg);" onclick="goToDirectoryOffice('${escapeForOnclick(
+                                    office
+                                  )}')">📂 View Office in Directory</button>`
+                                : ""
+                            }
+                            <button type="button" class="toolbar-btn" style="background: var(--primary); color: #ffffff;" onclick="prefillUploadFromAi('${escapeForOnclick(
+                              locality
+                            )}', '${escapeForOnclick(
+            office
+          )}', '${escapeForOnclick(pin)}')">
+                              ➕ Propose "${escapeHTML(locality)}" to DB
+                            </button>
+                          </div>
+                        </div>
+                      `;
         });
 
         container.innerHTML = html;
@@ -8423,9 +8721,9 @@
         directoryCurrentPage = 0;
 
         displayArea.innerHTML = `
-                    <div id="directory-content" style="padding: 4px;"></div>
-                    <div id="directory-sentinel" style="height: 40px; text-align: center; color: var(--text-light); font-size: 13px; padding: 10px;"></div>
-                  `;
+                          <div id="directory-content" style="padding: 4px;"></div>
+                          <div id="directory-sentinel" style="height: 40px; text-align: center; color: var(--text-light); font-size: 13px; padding: 10px;"></div>
+                        `;
         displayArea.scrollTop = 0;
 
         setupDirectoryObserver();
@@ -8456,25 +8754,25 @@
           const totalAddresses = addressList.length;
 
           html += `
-                      <div class="directory-card" id="${safeId}">
-                        <div class="directory-card-header">
-                          <div class="directory-office-title">
-                            <span>🏢</span>
-                            <span>${escapeHTML(data.office)}</span>
-                          </div>
-                          <div class="directory-badges">
-                            <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2);">
-                              📑 ${totalAddresses} ${
+                            <div class="directory-card" id="${safeId}">
+                              <div class="directory-card-header">
+                                <div class="directory-office-title">
+                                  <span>🏢</span>
+                                  <span>${escapeHTML(data.office)}</span>
+                                </div>
+                                <div class="directory-badges">
+                                  <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2);">
+                                    📑 ${totalAddresses} ${
             totalAddresses === 1 ? "Address" : "Addresses"
           }
-                            </span>
-                            <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px;">📍 ${escapeHTML(
-                              data.pin
-                            )}</span>
-                          </div>
-                        </div>
-                        <div class="directory-address-list">
-                    `;
+                                  </span>
+                                  <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px;">📍 ${escapeHTML(
+                                    data.pin
+                                  )}</span>
+                                </div>
+                              </div>
+                              <div class="directory-address-list">
+                          `;
 
           addressList.forEach((item) => {
             const addressText = typeof item === "object" ? item.Address : item;
@@ -8508,10 +8806,10 @@
           });
 
           html += `
-                        </div>
-                        <div class="directory-action-tray"></div>
-                      </div>
-                    `;
+                              </div>
+                              <div class="directory-action-tray"></div>
+                            </div>
+                          `;
         });
 
         contentDiv.insertAdjacentHTML("beforeend", html);
@@ -8594,30 +8892,32 @@
           : "";
 
         bar.innerHTML = `
-                <div class="card-actions">
-                  ${infoBtnHtml}
-                  <button onclick="event.stopPropagation(); viewHistory('${escapeForOnclick(
-                    recordId
-                  )}')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
-                  <button onclick="event.stopPropagation(); toggleFavorite('${escapeForOnclick(
-                    recordId
-                  )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
-          office
-        )}', '${escapeForOnclick(pin)}', this)" class="toolbar-btn" style="${
-          favStyle.style
-        }">${favStyle.icon}</button>
-        <button onclick="event.stopPropagation(); updateRecord('${escapeForOnclick(
-          recordId
-        )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
+                      <div class="card-actions">
+                        ${infoBtnHtml}
+                        <button onclick="event.stopPropagation(); viewHistory('${escapeForOnclick(
+                          recordId
+                        )}')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
+                        <button onclick="event.stopPropagation(); toggleFavorite('${escapeForOnclick(
+                          recordId
+                        )}', '${escapeForOnclick(
+          address
+        )}', '${escapeForOnclick(office)}', '${escapeForOnclick(
+          pin
+        )}', this)" class="toolbar-btn" style="${favStyle.style}">${
+          favStyle.icon
+        }</button>
+              <button onclick="event.stopPropagation(); updateRecord('${escapeForOnclick(
+                recordId
+              )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
           office
         )}', '${escapeForOnclick(
           pin
         )}')" class="toolbar-btn" style="background: var(--input-bg);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Edit</button>
-               <button onclick="event.stopPropagation(); deleteRecord('${escapeForOnclick(
-                 recordId
-               )}')" class="toolbar-btn" style="background: #fee2e2; color: #b91c1c;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
-                </div>
-              `;
+                     <button onclick="event.stopPropagation(); deleteRecord('${escapeForOnclick(
+                       recordId
+                     )}')" class="toolbar-btn" style="background: #fee2e2; color: #b91c1c;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
+                      </div>
+                    `;
 
         // Measure chip & popover to place it right at the clicked spot
         const rect = chipEl.getBoundingClientRect();
@@ -8766,35 +9066,35 @@
           : "";
 
         return `
-                <div class="staff-detail-card">
-                  <div style="min-width: 0; flex: 1;">
-                    <span class="staff-role-label">${escapeHTML(
-                      roleLabel
-                    )}</span>
-                    ${
-                      hasName
-                        ? `<div class="staff-person-name">${escapeHTML(
-                            personName
-                          )}</div>`
-                        : ""
-                    }
-                    ${
-                      hasContact
-                        ? `<div style="font-size: 13px; color: var(--text-light); margin-top: 2px;">📞 ${escapeHTML(
-                            contactNumber
-                          )}</div>`
-                        : ""
-                    }
-                  </div>
-                  ${
-                    cleanPhone
-                      ? `<a href="tel:${escapeHTML(
+                      <div class="staff-detail-card">
+                        <div style="min-width: 0; flex: 1;">
+                          <span class="staff-role-label">${escapeHTML(
+                            roleLabel
+                          )}</span>
+                          ${
+                            hasName
+                              ? `<div class="staff-person-name">${escapeHTML(
+                                  personName
+                                )}</div>`
+                              : ""
+                          }
+                          ${
+                            hasContact
+                              ? `<div style="font-size: 13px; color: var(--text-light); margin-top: 2px;">📞 ${escapeHTML(
+                                  contactNumber
+                                )}</div>`
+                              : ""
+                          }
+                        </div>
+                        ${
                           cleanPhone
-                        )}" class="staff-call-btn">📞 Call</a>`
-                      : ""
-                  }
-                </div>
-              `;
+                            ? `<a href="tel:${escapeHTML(
+                                cleanPhone
+                              )}" class="staff-call-btn">📞 Call</a>`
+                            : ""
+                        }
+                      </div>
+                    `;
       }
 
       function showOfficeDetailsModal(addressName, parentOfficeName) {
@@ -8914,13 +9214,13 @@
           // Empty state: show "+ Add" button both in header and center
           editBtn.innerHTML = "➕ Add";
           bodyEl.innerHTML = `
-                  <div class="list-empty" style="padding: 24px 16px; margin: 0; gap: 10px;">
-                    <span>No staff details stored for this ${officeType} yet.</span>
-                    <button type="button" class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="openOfficeStaffEditor()">
-                      ➕ Add ${officeType} Details
-                    </button>
-                  </div>
-                `;
+                        <div class="list-empty" style="padding: 24px 16px; margin: 0; gap: 10px;">
+                          <span>No staff details stored for this ${officeType} yet.</span>
+                          <button type="button" class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="openOfficeStaffEditor()">
+                            ➕ Add ${officeType} Details
+                          </button>
+                        </div>
+                      `;
         } else {
           editBtn.innerHTML = "✎ Edit";
           bodyEl.innerHTML = cardsHtml;
@@ -8947,36 +9247,36 @@
 
         if (officeType === "BO") {
           formHtml = `
-                  <div class="staff-edit-group">
-                    <div class="staff-edit-header">
-                      <span class="staff-role-label" style="margin:0;">Branch Post Master (BPM)</span>
-                      <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-bpm-name', 'crud-bpm-contact')">Clear</button>
-                    </div>
-                    <div class="staff-edit-inputs">
-                      <input type="text" id="crud-bpm-name" placeholder="BPM Full Name" value="${escapeHTML(
-                        record.bpm_name || ""
-                      )}" />
-                      <input type="tel" inputmode="numeric" id="crud-bpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-                        record.bpm_contact || ""
-                      )}" />
-                    </div>
-                  </div>
+                        <div class="staff-edit-group">
+                          <div class="staff-edit-header">
+                            <span class="staff-role-label" style="margin:0;">Branch Post Master (BPM)</span>
+                            <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-bpm-name', 'crud-bpm-contact')">Clear</button>
+                          </div>
+                          <div class="staff-edit-inputs">
+                            <input type="text" id="crud-bpm-name" placeholder="BPM Full Name" value="${escapeHTML(
+                              record.bpm_name || ""
+                            )}" />
+                            <input type="tel" inputmode="numeric" id="crud-bpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                              record.bpm_contact || ""
+                            )}" />
+                          </div>
+                        </div>
 
-                  <div class="staff-edit-group">
-                    <div class="staff-edit-header">
-                      <span class="staff-role-label" style="margin:0;">Assistant Branch Post Master (ABPM)</span>
-                      <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-abpm-name', 'crud-abpm-contact')">Clear</button>
-                    </div>
-                    <div class="staff-edit-inputs">
-                      <input type="text" id="crud-abpm-name" placeholder="ABPM Full Name" value="${escapeHTML(
-                        record.abpm_name || ""
-                      )}" />
-                      <input type="tel" inputmode="numeric" id="crud-abpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-                        record.abpm_contact || ""
-                      )}" />
-                    </div>
-                  </div>
-                `;
+                        <div class="staff-edit-group">
+                          <div class="staff-edit-header">
+                            <span class="staff-role-label" style="margin:0;">Assistant Branch Post Master (ABPM)</span>
+                            <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-abpm-name', 'crud-abpm-contact')">Clear</button>
+                          </div>
+                          <div class="staff-edit-inputs">
+                            <input type="text" id="crud-abpm-name" placeholder="ABPM Full Name" value="${escapeHTML(
+                              record.abpm_name || ""
+                            )}" />
+                            <input type="tel" inputmode="numeric" id="crud-abpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                              record.abpm_contact || ""
+                            )}" />
+                          </div>
+                        </div>
+                      `;
           bodyEl.innerHTML = formHtml;
         } else if (officeType === "SO" || officeType === "HO") {
           const existingPAs = parsePaList(record);
@@ -8985,51 +9285,51 @@
           const headRoleHtml =
             officeType === "SO"
               ? `
-                  <div class="staff-edit-group">
-                    <div class="staff-edit-header">
-                      <span class="staff-role-label" style="margin:0;">Sub Post Master (SPM)</span>
-                      <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-spm-name', 'crud-spm-contact')">Clear</button>
-                    </div>
-                    <div class="staff-edit-inputs">
-                      <input type="text" id="crud-spm-name" placeholder="SPM Full Name" value="${escapeHTML(
-                        record.spm_name || ""
-                      )}" />
-                      <input type="tel" inputmode="numeric" id="crud-spm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-                        record.spm_contact || ""
-                      )}" />
-                    </div>
-                  </div>`
+                        <div class="staff-edit-group">
+                          <div class="staff-edit-header">
+                            <span class="staff-role-label" style="margin:0;">Sub Post Master (SPM)</span>
+                            <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-spm-name', 'crud-spm-contact')">Clear</button>
+                          </div>
+                          <div class="staff-edit-inputs">
+                            <input type="text" id="crud-spm-name" placeholder="SPM Full Name" value="${escapeHTML(
+                              record.spm_name || ""
+                            )}" />
+                            <input type="tel" inputmode="numeric" id="crud-spm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                              record.spm_contact || ""
+                            )}" />
+                          </div>
+                        </div>`
               : `
-                  <div class="staff-edit-group">
-                    <div class="staff-edit-header">
-                      <span class="staff-role-label" style="margin:0;">Post Master (PM)</span>
-                      <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-pm-name', 'crud-pm-contact')">Clear</button>
-                    </div>
-                    <div class="staff-edit-inputs">
-                      <input type="text" id="crud-pm-name" placeholder="Post Master Name" value="${escapeHTML(
-                        record.pm_name || ""
-                      )}" />
-                      <input type="tel" inputmode="numeric" id="crud-pm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-                        record.pm_contact || ""
-                      )}" />
-                    </div>
-                  </div>`;
+                        <div class="staff-edit-group">
+                          <div class="staff-edit-header">
+                            <span class="staff-role-label" style="margin:0;">Post Master (PM)</span>
+                            <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-pm-name', 'crud-pm-contact')">Clear</button>
+                          </div>
+                          <div class="staff-edit-inputs">
+                            <input type="text" id="crud-pm-name" placeholder="Post Master Name" value="${escapeHTML(
+                              record.pm_name || ""
+                            )}" />
+                            <input type="tel" inputmode="numeric" id="crud-pm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                              record.pm_contact || ""
+                            )}" />
+                          </div>
+                        </div>`;
 
           formHtml = `
-                  ${headRoleHtml}
+                        ${headRoleHtml}
 
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
-                    <span class="staff-role-label" style="margin: 0;">Postal Assistants (PA)</span>
-                    <button type="button" class="staff-icon-btn" onclick="addPaInputRow()">➕ Add PA</button>
-                  </div>
-                  <div id="crud-pa-list-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+                          <span class="staff-role-label" style="margin: 0;">Postal Assistants (PA)</span>
+                          <button type="button" class="staff-icon-btn" onclick="addPaInputRow()">➕ Add PA</button>
+                        </div>
+                        <div id="crud-pa-list-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
 
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                    <span class="staff-role-label" style="margin: 0;">Multi Tasking Staff (MTS)</span>
-                    <button type="button" class="staff-icon-btn" onclick="addMtsInputRow()">➕ Add MTS</button>
-                  </div>
-                  <div id="crud-mts-list-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
-                `;
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                          <span class="staff-role-label" style="margin: 0;">Multi Tasking Staff (MTS)</span>
+                          <button type="button" class="staff-icon-btn" onclick="addMtsInputRow()">➕ Add MTS</button>
+                        </div>
+                        <div id="crud-mts-list-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                      `;
 
           bodyEl.innerHTML = formHtml;
 
@@ -9061,19 +9361,19 @@
         const row = document.createElement("div");
         row.className = "staff-edit-group pa-crud-row";
         row.innerHTML = `
-                <div class="staff-edit-header">
-                  <span class="staff-role-label" style="margin:0;">Postal Assistant (PA)</span>
-                  <button type="button" class="staff-remove-btn" onclick="this.closest('.pa-crud-row').remove()">✕ Remove</button>
-                </div>
-                <div class="staff-edit-inputs">
-                  <input type="text" class="crud-pa-name" placeholder="PA Full Name" value="${escapeHTML(
-                    name
-                  )}" />
-                  <input type="tel" inputmode="numeric" class="crud-pa-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-                    contact
-                  )}" />
-                </div>
-              `;
+                      <div class="staff-edit-header">
+                        <span class="staff-role-label" style="margin:0;">Postal Assistant (PA)</span>
+                        <button type="button" class="staff-remove-btn" onclick="this.closest('.pa-crud-row').remove()">✕ Remove</button>
+                      </div>
+                      <div class="staff-edit-inputs">
+                        <input type="text" class="crud-pa-name" placeholder="PA Full Name" value="${escapeHTML(
+                          name
+                        )}" />
+                        <input type="tel" inputmode="numeric" class="crud-pa-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                          contact
+                        )}" />
+                      </div>
+                    `;
         container.appendChild(row);
       }
 
@@ -9084,19 +9384,19 @@
         const row = document.createElement("div");
         row.className = "staff-edit-group mts-crud-row";
         row.innerHTML = `
-                <div class="staff-edit-header">
-                  <span class="staff-role-label" style="margin:0;">Multi Tasking Staff (MTS)</span>
-                  <button type="button" class="staff-remove-btn" onclick="this.closest('.mts-crud-row').remove()">✕ Remove</button>
-                </div>
-                <div class="staff-edit-inputs">
-                  <input type="text" class="crud-mts-name" placeholder="MTS Full Name" value="${escapeHTML(
-                    name
-                  )}" />
-                  <input type="tel" inputmode="numeric" class="crud-mts-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-                    contact
-                  )}" />
-                </div>
-              `;
+                      <div class="staff-edit-header">
+                        <span class="staff-role-label" style="margin:0;">Multi Tasking Staff (MTS)</span>
+                        <button type="button" class="staff-remove-btn" onclick="this.closest('.mts-crud-row').remove()">✕ Remove</button>
+                      </div>
+                      <div class="staff-edit-inputs">
+                        <input type="text" class="crud-mts-name" placeholder="MTS Full Name" value="${escapeHTML(
+                          name
+                        )}" />
+                        <input type="tel" inputmode="numeric" class="crud-mts-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
+                          contact
+                        )}" />
+                      </div>
+                    `;
         container.appendChild(row);
       }
 
@@ -9596,26 +9896,26 @@
 
       function getManualEntryRowHTML(showLabels = false) {
         return `
-        <div class="manual-entry-row">
-          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-            ${showLabels ? "<label>Address</label>" : ""}
-            <input type="text" class="manual-address" placeholder="Address" autocomplete="off" />
-          </div>
-          <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-            ${showLabels ? "<label>Office</label>" : ""}
-            <div class="autocomplete-wrapper">
-              <input type="text" class="manual-office" placeholder="Search & Select Office..." autocomplete="off" oninput="handleOfficeInput(this)" onfocus="handleOfficeInput(this)" onblur="setTimeout(closeAllDropdowns, 200)" style="padding-right: 40px; width: 100%;" />
-              <button type="button" class="clear-btn hidden" style="position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; padding: 0; margin: 0; z-index: 2;" onclick="clearOfficeInput(this)" title="Clear Office">✕</button>
-              <div class="autocomplete-dropdown"></div>
-            </div>
-          </div>
-          <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-            ${showLabels ? "<label>Pin</label>" : ""}
-            <input type="text" inputmode="numeric" class="manual-Pin" placeholder="e.g. 231305" autocomplete="off" />
-          </div>
-          <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
-        </div>
-        `;
+              <div class="manual-entry-row">
+                <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+                  ${showLabels ? "<label>Address</label>" : ""}
+                  <input type="text" class="manual-address" placeholder="Address" autocomplete="off" />
+                </div>
+                <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
+                  ${showLabels ? "<label>Office</label>" : ""}
+                  <div class="autocomplete-wrapper">
+                    <input type="text" class="manual-office" placeholder="Search & Select Office..." autocomplete="off" oninput="handleOfficeInput(this)" onfocus="handleOfficeInput(this)" onblur="setTimeout(closeAllDropdowns, 200)" style="padding-right: 40px; width: 100%;" />
+                    <button type="button" class="clear-btn hidden" style="position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; padding: 0; margin: 0; z-index: 2;" onclick="clearOfficeInput(this)" title="Clear Office">✕</button>
+                    <div class="autocomplete-dropdown"></div>
+                  </div>
+                </div>
+                <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
+                  ${showLabels ? "<label>Pin</label>" : ""}
+                  <input type="text" inputmode="numeric" class="manual-Pin" placeholder="e.g. 231305" autocomplete="off" />
+                </div>
+                <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
+              </div>
+              `;
       }
       document.getElementById("manual-entries-container").innerHTML =
         getManualEntryRowHTML(true);
@@ -10055,13 +10355,13 @@
       function getInlineSaveBtnDefaultHTML() {
         const label = isCurrentUserAdmin ? "Save Changes" : "Submit Edit";
         return `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                <span>${label}</span>
-              `;
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                      </svg>
+                      <span>${label}</span>
+                    `;
       }
 
       function updateRecord(id, currentAddress, currentOffice, currentPin) {
@@ -10153,9 +10453,9 @@
         saveBtn.classList.add("is-loading");
         saveBtn.disabled = true;
         saveBtnContent.innerHTML = `
-                <div class="btn-spinner"></div>
-                <span>Saving...</span>
-              `;
+                      <div class="btn-spinner"></div>
+                      <span>Saving...</span>
+                    `;
 
         const reqData = {
           post_office_id: editedId,
@@ -10187,11 +10487,11 @@
             saveBtn.classList.remove("is-loading");
             saveBtn.classList.add("is-success");
             saveBtnContent.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    <span>Saved!</span>
-                  `;
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          <span>Saved!</span>
+                        `;
             showToast("✨ Changes saved instantly!");
 
             setTimeout(() => {
@@ -10209,11 +10509,11 @@
             saveBtn.classList.remove("is-loading");
             saveBtn.classList.add("is-success");
             saveBtnContent.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    <span>Submitted!</span>
-                  `;
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          <span>Submitted!</span>
+                        `;
             showToast("✅ Edit request submitted for approval!");
 
             setTimeout(() => {
@@ -10436,10 +10736,10 @@
             .from("post_offices_history")
             .select(
               `
-                        *,
-                        requester:profiles!changed_by(name, employee_id),
-                        approver:profiles!approved_by(name, employee_id)
-                      `
+                              *,
+                              requester:profiles!changed_by(name, employee_id),
+                              approver:profiles!approved_by(name, employee_id)
+                            `
             )
             .eq("post_office_id", postOfficeId)
             .order("changed_at", { ascending: false });
@@ -10487,18 +10787,22 @@
 
               if (isAdmin) {
                 approverHtml = `
-                              <div style="font-size: 12px; color: var(--success-text); margin-top: 4px;">
-                                ✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
-                                  log.approver.name
-                                )} - ${escapeHTML(log.approver.employee_id)})
-                              </div>`;
+                                    <div style="font-size: 12px; color: var(--success-text); margin-top: 4px;">
+                                      ✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
+                                        log.approver.name
+                                      )} - ${escapeHTML(
+                  log.approver.employee_id
+                )})
+                                    </div>`;
               } else {
                 approverHtml = `
-                              <div style="font-size: 12px; color: var(--primary); margin-top: 4px;">
-                                👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
-                                  log.approver.name
-                                )} - ${escapeHTML(log.approver.employee_id)})
-                              </div>`;
+                                    <div style="font-size: 12px; color: var(--primary); margin-top: 4px;">
+                                      👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
+                                        log.approver.name
+                                      )} - ${escapeHTML(
+                  log.approver.employee_id
+                )})
+                                    </div>`;
               }
             }
 
@@ -10538,16 +10842,16 @@
             if (log.action === "INSERT") {
               actionBadge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px;">➕ CREATED</span>`;
               changesHtml = `
-                            <div style="margin-bottom: 4px;"><b>${escapeHTML(
-                              log.new_data?.Address
-                            )}</b></div>
-                            <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
-                              log.new_data?.Office
-                            )}</div>
-                            <div>📍 ${escapeHTML(
-                              log.new_data?.Pin || "N/A"
-                            )}</div>
-                          `;
+                                  <div style="margin-bottom: 4px;"><b>${escapeHTML(
+                                    log.new_data?.Address
+                                  )}</b></div>
+                                  <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
+                                    log.new_data?.Office
+                                  )}</div>
+                                  <div>📍 ${escapeHTML(
+                                    log.new_data?.Pin || "N/A"
+                                  )}</div>
+                                `;
             } else if (log.action === "UPDATE") {
               actionBadge = `<span class="badge" style="background:#fef9c3;color:#854d0e; padding: 4px 8px; font-size: 12px;">✏️ EDITED</span>`;
 
@@ -10577,17 +10881,17 @@
             } else if (log.action === "DELETE") {
               actionBadge = `<span class="badge" style="background:#fee2e2;color:#991b1b; padding: 4px 8px; font-size: 12px;">🗑️ DELETED</span>`;
               changesHtml = `
-                            <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
-                              log.old_data?.Address
-                            )}</b></div>
-                            <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
-                              log.old_data?.Office
-                            )}</div>
-                            <div style="text-decoration: line-through; color: var(--text-light);">📍 ${escapeHTML(
-                              log.old_data?.Pin || "N/A"
-                            )}</div>
-                            <div style="margin-top: 8px; color: #991b1b; font-weight: 600;">Record was permanently deleted.</div>
-                          `;
+                                  <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
+                                    log.old_data?.Address
+                                  )}</b></div>
+                                  <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
+                                    log.old_data?.Office
+                                  )}</div>
+                                  <div style="text-decoration: line-through; color: var(--text-light);">📍 ${escapeHTML(
+                                    log.old_data?.Pin || "N/A"
+                                  )}</div>
+                                  <div style="margin-top: 8px; color: #991b1b; font-weight: 600;">Record was permanently deleted.</div>
+                                `;
             }
 
             const isBulkExcelUpload =
@@ -10596,29 +10900,29 @@
 
             const attributionHtml = isBulkExcelUpload
               ? `<div style="font-size: 12px; color: var(--success-text); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
-                         📊 <b>Added via Excel Bulk Upload</b> by Admin <b>${escapeHTML(
-                           requesterName
-                         )}</b> (${escapeHTML(requesterId)})
-                       </div>`
+                               📊 <b>Added via Excel Bulk Upload</b> by Admin <b>${escapeHTML(
+                                 requesterName
+                               )}</b> (${escapeHTML(requesterId)})
+                             </div>`
               : `<div style="font-size: 12px; color: var(--text-light); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
-                         <div>👤 Requested by: <b>${escapeHTML(
-                           requesterName
-                         )}</b> (${escapeHTML(requesterId)})</div>
-                         ${approverHtml}
-                       </div>`;
+                               <div>👤 Requested by: <b>${escapeHTML(
+                                 requesterName
+                               )}</b> (${escapeHTML(requesterId)})</div>
+                               ${approverHtml}
+                             </div>`;
 
             html += `
-                        <div style="background: var(--btn-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 12px;">
-                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            ${actionBadge}
-                            <span style="font-size: 12px; color: var(--text-light); font-weight: 600;">${dateStr}</span>
-                          </div>
-                          <div style="font-size: 14px; margin-bottom: 8px; color: var(--text); line-height: 1.4;">
-                            ${changesHtml}
-                          </div>
-                          ${attributionHtml}
-                        </div>
-                      `;
+                              <div style="background: var(--btn-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                  ${actionBadge}
+                                  <span style="font-size: 12px; color: var(--text-light); font-weight: 600;">${dateStr}</span>
+                                </div>
+                                <div style="font-size: 14px; margin-bottom: 8px; color: var(--text); line-height: 1.4;">
+                                  ${changesHtml}
+                                </div>
+                                ${attributionHtml}
+                              </div>
+                            `;
           });
 
           html += `</div>`;
@@ -10709,26 +11013,26 @@
         let html = "";
         for (let i = 0; i < count; i++) {
           html += `
-                  <div class="approval-skeleton-card">
-                    <div class="skeleton-line skeleton-pill"></div>
-                    <div class="skeleton-line medium" style="height: 15px; margin-bottom: 8px;"></div>
-                    <div class="skeleton-line short" style="height: 14px; margin-bottom: 8px;"></div>
-                    <div class="skeleton-line" style="width: 28%; height: 14px; margin-bottom: 0;"></div>
-                    <div class="skeleton-meta-box">
-                      <div class="skeleton-line medium" style="height: 12px; margin-bottom: 8px;"></div>
-                      <div class="skeleton-line short" style="height: 12px; margin-bottom: 0;"></div>
-                    </div>
-                    ${
-                      currentApprovalTab === "pending"
-                        ? `<div class="skeleton-action-row">
-                             <div class="skeleton-line skeleton-btn"></div>
-                           </div>`
-                        : `<div style="display: flex; justify-content: flex-end; margin-top: 12px;">
-                             <div class="skeleton-line" style="width: 170px; height: 14px; margin-bottom: 0;"></div>
-                           </div>`
-                    }
-                  </div>
-                `;
+                        <div class="approval-skeleton-card">
+                          <div class="skeleton-line skeleton-pill"></div>
+                          <div class="skeleton-line medium" style="height: 15px; margin-bottom: 8px;"></div>
+                          <div class="skeleton-line short" style="height: 14px; margin-bottom: 8px;"></div>
+                          <div class="skeleton-line" style="width: 28%; height: 14px; margin-bottom: 0;"></div>
+                          <div class="skeleton-meta-box">
+                            <div class="skeleton-line medium" style="height: 12px; margin-bottom: 8px;"></div>
+                            <div class="skeleton-line short" style="height: 12px; margin-bottom: 0;"></div>
+                          </div>
+                          ${
+                            currentApprovalTab === "pending"
+                              ? `<div class="skeleton-action-row">
+                                   <div class="skeleton-line skeleton-btn"></div>
+                                 </div>`
+                              : `<div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+                                   <div class="skeleton-line" style="width: 170px; height: 14px; margin-bottom: 0;"></div>
+                                 </div>`
+                          }
+                        </div>
+                      `;
         }
         return html;
       }
@@ -10772,30 +11076,30 @@
           cache.page = 1;
           cache.hasMore = cache.initialHasMore;
           displayArea.innerHTML = `
-                  <div id="approvals-content" style="padding: 4px;">${
-                    cache.html
-                  }</div>
-                  <div id="approvals-sentinel" style="min-height: 54px; display: ${
-                    cache.html.includes("list-empty") ? "none" : "flex"
-                  }; align-items: center; justify-content: center; padding: 10px;">
-                    ${
-                      !cache.hasMore
-                        ? `<span style="color: var(--text-light); font-size: 13px;">End of requests</span>`
-                        : ""
-                    }
-                  </div>
-                `;
+                        <div id="approvals-content" style="padding: 4px;">${
+                          cache.html
+                        }</div>
+                        <div id="approvals-sentinel" style="min-height: 54px; display: ${
+                          cache.html.includes("list-empty") ? "none" : "flex"
+                        }; align-items: center; justify-content: center; padding: 10px;">
+                          ${
+                            !cache.hasMore
+                              ? `<span style="color: var(--text-light); font-size: 13px;">End of requests</span>`
+                              : ""
+                          }
+                        </div>
+                      `;
           setupApprovalsObserver();
           return;
         }
 
         // 2. IF NOT CACHED YET: Show skeleton animation and fetch from Supabase
         displayArea.innerHTML = `
-                  <div id="approvals-content" style="padding: 4px;">
-                    ${getApprovalsSkeletonHTML(3)}
-                  </div>
-                  <div id="approvals-sentinel" style="min-height: 54px; display: flex; align-items: center; justify-content: center; padding: 10px;"></div>
-              `;
+                        <div id="approvals-content" style="padding: 4px;">
+                          ${getApprovalsSkeletonHTML(3)}
+                        </div>
+                        <div id="approvals-sentinel" style="min-height: 54px; display: flex; align-items: center; justify-content: center; padding: 10px;"></div>
+                    `;
 
         setupApprovalsObserver();
         loadApprovalsBatch();
@@ -10835,11 +11139,11 @@
 
         if (!contentDiv) {
           displayArea.innerHTML = `
-                    <div id="approvals-content" style="padding: 4px;">
-                      ${getApprovalsSkeletonHTML(3)}
-                    </div>
-                    <div id="approvals-sentinel" style="min-height: 54px; display: flex; align-items: center; justify-content: center; padding: 10px;"></div>
-                `;
+                          <div id="approvals-content" style="padding: 4px;">
+                            ${getApprovalsSkeletonHTML(3)}
+                          </div>
+                          <div id="approvals-sentinel" style="min-height: 54px; display: flex; align-items: center; justify-content: center; padding: 10px;"></div>
+                      `;
           setupApprovalsObserver();
           isApprovalsLoading = false;
           return setTimeout(loadApprovalsBatch, 0);
@@ -10852,10 +11156,10 @@
           if (sentinel) sentinel.innerHTML = "";
         } else if (sentinel) {
           sentinel.innerHTML = `
-                  <div class="approvals-loader-pill">
-                    <div class="approvals-spinner"></div>
-                    <span>Fetching more requests...</span>
-                  </div>`;
+                        <div class="approvals-loader-pill">
+                          <div class="approvals-spinner"></div>
+                          <span>Fetching more requests...</span>
+                        </div>`;
         }
 
         try {
@@ -10987,17 +11291,17 @@
             if (req.action_type === "ADD") {
               const badge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">➕ ADD</span>`;
               changesHtml = `
-                          ${badge}
-                          <div style="margin-bottom: 4px;"><b>${escapeHTML(
-                            req.proposed_data.Address
-                          )}</b></div>
-                          <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
-                            req.proposed_data.Office
-                          )}</div>
-                          <div>📍 ${escapeHTML(
-                            req.proposed_data.Pin || "N/A"
-                          )}</div>
-                        `;
+                                ${badge}
+                                <div style="margin-bottom: 4px;"><b>${escapeHTML(
+                                  req.proposed_data.Address
+                                )}</b></div>
+                                <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
+                                  req.proposed_data.Office
+                                )}</div>
+                                <div>📍 ${escapeHTML(
+                                  req.proposed_data.Pin || "N/A"
+                                )}</div>
+                              `;
             } else if (req.action_type === "EDIT") {
               const badge = `<span class="badge" style="background:#fef9c3;color:#854d0e; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">✏️ EDIT</span>`;
               const oldD = req.original_data || req.post_offices || {};
@@ -11027,17 +11331,17 @@
               const badge = `<span class="badge" style="background:#fee2e2;color:#991b1b; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">🗑️ DELETE</span>`;
               const oldD = req.post_offices || {};
               changesHtml = `
-                          ${badge}
-                          <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
-                            oldD.Address || "Unknown"
-                          )}</b></div>
-                          <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
-                            oldD.Office || "Unknown"
-                          )}</div>
-                          <div style="text-decoration: line-through; color: var(--text-light);">📍 ${escapeHTML(
-                            oldD.Pin || "N/A"
-                          )}</div>
-                        `;
+                                ${badge}
+                                <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
+                                  oldD.Address || "Unknown"
+                                )}</b></div>
+                                <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
+                                  oldD.Office || "Unknown"
+                                )}</div>
+                                <div style="text-decoration: line-through; color: var(--text-light);">📍 ${escapeHTML(
+                                  oldD.Pin || "N/A"
+                                )}</div>
+                              `;
             }
 
             const voteCount = req.request_approvals
@@ -11089,29 +11393,29 @@
                 );
 
               actionBarHtml = `
-          <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-            ${
-              isOwnRequest
-                ? `<span style="font-size: 12px; color: var(--text-light); font-weight: 600; margin-right: auto;">⏳ Your request (awaiting votes)</span>
-                   <button onclick="deleteOwnRequest('${req.id}')" class="btn" style="width:auto; padding:8px 16px; background:#fee2e2; color:#b91c1c; font-size:13px;">🗑️ Delete Request</button>`
-                : ""
-            }
-            ${
-              isCurrentUserAdmin && !isOwnRequest
-                ? `<button onclick="rejectRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:#fee2e2; color:#b91c1c; font-size:14px;">👎 Reject</button>`
-                : ""
-            }
-            ${
-              !isOwnRequest && !hasAlreadyVoted
-                ? `<button onclick="approveRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:var(--primary); font-size:14px;">👍 Approve</button>`
-                : ""
-            }
-            ${
-              !isOwnRequest && hasAlreadyVoted
-                ? `<span style="font-size: 13px; color: var(--success-text); font-weight: 600; padding: 6px 12px; background: var(--success-bg); border-radius: 8px;">✓ You Voted</span>`
-                : ""
-            }
-          </div>`;
+                <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                  ${
+                    isOwnRequest
+                      ? `<span style="font-size: 12px; color: var(--text-light); font-weight: 600; margin-right: auto;">⏳ Your request (awaiting votes)</span>
+                         <button onclick="deleteOwnRequest('${req.id}')" class="btn" style="width:auto; padding:8px 16px; background:#fee2e2; color:#b91c1c; font-size:13px;">🗑️ Delete Request</button>`
+                      : ""
+                  }
+                  ${
+                    isCurrentUserAdmin && !isOwnRequest
+                      ? `<button onclick="rejectRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:#fee2e2; color:#b91c1c; font-size:14px;">👎 Reject</button>`
+                      : ""
+                  }
+                  ${
+                    !isOwnRequest && !hasAlreadyVoted
+                      ? `<button onclick="approveRequest('${req.id}')" class="btn" style="width:auto; padding:8px 20px; background:var(--primary); font-size:14px;">👍 Approve</button>`
+                      : ""
+                  }
+                  ${
+                    !isOwnRequest && hasAlreadyVoted
+                      ? `<span style="font-size: 13px; color: var(--success-text); font-weight: 600; padding: 6px 12px; background: var(--success-bg); border-radius: 8px;">✓ You Voted</span>`
+                      : ""
+                  }
+                </div>`;
             } else if (req.status === "APPROVED") {
               actionBarHtml = `<div style="text-align: right; color: var(--success-text); font-weight: 600; font-size: 13px; margin-top: 12px;">✅ Request Approved & Merged</div>`;
             } else if (req.status === "REJECTED") {
@@ -11126,24 +11430,24 @@
             }
 
             html += `
-                  <div id="approval-card-${
-                    req.id
-                  }" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); animation: fadeIn 0.3s ease;">
-                    <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
-                    <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
-                      <div>👤 Requested by: <b>${escapeHTML(
-                        requesterName
-                      )}</b> (${escapeHTML(requesterId)})</div>
-                      <div>📅 ${dateStr}</div>
-                      ${
-                        req.status === "PENDING"
-                          ? `<div style="margin-top: 4px;">🗳️ Community Votes: <b style="color: var(--primary);">${voteCount} / 5</b></div>`
-                          : ""
-                      }
-                      ${approverDetailsHtml}
-                    </div>
-                    ${actionBarHtml}
-                  </div>`;
+                        <div id="approval-card-${
+                          req.id
+                        }" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow-sm); animation: fadeIn 0.3s ease;">
+                          <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
+                          <div style="font-size: 13px; color: var(--text-light); background: var(--input-bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); line-height: 1.6;">
+                            <div>👤 Requested by: <b>${escapeHTML(
+                              requesterName
+                            )}</b> (${escapeHTML(requesterId)})</div>
+                            <div>📅 ${dateStr}</div>
+                            ${
+                              req.status === "PENDING"
+                                ? `<div style="margin-top: 4px;">🗳️ Community Votes: <b style="color: var(--primary);">${voteCount} / 5</b></div>`
+                                : ""
+                            }
+                            ${approverDetailsHtml}
+                          </div>
+                          ${actionBarHtml}
+                        </div>`;
           });
 
           if (cache.page === 0) {
@@ -11913,21 +12217,21 @@
         const btnContent = document.getElementById("save-profile-btn-content");
 
         const defaultHTML = `
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                  <polyline points="7 3 7 8 15 8"></polyline>
-                </svg>
-                <span>Save Profile Changes</span>
-              `;
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                      </svg>
+                      <span>Save Profile Changes</span>
+                    `;
 
         // 1. Trigger Loading Animation
         btn.classList.add("is-loading");
         btn.disabled = true;
         btnContent.innerHTML = `
-                <div class="btn-spinner"></div>
-                <span>Updating Profile...</span>
-              `;
+                      <div class="btn-spinner"></div>
+                      <span>Updating Profile...</span>
+                    `;
 
         const {
           data: { session },
@@ -11967,11 +12271,11 @@
           btn.classList.remove("is-loading");
           btn.classList.add("is-success");
           btnContent.innerHTML = `
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Changes Saved!</span>
-                `;
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>Changes Saved!</span>
+                      `;
           showToast("✨ Profile updated successfully!");
 
           // 3. Smoothly revert button back to normal after 2.2 seconds
