@@ -2843,12 +2843,6 @@
 
       /* --- IN-PLACE EDIT MODAL VISUALS & ANIMATIONS --- */
 
-      #edit-record-modal-overlay {
-        align-items: flex-start;
-        padding-top: calc(18px + env(safe-area-inset-top, 0px));
-        overflow-y: auto;
-      }
-
       .modal-card.edit-modal-card {
         position: relative;
         max-width: 440px;
@@ -3901,6 +3895,59 @@
           padding: 12px 10px;
           font-size: 13.5px;
         }
+      }
+
+      /* --- APP-WIDE SMART KEYBOARD HANDLING --- */
+      :root {
+        --vvh: 100dvh;
+        --vv-top: 0px;
+        --kb-height: 0px;
+        --kb-fixed-offset: 0px;
+      }
+
+      /* Move any open modal to the top ONLY while keyboard is active */
+      body.keyboard-open .modal-overlay.show {
+        top: var(--vv-top, 0px);
+        height: var(--vvh, 100dvh);
+        align-items: flex-start;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-top: calc(14px + env(safe-area-inset-top, 0px));
+        padding-bottom: 24px;
+      }
+
+      /* Extra room inside Edit modal so Office dropdown & Save button stay reachable */
+      body.keyboard-open #edit-record-modal-overlay.show {
+        padding-bottom: 150px;
+      }
+
+      /* Keep Office Staff Editor list scrollable above the keyboard */
+      body.keyboard-open #office-details-modal-overlay .staff-detail-list {
+        max-height: calc(var(--vvh, 100dvh) - 210px);
+      }
+
+      /* Hide floating bottom nav while typing so it never blocks inputs */
+      body.keyboard-open .bottom-nav {
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, 140%);
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+
+      /* Keep toasts above the keyboard */
+      body.keyboard-open .toast {
+        bottom: calc(var(--kb-fixed-offset, 0px) + 16px);
+      }
+
+      /* Extra bottom scroll space so Sign Up, Profile, and Upload rows can rise above keyboard */
+      body.keyboard-open .container {
+        padding-bottom: calc(var(--kb-height, 0px) + 120px);
+      }
+
+      /* Fit Search view cleanly above the keyboard */
+      body.keyboard-open #view-search.active {
+        height: calc(var(--vvh, 100dvh) - 96px - env(safe-area-inset-top, 0px));
+        min-height: 0;
       }
     </style>
   </head>
@@ -6633,6 +6680,142 @@
       window.addEventListener("offline", () => {
         showOfflineToast("Switched to offline cache.");
       });
+
+      // --- APP-WIDE SMART KEYBOARD MANAGER ---
+      (function initGlobalKeyboardHandler() {
+        const root = document.documentElement;
+        const vv = window.visualViewport;
+        let baselineHeight = Math.max(window.innerHeight, vv ? vv.height : 0);
+        let lastWidth = vv ? vv.width : window.innerWidth;
+        let blurTimer = null;
+
+        function isEditableElement(el) {
+          if (!el) return false;
+          if (el.isContentEditable) return true;
+          const tag = el.tagName;
+          if (tag === "TEXTAREA") return !el.readOnly && !el.disabled;
+          if (tag === "INPUT") {
+            const nonText = [
+              "checkbox",
+              "radio",
+              "file",
+              "range",
+              "button",
+              "submit",
+              "reset",
+              "color",
+              "hidden",
+            ];
+            return (
+              !nonText.includes((el.type || "text").toLowerCase()) &&
+              !el.readOnly &&
+              !el.disabled
+            );
+          }
+          return false;
+        }
+
+        function ensureFocusedInputVisible(el) {
+          if (!isEditableElement(el)) return;
+          if (!document.body.classList.contains("keyboard-open")) return;
+
+          const vvTop = vv ? vv.offsetTop : 0;
+          const vvHeight = vv ? vv.height : window.innerHeight;
+          const rect = el.getBoundingClientRect();
+
+          const insideModal = el.closest(".modal-overlay.show");
+          const safeTop = insideModal ? vvTop + 20 : vvTop + 76;
+          const safeBottom = vvTop + vvHeight - 72;
+
+          if (rect.top >= safeTop && rect.bottom <= safeBottom) return;
+
+          const scrollParent =
+            el.closest(".staff-detail-list") || insideModal || null;
+
+          if (scrollParent) {
+            const parentRect = scrollParent.getBoundingClientRect();
+            const targetTop =
+              rect.top - parentRect.top + scrollParent.scrollTop - 24;
+            scrollParent.scrollTo({
+              top: Math.max(0, targetTop),
+              behavior: "smooth",
+            });
+          } else {
+            const desiredTop = vvTop + Math.min(110, vvHeight * 0.25);
+            window.scrollBy({
+              top: rect.top - desiredTop,
+              behavior: "smooth",
+            });
+          }
+        }
+
+        function syncKeyboardState() {
+          const vvHeight = vv ? vv.height : window.innerHeight;
+          const vvWidth = vv ? vv.width : window.innerWidth;
+          const vvTop = vv ? vv.offsetTop : 0;
+
+          // Reset baseline on device rotation
+          if (Math.abs(vvWidth - lastWidth) > 50) {
+            lastWidth = vvWidth;
+            baselineHeight = Math.max(window.innerHeight, vvHeight);
+          }
+
+          const activeEl = document.activeElement;
+          const activeIsEditable = isEditableElement(activeEl);
+
+          // Update baseline when keyboard is closed
+          if (!activeIsEditable && vvHeight > baselineHeight) {
+            baselineHeight = vvHeight;
+          }
+
+          const kbHeight = Math.max(0, Math.round(baselineHeight - vvHeight));
+          const fixedOffset = Math.max(
+            0,
+            Math.round(window.innerHeight - vvHeight - vvTop)
+          );
+          const isKeyboardOpen = activeIsEditable && kbHeight > 110;
+
+          root.style.setProperty("--vvh", `${Math.round(vvHeight)}px`);
+          root.style.setProperty("--vv-top", `${Math.round(vvTop)}px`);
+          root.style.setProperty(
+            "--kb-height",
+            `${isKeyboardOpen ? kbHeight : 0}px`
+          );
+          root.style.setProperty(
+            "--kb-fixed-offset",
+            `${isKeyboardOpen ? fixedOffset : 0}px`
+          );
+
+          document.body.classList.toggle("keyboard-open", isKeyboardOpen);
+
+          if (isKeyboardOpen) {
+            requestAnimationFrame(() => ensureFocusedInputVisible(activeEl));
+          }
+        }
+
+        if (vv) {
+          vv.addEventListener("resize", syncKeyboardState);
+          vv.addEventListener("scroll", syncKeyboardState);
+        }
+        window.addEventListener("resize", syncKeyboardState);
+
+        document.addEventListener("focusin", (e) => {
+          clearTimeout(blurTimer);
+          if (!isEditableElement(e.target)) return;
+          syncKeyboardState();
+          setTimeout(() => {
+            syncKeyboardState();
+            ensureFocusedInputVisible(e.target);
+          }, 180);
+          setTimeout(() => ensureFocusedInputVisible(e.target), 360);
+        });
+
+        document.addEventListener("focusout", () => {
+          clearTimeout(blurTimer);
+          // Short delay prevents flicker when jumping from one input to another
+          blurTimer = setTimeout(syncKeyboardState, 120);
+        });
+      })();
 
       // --- UI CONTROLS (Sidebar & Views) ---
       function toggleSidebar() {
