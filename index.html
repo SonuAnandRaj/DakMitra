@@ -10024,15 +10024,8 @@
           document.getElementById("manual-entries-container").innerHTML =
             getManualEntryRowHTML(true);
 
-          // Navigate back to search if it was an edit
-          if (
-            (requests.length > 0 &&
-              requests.some((r) => r.action_type === "EDIT")) ||
-            (adminDirectEdits.length > 0 &&
-              adminDirectEdits.some((r) => r.action_type === "EDIT"))
-          ) {
-            switchDashboardView("search");
-          }
+          // Always navigate to the Search page after submitting
+          switchDashboardView("search");
         } catch (err) {
           alert("Error submitting request: " + err.message);
         }
