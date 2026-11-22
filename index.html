@@ -338,6 +338,11 @@
         animation: ripple 1.2s infinite ease-out;
       }
 
+      #confirm-modal-overlay,
+      #alert-modal-overlay {
+        z-index: 4000;
+      }
+
       #dashboard-view:not(.hidden) {
         display: flex;
         flex-direction: column;
@@ -1925,6 +1930,8 @@
         transition: grid-template-rows 0.9s cubic-bezier(0.25, 0.1, 0.25, 1),
           margin-bottom 0.9s cubic-bezier(0.25, 0.1, 0.25, 1);
         will-change: grid-template-rows;
+        position: relative;
+        z-index: 20;
       }
 
       .search-hero-collapse-inner {
@@ -2820,10 +2827,11 @@
       /* --- TOAST & ALERTS --- */
       .toast {
         position: fixed;
-        /* Push the toast above the bottom navigation bar */
         bottom: calc(100px + env(safe-area-inset-bottom));
         left: 50%;
         transform: translateX(-50%) translateY(20px);
+        max-width: calc(100vw - 32px);
+        text-align: center;
         background: var(--text);
         color: var(--card-bg);
         padding: 14px 24px;
@@ -2831,7 +2839,7 @@
         font-size: 14px;
         font-weight: 600;
         box-shadow: var(--shadow-lg);
-        z-index: 2000;
+        z-index: 5000;
         opacity: 0;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         pointer-events: none;
@@ -5135,23 +5143,23 @@
             </div>
           </div>
           <div class="results-container-scroll" id="results-display-area">
-            <ul class="list-container">
+            <ul class="list-container" style="list-style: none">
               <!-- Skeleton Loaders -->
-              <div class="skeleton-card">
+              <li class="skeleton-card">
                 <div class="skeleton-line medium"></div>
                 <div class="skeleton-line short"></div>
                 <div class="skeleton-line badges"></div>
-              </div>
-              <div class="skeleton-card">
+              </li>
+              <li class="skeleton-card">
                 <div class="skeleton-line medium"></div>
                 <div class="skeleton-line short"></div>
                 <div class="skeleton-line badges"></div>
-              </div>
-              <div class="skeleton-card">
+              </li>
+              <li class="skeleton-card">
                 <div class="skeleton-line medium"></div>
                 <div class="skeleton-line short"></div>
                 <div class="skeleton-line badges"></div>
-              </div>
+              </li>
             </ul>
           </div>
         </section>
@@ -6499,7 +6507,7 @@
       }
 
       async function checkForAppUpdate() {
-        if (!(await ensureOnline("Connect to internet to save changes.")))
+        if (!(await ensureOnline("Connect to internet to check for updates.")))
           return;
         showToast("🔍 Checking for updates...");
         if ("serviceWorker" in navigator) {
@@ -6666,11 +6674,6 @@
         }
         return true;
       }
-
-      // Notify automatically if internet drops while using the app
-      window.addEventListener("offline", () => {
-        showOfflineToast("Switched to offline cache.");
-      });
 
       // --- APP-WIDE SMART KEYBOARD MANAGER ---
       (function initGlobalKeyboardHandler() {
@@ -7062,11 +7065,15 @@
         };
       }
 
+      let toastTimer = null;
+
       function showToast(message) {
         const toastEl = document.getElementById("toast");
+        if (!toastEl) return;
+        clearTimeout(toastTimer);
         toastEl.textContent = message;
         toastEl.classList.add("show");
-        setTimeout(() => toastEl.classList.remove("show"), 3000);
+        toastTimer = setTimeout(() => toastEl.classList.remove("show"), 3000);
 
         // HAPTIC: Single subtle tap for success actions
         if (navigator.vibrate) navigator.vibrate(50);
@@ -7918,9 +7925,6 @@
           aiActiveAbortController.abort();
           aiActiveAbortController = null;
         }
-        const favorites = JSON.parse(localStorage.getItem(FAV_KEY)) || [];
-        const actionMode =
-          localStorage.getItem("dakmitra_action_mode") || "tap";
 
         if (viewMode === "list") {
           let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
@@ -8063,30 +8067,6 @@
       let aiActiveAbortController = null;
       let aiMemoryCache = {};
       let aiLatestRequestId = 0;
-
-      function getGeminiApiKey() {
-        return (DEFAULT_GEMINI_KEY || "").trim();
-      }
-
-      function saveGeminiApiKey() {
-        const input = document.getElementById("gemini-api-key-input");
-        if (!input) return;
-        const val = input.value.trim();
-        if (!val) {
-          localStorage.removeItem("dakmitra_gemini_api_key");
-          showToast("🗑️ AI API Key removed.");
-          return;
-        }
-        localStorage.setItem("dakmitra_gemini_api_key", val);
-        showToast("✨ AI Smart Lookup enabled!");
-      }
-
-      // Pre-fill key input in Settings if saved
-      (function initAiKeyInput() {
-        const savedKey = localStorage.getItem("dakmitra_gemini_api_key");
-        const input = document.getElementById("gemini-api-key-input");
-        if (savedKey && input) input.value = savedKey;
-      })();
 
       // 1. Triggered when user taps "✨ Ask AI" at the bottom of fuzzy local results
       function triggerInlineAiBelowResults(query) {
@@ -8243,8 +8223,6 @@
         );
       }
 
-      let cachedWorkingModel = "gemini-3.5-flash";
-
       // 1. FREE LIVE GEO-LOOKUP FOR MIRZAPUR & SONBHADRA VILLAGES (OpenStreetMap India)
       // Finds the exact Tehsil, Block, PIN, and nearby towns for any village in Mirzapur/Sonbhadra
 
@@ -8286,296 +8264,6 @@
         });
 
         return summaryLines.join("\n");
-      }
-
-      // 1. FREE LIVE WEB + GEO SEARCH FOR MIRZAPUR & SONBHADRA VILLAGES
-      // Exact coordinates of Mirzapur (16) & Sonbhadra (19) Delivery Post Offices (SO/HO)
-      // Used to calculate exact kilometer distance from any village found on the map!
-      const MIRZAPUR_SONBHADRA_SO_COORDS = [
-        {
-          office: "Mirzapur HO",
-          pin: "231001",
-          dist: "Mirzapur",
-          lat: 25.146,
-          lon: 82.569,
-        },
-        {
-          office: "Kachhwa SO",
-          pin: "231501",
-          dist: "Mirzapur",
-          lat: 25.211,
-          lon: 82.716,
-        },
-        {
-          office: "Vindhyachal SO",
-          pin: "231307",
-          dist: "Mirzapur",
-          lat: 25.165,
-          lon: 82.504,
-        },
-        {
-          office: "Chunar SO",
-          pin: "231304",
-          dist: "Mirzapur",
-          lat: 25.125,
-          lon: 82.875,
-        },
-        {
-          office: "Jigna SO",
-          pin: "231313",
-          dist: "Mirzapur",
-          lat: 25.158,
-          lon: 82.345,
-        },
-        {
-          office: "Bijaipur SO",
-          pin: "231303",
-          dist: "Mirzapur",
-          lat: 25.164,
-          lon: 82.422,
-        },
-        {
-          office: "Lalganj SO",
-          pin: "231211",
-          dist: "Mirzapur",
-          lat: 25.012,
-          lon: 82.362,
-        },
-        {
-          office: "Hallia SO",
-          pin: "231211",
-          dist: "Mirzapur",
-          lat: 24.819,
-          lon: 82.302,
-        },
-        {
-          office: "Marihan SO",
-          pin: "231310",
-          dist: "Mirzapur",
-          lat: 24.922,
-          lon: 82.681,
-        },
-        {
-          office: "Ahraura SO",
-          pin: "231301",
-          dist: "Mirzapur",
-          lat: 25.021,
-          lon: 83.021,
-        },
-        {
-          office: "Adalhat SO",
-          pin: "231302",
-          dist: "Mirzapur",
-          lat: 25.134,
-          lon: 83.025,
-        },
-        {
-          office: "Narayanpur SO",
-          pin: "231305",
-          dist: "Mirzapur",
-          lat: 25.161,
-          lon: 82.976,
-        },
-        {
-          office: "Jamalpur SO",
-          pin: "231302",
-          dist: "Mirzapur",
-          lat: 25.16,
-          lon: 83.095,
-        },
-        {
-          office: "Kailhat SO",
-          pin: "231305",
-          dist: "Mirzapur",
-          lat: 25.145,
-          lon: 82.927,
-        },
-        {
-          office: "Pahari SO",
-          pin: "231001",
-          dist: "Mirzapur",
-          lat: 25.118,
-          lon: 82.712,
-        },
-        {
-          office: "Chilh SO",
-          pin: "231312",
-          dist: "Mirzapur",
-          lat: 25.176,
-          lon: 82.559,
-        },
-        {
-          office: "Robertsganj HO",
-          pin: "231216",
-          dist: "Sonbhadra",
-          lat: 24.688,
-          lon: 83.068,
-        },
-        {
-          office: "Ghorawal SO",
-          pin: "231210",
-          dist: "Sonbhadra",
-          lat: 24.752,
-          lon: 82.774,
-        },
-        {
-          office: "Shahganj SO",
-          pin: "231215",
-          dist: "Sonbhadra",
-          lat: 24.708,
-          lon: 82.948,
-        },
-        {
-          office: "Churk SO",
-          pin: "231206",
-          dist: "Sonbhadra",
-          lat: 24.636,
-          lon: 83.078,
-        },
-        {
-          office: "Chopan SO",
-          pin: "231205",
-          dist: "Sonbhadra",
-          lat: 24.524,
-          lon: 83.03,
-        },
-        {
-          office: "Obra SO",
-          pin: "231219",
-          dist: "Sonbhadra",
-          lat: 24.42,
-          lon: 82.986,
-        },
-        {
-          office: "Dala SO",
-          pin: "231207",
-          dist: "Sonbhadra",
-          lat: 24.444,
-          lon: 83.037,
-        },
-        {
-          office: "Kon SO",
-          pin: "231226",
-          dist: "Sonbhadra",
-          lat: 24.415,
-          lon: 83.332,
-        },
-        {
-          office: "Ram Garh SO",
-          pin: "231213",
-          dist: "Sonbhadra",
-          lat: 24.646,
-          lon: 83.257,
-        },
-        {
-          office: "Renukoot SO",
-          pin: "231217",
-          dist: "Sonbhadra",
-          lat: 24.218,
-          lon: 83.038,
-        },
-        {
-          office: "Pipri SO",
-          pin: "231221",
-          dist: "Sonbhadra",
-          lat: 24.198,
-          lon: 83.003,
-        },
-        {
-          office: "Turra SO",
-          pin: "231221",
-          dist: "Sonbhadra",
-          lat: 24.205,
-          lon: 83.025,
-        },
-        {
-          office: "Muirpur SO",
-          pin: "231208",
-          dist: "Sonbhadra",
-          lat: 24.122,
-          lon: 82.952,
-        },
-        {
-          office: "Dudhi SO",
-          pin: "231208",
-          dist: "Sonbhadra",
-          lat: 24.216,
-          lon: 83.241,
-        },
-        {
-          office: "Wyndhamganj SO",
-          pin: "231226",
-          dist: "Sonbhadra",
-          lat: 24.201,
-          lon: 83.394,
-        },
-        {
-          office: "Babhani SO",
-          pin: "231223",
-          dist: "Sonbhadra",
-          lat: 23.945,
-          lon: 83.112,
-        },
-        {
-          office: "Anpara SO",
-          pin: "231225",
-          dist: "Sonbhadra",
-          lat: 24.205,
-          lon: 82.768,
-        },
-        {
-          office: "Bina Project SO",
-          pin: "231220",
-          dist: "Sonbhadra",
-          lat: 24.152,
-          lon: 82.749,
-        },
-        {
-          office: "Shaktinagar SO",
-          pin: "231222",
-          dist: "Sonbhadra",
-          lat: 24.111,
-          lon: 82.695,
-        },
-      ];
-
-      function haversineKm(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = ((lat2 - lat1) * Math.PI) / 180;
-        const dLon = ((lon2 - lon1) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos((lat1 * Math.PI) / 180) *
-            Math.cos((lat2 * Math.PI) / 180) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      }
-
-      // Helper: Fetches any URL through 3 independent free CORS proxies so it NEVER fails in browser
-      async function fetchTextViaCorsProxy(targetUrl, signal) {
-        const proxies = [
-          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(
-            targetUrl
-          )}`,
-          `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-          `https://r.jina.ai/${targetUrl}`,
-        ];
-
-        for (const pUrl of proxies) {
-          try {
-            const res = await fetch(pUrl, { signal });
-            if (res.ok) {
-              const text = await res.text();
-              if (text && text.length > 100 && !text.includes("Rate limit")) {
-                return text;
-              }
-            }
-          } catch (e) {
-            if (e.name === "AbortError") throw e;
-          }
-        }
-        return "";
       }
 
       // 1. PWA-SAFE GEO CONTEXT LOOKUP (Official India Post JSON API + Regional Rules)
@@ -9327,12 +9015,6 @@
         if (navigator.vibrate) navigator.vibrate(30);
       }
 
-      // Close popover when scrolling the directory list so it never floats detached
-      document
-        .getElementById("directory-display-area")
-        ?.addEventListener("scroll", closeAllDirectoryActionTrays, {
-          passive: true,
-        });
       // First tap outside closes the open options; second tap opens a new address
       document.addEventListener(
         "click",
@@ -9479,6 +9161,7 @@
       }
 
       function showOfficeDetailsModal(addressName, parentOfficeName) {
+        closeAllDirectoryActionTrays();
         const officeType = detectOfficeType(addressName);
         if (!officeType) return;
 
@@ -9924,6 +9607,7 @@
       }
       // --- OPTIMIZED AUTHENTICATION & DEVICE REGISTRATION ---
       async function handleAuth() {
+        await ensureSupabaseReady();
         hideAlert();
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value.trim();
@@ -10058,6 +9742,7 @@
       }
 
       async function signOutApp() {
+        await ensureSupabaseReady();
         teardownRealtimeSync();
         await supabaseClient.auth.signOut();
         localStorage.removeItem("dakmitra_cached_profile");
@@ -10725,6 +10410,7 @@
         wasOffline = true;
         clearTimeout(onlineRetryTimer);
         teardownRealtimeSync();
+        showOfflineToast("Switched to offline cache.");
       });
 
       async function hydrateOnlineState(attempt = 1) {
@@ -10850,6 +10536,11 @@
         if (document.visibilityState === "visible" && navigator.onLine) {
           if (wasOffline || !supabaseClient || !realtimeChannel) {
             hydrateOnlineState(1);
+          } else {
+            const isLoggedIn = !document
+              .getElementById("dashboard-view")
+              ?.classList.contains("hidden");
+            if (isLoggedIn) fetchFromServerBackground();
           }
         }
       });
@@ -11134,6 +10825,11 @@
             data: { session },
           } = await supabaseClient.auth.getSession();
 
+          if (!session || !session.user) {
+            checkUserSession();
+            return alert("Your session has expired. Please sign in again.");
+          }
+
           const reqData = {
             post_office_id: id,
             action_type: "DELETE",
@@ -11216,6 +10912,7 @@
       }
 
       async function viewHistory(postOfficeId) {
+        closeAllDirectoryActionTrays();
         const contentDiv = document.getElementById("history-modal-content");
         contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty">Fetching records...</li></ul>`;
         document.getElementById("history-modal-overlay").classList.add("show");
@@ -11441,6 +11138,7 @@
       };
 
       async function registerDevicePasskey() {
+        await ensureSupabaseReady();
         try {
           // Initiates the OS-level prompt for Fingerprint, Face ID, or Windows Hello
           const { data, error } = await supabaseClient.auth.registerPasskey();
@@ -11450,11 +11148,16 @@
           showToast("✅ Device successfully registered!");
           // data contains { id, friendly_name, created_at }
         } catch (err) {
-          showAlert("Passkey registration failed: " + err.message);
+          showCustomAlert(
+            "Passkey Failed",
+            "Passkey registration failed: " + err.message,
+            "⚠️"
+          );
         }
       }
 
       async function signInWithDevice() {
+        await ensureSupabaseReady();
         const splashScreen = document.getElementById("splash-screen");
         splashScreen.classList.remove("hidden-splash");
 
@@ -11795,17 +11498,16 @@
 
             if (req.action_type === "ADD") {
               const badge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">➕ ADD</span>`;
+              const prop = req.proposed_data || {};
               changesHtml = `
                                 ${badge}
                                 <div style="margin-bottom: 4px;"><b>${escapeHTML(
-                                  req.proposed_data.Address
+                                  prop.Address || "Unknown"
                                 )}</b></div>
                                 <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
-                                  req.proposed_data.Office
+                                  prop.Office || "Unknown"
                                 )}</div>
-                                <div>📍 ${escapeHTML(
-                                  req.proposed_data.Pin || "N/A"
-                                )}</div>
+                                <div>📍 ${escapeHTML(prop.Pin || "N/A")}</div>
                               `;
             } else if (req.action_type === "EDIT") {
               const badge = `<span class="badge" style="background:#fef9c3;color:#854d0e; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">✏️ EDIT</span>`;
@@ -12173,13 +11875,6 @@
         }, 2000);
       }
 
-      // 1. Save and apply Action Button Mode
-      function saveActionMode(mode) {
-        localStorage.setItem("dakmitra_action_mode", mode);
-        renderResults();
-        showToast("⚙️ Action button preference saved!");
-      }
-
       // 3. Save and apply Export Buttons Mode
       function saveExportMode(mode) {
         localStorage.setItem("dakmitra_export_mode", mode);
@@ -12322,11 +12017,6 @@
       if (exportModeSelect) exportModeSelect.value = savedExportMode;
       applyExportMode(savedExportMode);
 
-      // 2. Load the saved preference when the app starts (add this inside checkUserSession or near initialization)
-      const savedActionMode =
-        localStorage.getItem("dakmitra_action_mode") || "tap";
-      const actionModeSelect = document.getElementById("action-mode-select");
-      if (actionModeSelect) actionModeSelect.value = savedActionMode;
       // --- SWIPE NAVIGATION LOGIC ---
       let touchStartX = 0;
       let touchEndX = 0;
@@ -12394,39 +12084,6 @@
             }
           }
         }
-      }
-
-      function toggleCardExpansion(cardElement) {
-        // Collapse other open cards (optional accordion behavior)
-        const allCards = document.querySelectorAll(".list-item");
-        allCards.forEach((c) => {
-          if (c !== cardElement) c.classList.remove("expanded");
-        });
-
-        // Toggle current card
-        cardElement.classList.toggle("expanded");
-      }
-      // Helper: Extracts unique offices from the database and generates <option> tags
-      function generateOfficeDropdownOptions() {
-        if (!cachedPostOffices || cachedPostOffices.length === 0) return "";
-
-        const officeMap = new Map();
-        cachedPostOffices.forEach((row) => {
-          if (row.Office && !officeMap.has(row.Office)) {
-            officeMap.set(row.Office, row.Pin || "");
-          }
-        });
-
-        const sortedOffices = Array.from(officeMap.keys()).sort();
-
-        let html = "";
-        sortedOffices.forEach((office) => {
-          const pin = officeMap.get(office);
-          html += `<option value="${escapeHTML(office)}" data-pin="${escapeHTML(
-            pin
-          )}"></option>`;
-        });
-        return html;
       }
 
       // 1. MANUAL UPLOAD OFFICE AUTOCOMPLETE (Restored)
@@ -12650,24 +12307,6 @@
         filterDirectory();
         input.focus(); // Keeps the keyboard open on mobile
       }
-      // --- FOREGROUND AUTO-SYNC ---
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-          // Only attempt a sync if the user is actively logged in
-          const isLoggedIn =
-            document
-              .getElementById("dashboard-view")
-              .classList.contains("hidden") === false;
-
-          if (isLoggedIn) {
-            console.log(
-              "App returned to foreground. Silently fetching fresh data..."
-            );
-            // fetchFromServerBackground() handles the internet check and silent update automatically
-            fetchFromServerBackground();
-          }
-        }
-      });
 
       // Renders either the uploaded photo or the fallback initial letter across the app
       function renderUserProfileUI(profileData, userEmail) {
@@ -12780,8 +12419,11 @@
             return;
           }
 
-          let cachedProfile =
-            JSON.parse(localStorage.getItem("dakmitra_cached_profile")) || {};
+          let cachedProfile = {};
+          try {
+            cachedProfile =
+              JSON.parse(localStorage.getItem("dakmitra_cached_profile")) || {};
+          } catch (e) {}
           cachedProfile.name = newName;
           cachedProfile.mobile = newMobile || null;
           cachedProfile.designation = newDesignation;
@@ -12834,7 +12476,11 @@
         if (!file) return;
 
         if (!file.type.startsWith("image/")) {
-          return showAlert("Please select a valid image file.");
+          return showCustomAlert(
+            "Invalid File",
+            "Please select a valid image file.",
+            "⚠️"
+          );
         }
 
         const reader = new FileReader();
@@ -13019,6 +12665,9 @@
         window.addEventListener("mouseup", endDrag);
       })();
       async function updateAvatarInDatabase(avatarDataUrl) {
+        if (!(await ensureOnline("Connect to internet to update your photo.")))
+          return;
+        await ensureSupabaseReady();
         const {
           data: { session },
         } = await supabaseClient.auth.getSession();
@@ -13037,8 +12686,11 @@
         }
 
         // Update local cache & UI immediately
-        let cachedProfile =
-          JSON.parse(localStorage.getItem("dakmitra_cached_profile")) || {};
+        let cachedProfile = {};
+        try {
+          cachedProfile =
+            JSON.parse(localStorage.getItem("dakmitra_cached_profile")) || {};
+        } catch (e) {}
         cachedProfile.avatar_url = avatarDataUrl;
         localStorage.setItem(
           "dakmitra_cached_profile",
@@ -13224,11 +12876,16 @@
           if (cachedDataString) {
             try {
               cachedPostOffices = JSON.parse(cachedDataString);
+              document.getElementById("stat-addresses").textContent =
+                cachedPostOffices.length;
+              document.getElementById("stat-offices").textContent = new Set(
+                cachedPostOffices.map((o) => o.Office)
+              ).size;
               currentFilteredData = cachedPostOffices.map((item) => ({
                 item,
                 matches: [],
               }));
-              renderResults();
+              renderResults(false);
             } catch (e) {}
           }
         } else {
@@ -13298,44 +12955,38 @@
 
           // 2. Only hit Supabase for Admin status, Profile & Realtime when actually online
           if (navigator.onLine && supabaseClient) {
-            checkIfAdmin(session.user.id)
-              .then((isAdmin) => {
-                isCurrentUserAdmin = isAdmin;
-                applyAdminUI();
-                // Persist is_admin into cached profile for future offline boots
-                try {
-                  const existing =
-                    JSON.parse(
-                      localStorage.getItem("dakmitra_cached_profile")
-                    ) || {};
-                  localStorage.setItem(
-                    "dakmitra_cached_profile",
-                    JSON.stringify({ ...existing, is_admin: isAdmin })
-                  );
-                } catch (e) {}
-              })
-              .catch(() => {});
+            Promise.all([
+              checkIfAdmin(session.user.id).catch(() => isCurrentUserAdmin),
+              supabaseClient
+                .from("profiles")
+                .select("name, designation, employee_id, mobile, avatar_url")
+                .eq("id", session.user.id)
+                .single()
+                .catch(() => ({ data: null })),
+            ]).then(([isAdmin, profRes]) => {
+              isCurrentUserAdmin = isAdmin;
+              applyAdminUI();
 
-            supabaseClient
-              .from("profiles")
-              .select("name, designation, employee_id, mobile, avatar_url")
-              .eq("id", session.user.id)
-              .single()
-              .then(({ data: prof }) => {
-                if (prof) {
-                  const merged = {
-                    ...prof,
-                    email: userEmail,
-                    is_admin: isCurrentUserAdmin,
-                  };
-                  localStorage.setItem(
-                    "dakmitra_cached_profile",
-                    JSON.stringify(merged)
-                  );
-                  renderUserProfileUI(merged, userEmail);
-                }
-              })
-              .catch(() => {});
+              const prof = profRes?.data;
+              let existing = {};
+              try {
+                existing =
+                  JSON.parse(localStorage.getItem("dakmitra_cached_profile")) ||
+                  {};
+              } catch (e) {}
+
+              const merged = {
+                ...existing,
+                ...(prof || {}),
+                email: userEmail,
+                is_admin: isAdmin,
+              };
+              localStorage.setItem(
+                "dakmitra_cached_profile",
+                JSON.stringify(merged)
+              );
+              if (prof) renderUserProfileUI(merged, userEmail);
+            });
 
             initRealtimeSync();
           }
@@ -13359,43 +13010,6 @@
         checkEmailVerificationRedirect();
         checkUserSession();
       });
-
-      // --- 0ms OPTIMISTIC BOOT (Shows cached UI immediately before SDKs/Network finish) ---
-      (function instantOptimisticBoot() {
-        const cachedProfileRaw = localStorage.getItem(
-          "dakmitra_cached_profile"
-        );
-        const cachedDbRaw = localStorage.getItem("dakmitra_offline_db");
-
-        // Only fast-boot into Dashboard if the user was already logged in
-        if (!cachedProfileRaw) return;
-
-        try {
-          const profile = JSON.parse(cachedProfileRaw);
-          document.getElementById("auth-view")?.classList.add("hidden");
-          document.getElementById("dashboard-view")?.classList.remove("hidden");
-          renderUserProfileUI(profile, profile.email || "");
-          loadSearchHistory();
-
-          if (cachedDbRaw) {
-            cachedPostOffices = JSON.parse(cachedDbRaw);
-            document.getElementById("stat-addresses").textContent =
-              cachedPostOffices.length;
-            document.getElementById("stat-offices").textContent = new Set(
-              cachedPostOffices.map((o) => o.Office)
-            ).size;
-
-            // Render first 10 items immediately without waiting for Fuse.js
-            currentFilteredData = cachedPostOffices.map((item) => ({
-              item,
-              matches: [],
-            }));
-            renderResults(false);
-          }
-        } catch (e) {
-          console.warn("Optimistic boot skipped:", e);
-        }
-      })();
 
       // --- GLOBAL SMART ENTER-KEY & KEYBOARD NAVIGATION ---
       (function initSmartEnterNavigation() {
