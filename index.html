@@ -2467,7 +2467,7 @@
         display: flex;
         flex-direction: column;
         gap: 12px; /* Distinct spacing between cards */
-        padding: 4px; /* Room for hover shadows */
+        padding: 6px; /* Room for hover shadows */
       }
 
       li.list-item {
@@ -8689,7 +8689,7 @@
           return;
         }
 
-        let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
+        let html = `<ul class="list-container" style="margin:0; list-style:none;">`;
         favorites.forEach((row) => {
           const favStyle = getFavoriteBtnStyles(true); // Always true in favorites view
 
@@ -9424,7 +9424,7 @@
         }
 
         if (viewMode === "list") {
-          let html = `<ul class="list-container" style="margin:0; padding:0; list-style:none;">`;
+          let html = `<ul class="list-container" style="margin:0; list-style:none;">`;
 
           currentFilteredData
             .slice(0, window.searchDisplayLimit)
