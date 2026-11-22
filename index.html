@@ -6534,6 +6534,31 @@
         }
         return supabaseClient;
       }
+
+      function loadScriptDynamically(src) {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      async function ensureSupabaseReady() {
+        if (!window.supabase) {
+          await loadScriptDynamically(
+            "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+          );
+        }
+        if (!window.Fuse) {
+          await loadScriptDynamically(
+            "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"
+          );
+        }
+        return initSupabaseClient();
+      }
+
       const ICON_STAR_FILLED = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
       const ICON_STAR_OUTLINE = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>`;
 
@@ -10686,14 +10711,141 @@
         }
       }
 
-      // Auto-sync & reconnect the instant the phone regains internet
-      window.addEventListener("online", () => {
-        const isLoggedIn = !document
-          .getElementById("dashboard-view")
-          .classList.contains("hidden");
-        if (isLoggedIn) {
+      // --- FULL OFFLINE-TO-ONLINE HYDRATION ENGINE ---
+      let wasOffline = !navigator.onLine;
+      let isHydratingOnline = false;
+      let onlineRetryTimer = null;
+
+      window.addEventListener("offline", () => {
+        wasOffline = true;
+        clearTimeout(onlineRetryTimer);
+        teardownRealtimeSync();
+      });
+
+      async function hydrateOnlineState(attempt = 1) {
+        if (isHydratingOnline) return;
+        clearTimeout(onlineRetryTimer);
+
+        // 1. Verify actual packet routing (not just Android's premature 'online' event)
+        const hasInternet = await checkActualInternet();
+        if (!hasInternet) {
+          // Retry up to 4 times (1.5s, 3s, 5s, 8s) while mobile data/Wi-Fi stabilizes
+          if (attempt <= 4 && navigator.onLine) {
+            const delays = [1500, 3000, 5000, 8000];
+            onlineRetryTimer = setTimeout(
+              () => hydrateOnlineState(attempt + 1),
+              delays[attempt - 1]
+            );
+          }
+          return;
+        }
+
+        isHydratingOnline = true;
+
+        try {
+          // 2. Ensure Supabase & Fuse SDKs are loaded and client is initialized
+          const client = await ensureSupabaseReady();
+          if (!client) throw new Error("Supabase client failed to initialize.");
+
+          // 3. Validate and refresh the Supabase Auth session
+          let {
+            data: { session },
+          } = await client.auth.getSession();
+
+          // If token is expired or expiring within 2 minutes, force a refresh
+          const nowSec = Math.floor(Date.now() / 1000);
+          if (
+            session &&
+            (!session.expires_at || session.expires_at - nowSec < 120)
+          ) {
+            const { data: refreshed, error: refreshErr } =
+              await client.auth.refreshSession();
+            if (!refreshErr && refreshed?.session) {
+              session = refreshed.session;
+            }
+          }
+
+          if (!session || !session.user) {
+            // Session is genuinely invalid/revoked -> send back to login cleanly
+            wasOffline = false;
+            if (typeof checkUserSession === "function") checkUserSession();
+            return;
+          }
+
+          currentUserId = session.user.id;
+
+          // 4. Re-check Admin status and apply all Admin UI rules
+          isCurrentUserAdmin = await checkIfAdmin(session.user.id);
+          applyAdminUI();
+
+          // 5. Refresh cached profile & UI
+          const { data: profileData } = await client
+            .from("profiles")
+            .select("name, designation, employee_id, mobile, avatar_url")
+            .eq("id", session.user.id)
+            .maybeSingle();
+
+          if (profileData) {
+            const merged = {
+              ...profileData,
+              email: session.user.email,
+              is_admin: isCurrentUserAdmin,
+            };
+            localStorage.setItem(
+              "dakmitra_cached_profile",
+              JSON.stringify(merged)
+            );
+            renderUserProfileUI(merged, session.user.email);
+          }
+
+          // 6. Reconnect Realtime cleanly with the fresh access token
+          teardownRealtimeSync();
+          if (client.realtime && session.access_token) {
+            client.realtime.setAuth(session.access_token);
+          }
           initRealtimeSync();
-          fetchFromServerBackground();
+
+          // 7. Reset any offline-frozen Approvals view & reload if currently open
+          invalidateApprovalsCache();
+          if (
+            document
+              .getElementById("view-approvals")
+              ?.classList.contains("active")
+          ) {
+            switchApprovalTab(currentApprovalTab, true);
+          }
+
+          // 8. Sync latest post_offices data in the background
+          await fetchFromServerBackground();
+
+          if (wasOffline) {
+            wasOffline = false;
+            showToast("🌐 Back online — synced!");
+          }
+        } catch (err) {
+          console.warn("Online hydration failed:", err);
+          if (attempt <= 3 && navigator.onLine) {
+            onlineRetryTimer = setTimeout(
+              () => hydrateOnlineState(attempt + 1),
+              3000
+            );
+          }
+        } finally {
+          isHydratingOnline = false;
+        }
+      }
+
+      // Trigger hydration when network returns
+      window.addEventListener("online", () => {
+        hydrateOnlineState(1);
+      });
+
+      // Also check when returning to the app (e.g., after pulling down Android Quick Settings to turn on data)
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && navigator.onLine) {
+          if (wasOffline || !supabaseClient || !realtimeChannel) {
+            hydrateOnlineState(1);
+          }
         }
       });
 
@@ -13087,16 +13239,25 @@
 
       // 2. BACKGROUND SYNC — Runs quietly after the app is already open and interactive
       async function checkUserSession() {
+        if (!navigator.onLine) {
+          wasOffline = true;
+        }
+
         initSupabaseClient();
-        if (!supabaseClient) return;
 
         // Build Fuse.js index in background once SDK is ready
         if (cachedPostOffices.length > 0 && window.Fuse && !fuse) {
           initializeSearchAndRender();
         }
 
-        const { data } = await supabaseClient.auth.getSession();
-        const session = data?.session || getInstantLocalSession();
+        // If Supabase SDK didn't load offline, fall back to local session & cached profile
+        let session = null;
+        if (supabaseClient) {
+          const { data } = await supabaseClient.auth.getSession();
+          session = data?.session || getInstantLocalSession();
+        } else {
+          session = getInstantLocalSession();
+        }
 
         const authView = document.getElementById("auth-view");
         const dashboardView = document.getElementById("dashboard-view");
@@ -13111,15 +13272,42 @@
 
           const userEmail = session.user.email || "user@example.com";
 
-          // Quietly sync Admin status, Profile, and Post Offices in the background
-          checkIfAdmin(session.user.id)
-            .then((isAdmin) => {
-              isCurrentUserAdmin = isAdmin;
-              applyAdminUI();
-            })
-            .catch(() => {});
+          // 1. Immediately restore cached Admin status & Profile so offline mode looks right
+          let cachedProf = null;
+          try {
+            cachedProf = JSON.parse(
+              localStorage.getItem("dakmitra_cached_profile")
+            );
+          } catch (e) {}
 
-          if (navigator.onLine) {
+          if (cachedProf) {
+            if (typeof cachedProf.is_admin === "boolean") {
+              isCurrentUserAdmin = cachedProf.is_admin;
+              applyAdminUI();
+            }
+            renderUserProfileUI(cachedProf, userEmail);
+          }
+
+          // 2. Only hit Supabase for Admin status, Profile & Realtime when actually online
+          if (navigator.onLine && supabaseClient) {
+            checkIfAdmin(session.user.id)
+              .then((isAdmin) => {
+                isCurrentUserAdmin = isAdmin;
+                applyAdminUI();
+                // Persist is_admin into cached profile for future offline boots
+                try {
+                  const existing =
+                    JSON.parse(
+                      localStorage.getItem("dakmitra_cached_profile")
+                    ) || {};
+                  localStorage.setItem(
+                    "dakmitra_cached_profile",
+                    JSON.stringify({ ...existing, is_admin: isAdmin })
+                  );
+                } catch (e) {}
+              })
+              .catch(() => {});
+
             supabaseClient
               .from("profiles")
               .select("name, designation, employee_id, mobile, avatar_url")
@@ -13127,18 +13315,24 @@
               .single()
               .then(({ data: prof }) => {
                 if (prof) {
+                  const merged = {
+                    ...prof,
+                    email: userEmail,
+                    is_admin: isCurrentUserAdmin,
+                  };
                   localStorage.setItem(
                     "dakmitra_cached_profile",
-                    JSON.stringify(prof)
+                    JSON.stringify(merged)
                   );
-                  renderUserProfileUI(prof, userEmail);
+                  renderUserProfileUI(merged, userEmail);
                 }
               })
               .catch(() => {});
+
+            initRealtimeSync();
           }
 
           fetchAllPostOffices();
-          initRealtimeSync();
         } else {
           currentUserId = null;
           authView.classList.remove("hidden");
