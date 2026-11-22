@@ -1665,42 +1665,153 @@
         position: relative;
         width: 100%;
       }
+
+      /* Prevent Manual Upload card & stacked rows from clipping the open dropdown */
+      #view-upload .upload-card.dm-surface {
+        overflow: visible;
+      }
+
+      .manual-entry-row {
+        position: relative;
+        z-index: 1;
+      }
+
+      .manual-entry-row:focus-within,
+      .manual-entry-row:has(.autocomplete-dropdown.show) {
+        z-index: 50;
+      }
+
       .autocomplete-dropdown {
         position: absolute;
-        top: 100%;
+        top: calc(100% + 8px);
         left: 0;
         right: 0;
         background: var(--card-bg);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        margin-top: 4px;
-        max-height: 220px;
+        border: 1px solid var(--dm-border-tint);
+        border-radius: 18px;
+        padding: 6px;
+        max-height: 240px;
         overflow-y: auto;
+        overscroll-behavior: contain;
         z-index: 1000;
-        box-shadow: var(--shadow-lg);
+        box-shadow: var(--dm-shadow-modal);
         display: none;
+        transform-origin: top center;
       }
+
       .autocomplete-dropdown.show {
-        display: block;
-        animation: fadeInDown 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        animation: dropdownPopIn 0.24s var(--dm-ease-spring) forwards;
       }
+
+      @keyframes dropdownPopIn {
+        0% {
+          opacity: 0;
+          transform: translateY(-6px) scale(0.97);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      /* Sleek scrollbar that stays inside the rounded border */
+      .autocomplete-dropdown::-webkit-scrollbar {
+        width: 5px;
+      }
+      .autocomplete-dropdown::-webkit-scrollbar-track {
+        background: transparent;
+        margin: 8px 0;
+      }
+      .autocomplete-dropdown::-webkit-scrollbar-thumb {
+        background: var(--input-border);
+        border-radius: 999px;
+      }
+
       .autocomplete-item {
-        padding: 12px 16px;
-        cursor: pointer;
-        border-bottom: 1px solid var(--border);
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--text);
-        transition: background 0.2s, color 0.2s;
-      }
-      .autocomplete-item:last-child {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
         border-bottom: none;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        text-align: left;
+        transition: background 0.18s ease, color 0.18s ease,
+          transform 0.18s ease;
       }
-      .autocomplete-item:hover,
+
+      .autocomplete-item:hover {
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--primary);
+        transform: translateX(3px);
+      }
+
+      [data-theme="dark"] .autocomplete-item:hover {
+        background: rgba(129, 140, 248, 0.16);
+      }
+
       .autocomplete-item:active {
-        background: var(--btn-secondary);
+        transform: scale(0.98);
+        background: rgba(79, 70, 229, 0.16);
+      }
+
+      .ac-item-main {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .ac-item-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 10px;
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--primary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: background 0.18s ease, color 0.18s ease;
+      }
+
+      [data-theme="dark"] .ac-item-icon {
+        background: rgba(129, 140, 248, 0.16);
+      }
+
+      .autocomplete-item:hover .ac-item-icon {
+        background: var(--primary);
+        color: #ffffff;
+      }
+
+      .ac-item-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .ac-item-pin {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--text-light);
+        background: var(--input-bg);
+        padding: 3px 8px;
+        border-radius: 8px;
+        flex-shrink: 0;
+      }
+
+      .autocomplete-item:hover .ac-item-pin {
+        background: rgba(79, 70, 229, 0.14);
         color: var(--primary);
       }
+
       /* --- AUTH VIEW --- */
       .auth-card {
         background: var(--card-bg);
@@ -12544,61 +12655,6 @@
         }
       }
 
-      function handleBulkOfficeInput(inputElement) {
-        const val = inputElement.value;
-        const dropdown = document.getElementById("bulk-office-dropdown");
-        const clearBtn = document.getElementById("bulk-office-clear");
-        const pinInput = document.getElementById("bulk-pin-input");
-
-        if (clearBtn) clearBtn.classList.toggle("hidden", val.length === 0);
-
-        const officeMap = new Map();
-        if (cachedPostOffices) {
-          cachedPostOffices.forEach((row) => {
-            if (row.Office && !officeMap.has(row.Office)) {
-              officeMap.set(row.Office, row.Pin || "");
-            }
-          });
-        }
-
-        let matchedOffices = Array.from(officeMap.keys());
-        if (val) {
-          const lowerVal = val.toLowerCase();
-          matchedOffices = matchedOffices.filter((o) =>
-            o.toLowerCase().includes(lowerVal)
-          );
-        }
-        matchedOffices.sort();
-
-        if (matchedOffices.length === 0) {
-          dropdown.classList.remove("show");
-        } else {
-          dropdown.innerHTML = matchedOffices
-            .slice(0, 10)
-            .map((office) => {
-              const pin = officeMap.get(office);
-              return `<div class="autocomplete-item" onmousedown="event.preventDefault(); selectBulkOffice('${escapeForOnclick(
-                office
-              )}', '${escapeForOnclick(pin)}')">🏢 ${escapeHTML(office)}</div>`;
-            })
-            .join("");
-          dropdown.classList.add("show");
-        }
-
-        if (pinInput) {
-          if (val.trim() === "") {
-            pinInput.value = "";
-          } else {
-            const exactMatch = Array.from(officeMap.keys()).find(
-              (k) => k.toLowerCase() === val.toLowerCase()
-            );
-            if (exactMatch) pinInput.value = officeMap.get(exactMatch);
-          }
-        }
-
-        updateBulkAddressPreview();
-      }
-
       function selectBulkOffice(officeName, pinNumber) {
         const offInput = document.getElementById("bulk-office-input");
         const pinInput = document.getElementById("bulk-pin-input");
@@ -12805,6 +12861,54 @@
         activeInlineEditRecord = null;
       }
 
+      function buildOfficeOptionHTML(office, pin, mode) {
+        return `<div class="autocomplete-item" onmousedown="pickOfficeOption(this, '${escapeForOnclick(
+          office
+        )}', '${escapeForOnclick(pin)}', '${mode}')">
+    <div class="ac-item-main">
+      <span class="ac-item-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+          <path d="M9 22v-4h6v4"></path>
+          <path d="M8 6h.01"></path><path d="M16 6h.01"></path>
+          <path d="M12 6h.01"></path><path d="M12 10h.01"></path>
+        </svg>
+      </span>
+      <span class="ac-item-name">${escapeHTML(office)}</span>
+    </div>
+    ${pin ? `<span class="ac-item-pin">${escapeHTML(pin)}</span>` : ""}
+  </div>`;
+      }
+
+      function pickOfficeOption(itemEl, office, pin, mode) {
+        if (mode === "inline") {
+          const input = document.getElementById("inline-edit-office");
+          const pinInput = document.getElementById("inline-edit-pin");
+          const clearBtn = document.getElementById("inline-edit-office-clear");
+          if (input) input.value = office;
+          if (pinInput && pin) pinInput.value = pin;
+          if (clearBtn) clearBtn.classList.remove("hidden");
+        } else if (mode === "manual") {
+          const wrapper = itemEl.closest(".autocomplete-wrapper");
+          const row = wrapper?.closest(".manual-entry-row");
+          const input = wrapper?.querySelector(".manual-office");
+          const clearBtn = wrapper?.querySelector(".clear-btn");
+          const pinInput = row?.querySelector(".manual-Pin");
+          if (input) input.value = office;
+          if (pinInput && pin) pinInput.value = pin;
+          if (clearBtn) clearBtn.classList.remove("hidden");
+        } else if (mode === "bulk") {
+          const input = document.getElementById("bulk-office-input");
+          const pinInput = document.getElementById("bulk-pin-input");
+          const clearBtn = document.getElementById("bulk-office-clear");
+          if (input) input.value = office;
+          if (pinInput && pin) pinInput.value = pin;
+          if (clearBtn) clearBtn.classList.remove("hidden");
+          updateBulkAddressPreview();
+        }
+        closeAllDropdowns();
+      }
+
       function handleInlineEditOfficeInput(inputElement) {
         const val = inputElement.value;
         const dropdown = document.getElementById("inline-edit-office-dropdown");
@@ -12835,14 +12939,12 @@
         if (matchedOffices.length === 0) {
           dropdown.classList.remove("show");
         } else {
-          let html = "";
-          matchedOffices.slice(0, 10).forEach((office) => {
-            const pin = officeMap.get(office);
-            html += `<div class="autocomplete-item" onmousedown="event.preventDefault(); selectInlineEditOffice('${escapeForOnclick(
-              office
-            )}', '${escapeForOnclick(pin)}')">🏢 ${escapeHTML(office)}</div>`;
-          });
-          dropdown.innerHTML = html;
+          dropdown.innerHTML = matchedOffices
+            .slice(0, 10)
+            .map((office) =>
+              buildOfficeOptionHTML(office, officeMap.get(office), "inline")
+            )
+            .join("");
           dropdown.classList.add("show");
         }
 
@@ -12856,6 +12958,113 @@
             if (exactMatch) pinInput.value = officeMap.get(exactMatch);
           }
         }
+      }
+
+      // 1. MANUAL UPLOAD OFFICE AUTOCOMPLETE
+      function handleOfficeInput(inputElement) {
+        const val = inputElement.value;
+        const wrapper = inputElement.closest(".autocomplete-wrapper");
+        const dropdown = wrapper.querySelector(".autocomplete-dropdown");
+        const clearBtn = wrapper.querySelector(".clear-btn");
+        const pinInput = wrapper
+          .closest(".manual-entry-row")
+          .querySelector(".manual-Pin");
+
+        if (val.length > 0) clearBtn.classList.remove("hidden");
+        else clearBtn.classList.add("hidden");
+
+        const officeMap = new Map();
+        if (cachedPostOffices) {
+          cachedPostOffices.forEach((row) => {
+            if (row.Office && !officeMap.has(row.Office)) {
+              officeMap.set(row.Office, row.Pin || "");
+            }
+          });
+        }
+
+        let matchedOffices = Array.from(officeMap.keys());
+        if (val) {
+          const lowerVal = val.toLowerCase();
+          matchedOffices = matchedOffices.filter((o) =>
+            o.toLowerCase().includes(lowerVal)
+          );
+        }
+        matchedOffices.sort();
+
+        if (matchedOffices.length === 0) {
+          dropdown.classList.remove("show");
+        } else {
+          dropdown.innerHTML = matchedOffices
+            .slice(0, 10)
+            .map((office) =>
+              buildOfficeOptionHTML(office, officeMap.get(office), "manual")
+            )
+            .join("");
+          dropdown.classList.add("show");
+        }
+
+        if (pinInput) {
+          if (val.trim() === "") {
+            pinInput.value = "";
+          } else {
+            const exactMatch = Array.from(officeMap.keys()).find(
+              (k) => k.toLowerCase() === val.toLowerCase()
+            );
+            if (exactMatch) pinInput.value = officeMap.get(exactMatch);
+          }
+        }
+      }
+
+      function handleBulkOfficeInput(inputElement) {
+        const val = inputElement.value;
+        const dropdown = document.getElementById("bulk-office-dropdown");
+        const clearBtn = document.getElementById("bulk-office-clear");
+        const pinInput = document.getElementById("bulk-pin-input");
+
+        if (clearBtn) clearBtn.classList.toggle("hidden", val.length === 0);
+
+        const officeMap = new Map();
+        if (cachedPostOffices) {
+          cachedPostOffices.forEach((row) => {
+            if (row.Office && !officeMap.has(row.Office)) {
+              officeMap.set(row.Office, row.Pin || "");
+            }
+          });
+        }
+
+        let matchedOffices = Array.from(officeMap.keys());
+        if (val) {
+          const lowerVal = val.toLowerCase();
+          matchedOffices = matchedOffices.filter((o) =>
+            o.toLowerCase().includes(lowerVal)
+          );
+        }
+        matchedOffices.sort();
+
+        if (matchedOffices.length === 0) {
+          dropdown.classList.remove("show");
+        } else {
+          dropdown.innerHTML = matchedOffices
+            .slice(0, 10)
+            .map((office) =>
+              buildOfficeOptionHTML(office, officeMap.get(office), "bulk")
+            )
+            .join("");
+          dropdown.classList.add("show");
+        }
+
+        if (pinInput) {
+          if (val.trim() === "") {
+            pinInput.value = "";
+          } else {
+            const exactMatch = Array.from(officeMap.keys()).find(
+              (k) => k.toLowerCase() === val.toLowerCase()
+            );
+            if (exactMatch) pinInput.value = officeMap.get(exactMatch);
+          }
+        }
+
+        updateBulkAddressPreview();
       }
 
       function selectInlineEditOffice(officeName, pinNumber) {
@@ -14789,61 +14998,6 @@
       }
 
       // 1. MANUAL UPLOAD OFFICE AUTOCOMPLETE (Restored)
-      function handleOfficeInput(inputElement) {
-        const val = inputElement.value;
-        const wrapper = inputElement.closest(".autocomplete-wrapper");
-        const dropdown = wrapper.querySelector(".autocomplete-dropdown");
-        const clearBtn = wrapper.querySelector(".clear-btn");
-        const pinInput = wrapper
-          .closest(".manual-entry-row")
-          .querySelector(".manual-Pin");
-
-        if (val.length > 0) clearBtn.classList.remove("hidden");
-        else clearBtn.classList.add("hidden");
-
-        const officeMap = new Map();
-        if (cachedPostOffices) {
-          cachedPostOffices.forEach((row) => {
-            if (row.Office && !officeMap.has(row.Office)) {
-              officeMap.set(row.Office, row.Pin || "");
-            }
-          });
-        }
-
-        let matchedOffices = Array.from(officeMap.keys());
-        if (val) {
-          const lowerVal = val.toLowerCase();
-          matchedOffices = matchedOffices.filter((o) =>
-            o.toLowerCase().includes(lowerVal)
-          );
-        }
-        matchedOffices.sort();
-
-        if (matchedOffices.length === 0) {
-          dropdown.classList.remove("show");
-        } else {
-          let html = "";
-          matchedOffices.slice(0, 10).forEach((office) => {
-            const pin = officeMap.get(office);
-            html += `<div class="autocomplete-item" onmousedown="event.preventDefault(); selectCustomOffice(this, '${escapeForOnclick(
-              office
-            )}', '${escapeForOnclick(pin)}')">🏢 ${escapeHTML(office)}</div>`;
-          });
-          dropdown.innerHTML = html;
-          dropdown.classList.add("show");
-        }
-
-        if (pinInput) {
-          if (val.trim() === "") {
-            pinInput.value = "";
-          } else {
-            const exactMatch = Array.from(officeMap.keys()).find(
-              (k) => k.toLowerCase() === val.toLowerCase()
-            );
-            if (exactMatch) pinInput.value = officeMap.get(exactMatch);
-          }
-        }
-      }
 
       function selectCustomOffice(itemElement, officeName, pinNumber) {
         const wrapper = itemElement.closest(".autocomplete-wrapper");
@@ -14900,9 +15054,20 @@
         } else {
           let html = "";
           matchedOffices.slice(0, 10).forEach((office) => {
-            html += `<div class="autocomplete-item" onmousedown="event.preventDefault(); selectSearchOfficeFilter('${escapeForOnclick(
-              office
-            )}')">🏢 ${escapeHTML(office)}</div>`;
+            html += `<div class="autocomplete-item" onmousedown="selectOffice(...)">
+  <div class="ac-item-main">
+    <span class="ac-item-icon">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+        <path d="M9 22v-4h6v4"></path>
+        <path d="M8 6h.01"></path><path d="M16 6h.01"></path>
+        <path d="M12 6h.01"></path><path d="M12 10h.01"></path>
+      </svg>
+    </span>
+    <span class="ac-item-name">${escapeHTML(officeName)}</span>
+  </div>
+  ${pin ? `<span class="ac-item-pin">${escapeHTML(pin)}</span>` : ""}
+</div>`;
           });
           dropdown.innerHTML = html;
           dropdown.classList.add("show");
