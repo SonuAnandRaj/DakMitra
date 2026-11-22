@@ -1,11 +1,10 @@
-const CACHE_NAME = "po-directory-v8";
+const CACHE_NAME = "po-directory-v9";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
   "./manifest.json",
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
-  "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js",
-  "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=optional",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", (event) => {
@@ -30,12 +29,10 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Stale-While-Revalidate: Instant 0ms load from cache, silent update in background
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (!event.request.url.startsWith("http")) return;
 
-  // Never cache live Supabase API calls or connectivity checks
   if (
     event.request.url.includes("supabase.co") ||
     event.request.url.includes("generate_204") ||
@@ -44,9 +41,29 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Always serve cached index.html immediately for page navigations (eliminates top progress bar)
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      caches.open(CACHE_NAME).then((cache) =>
+        cache.match("./index.html", { ignoreSearch: true }).then((cached) => {
+          const networkFetch = fetch(event.request)
+            .then((res) => {
+              if (res && res.status === 200) {
+                cache.put("./index.html", res.clone());
+              }
+              return res;
+            })
+            .catch(() => null);
+          return cached || networkFetch;
+        })
+      )
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(event.request).then((cachedResponse) => {
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
         const networkFetch = fetch(event.request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
@@ -56,17 +73,8 @@ self.addEventListener("fetch", (event) => {
           })
           .catch(() => null);
 
-        // Return cached response IMMEDIATELY if we have it; otherwise wait for network
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return networkFetch.then((res) => {
-          if (res) return res;
-          if (event.request.mode === "navigate") {
-            return cache.match("./index.html");
-          }
-        });
-      });
-    })
+        return cachedResponse || networkFetch;
+      })
+    )
   );
 });
