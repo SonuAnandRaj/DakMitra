@@ -1227,66 +1227,6 @@
         transform: scale(0.96);
       }
 
-      /* --- PROFILE PHOTO LIGHTBOX MODAL --- */
-      .avatar-lightbox-content {
-        position: relative;
-        width: 88vw;
-        max-width: 360px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        transform: scale(0.85);
-        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-      }
-      .modal-overlay.show .avatar-lightbox-content {
-        transform: scale(1);
-      }
-      .avatar-lightbox-frame {
-        width: 100%;
-        aspect-ratio: 1 / 1;
-        border-radius: 28px;
-        overflow: hidden;
-        background: linear-gradient(
-          135deg,
-          var(--primary) 0%,
-          var(--accent) 100%
-        );
-        border: 3px solid var(--card-bg);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #ffffff;
-        font-size: 110px;
-        font-weight: 800;
-      }
-      .avatar-lightbox-frame img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-      .avatar-lightbox-close {
-        margin-top: 18px;
-        background: rgba(255, 255, 255, 0.16);
-        color: #ffffff;
-        border: 1px solid rgba(255, 255, 255, 0.25);
-        padding: 10px 24px;
-        border-radius: 999px;
-        font-size: 14px;
-        font-weight: 700;
-        cursor: pointer;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        transition: background 0.2s ease, transform 0.15s ease;
-      }
-      .avatar-lightbox-close:hover {
-        background: rgba(255, 255, 255, 0.26);
-      }
-      .avatar-lightbox-close:active {
-        transform: scale(0.95);
-      }
-
       .avatar-Upload-fab {
         position: absolute;
         bottom: -4px;
@@ -3189,28 +3129,359 @@
         background: #dc2626;
       }
 
-      /* --- IMAGE CROPPER & PREVIEW MODAL --- */
-      .crop-workspace {
+      /* --- MODERN FULL-SCREEN PROFILE PHOTO CROPPER --- */
+      #crop-modal-overlay {
+        background: #000000;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        padding: 0;
+        z-index: 3500;
+      }
+
+      .crop-studio {
         position: relative;
-        width: 240px;
-        height: 240px;
-        margin: 0 auto 16px;
-        border-radius: 24px;
-        overflow: hidden;
-        background: var(--input-bg);
-        border: 2px solid var(--primary);
-        touch-action: none; /* Prevents page scrolling while dragging image */
-        cursor: grab;
-        box-shadow: var(--shadow-md);
-      }
-      .crop-workspace:active {
-        cursor: grabbing;
-      }
-      #crop-canvas {
         width: 100%;
         height: 100%;
-        display: block;
+        display: flex;
+        flex-direction: column;
+        background: #000000;
+        color: #ffffff;
+        overflow: hidden;
+        opacity: 0;
+        transform: scale(0.98);
+        transition: opacity 0.24s ease, transform 0.28s var(--dm-ease-smooth);
       }
+
+      #crop-modal-overlay.show .crop-studio {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      .crop-topbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        padding: calc(14px + env(safe-area-inset-top, 0px)) 20px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.72),
+          rgba(0, 0, 0, 0)
+        );
+        pointer-events: none;
+      }
+
+      .crop-topbar-title {
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: -0.2px;
+        color: #ffffff;
+      }
+
+      .crop-topbar-hint {
+        font-size: 12px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      /* Edge-to-edge gesture stage */
+      .crop-stage {
+        position: relative;
+        flex: 1;
+        width: 100%;
+        overflow: hidden;
+        touch-action: none;
+        cursor: grab;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000000;
+      }
+
+      .crop-stage:active {
+        cursor: grabbing;
+      }
+
+      #crop-source-img {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        max-width: none;
+        max-height: none;
+        user-select: none;
+        -webkit-user-drag: none;
+        pointer-events: none;
+        will-change: transform;
+        transform-origin: center center;
+      }
+
+      #crop-source-img.is-animating {
+        transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      /* Circular cutout mask with dimmed surround */
+      .crop-cutout {
+        position: relative;
+        z-index: 10;
+        width: min(82vw, 330px);
+        height: min(82vw, 330px);
+        border-radius: 50%;
+        box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.68);
+        border: 1.5px solid rgba(255, 255, 255, 0.85);
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      /* Rule-of-thirds grid: only visible while dragging or pinching */
+      .crop-cutout::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        background-image: linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0.28) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.28) 1px,
+            transparent 1px
+          );
+        background-size: 33.33% 33.33%;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+
+      .crop-stage.is-interacting .crop-cutout::after {
+        opacity: 1;
+      }
+
+      .crop-bottombar {
+        position: relative;
+        z-index: 20;
+        padding: 16px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: rgba(10, 14, 23, 0.92);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .crop-action-text {
+        background: transparent;
+        border: none;
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: 600;
+        padding: 10px 14px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.15s ease;
+      }
+
+      .crop-action-text:active {
+        transform: scale(0.94);
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .crop-rotate-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+
+      .crop-rotate-btn:active {
+        transform: scale(0.9) rotate(45deg);
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .crop-save-pill {
+        background: var(--dm-gradient-btn);
+        color: #ffffff;
+        border: none;
+        height: 42px;
+        padding: 0 22px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 6px 18px -4px rgba(79, 70, 229, 0.6);
+        transition: transform 0.15s ease, opacity 0.2s ease;
+      }
+
+      .crop-save-pill:active {
+        transform: scale(0.95);
+      }
+
+      .crop-save-pill:disabled {
+        opacity: 0.65;
+        pointer-events: none;
+      }
+
+      /* --- MODERN FULL-SCREEN PROFILE PHOTO LIGHTBOX --- */
+      #avatar-lightbox-overlay {
+        background: rgba(0, 0, 0, 0.96);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        padding: 0;
+        z-index: 3400;
+        transition: opacity 0.25s ease, visibility 0.25s ease,
+          background-color 0.15s ease;
+      }
+
+      .lightbox-shell {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .lightbox-topbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.75),
+          rgba(0, 0, 0, 0)
+        );
+        transition: opacity 0.22s ease, transform 0.22s ease;
+      }
+
+      .lightbox-shell.ui-hidden .lightbox-topbar {
+        opacity: 0;
+        transform: translateY(-10px);
+        pointer-events: none;
+      }
+
+      .lightbox-topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .lightbox-user-name {
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .lightbox-topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+
+      .lightbox-icon-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s ease, transform 0.15s ease;
+      }
+
+      .lightbox-icon-btn:active {
+        transform: scale(0.9);
+        background: rgba(255, 255, 255, 0.22);
+      }
+
+      .lightbox-icon-btn.danger {
+        color: #fca5a5;
+      }
+
+      .lightbox-stage {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: none;
+        overflow: hidden;
+      }
+
+      .lightbox-media-wrap {
+        width: min(94vw, 440px);
+        aspect-ratio: 1 / 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        will-change: transform, opacity;
+        transform: scale(0.88);
+        transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 0.25s ease;
+      }
+
+      #avatar-lightbox-overlay.show .lightbox-media-wrap {
+        transform: scale(1);
+      }
+
+      .lightbox-media-wrap.is-dragging {
+        transition: none !important;
+      }
+
+      .lightbox-media-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 16px;
+        display: block;
+        user-select: none;
+        -webkit-user-drag: none;
+        pointer-events: none;
+      }
+
+      .lightbox-initial-circle {
+        width: min(72vw, 280px);
+        height: min(72vw, 280px);
+        border-radius: 50%;
+        background: var(--dm-gradient-brand);
+        color: #ffffff;
+        font-size: 108px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      }
+
       /* Subtle rule-of-thirds grid overlay */
       .crop-grid-overlay {
         position: absolute;
@@ -5569,19 +5840,6 @@
               Employee
             </div>
 
-            <!-- Action button to remove photo (shown only when custom photo exists) -->
-            <div style="margin-bottom: 8px">
-              <button
-                type="button"
-                id="remove-avatar-btn"
-                class="toolbar-btn hidden"
-                style="color: #ef4444; margin: 0 auto"
-                onclick="removeProfilePic()"
-              >
-                🗑️ Remove Photo & Use Avatar
-              </button>
-            </div>
-
             <div class="profile-info-grid">
               <div class="profile-detail-box">
                 <span>Employee ID</span>
@@ -7758,12 +8016,115 @@
       </div>
     </div>
 
-    <!-- PROFILE PICTURE CROP & PREVIEW MODAL -->
+    <!-- MODERN FULL-SCREEN PROFILE PICTURE CROPPER -->
     <div id="crop-modal-overlay" class="modal-overlay">
-      <div class="modal-card" style="max-width: 390px; padding: 26px 22px 22px">
-        <div class="dm-header" style="margin-bottom: 16px">
-          <div class="dm-header-left">
-            <div class="dm-icon-badge">
+      <div class="crop-studio">
+        <div class="crop-topbar">
+          <div>
+            <div class="crop-topbar-title">Move and Scale</div>
+            <div class="crop-topbar-hint">
+              Pinch to zoom • Drag to reposition
+            </div>
+          </div>
+        </div>
+
+        <div class="crop-stage" id="crop-stage">
+          <img id="crop-source-img" src="" alt="Crop preview" />
+          <div class="crop-cutout" id="crop-cutout"></div>
+        </div>
+
+        <!-- Offscreen 512x512 canvas used for crisp export -->
+        <canvas
+          id="crop-canvas"
+          width="800"
+          height="800"
+          class="hidden"
+        ></canvas>
+
+        <div class="crop-bottombar">
+          <button
+            type="button"
+            class="crop-action-text"
+            onclick="closeCropModal()"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            class="crop-rotate-btn"
+            onclick="rotateCropImage()"
+            title="Rotate 90°"
+            aria-label="Rotate 90 degrees"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"
+              ></path>
+              <polyline points="21 3 21 8 16 8"></polyline>
+            </svg>
+          </button>
+
+          <button
+            type="button"
+            class="crop-save-pill"
+            id="apply-crop-btn"
+            onclick="applyCropAndUpload()"
+          >
+            Save Photo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODERN FULL-SCREEN PROFILE PHOTO LIGHTBOX -->
+    <div id="avatar-lightbox-overlay" class="modal-overlay">
+      <div class="lightbox-shell" id="lightbox-shell">
+        <div class="lightbox-topbar">
+          <div class="lightbox-topbar-left">
+            <button
+              type="button"
+              class="lightbox-icon-btn"
+              onclick="closeProfilePhotoModal()"
+              title="Back"
+              aria-label="Close photo viewer"
+            >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+            </button>
+            <span class="lightbox-user-name" id="lightbox-user-name"
+              >Profile Photo</span
+            >
+          </div>
+
+          <div class="lightbox-topbar-actions">
+            <button
+              type="button"
+              class="lightbox-icon-btn"
+              onclick="triggerPhotoChangeFromLightbox()"
+              title="Change photo"
+              aria-label="Change profile photo"
+            >
               <svg
                 width="20"
                 height="20"
@@ -7774,120 +8135,42 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
               >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                <polyline points="21 15 16 10 5 21"></polyline>
+                <path
+                  d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+                ></path>
+                <circle cx="12" cy="13" r="4"></circle>
               </svg>
-            </div>
-            <div>
-              <h3 class="modal-title" style="margin: 0; font-size: 19px">
-                Crop Photo
-              </h3>
-              <span
-                style="
-                  font-size: 12px;
-                  color: var(--text-light);
-                  font-weight: 500;
-                "
+            </button>
+            <button
+              type="button"
+              class="lightbox-icon-btn danger hidden"
+              id="lightbox-delete-btn"
+              onclick="removePhotoFromLightbox()"
+              title="Remove photo"
+              aria-label="Remove profile photo"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
               >
-                Drag to reposition & slide to zoom
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            class="dm-close-btn"
-            onclick="closeCropModal()"
-            title="Close"
-          >
-            ✕
-          </button>
-        </div>
-
-        <!-- Interactive Drag & Crop Area -->
-        <div class="crop-workspace" id="crop-workspace">
-          <canvas id="crop-canvas" width="256" height="256"></canvas>
-          <div class="crop-grid-overlay"></div>
-        </div>
-
-        <!-- Zoom Slider -->
-        <div class="crop-controls">
-          <span style="font-size: 13px; color: var(--text-light)">🔍</span>
-          <input
-            type="range"
-            id="crop-zoom-slider"
-            class="crop-zoom-slider"
-            min="1"
-            max="3"
-            step="0.02"
-            value="1"
-            oninput="handleCropZoom(this.value)"
-          />
-          <span
-            style="
-              font-size: 12px;
-              font-weight: 700;
-              color: var(--primary);
-              min-width: 34px;
-            "
-            id="crop-zoom-label"
-            >1.0x</span
-          >
-        </div>
-
-        <!-- Live Shape Previews -->
-        <div class="crop-preview-bar">
-          <div class="crop-preview-item">
-            <div class="preview-squircle">
-              <img id="crop-preview-squircle" src="" alt="Profile Preview" />
-            </div>
-            <span>Profile Card</span>
-          </div>
-          <div class="crop-preview-item">
-            <div class="preview-circle">
-              <img id="crop-preview-circle" src="" alt="Header Preview" />
-            </div>
-            <span>Top Bar</span>
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </button>
           </div>
         </div>
 
-        <div class="modal-actions">
-          <button
-            type="button"
-            class="dm-btn dm-btn-secondary"
-            style="flex: 0.45"
-            onclick="closeCropModal()"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            class="dm-btn dm-btn-primary"
-            style="flex: 1"
-            id="apply-crop-btn"
-            onclick="applyCropAndUpload()"
-          >
-            ✨ Save Photo
-          </button>
+        <div class="lightbox-stage" id="lightbox-stage">
+          <div class="lightbox-media-wrap" id="avatar-lightbox-frame"></div>
         </div>
-      </div>
-    </div>
-
-    <!-- PROFILE PHOTO FULL VIEW LIGHTBOX MODAL -->
-    <div
-      id="avatar-lightbox-overlay"
-      class="modal-overlay"
-      onclick="if (event.target === this) closeProfilePhotoModal();"
-    >
-      <div class="avatar-lightbox-content">
-        <div class="avatar-lightbox-frame" id="avatar-lightbox-frame">U</div>
-        <button
-          type="button"
-          class="avatar-lightbox-close"
-          onclick="closeProfilePhotoModal()"
-        >
-          ✕ Close
-        </button>
       </div>
     </div>
 
@@ -14762,7 +15045,9 @@
         const topAvatar = document.getElementById("top-profile-btn");
         const sidebarAvatar = document.getElementById("avatar-letter");
         const pageAvatar = document.getElementById("profile-page-avatar");
-        const removeBtn = document.getElementById("remove-avatar-btn");
+        const removeBtn = document
+          .getElementById("remove-avatar-btn")
+          ?.classList.remove("hidden");
 
         if (avatarUrl) {
           const imgTag = `<img src="${escapeHTML(avatarUrl)}" alt="Profile" />`;
@@ -14877,135 +15162,497 @@
           showToast("⚠️ Session expired. Please sign in again.");
         }
       }
-      // Compresses the image into a crisp 256x256 square WebP/JPEG and saves to Supabase
-      // --- INTERACTIVE IMAGE CROPPER & LIVE PREVIEW ---
-      let cropState = {
+
+      // =========================================================
+      // 1. MODERN PINCH-TO-ZOOM PROFILE PHOTO CROPPER
+      // =========================================================
+      const cropState = {
         img: null,
+        natW: 0,
+        natH: 0,
         scale: 1,
         minScale: 1,
-        offsetX: 0,
-        offsetY: 0,
-        isDragging: false,
-        startX: 0,
-        startY: 0,
+        maxScale: 5,
+        tx: 0,
+        ty: 0,
+        rotation: 0,
+        pointers: new Map(),
+        lastPinchDist: 0,
+        lastPinchMid: null,
+        lastTapTime: 0,
+        objectUrl: null,
       };
 
-      function handleProfilePicUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        if (!file.type.startsWith("image/")) {
-          return showCustomAlert(
-            "Invalid File",
-            "Please select a valid image file.",
-            "⚠️"
-          );
-        }
-
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const img = new Image();
-          img.onload = function () {
-            openCropModal(img);
-          };
-          img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+      function getCropSize() {
+        const cutout = document.getElementById("crop-cutout");
+        return cutout ? cutout.getBoundingClientRect().width || 300 : 300;
       }
 
-      function openCropModal(img) {
-        const canvas = document.getElementById("crop-canvas");
-        const SIZE = canvas.width; // 256x256 output
+      function computeCropBounds() {
+        const cropSize = getCropSize();
+        const swapped = cropState.rotation % 180 !== 0;
+        const baseW = swapped ? cropState.natH : cropState.natW;
+        const baseH = swapped ? cropState.natW : cropState.natH;
 
-        // Calculate base scale so the shortest side fills the 256x256 square
-        const minScale = Math.max(SIZE / img.width, SIZE / img.height);
-        cropState.img = img;
-        cropState.minScale = minScale;
-        cropState.scale = minScale;
+        cropState.minScale = Math.max(cropSize / baseW, cropSize / baseH);
+        cropState.maxScale = cropState.minScale * 4.5;
+        cropState.scale = Math.min(
+          Math.max(cropState.scale, cropState.minScale),
+          cropState.maxScale
+        );
 
-        // Center image initially
-        cropState.offsetX = (SIZE - img.width * minScale) / 2;
-        cropState.offsetY = (SIZE - img.height * minScale) / 2;
+        const effW = baseW * cropState.scale;
+        const effH = baseH * cropState.scale;
+        const maxTx = Math.max(0, (effW - cropSize) / 2);
+        const maxTy = Math.max(0, (effH - cropSize) / 2);
 
-        // Reset Slider UI
-        const slider = document.getElementById("crop-zoom-slider");
-        slider.value = 1;
-        document.getElementById("crop-zoom-label").textContent = "1.0x";
+        cropState.tx = Math.min(Math.max(cropState.tx, -maxTx), maxTx);
+        cropState.ty = Math.min(Math.max(cropState.ty, -maxTy), maxTy);
+      }
 
-        drawCropCanvas();
-        document.getElementById("crop-modal-overlay").classList.add("show");
+      function applyCropTransform(animate = false) {
+        const imgEl = document.getElementById("crop-source-img");
+        if (!imgEl) return;
+        imgEl.classList.toggle("is-animating", animate);
+        imgEl.style.transform = `translate3d(calc(-50% + ${cropState.tx}px), calc(-50% + ${cropState.ty}px), 0) scale(${cropState.scale}) rotate(${cropState.rotation}deg)`;
+      }
+
+      function handleProfilePicUpload(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+          return showToast("⚠️ Please select a valid image file.");
+        }
+
+        if (cropState.objectUrl) URL.revokeObjectURL(cropState.objectUrl);
+        cropState.objectUrl = URL.createObjectURL(file);
+
+        const imgEl = document.getElementById("crop-source-img");
+        const loader = new Image();
+        loader.onload = () => {
+          cropState.img = loader;
+          cropState.natW = loader.naturalWidth;
+          cropState.natH = loader.naturalHeight;
+          cropState.rotation = 0;
+          cropState.tx = 0;
+          cropState.ty = 0;
+
+          imgEl.src = cropState.objectUrl;
+          imgEl.style.width = `${cropState.natW}px`;
+          imgEl.style.height = `${cropState.natH}px`;
+
+          document.getElementById("crop-modal-overlay").classList.add("show");
+
+          // Wait one frame so cutout dimensions are measured accurately
+          requestAnimationFrame(() => {
+            cropState.scale = 0;
+            computeCropBounds();
+            applyCropTransform(false);
+          });
+        };
+        loader.src = cropState.objectUrl;
+      }
+
+      function rotateCropImage() {
+        cropState.rotation = (cropState.rotation + 90) % 360;
+        computeCropBounds();
+        applyCropTransform(true);
       }
 
       function closeCropModal() {
         document.getElementById("crop-modal-overlay").classList.remove("show");
-        document.getElementById("profile-pic-input").value = "";
-        cropState.img = null;
+        const input = document.getElementById("profile-pic-input");
+        if (input) input.value = "";
+        cropState.pointers.clear();
       }
 
-      function clampCropOffsets() {
+      // Call this at the top of your existing applyCropAndUpload() function!
+      function renderCropToCanvas() {
         const canvas = document.getElementById("crop-canvas");
-        const SIZE = canvas.width;
-        const drawW = cropState.img.width * cropState.scale;
-        const drawH = cropState.img.height * cropState.scale;
+        if (!canvas || !cropState.img) return null;
 
-        // Prevent empty borders around the image when panning
-        if (cropState.offsetX > 0) cropState.offsetX = 0;
-        if (cropState.offsetY > 0) cropState.offsetY = 0;
-        if (cropState.offsetX < SIZE - drawW) cropState.offsetX = SIZE - drawW;
-        if (cropState.offsetY < SIZE - drawH) cropState.offsetY = SIZE - drawH;
-      }
-
-      function handleCropZoom(multiplier) {
-        if (!cropState.img) return;
-        const canvas = document.getElementById("crop-canvas");
-        const SIZE = canvas.width;
-        const zoomFactor = parseFloat(multiplier);
-
-        const prevScale = cropState.scale;
-        const newScale = cropState.minScale * zoomFactor;
-
-        // Zoom towards the center of the canvas
-        const center = SIZE / 2;
-        cropState.offsetX =
-          center - ((center - cropState.offsetX) / prevScale) * newScale;
-        cropState.offsetY =
-          center - ((center - cropState.offsetY) / prevScale) * newScale;
-        cropState.scale = newScale;
-
-        document.getElementById("crop-zoom-label").textContent =
-          zoomFactor.toFixed(1) + "x";
-        clampCropOffsets();
-        drawCropCanvas();
-      }
-
-      function drawCropCanvas() {
-        if (!cropState.img) return;
-        const canvas = document.getElementById("crop-canvas");
+        const outSize = canvas.width; // 512
+        const ratio = outSize / getCropSize();
         const ctx = canvas.getContext("2d");
-        const SIZE = canvas.width;
 
-        ctx.clearRect(0, 0, SIZE, SIZE);
+        ctx.clearRect(0, 0, outSize, outSize);
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
-
+        ctx.save();
+        ctx.translate(outSize / 2, outSize / 2);
+        ctx.translate(cropState.tx * ratio, cropState.ty * ratio);
+        ctx.scale(cropState.scale * ratio, cropState.scale * ratio);
+        ctx.rotate((cropState.rotation * Math.PI) / 180);
         ctx.drawImage(
           cropState.img,
-          cropState.offsetX,
-          cropState.offsetY,
-          cropState.img.width * cropState.scale,
-          cropState.img.height * cropState.scale
+          -cropState.natW / 2,
+          -cropState.natH / 2,
+          cropState.natW,
+          cropState.natH
         );
-
-        // Update live preview thumbnails
-        const previewDataUrl = canvas.toDataURL("image/jpeg", 0.85);
-        document.getElementById("crop-preview-squircle").src = previewDataUrl;
-        document.getElementById("crop-preview-circle").src = previewDataUrl;
+        ctx.restore();
+        return canvas;
       }
 
+      // Attach Pinch-to-Zoom, Drag, Double-Tap, and Mouse-Wheel gestures
+      (function initCropGestures() {
+        const stage = document.getElementById("crop-stage");
+        if (!stage) return;
+
+        function getPinchMetrics() {
+          const pts = Array.from(cropState.pointers.values());
+          const dx = pts[0].x - pts[1].x;
+          const dy = pts[0].y - pts[1].y;
+          return {
+            dist: Math.hypot(dx, dy),
+            mid: { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 },
+          };
+        }
+
+        stage.addEventListener("pointerdown", (e) => {
+          stage.setPointerCapture(e.pointerId);
+          cropState.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          stage.classList.add("is-interacting");
+
+          if (cropState.pointers.size === 1) {
+            const now = Date.now();
+            if (now - cropState.lastTapTime < 280) {
+              // Double-tap toggles between 1x and 2.2x zoom
+              const targetScale =
+                cropState.scale > cropState.minScale * 1.15
+                  ? cropState.minScale
+                  : cropState.minScale * 2.2;
+              cropState.scale = targetScale;
+              if (targetScale === cropState.minScale) {
+                cropState.tx = 0;
+                cropState.ty = 0;
+              }
+              computeCropBounds();
+              applyCropTransform(true);
+              cropState.lastTapTime = 0;
+            } else {
+              cropState.lastTapTime = now;
+            }
+          } else if (cropState.pointers.size === 2) {
+            const { dist, mid } = getPinchMetrics();
+            cropState.lastPinchDist = dist;
+            cropState.lastPinchMid = mid;
+          }
+        });
+
+        stage.addEventListener("pointermove", (e) => {
+          if (!cropState.pointers.has(e.pointerId)) return;
+          const prev = cropState.pointers.get(e.pointerId);
+          const curr = { x: e.clientX, y: e.clientY };
+          cropState.pointers.set(e.pointerId, curr);
+
+          if (cropState.pointers.size === 1) {
+            cropState.tx += curr.x - prev.x;
+            cropState.ty += curr.y - prev.y;
+            computeCropBounds();
+            applyCropTransform(false);
+          } else if (cropState.pointers.size === 2) {
+            const { dist, mid } = getPinchMetrics();
+            if (cropState.lastPinchDist > 0) {
+              const rect = stage.getBoundingClientRect();
+              const cx = rect.left + rect.width / 2;
+              const cy = rect.top + rect.height / 2;
+
+              const oldScale = cropState.scale;
+              const newScale = Math.min(
+                Math.max(
+                  oldScale * (dist / cropState.lastPinchDist),
+                  cropState.minScale
+                ),
+                cropState.maxScale
+              );
+              const factor = newScale / oldScale;
+
+              // Zoom anchored to the midpoint between fingers
+              const mx = mid.x - cx;
+              const my = mid.y - cy;
+              cropState.tx =
+                mx -
+                (mx - cropState.tx) * factor +
+                (mid.x - cropState.lastPinchMid.x);
+              cropState.ty =
+                my -
+                (my - cropState.ty) * factor +
+                (mid.y - cropState.lastPinchMid.y);
+              cropState.scale = newScale;
+
+              computeCropBounds();
+              applyCropTransform(false);
+            }
+            cropState.lastPinchDist = dist;
+            cropState.lastPinchMid = mid;
+          }
+        });
+
+        function handlePointerEnd(e) {
+          cropState.pointers.delete(e.pointerId);
+          if (cropState.pointers.size < 2) {
+            cropState.lastPinchDist = 0;
+            cropState.lastPinchMid = null;
+          }
+          if (cropState.pointers.size === 0) {
+            stage.classList.remove("is-interacting");
+          }
+        }
+
+        stage.addEventListener("pointerup", handlePointerEnd);
+        stage.addEventListener("pointercancel", handlePointerEnd);
+
+        // Desktop Chrome mouse-wheel zoom support
+        stage.addEventListener(
+          "wheel",
+          (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.91;
+            cropState.scale *= zoomFactor;
+            computeCropBounds();
+            applyCropTransform(false);
+          },
+          { passive: false }
+        );
+      })();
+
+      // =========================================================
+      // 2. MODERN SWIPE-DOWN & PINCH-ZOOM PROFILE LIGHTBOX
+      // =========================================================
+      const lbState = {
+        scale: 1,
+        tx: 0,
+        ty: 0,
+        hasPhoto: false,
+        pointers: new Map(),
+        lastPinchDist: 0,
+        lastTapTime: 0,
+        tapTimer: null,
+        moved: false,
+      };
+
+      function applyLightboxTransform(dragging = false) {
+        const overlay = document.getElementById("avatar-lightbox-overlay");
+        const frame = document.getElementById("avatar-lightbox-frame");
+        if (!frame) return;
+
+        frame.classList.toggle("is-dragging", dragging);
+
+        if (lbState.scale === 1 && lbState.ty > 0) {
+          // Swipe-down dismiss visual feedback
+          const progress = Math.min(lbState.ty / 260, 1);
+          const shrink = 1 - progress * 0.18;
+          frame.style.transform = `translate3d(${lbState.tx * 0.35}px, ${
+            lbState.ty
+          }px, 0) scale(${shrink})`;
+          if (overlay) {
+            overlay.style.backgroundColor = `rgba(0, 0, 0, ${
+              0.96 - progress * 0.65
+            })`;
+          }
+        } else {
+          frame.style.transform = `translate3d(${lbState.tx}px, ${lbState.ty}px, 0) scale(${lbState.scale})`;
+          if (overlay) overlay.style.backgroundColor = "";
+        }
+      }
+
+      function openProfilePhotoModal() {
+        const avatarEl = document.getElementById("profile-page-avatar");
+        const frame = document.getElementById("avatar-lightbox-frame");
+        const nameEl = document.getElementById("lightbox-user-name");
+        const deleteBtn = document.getElementById("lightbox-delete-btn");
+        const shell = document.getElementById("lightbox-shell");
+        const overlay = document.getElementById("avatar-lightbox-overlay");
+
+        const existingImg = avatarEl?.querySelector("img");
+        const displayName =
+          document.getElementById("profile-page-name")?.textContent?.trim() ||
+          "Profile Photo";
+
+        if (nameEl) nameEl.textContent = displayName;
+        shell?.classList.remove("ui-hidden");
+
+        lbState.scale = 1;
+        lbState.tx = 0;
+        lbState.ty = 0;
+        lbState.hasPhoto = Boolean(existingImg && existingImg.src);
+
+        if (lbState.hasPhoto) {
+          frame.innerHTML = `<img src="${escapeHTML(
+            existingImg.src
+          )}" alt="Profile Photo" />`;
+          deleteBtn?.classList.remove("hidden");
+        } else {
+          const initial =
+            (avatarEl?.textContent || "U").trim().charAt(0) || "U";
+          frame.innerHTML = `<div class="lightbox-initial-circle">${escapeHTML(
+            initial
+          )}</div>`;
+          deleteBtn?.classList.add("hidden");
+        }
+
+        overlay.style.backgroundColor = "";
+        frame.style.transform = "";
+        overlay.classList.add("show");
+      }
+
+      function closeProfilePhotoModal() {
+        const overlay = document.getElementById("avatar-lightbox-overlay");
+        const frame = document.getElementById("avatar-lightbox-frame");
+        overlay?.classList.remove("show");
+        setTimeout(() => {
+          if (overlay) overlay.style.backgroundColor = "";
+          if (frame) frame.style.transform = "";
+          lbState.scale = 1;
+          lbState.tx = 0;
+          lbState.ty = 0;
+        }, 260);
+      }
+
+      function triggerPhotoChangeFromLightbox() {
+        closeProfilePhotoModal();
+        setTimeout(() => {
+          document.getElementById("profile-pic-input")?.click();
+        }, 180);
+      }
+
+      function removePhotoFromLightbox() {
+        closeProfilePhotoModal();
+        if (typeof removeProfilePic === "function") removeProfilePic();
+      }
+
+      // Lightbox gestures: Swipe-down to dismiss, Pinch-to-zoom, Double-tap zoom, Single-tap hide UI
+      (function initLightboxGestures() {
+        const stage = document.getElementById("lightbox-stage");
+        const shell = document.getElementById("lightbox-shell");
+        if (!stage) return;
+
+        function clampLightboxPan() {
+          const frame = document.getElementById("avatar-lightbox-frame");
+          if (!frame) return;
+          const maxOffset = (frame.offsetWidth * (lbState.scale - 1)) / 2;
+          lbState.tx = Math.min(Math.max(lbState.tx, -maxOffset), maxOffset);
+          lbState.ty = Math.min(Math.max(lbState.ty, -maxOffset), maxOffset);
+        }
+
+        stage.addEventListener("pointerdown", (e) => {
+          stage.setPointerCapture(e.pointerId);
+          lbState.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+          lbState.moved = false;
+
+          if (lbState.pointers.size === 2) {
+            const pts = Array.from(lbState.pointers.values());
+            lbState.lastPinchDist = Math.hypot(
+              pts[0].x - pts[1].x,
+              pts[0].y - pts[1].y
+            );
+          }
+        });
+
+        stage.addEventListener("pointermove", (e) => {
+          if (!lbState.pointers.has(e.pointerId)) return;
+          const prev = lbState.pointers.get(e.pointerId);
+          const curr = { x: e.clientX, y: e.clientY };
+          lbState.pointers.set(e.pointerId, curr);
+
+          const dx = curr.x - prev.x;
+          const dy = curr.y - prev.y;
+          if (Math.hypot(dx, dy) > 2) lbState.moved = true;
+
+          if (lbState.pointers.size === 1) {
+            if (lbState.scale > 1) {
+              lbState.tx += dx;
+              lbState.ty += dy;
+              clampLightboxPan();
+              applyLightboxTransform(true);
+            } else {
+              // Allow vertical swipe-down to dismiss
+              lbState.tx += dx;
+              lbState.ty = Math.max(0, lbState.ty + dy);
+              applyLightboxTransform(true);
+            }
+          } else if (lbState.pointers.size === 2 && lbState.hasPhoto) {
+            const pts = Array.from(lbState.pointers.values());
+            const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+            if (lbState.lastPinchDist > 0) {
+              lbState.scale = Math.min(
+                Math.max(lbState.scale * (dist / lbState.lastPinchDist), 1),
+                4
+              );
+              clampLightboxPan();
+              applyLightboxTransform(true);
+            }
+            lbState.lastPinchDist = dist;
+          }
+        });
+
+        function handleLbEnd(e) {
+          lbState.pointers.delete(e.pointerId);
+          if (lbState.pointers.size < 2) lbState.lastPinchDist = 0;
+          if (lbState.pointers.size > 0) return;
+
+          if (!lbState.moved) {
+            // Single vs Double tap detection
+            const now = Date.now();
+            if (now - lbState.lastTapTime < 260) {
+              clearTimeout(lbState.tapTimer);
+              lbState.lastTapTime = 0;
+              if (lbState.hasPhoto) {
+                lbState.scale = lbState.scale > 1.1 ? 1 : 2.4;
+                lbState.tx = 0;
+                lbState.ty = 0;
+                applyLightboxTransform(false);
+              }
+            } else {
+              lbState.lastTapTime = now;
+              lbState.tapTimer = setTimeout(() => {
+                shell?.classList.toggle("ui-hidden");
+              }, 260);
+            }
+            return;
+          }
+
+          // Release after swipe-down
+          if (lbState.scale <= 1.02) {
+            if (lbState.ty > 95) {
+              closeProfilePhotoModal();
+            } else {
+              lbState.scale = 1;
+              lbState.tx = 0;
+              lbState.ty = 0;
+              applyLightboxTransform(false);
+            }
+          }
+        }
+
+        stage.addEventListener("pointerup", handleLbEnd);
+        stage.addEventListener("pointercancel", handleLbEnd);
+
+        // Close on Escape key (desktop)
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            if (
+              document
+                .getElementById("avatar-lightbox-overlay")
+                ?.classList.contains("show")
+            ) {
+              closeProfilePhotoModal();
+            } else if (
+              document
+                .getElementById("crop-modal-overlay")
+                ?.classList.contains("show")
+            ) {
+              closeCropModal();
+            }
+          }
+        });
+      })();
+
       async function applyCropAndUpload() {
-        if (!cropState.img) return;
-        const canvas = document.getElementById("crop-canvas");
-        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.82);
+        const canvas = renderCropToCanvas(); // Renders the pinch-zoomed photo onto #crop-canvas
+        if (!canvas) return;
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
 
         const btn = document.getElementById("apply-crop-btn");
         btn.textContent = "Saving...";
@@ -15130,30 +15777,6 @@
             document.getElementById("profile-pic-input").value = "";
           }
         );
-      }
-
-      function openProfilePhotoModal() {
-        const pageAvatar = document.getElementById("profile-page-avatar");
-        const lightboxFrame = document.getElementById("avatar-lightbox-frame");
-        const overlay = document.getElementById("avatar-lightbox-overlay");
-        if (!pageAvatar || !lightboxFrame || !overlay) return;
-
-        const img = pageAvatar.querySelector("img");
-        if (img && img.getAttribute("src")) {
-          lightboxFrame.innerHTML = `<img src="${escapeHTML(
-            img.getAttribute("src")
-          )}" alt="Full Profile Photo" />`;
-        } else {
-          lightboxFrame.textContent = pageAvatar.textContent.trim() || "U";
-        }
-
-        overlay.classList.add("show");
-      }
-
-      function closeProfilePhotoModal() {
-        document
-          .getElementById("avatar-lightbox-overlay")
-          ?.classList.remove("show");
       }
 
       // --- PROFILE BUTTON & LEFT-EDGE DRAG TO OPEN SIDEBAR ---
