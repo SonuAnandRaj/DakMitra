@@ -1935,8 +1935,10 @@
         );
       }
 
-      /* Keep Search view locked to viewport so the list resizes frame-by-frame with the header */
-      #view-search.active {
+      /* Keep Search, Approvals & Directory locked to viewport so lists resize frame-by-frame with the header */
+      #view-search.active,
+      #view-approvals.active,
+      #view-directory.active {
         display: flex;
         flex-direction: column;
         height: calc(
@@ -1946,10 +1948,12 @@
         min-height: 360px;
       }
 
-      #view-search #results-display-area {
+      #view-search #results-display-area,
+      #view-approvals #approvals-display-area,
+      #view-directory #directory-display-area {
         flex: 1;
         min-height: 180px;
-        max-height: none;
+        max-height: none !important;
         margin-bottom: 5px;
         transition: none;
         overscroll-behavior-y: contain;
@@ -1979,7 +1983,8 @@
         overflow: hidden;
       }
 
-      #view-search .search-hero {
+      /* Apply the same smooth fade/slide to any .search-hero inside the collapse wrapper */
+      .search-hero-collapse-wrap .search-hero {
         margin-bottom: 0;
         transition: opacity 0.7s ease,
           transform 0.9s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -3986,7 +3991,9 @@
       }
 
       /* Fit Search view cleanly above the keyboard */
-      body.keyboard-open #view-search.active {
+      body.keyboard-open #view-search.active,
+      body.keyboard-open #view-approvals.active,
+      body.keyboard-open #view-directory.active {
         height: calc(var(--vvh, 100dvh) - 96px - env(safe-area-inset-top, 0px));
         min-height: 0;
       }
@@ -5736,37 +5743,43 @@
         </section>
         <!-- APPROVALS VIEW -->
         <section id="view-approvals" class="view-section">
-          <div class="search-hero" style="text-align: center">
-            <h2 style="margin-bottom: 8px">Approvals</h2>
-            <p style="color: var(--text-light); font-size: 14px">
-              Review proposed changes or check request history.
-            </p>
+          <div
+            class="search-hero-collapse-wrap"
+            id="approvals-hero-collapse-wrap"
+          >
+            <div class="search-hero-collapse-inner">
+              <div class="search-hero" style="text-align: center">
+                <h2 style="margin-bottom: 8px">Approvals</h2>
+                <p style="color: var(--text-light); font-size: 14px">
+                  Review proposed changes or check request history.
+                </p>
 
-            <!-- NEW: Approvals Tabs -->
-            <div
-              class="tabs"
-              style="
-                margin-top: 20px;
-                border-bottom: 1px solid var(--border);
-                background: transparent;
-              "
-            >
-              <button
-                type="button"
-                class="tab-btn active"
-                id="tab-appr-pending"
-                onclick="switchApprovalTab('pending')"
-              >
-                Pending
-              </button>
-              <button
-                type="button"
-                class="tab-btn"
-                id="tab-appr-resolved"
-                onclick="switchApprovalTab('resolved')"
-              >
-                Resolved
-              </button>
+                <div
+                  class="tabs"
+                  style="
+                    margin-top: 20px;
+                    border-bottom: 1px solid var(--border);
+                    background: transparent;
+                  "
+                >
+                  <button
+                    type="button"
+                    class="tab-btn active"
+                    id="tab-appr-pending"
+                    onclick="switchApprovalTab('pending')"
+                  >
+                    Pending
+                  </button>
+                  <button
+                    type="button"
+                    class="tab-btn"
+                    id="tab-appr-resolved"
+                    onclick="switchApprovalTab('resolved')"
+                  >
+                    Resolved
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -6114,44 +6127,47 @@
 
         <!-- DIRECTORY VIEW -->
         <section id="view-directory" class="view-section">
-          <div class="search-hero" style="text-align: center">
-            <h2 style="margin-bottom: 8px">Directory</h2>
-            <p style="color: var(--text-light); font-size: 14px">
-              Bird's-eye view of all addresses grouped by their respective
-              offices.
-            </p>
+          <div
+            class="search-hero-collapse-wrap"
+            id="directory-hero-collapse-wrap"
+          >
+            <div class="search-hero-collapse-inner">
+              <div class="search-hero" style="text-align: center">
+                <h2 style="margin-bottom: 8px">Directory</h2>
+                <p style="color: var(--text-light); font-size: 14px">
+                  Bird's-eye view of all addresses grouped by their respective
+                  offices.
+                </p>
 
-            <!-- Quick Filter Bar -->
-            <div
-              style="
-                margin-top: 16px;
-                max-width: 400px;
-                margin-left: auto;
-                margin-right: auto;
-              "
-            >
-              <div class="search-input-wrapper">
-                <span style="margin-left: 12px; font-size: 16px">🔍</span>
-                <input
-                  type="text"
-                  id="directory-filter-input"
-                  placeholder="Filter by office name or PIN..."
-                  oninput="
-                    toggleDirClearBtn();
-                    filterDirectory();
+                <!-- Quick Filter Bar -->
+                <div
+                  style="
+                    margin-top: 16px;
+                    max-width: 400px;
+                    margin-left: auto;
+                    margin-right: auto;
                   "
-                  autocomplete="off"
-                />
-                <!-- Clear Button -->
-                <button
-                  type="button"
-                  id="clear-dir-filter-btn"
-                  class="clear-btn hidden"
-                  onclick="clearDirectoryFilter()"
-                  title="Clear Filter"
                 >
-                  ✕
-                </button>
+                  <div class="search-input-wrapper">
+                    <span style="margin-left: 12px; font-size: 16px">🔍</span>
+                    <input
+                      type="text"
+                      id="directory-filter-input"
+                      placeholder="Filter by office name or PIN..."
+                      oninput="toggleDirClearBtn(); filterDirectory();"
+                      autocomplete="off"
+                    />
+                    <button
+                      type="button"
+                      id="clear-dir-filter-btn"
+                      class="clear-btn hidden"
+                      onclick="clearDirectoryFilter()"
+                      title="Clear Filter"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -6159,7 +6175,6 @@
           <div
             class="results-container-scroll expanded"
             id="directory-display-area"
-            style="max-height: 70vh"
           >
             <div style="padding: 4px">
               <div class="skeleton-card">
@@ -6173,6 +6188,7 @@
             </div>
           </div>
         </section>
+
         <!-- SETTINGS VIEW -->
         <section id="view-settings" class="view-section">
           <div class="search-hero" style="text-align: center">
@@ -8312,8 +8328,10 @@
         if (viewId === "favorites") {
           renderFavorites();
         } else if (viewId === "approvals") {
+          approvalsHeroController.setCollapsed(false, true);
           switchApprovalTab(currentApprovalTab);
         } else if (viewId === "directory") {
+          directoryHeroController.setCollapsed(false, true);
           renderDirectory();
         }
 
@@ -11268,38 +11286,168 @@
           clearTimeout(searchTimeout);
           searchTimeout = setTimeout(triggerSearch, 250);
         });
-      // --- ULTRA-SMOOTH COLLAPSIBLE SEARCH BAR ---
-      const resultsArea = document.getElementById("results-display-area");
-      const searchHeroWrap = document.getElementById(
-        "search-hero-collapse-wrap"
-      );
+      // --- ULTRA-SMOOTH COLLAPSIBLE HERO CONTROLLER (Search, Approvals, Directory) ---
+      function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
+        const scrollEl = document.getElementById(scrollElId);
+        const wrapEl = document.getElementById(wrapElId);
 
-      let isSearchHeroCollapsed = false;
-      let isHeroTransitioning = false;
-      let heroTransitionTimer = null;
-      let lastScrollTop = 0;
-      let scrollAccum = 0;
-      let scrollRafId = null;
+        let isCollapsed = false;
+        let isTransitioning = false;
+        let transitionTimer = null;
+        let lastScrollTop = 0;
+        let scrollAccum = 0;
+        let scrollRafId = null;
 
-      function setSearchHeroCollapsed(shouldCollapse, instant = false) {
-        if (!searchHeroWrap || isSearchHeroCollapsed === shouldCollapse) return;
-
-        isSearchHeroCollapsed = shouldCollapse;
-        clearTimeout(heroTransitionTimer);
-
-        if (instant) {
-          searchHeroWrap.classList.remove("is-animating");
-          searchHeroWrap.classList.toggle("collapsed", shouldCollapse);
-          isHeroTransitioning = false;
+        function finishTransition() {
+          clearTimeout(transitionTimer);
+          if (wrapEl) wrapEl.classList.remove("is-animating");
+          isTransitioning = false;
           scrollAccum = 0;
-          lastScrollTop = resultsArea ? Math.max(0, resultsArea.scrollTop) : 0;
-          return;
+
+          if (scrollEl) {
+            lastScrollTop = Math.max(0, scrollEl.scrollTop);
+            const remainingScroll =
+              scrollEl.scrollHeight - scrollEl.clientHeight;
+            if (isCollapsed && remainingScroll <= 20) {
+              setCollapsed(false);
+            }
+          }
         }
 
-        isHeroTransitioning = true;
-        searchHeroWrap.classList.add("is-animating");
+        function setCollapsed(shouldCollapse, instant = false) {
+          if (!wrapEl || isCollapsed === shouldCollapse) return;
 
-        if (shouldCollapse) {
+          isCollapsed = shouldCollapse;
+          clearTimeout(transitionTimer);
+
+          if (instant) {
+            wrapEl.classList.remove("is-animating");
+            wrapEl.classList.toggle("collapsed", shouldCollapse);
+            isTransitioning = false;
+            scrollAccum = 0;
+            lastScrollTop = scrollEl ? Math.max(0, scrollEl.scrollTop) : 0;
+            return;
+          }
+
+          isTransitioning = true;
+          wrapEl.classList.add("is-animating");
+
+          if (shouldCollapse) {
+            if (typeof onCollapse === "function") onCollapse();
+            wrapEl.classList.add("collapsed");
+          } else {
+            wrapEl.classList.remove("collapsed");
+          }
+
+          transitionTimer = setTimeout(finishTransition, 960);
+        }
+
+        if (wrapEl) {
+          wrapEl.addEventListener("transitionend", (e) => {
+            if (
+              e.target === wrapEl &&
+              e.propertyName === "grid-template-rows"
+            ) {
+              finishTransition();
+            }
+          });
+        }
+
+        if (scrollEl) {
+          let pullStartY = 0;
+
+          scrollEl.addEventListener(
+            "touchstart",
+            (e) => {
+              pullStartY = e.touches[0].clientY;
+            },
+            { passive: true }
+          );
+
+          scrollEl.addEventListener(
+            "touchmove",
+            (e) => {
+              if (
+                isCollapsed &&
+                scrollEl.scrollTop <= 5 &&
+                e.touches[0].clientY - pullStartY > 25
+              ) {
+                setCollapsed(false);
+              }
+            },
+            { passive: true }
+          );
+
+          scrollEl.addEventListener(
+            "wheel",
+            (e) => {
+              if (isCollapsed && scrollEl.scrollTop <= 5 && e.deltaY < 0) {
+                setCollapsed(false);
+              }
+            },
+            { passive: true }
+          );
+
+          scrollEl.addEventListener(
+            "scroll",
+            () => {
+              if (scrollRafId) return;
+              scrollRafId = requestAnimationFrame(() => {
+                scrollRafId = null;
+                const currentScroll = Math.max(0, scrollEl.scrollTop);
+
+                if (isTransitioning) {
+                  lastScrollTop = currentScroll;
+                  return;
+                }
+
+                if (currentScroll <= 6) {
+                  if (isCollapsed) setCollapsed(false);
+                  lastScrollTop = currentScroll;
+                  scrollAccum = 0;
+                  return;
+                }
+
+                const delta = currentScroll - lastScrollTop;
+                lastScrollTop = currentScroll;
+                if (Math.abs(delta) < 1) return;
+
+                if (
+                  (delta > 0 && scrollAccum < 0) ||
+                  (delta < 0 && scrollAccum > 0)
+                ) {
+                  scrollAccum = 0;
+                }
+                scrollAccum += delta;
+
+                const scrollableRange =
+                  scrollEl.scrollHeight - scrollEl.clientHeight;
+                const minNeededScroll = wrapEl?.offsetHeight || 160;
+
+                if (
+                  !isCollapsed &&
+                  scrollAccum > 240 &&
+                  currentScroll > 180 &&
+                  scrollableRange > minNeededScroll
+                ) {
+                  setCollapsed(true);
+                } else if (isCollapsed && scrollAccum < -40) {
+                  setCollapsed(false);
+                }
+              });
+            },
+            { passive: true }
+          );
+        }
+
+        return { setCollapsed };
+      }
+
+      // Initialize for all 3 tabs
+      const searchHeroController = createCollapsibleHero(
+        "results-display-area",
+        "search-hero-collapse-wrap",
+        () => {
           document.getElementById("search-input")?.blur();
           document
             .getElementById("advanced-filters-panel")
@@ -11308,135 +11456,25 @@
             .getElementById("search-history-panel")
             ?.classList.add("hidden");
           closeAllDropdowns();
-          searchHeroWrap.classList.add("collapsed");
-        } else {
-          searchHeroWrap.classList.remove("collapsed");
         }
+      );
 
-        // Fallback unlock in case transitionend doesn't fire
-        heroTransitionTimer = setTimeout(finishHeroTransition, 960);
-      }
+      const approvalsHeroController = createCollapsibleHero(
+        "approvals-display-area",
+        "approvals-hero-collapse-wrap"
+      );
 
-      function finishHeroTransition() {
-        clearTimeout(heroTransitionTimer);
-        if (searchHeroWrap) searchHeroWrap.classList.remove("is-animating");
-        isHeroTransitioning = false;
-        scrollAccum = 0;
-
-        if (resultsArea) {
-          lastScrollTop = Math.max(0, resultsArea.scrollTop);
-          // Auto-unfreeze if the list is now too short to scroll
-          const remainingScroll =
-            resultsArea.scrollHeight - resultsArea.clientHeight;
-          if (isSearchHeroCollapsed && remainingScroll <= 20) {
-            setSearchHeroCollapsed(false);
-          }
+      const directoryHeroController = createCollapsibleHero(
+        "directory-display-area",
+        "directory-hero-collapse-wrap",
+        () => {
+          document.getElementById("directory-filter-input")?.blur();
         }
-      }
+      );
 
-      if (resultsArea) {
-        let pullStartY = 0;
-        resultsArea.addEventListener(
-          "touchstart",
-          (e) => {
-            pullStartY = e.touches[0].clientY;
-          },
-          { passive: true }
-        );
-        resultsArea.addEventListener(
-          "touchmove",
-          (e) => {
-            if (
-              isSearchHeroCollapsed &&
-              resultsArea.scrollTop <= 5 &&
-              e.touches[0].clientY - pullStartY > 25
-            ) {
-              setSearchHeroCollapsed(false);
-            }
-          },
-          { passive: true }
-        );
-        resultsArea.addEventListener(
-          "wheel",
-          (e) => {
-            if (
-              isSearchHeroCollapsed &&
-              resultsArea.scrollTop <= 5 &&
-              e.deltaY < 0
-            ) {
-              setSearchHeroCollapsed(false);
-            }
-          },
-          { passive: true }
-        );
-      }
-
-      if (searchHeroWrap) {
-        searchHeroWrap.addEventListener("transitionend", (e) => {
-          if (
-            e.target === searchHeroWrap &&
-            e.propertyName === "grid-template-rows"
-          ) {
-            finishHeroTransition();
-          }
-        });
-      }
-
-      if (resultsArea) {
-        resultsArea.addEventListener(
-          "scroll",
-          () => {
-            if (scrollRafId) return;
-            scrollRafId = requestAnimationFrame(() => {
-              scrollRafId = null;
-              const currentScroll = Math.max(0, resultsArea.scrollTop);
-
-              // Ignore synthetic scroll shifts caused by the header resizing
-              if (isHeroTransitioning) {
-                lastScrollTop = currentScroll;
-                return;
-              }
-
-              // Always re-open cleanly near the top
-              if (currentScroll <= 6) {
-                if (isSearchHeroCollapsed) setSearchHeroCollapsed(false);
-                lastScrollTop = currentScroll;
-                scrollAccum = 0;
-                return;
-              }
-
-              const delta = currentScroll - lastScrollTop;
-              lastScrollTop = currentScroll;
-              if (Math.abs(delta) < 1) return;
-
-              // Reset directional accumulator when scroll direction reverses
-              if (
-                (delta > 0 && scrollAccum < 0) ||
-                (delta < 0 && scrollAccum > 0)
-              ) {
-                scrollAccum = 0;
-              }
-              scrollAccum += delta;
-
-              // Only collapse if enough content remains to scroll after the header hides
-              const scrollableRange =
-                resultsArea.scrollHeight - resultsArea.clientHeight;
-              const minNeededScroll = searchHeroWrap?.offsetHeight || 160;
-
-              if (
-                !isSearchHeroCollapsed &&
-                scrollAccum > 240 &&
-                currentScroll > 180 &&
-                scrollableRange > minNeededScroll
-              ) {
-                setSearchHeroCollapsed(true);
-              } else if (isSearchHeroCollapsed && scrollAccum < -40) {
-                setSearchHeroCollapsed(false);
-              }
-            });
-          },
-          { passive: true }
-        );
+      // Keep existing calls working without changing them
+      function setSearchHeroCollapsed(shouldCollapse, instant = false) {
+        searchHeroController.setCollapsed(shouldCollapse, instant);
       }
 
       function getManualEntryRowHTML(showLabels = false) {
