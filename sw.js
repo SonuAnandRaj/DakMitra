@@ -1,16 +1,30 @@
-const CACHE_NAME = "po-directory-v10";
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = "po-directory-v11";
+const LOCAL_ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png"
 ];
+const CDN_ASSETS = [
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+  "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"
+];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await cache.addAll(LOCAL_ASSETS);
+      // Cache CDN scripts individually so a flaky network never breaks SW install
+      await Promise.allSettled(
+        CDN_ASSETS.map((url) =>
+          fetch(url).then((res) => {
+            if (res && res.status === 200) return cache.put(url, res);
+          })
+        )
+      );
+    })
   );
 });
 
@@ -64,7 +78,7 @@ self.addEventListener("fetch", (event) => {
   ) {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) =>
-        fetchWithTimeout(event.request, 2500)
+        fetchWithTimeout(event.request, 1000)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
               cache.put("./index.html", networkResponse.clone());
