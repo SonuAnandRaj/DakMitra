@@ -2029,7 +2029,7 @@
       #view-settings.active {
         display: block;
         height: calc(
-          100dvh - 100px - env(safe-area-inset-top, 0px) -
+          100dvh - 105px - env(safe-area-inset-top, 0px) -
             env(safe-area-inset-bottom, 0px)
         );
         min-height: 360px;
@@ -5376,6 +5376,42 @@
         height: 1px;
         background: var(--border);
       }
+
+      /* --- GLOBAL BACKGROUND SCROLL LOCK WHEN ANY MODAL OR SIDEBAR IS OPEN --- */
+      html.dm-scroll-locked,
+      body.dm-scroll-locked {
+        overflow: hidden !important;
+        overscroll-behavior: none !important;
+      }
+
+      /* Lock all inner page scroll containers & block background interaction */
+      body.dm-scroll-locked .results-container-scroll {
+        overflow: hidden !important;
+        touch-action: none !important;
+      }
+
+      body.dm-scroll-locked #dashboard-view > .app-bar,
+      body.dm-scroll-locked #dashboard-view > main.container,
+      body.dm-scroll-locked #auth-view {
+        pointer-events: none !important;
+      }
+
+      /* Prevent scroll chaining from overlays & scrollable modal interiors to the background */
+      .modal-overlay,
+      .modal-card,
+      .sidebar,
+      .sidebar-nav,
+      #history-modal-content,
+      .staff-detail-list,
+      .quick-delete-chips-wrap,
+      #quick-add-preview-box {
+        overscroll-behavior: contain;
+      }
+
+      .sidebar-overlay {
+        touch-action: none;
+        overscroll-behavior: none;
+      }
     </style>
   </head>
   <body>
@@ -8510,6 +8546,204 @@
         }, remaining);
       }
 
+      (function initPwaBackNavigation() {
+        let isHandlingPopstate = false;
+        let rootGuardPushed = false;
+
+        function isRootCleanState() {
+          const hasOpenModal = !!document.querySelector(".modal-overlay.show");
+          const hasOpenSidebar = !!document
+            .getElementById("sidebar")
+            ?.classList.contains("open");
+          const hasOpenPopover = !!document
+            .getElementById("directory-floating-bar")
+            ?.classList.contains("open");
+          const searchActive = !!document
+            .getElementById("view-search")
+            ?.classList.contains("active");
+
+          return (
+            !hasOpenModal && !hasOpenSidebar && !hasOpenPopover && searchActive
+          );
+        }
+
+        function pushNavStep(tag) {
+          if (isHandlingPopstate) return;
+          try {
+            history.pushState({ dakmitraNav: tag, ts: Date.now() }, "");
+            rootGuardPushed = true;
+          } catch (_) {}
+        }
+
+        // Ensure a base state exists so the first back press can be caught cleanly
+        function ensureBaseHistoryState() {
+          try {
+            if (!history.state || !history.state.dakmitraBase) {
+              history.replaceState({ dakmitraBase: true }, "");
+            }
+            if (!rootGuardPushed) {
+              history.pushState({ dakmitraNav: "root" }, "");
+              rootGuardPushed = true;
+            }
+          } catch (_) {}
+        }
+
+        window.addEventListener("load", ensureBaseHistoryState);
+        setTimeout(ensureBaseHistoryState, 0);
+
+        // Record history steps when sidebar opens
+        const origToggleSidebar = window.toggleSidebar;
+        if (typeof origToggleSidebar === "function") {
+          window.toggleSidebar = function () {
+            const wasOpen = document
+              .getElementById("sidebar")
+              ?.classList.contains("open");
+            origToggleSidebar.apply(this, arguments);
+            const isNowOpen = document
+              .getElementById("sidebar")
+              ?.classList.contains("open");
+            if (!wasOpen && isNowOpen) {
+              pushNavStep("sidebar");
+            }
+          };
+        }
+
+        // Record history steps when switching away from Search
+        const origSwitchView = window.switchDashboardView;
+        if (typeof origSwitchView === "function") {
+          window.switchDashboardView = function (viewId) {
+            origSwitchView.apply(this, arguments);
+            if (viewId && viewId !== "search") {
+              pushNavStep("view:" + viewId);
+            }
+          };
+        }
+
+        // Record history steps whenever any modal overlay gains `.show`
+        const modalObserver = new MutationObserver((mutations) => {
+          if (isHandlingPopstate) return;
+          for (const m of mutations) {
+            if (
+              m.type === "attributes" &&
+              m.attributeName === "class" &&
+              m.target.classList?.contains("modal-overlay") &&
+              m.target.classList.contains("show")
+            ) {
+              pushNavStep("modal:" + (m.target.id || "dialog"));
+              break;
+            }
+          }
+        });
+
+        document.querySelectorAll(".modal-overlay").forEach((modal) => {
+          modalObserver.observe(modal, { attributes: true });
+        });
+
+        // Intercept Android / browser Back button
+        window.addEventListener("popstate", () => {
+          isHandlingPopstate = true;
+
+          try {
+            // 1. Close topmost open modal if any
+            const openModals = Array.from(
+              document.querySelectorAll(".modal-overlay.show")
+            );
+            if (openModals.length > 0) {
+              const topModal = openModals[openModals.length - 1];
+              if (
+                topModal.id === "edit-record-modal-overlay" &&
+                window.closeEditRecordModal
+              ) {
+                closeEditRecordModal();
+              } else if (
+                topModal.id === "quick-add-modal-overlay" &&
+                window.closeQuickAddModal
+              ) {
+                closeQuickAddModal();
+              } else if (
+                topModal.id === "quick-delete-modal-overlay" &&
+                window.closeQuickDeleteModal
+              ) {
+                closeQuickDeleteModal();
+              } else if (
+                topModal.id === "office-details-modal-overlay" &&
+                window.closeOfficeDetailsModal
+              ) {
+                closeOfficeDetailsModal();
+              } else if (
+                topModal.id === "history-modal-overlay" &&
+                window.closeHistoryModal
+              ) {
+                closeHistoryModal();
+              } else if (
+                topModal.id === "crop-modal-overlay" &&
+                window.closeCropModal
+              ) {
+                closeCropModal();
+              } else if (
+                topModal.id === "avatar-lightbox-overlay" &&
+                window.closeProfilePhotoModal
+              ) {
+                closeProfilePhotoModal();
+              } else if (
+                topModal.id === "confirm-modal-overlay" &&
+                window.closeConfirmModal
+              ) {
+                closeConfirmModal();
+              } else if (
+                topModal.id === "alert-modal-overlay" &&
+                window.closeAlertModal
+              ) {
+                closeAlertModal();
+              } else {
+                topModal.classList.remove("show");
+              }
+              return;
+            }
+
+            // 2. Close floating action popover if open
+            const popover = document.getElementById("directory-floating-bar");
+            if (popover && popover.classList.contains("open")) {
+              if (typeof closeAllDirectoryActionTrays === "function") {
+                closeAllDirectoryActionTrays();
+              } else {
+                popover.classList.remove("open");
+              }
+              return;
+            }
+
+            // 3. Close sidebar drawer if open
+            const sidebar = document.getElementById("sidebar");
+            if (sidebar && sidebar.classList.contains("open")) {
+              if (typeof closeSidebar === "function") {
+                closeSidebar();
+              } else {
+                toggleSidebar();
+              }
+              return;
+            }
+
+            // 4. Return from any other tab back to Search
+            const searchActive = document
+              .getElementById("view-search")
+              ?.classList.contains("active");
+            if (!searchActive && typeof switchDashboardView === "function") {
+              switchDashboardView("search");
+              return;
+            }
+
+            // 5. Already at root Search view: keep a guard step so back doesn't immediately close on accidental press
+            if (isRootCleanState()) {
+              showToast("Press Back again to exit DakMitra");
+            }
+          } finally {
+            setTimeout(() => {
+              isHandlingPopstate = false;
+            }, 60);
+          }
+        });
+      })();
+
       // Failsafe: never allow splash screen to hang if network/CDN stalls
       setTimeout(hideSplashScreen, 4500);
 
@@ -8843,6 +9077,143 @@
           // Short delay prevents flicker when jumping from one input to another
           blurTimer = setTimeout(syncKeyboardState, 120);
         });
+      })();
+
+      // --- GLOBAL ACTIVE-WINDOW SCROLL LOCK (ALL MODALS & SIDEBAR) ---
+      (function initGlobalOverlayScrollLock() {
+        let touchStartY = 0;
+
+        function getTopActiveOverlay() {
+          const active = Array.from(
+            document.querySelectorAll(".modal-overlay.show, .sidebar.open")
+          );
+          if (active.length === 0) return null;
+
+          // Pick the topmost active window by z-index (e.g., confirm modal above edit modal)
+          return active.sort((a, b) => {
+            const za = parseInt(getComputedStyle(a).zIndex, 10) || 0;
+            const zb = parseInt(getComputedStyle(b).zIndex, 10) || 0;
+            return za - zb;
+          })[active.length - 1];
+        }
+
+        function syncScrollLock() {
+          const hasActiveOverlay = !!getTopActiveOverlay();
+          document.documentElement.classList.toggle(
+            "dm-scroll-locked",
+            hasActiveOverlay
+          );
+          document.body.classList.toggle("dm-scroll-locked", hasActiveOverlay);
+        }
+
+        // Finds a scrollable container strictly inside the active window
+        function findScrollableAncestor(target, boundaryEl) {
+          let el = target instanceof Element ? target : target?.parentElement;
+          while (el) {
+            const style = getComputedStyle(el);
+            const canScrollY =
+              (style.overflowY === "auto" || style.overflowY === "scroll") &&
+              el.scrollHeight > el.clientHeight + 1;
+
+            if (canScrollY) return el;
+            if (el === boundaryEl) break;
+            el = el.parentElement;
+          }
+          return null;
+        }
+
+        // Watch class changes on all modals and the sidebar automatically
+        const observer = new MutationObserver(syncScrollLock);
+        function observeOverlays() {
+          document
+            .querySelectorAll(".modal-overlay, .sidebar, .sidebar-overlay")
+            .forEach((el) => {
+              observer.observe(el, {
+                attributes: true,
+                attributeFilter: ["class"],
+              });
+            });
+        }
+        observeOverlays();
+        syncScrollLock();
+
+        // Touch scroll guard (prevents iOS/Android background scrolling & overscroll chaining)
+        document.addEventListener(
+          "touchstart",
+          (e) => {
+            if (e.touches.length === 1) {
+              touchStartY = e.touches[0].clientY;
+            }
+          },
+          { passive: true }
+        );
+
+        document.addEventListener(
+          "touchmove",
+          (e) => {
+            const activeOverlay = getTopActiveOverlay();
+            if (!activeOverlay) return;
+
+            // Allow pinch/pan gestures inside the photo cropper & lightbox
+            if (e.target.closest("#crop-stage, #lightbox-stage")) return;
+            if (e.target.tagName === "INPUT" && e.target.type === "range")
+              return;
+
+            // Block if touch started outside the active window (e.g., on the dimmed backdrop)
+            if (!activeOverlay.contains(e.target)) {
+              e.preventDefault();
+              return;
+            }
+
+            const scrollable = findScrollableAncestor(e.target, activeOverlay);
+            if (!scrollable) {
+              e.preventDefault();
+              return;
+            }
+
+            const currentY = e.touches[0].clientY;
+            const deltaY = currentY - touchStartY;
+            const atTop = scrollable.scrollTop <= 0 && deltaY > 0;
+            const atBottom =
+              scrollable.scrollTop + scrollable.clientHeight >=
+                scrollable.scrollHeight - 1 && deltaY < 0;
+
+            if (atTop || atBottom) {
+              e.preventDefault();
+            }
+          },
+          { passive: false }
+        );
+
+        // Desktop mouse-wheel / trackpad guard
+        document.addEventListener(
+          "wheel",
+          (e) => {
+            const activeOverlay = getTopActiveOverlay();
+            if (!activeOverlay) return;
+
+            if (!activeOverlay.contains(e.target)) {
+              e.preventDefault();
+              return;
+            }
+
+            const scrollable = findScrollableAncestor(e.target, activeOverlay);
+            if (!scrollable) {
+              e.preventDefault();
+              return;
+            }
+
+            const atTop = scrollable.scrollTop <= 0 && e.deltaY < 0;
+            const atBottom =
+              scrollable.scrollTop + scrollable.clientHeight >=
+                scrollable.scrollHeight - 1 && e.deltaY > 0;
+
+            if (atTop || atBottom) {
+              e.preventDefault();
+            }
+          },
+          { passive: false }
+        );
       })();
 
       // --- UI CONTROLS (Sidebar & Views) ---
