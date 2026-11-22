@@ -7258,9 +7258,11 @@
 
       // --- PWA INSTALLATION & AUTO-UPDATE ---
       if ("serviceWorker" in navigator) {
+        const hadController = !!navigator.serviceWorker.controller;
         let refreshing = false;
+
         navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (refreshing) return;
+          if (!hadController || refreshing) return;
           refreshing = true;
           window.location.reload();
         });
@@ -7271,8 +7273,11 @@
             .then((reg) => {
               // Check for updates whenever the user reopens/switches back to the app
               document.addEventListener("visibilitychange", () => {
-                if (document.visibilityState === "visible") {
-                  reg.update();
+                if (
+                  document.visibilityState === "visible" &&
+                  navigator.onLine
+                ) {
+                  reg.update().catch(() => {});
                 }
               });
             })
@@ -7310,7 +7315,7 @@
                 window.requestIdleCallback || ((cb) => setTimeout(cb, 300));
               runInBg(() => {
                 fetchFromServerBackground();
-                initRealtimeSync();
+                if (navigator.onLine) initRealtimeSync();
               });
               return true;
             } catch (e) {
@@ -11569,7 +11574,7 @@
         displayArea.scrollTop = 0;
 
         // 1. IF CACHED IN MEMORY: Render the 5 cached cards instantly (no skeleton, no DB call)
-        if (cache.loaded) {
+        if (cache.loaded && !forceLoad) {
           cache.page = 1;
           cache.hasMore = cache.initialHasMore;
           displayArea.innerHTML = `
@@ -11590,7 +11595,10 @@
           return;
         }
 
-        // 2. IF NOT CACHED YET: Show skeleton animation and fetch from Supabase
+        // 2. IF NOT CACHED YET: Reset pagination state so offline/retried loads are never blocked
+        cache.page = 0;
+        cache.hasMore = true;
+
         displayArea.innerHTML = `
                         <div id="approvals-content" style="padding: 4px;">
                           ${getApprovalsSkeletonHTML(3)}
