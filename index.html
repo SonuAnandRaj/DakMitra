@@ -399,12 +399,16 @@
       .directory-card-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         border-bottom: 1px dashed var(--border);
         padding-bottom: 12px;
         margin-bottom: 12px;
-        flex-wrap: wrap;
-        gap: 12px;
+        gap: 10px;
+      }
+
+      .directory-office-info {
+        min-width: 0;
+        flex: 1;
       }
 
       .directory-office-title {
@@ -413,14 +417,34 @@
         color: var(--text);
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
+        line-height: 1.3;
       }
 
-      .directory-badges {
+      .directory-office-meta {
         display: flex;
-        gap: 6px;
         align-items: center;
         flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-light);
+      }
+
+      .directory-office-meta .meta-count {
+        color: var(--primary);
+      }
+
+      .directory-office-meta .meta-dot {
+        opacity: 0.45;
+      }
+
+      .directory-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
       }
 
       .directory-address-list {
@@ -4067,54 +4091,54 @@
         color: #ef4444;
       }
 
-      .dir-quick-add-btn {
+      .dir-quick-add-btn,
+      .dir-quick-delete-btn {
         margin: 0;
-        padding: 4px 10px;
-        font-size: 12px;
-        font-weight: 700;
+        width: 32px;
+        height: 32px;
+        padding: 0;
         border-radius: 10px;
-        background: var(--primary);
-        color: #ffffff;
-        border: none;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        transition: transform 0.15s ease, background 0.2s ease;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease,
+          border-color 0.2s ease;
+      }
+
+      .dir-quick-add-btn {
+        background: rgba(79, 70, 229, 0.12);
+        color: var(--primary);
+        border: 1px solid rgba(79, 70, 229, 0.25);
+      }
+
+      [data-theme="dark"] .dir-quick-add-btn {
+        background: rgba(129, 140, 248, 0.16);
+        border-color: rgba(129, 140, 248, 0.3);
       }
 
       .dir-quick-add-btn:hover {
-        background: var(--primary-hover);
+        background: var(--primary);
+        color: #ffffff;
+        border-color: var(--primary);
       }
 
-      .dir-quick-add-btn:active {
-        transform: scale(0.94);
-      }
-
-      /* --- DIRECTORY QUICK-DELETE BUTTON & MODAL --- */
       .dir-quick-delete-btn {
-        margin: 0;
-        padding: 4px 9px;
-        font-size: 12px;
-        font-weight: 700;
-        border-radius: 10px;
         background: rgba(239, 68, 68, 0.12);
         color: #ef4444;
         border: 1px solid rgba(239, 68, 68, 0.25);
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
       }
 
       .dir-quick-delete-btn:hover {
         background: #ef4444;
         color: #ffffff;
+        border-color: #ef4444;
       }
 
+      .dir-quick-add-btn:active,
       .dir-quick-delete-btn:active {
-        transform: scale(0.94);
+        transform: scale(0.92);
       }
 
       .delete-modal-card::before {
@@ -10303,39 +10327,73 @@
           html += `
                                   <div class="directory-card" id="${safeId}">
                                     <div class="directory-card-header">
-                                      <div class="directory-office-title">
-                                        <span>🏢</span>
-                                        <span>${escapeHTML(data.office)}</span>
-                                      </div>
-                                      <div class="directory-badges">
-        <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2);">
-          📑 ${totalAddresses} ${totalAddresses === 1 ? "Address" : "Addresses"}
-        </span>
-        <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px;">📍 ${escapeHTML(
-          data.pin
-        )}</span>
-        <button
-          type="button"
-          class="dir-quick-add-btn"
-          onclick="quickAddForOffice('${escapeForOnclick(
-            data.office
-          )}', '${escapeForOnclick(data.pin)}')"
-          title="Add multiple addresses to ${escapeHTML(data.office)}"
-        >
-          + Add
-        </button>
-        <button
-        type="button"
-        class="dir-quick-delete-btn"
-        onclick="quickDeleteForOffice('${escapeForOnclick(
-          data.office
-        )}', '${escapeForOnclick(data.pin)}')"
-        title="Delete multiple addresses from ${escapeHTML(data.office)}"
-      >
-        🗑️
-      </button>
-      </div>
-      </div>
+  <div class="directory-office-info">
+    <div class="directory-office-title">
+      <span>🏢</span>
+      <span>${escapeHTML(data.office)}</span>
+    </div>
+    <div class="directory-office-meta">
+      <span>📍 ${escapeHTML(data.pin)}</span>
+      <span class="meta-dot">•</span>
+      <span class="meta-count">${totalAddresses} ${
+            totalAddresses === 1 ? "Address" : "Addresses"
+          }</span>
+    </div>
+  </div>
+
+  <div class="directory-header-actions">
+  <button
+    type="button"
+    class="dir-quick-add-btn"
+    onclick="quickAddForOffice('${escapeForOnclick(
+      data.office
+    )}', '${escapeForOnclick(data.pin)}')"
+    title="Add multiple addresses to ${escapeHTML(data.office)}"
+    aria-label="Add addresses"
+  >
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.4"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  </button>
+
+  <button
+    type="button"
+    class="dir-quick-delete-btn"
+    onclick="quickDeleteForOffice('${escapeForOnclick(
+      data.office
+    )}', '${escapeForOnclick(data.pin)}')"
+    title="Delete multiple addresses from ${escapeHTML(data.office)}"
+    aria-label="Delete addresses"
+  >
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+      <path d="M10 11v6"></path>
+      <path d="M14 11v6"></path>
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+    </svg>
+  </button>
+</div>
+</div>
                                     <div class="directory-address-list">
                                 `;
 
