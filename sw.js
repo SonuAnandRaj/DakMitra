@@ -1,4 +1,4 @@
-const CACHE_NAME = "po-directory-v9";
+const CACHE_NAME = "po-directory-v10";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -29,6 +29,22 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// Helper: Fetch with a timeout so Lie-Fi doesn't hang the app
+function fetchWithTimeout(request, timeoutMs = 2500) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timeout")), timeoutMs);
+    fetch(request, { cache: "no-cache" })
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (!event.request.url.startsWith("http")) return;
@@ -41,26 +57,27 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Always serve cached index.html immediately for page navigations (eliminates top progress bar)
-  if (event.request.mode === "navigate") {
+  // NETWORK-FIRST for index.html / navigation: Always gets the latest deployed version when online
+  if (
+    event.request.mode === "navigate" ||
+    event.request.url.endsWith("index.html")
+  ) {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) =>
-        cache.match("./index.html", { ignoreSearch: true }).then((cached) => {
-          const networkFetch = fetch(event.request)
-            .then((res) => {
-              if (res && res.status === 200) {
-                cache.put("./index.html", res.clone());
-              }
-              return res;
-            })
-            .catch(() => null);
-          return cached || networkFetch;
-        })
+        fetchWithTimeout(event.request, 2500)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put("./index.html", networkResponse.clone());
+            }
+            return networkResponse;
+          })
+          .catch(() => cache.match("./index.html", { ignoreSearch: true }))
       )
     );
     return;
   }
 
+  // STALE-WHILE-REVALIDATE for static assets (icons, CDN libraries, fonts)
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
       cache.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {

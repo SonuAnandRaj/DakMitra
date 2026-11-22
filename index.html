@@ -7231,11 +7231,26 @@
       const savedTheme = localStorage.getItem("app-theme") || "system";
       applyTheme(savedTheme);
 
-      // --- PWA INSTALLATION ---
+      // --- PWA INSTALLATION & AUTO-UPDATE ---
       if ("serviceWorker" in navigator) {
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
+
         window.addEventListener("load", () => {
           navigator.serviceWorker
-            .register("./sw.js")
+            .register("./sw.js", { updateViaCache: "none" })
+            .then((reg) => {
+              // Check for updates whenever the user reopens/switches back to the app
+              document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "visible") {
+                  reg.update();
+                }
+              });
+            })
             .catch((err) => console.log("SW failed: ", err));
         });
       }
