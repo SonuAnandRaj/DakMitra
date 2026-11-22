@@ -4465,15 +4465,15 @@
         --kb-fixed-offset: 0px;
       }
 
-      /* Move any open modal to the top ONLY while keyboard is active */
+      /* Fit any open modal cleanly in the space ABOVE the keyboard */
       body.keyboard-open .modal-overlay.show {
         top: var(--vv-top, 0px);
         height: var(--vvh, 100dvh);
-        align-items: flex-start;
+        align-items: flex-start; /* Keeps tall modals scrollable without clipping the top */
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         padding-top: calc(14px + env(safe-area-inset-top, 0px));
-        padding-bottom: 24px;
+        padding-bottom: 14px;
       }
 
       /* Fit views cleanly above the keyboard */
@@ -4486,12 +4486,16 @@
         height: calc(var(--vvh, 100dvh) - 96px - env(safe-area-inset-top, 0px));
         min-height: 0;
       }
-
-      /* Extra room inside Edit modal so Office dropdown & Save button stay reachable */
-      body.keyboard-open #edit-record-modal-overlay.show {
-        padding-bottom: 150px;
+      /* Vertically centers the modal above the keyboard when it fits, collapses to 0 if taller */
+      body.keyboard-open .modal-overlay.show .modal-card {
+        margin: auto 0;
       }
 
+      /* Add extra bottom room ONLY while the Office autocomplete dropdown is actually open */
+      body.keyboard-open
+        #edit-record-modal-overlay.show:has(.autocomplete-dropdown.show) {
+        padding-bottom: 150px;
+      }
       /* Keep Office Staff Editor list scrollable above the keyboard */
       body.keyboard-open #office-details-modal-overlay .staff-detail-list {
         max-height: calc(var(--vvh, 100dvh) - 210px);
