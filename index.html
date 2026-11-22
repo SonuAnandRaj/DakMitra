@@ -3957,6 +3957,234 @@
         height: calc(var(--vvh, 100dvh) - 96px - env(safe-area-inset-top, 0px));
         min-height: 0;
       }
+
+      /* --- BULK SAME OFFICE UPLOAD & DIRECTORY QUICK-ADD --- */
+      .bulk-textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 14px 16px;
+        background: var(--input-bg);
+        color: var(--text);
+        border: 1px solid var(--input-border);
+        border-radius: 12px;
+        font-size: 15px;
+        line-height: 1.5;
+        resize: vertical;
+        outline: none;
+        transition: 0.2s;
+      }
+
+      .bulk-textarea:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+      }
+
+      .bulk-preview-box {
+        margin-top: 12px;
+        padding: 12px;
+        background: var(--bg);
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        text-align: left;
+      }
+
+      .bulk-preview-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .bulk-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--card-bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+
+      .bulk-chip.is-duplicate {
+        border-color: var(--accent);
+        background: rgba(245, 158, 11, 0.12);
+      }
+
+      .bulk-chip button {
+        background: transparent;
+        border: none;
+        color: var(--text-light);
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 0 2px;
+      }
+
+      .bulk-chip button:hover {
+        color: #ef4444;
+      }
+
+      .dir-quick-add-btn {
+        margin: 0;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        border-radius: 10px;
+        background: var(--primary);
+        color: #ffffff;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: transform 0.15s ease, background 0.2s ease;
+      }
+
+      .dir-quick-add-btn:hover {
+        background: var(--primary-hover);
+      }
+
+      .dir-quick-add-btn:active {
+        transform: scale(0.94);
+      }
+
+      /* --- DIRECTORY QUICK-DELETE BUTTON & MODAL --- */
+      .dir-quick-delete-btn {
+        margin: 0;
+        padding: 4px 9px;
+        font-size: 12px;
+        font-weight: 700;
+        border-radius: 10px;
+        background: rgba(239, 68, 68, 0.12);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+      }
+
+      .dir-quick-delete-btn:hover {
+        background: #ef4444;
+        color: #ffffff;
+      }
+
+      .dir-quick-delete-btn:active {
+        transform: scale(0.94);
+      }
+
+      .delete-modal-card::before {
+        background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%) top / 100%
+          4px no-repeat !important;
+      }
+
+      .delete-modal-icon {
+        background: linear-gradient(
+          135deg,
+          rgba(239, 68, 68, 0.14) 0%,
+          rgba(245, 158, 11, 0.14) 100%
+        ) !important;
+        color: #ef4444 !important;
+      }
+
+      .quick-delete-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .quick-delete-chips-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        max-height: 220px;
+        overflow-y: auto;
+        padding: 12px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .delete-select-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 12px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        background: var(--card-bg);
+        color: var(--text);
+        border: 1.5px solid var(--border);
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+
+      .delete-select-chip:hover {
+        border-color: rgba(239, 68, 68, 0.5);
+      }
+
+      .delete-select-chip:active {
+        transform: scale(0.94);
+      }
+
+      .delete-select-chip.selected {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: #ef4444;
+        color: #dc2626;
+        box-shadow: 0 4px 10px -3px rgba(239, 68, 68, 0.28);
+        transform: translateY(-1px);
+      }
+
+      [data-theme="dark"] .delete-select-chip.selected {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+      }
+
+      .delete-chip-check {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        border: 1.5px solid var(--input-border);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 800;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+      }
+
+      .delete-select-chip.selected .delete-chip-check {
+        background: #ef4444;
+        border-color: #ef4444;
+        color: #ffffff;
+      }
+
+      .btn-delete-profile {
+        background: linear-gradient(
+          135deg,
+          #ef4444 0%,
+          #dc2626 55%,
+          #f97316 100%
+        ) !important;
+        box-shadow: 0 8px 20px -6px rgba(239, 68, 68, 0.5) !important;
+      }
+
+      .btn-delete-profile:hover {
+        box-shadow: 0 12px 24px -6px rgba(239, 68, 68, 0.65) !important;
+      }
+
+      .btn-delete-profile.is-loading {
+        background: #dc2626 !important;
+      }
     </style>
   </head>
   <body>
@@ -5522,32 +5750,171 @@
           </div>
 
           <!-- Manual Data Entry Card -->
+          <!-- Manual Data Entry Card -->
           <div class="upload-card" style="margin-bottom: 24px">
             <h2 style="font-size: 22px; font-weight: 700">
               Add Records Manually
             </h2>
 
-            <!-- Container for the rows -->
-            <div id="manual-entries-container"></div>
+            <!-- Mode Switcher Tabs -->
+            <div
+              class="tabs"
+              style="
+                margin: 16px 0 20px;
+                border-bottom: 1px solid var(--border);
+                background: transparent;
+              "
+            >
+              <button
+                type="button"
+                class="tab-btn active"
+                id="tab-manual-rows"
+                onclick="switchManualUploadTab('rows')"
+              >
+                Standard Rows
+              </button>
+              <button
+                type="button"
+                class="tab-btn"
+                id="tab-manual-bulk"
+                onclick="switchManualUploadTab('bulk')"
+              >
+                Same Office (Bulk)
+              </button>
+            </div>
 
-            <!-- Action Buttons -->
-            <div style="display: flex; gap: 12px; margin-top: 20px">
-              <button
-                type="button"
-                class="btn"
-                style="background: var(--btn-secondary); color: var(--text)"
-                onclick="addInputRow()"
-              >
-                + Add Row
-              </button>
-              <button
-                type="button"
-                class="btn"
-                id="submit-multiple-btn"
-                onclick="submitMultipleRecords()"
-              >
-                Submit All
-              </button>
+            <!-- TAB 1: Standard Rows (Existing Flow) -->
+            <div id="manual-panel-rows">
+              <div id="manual-entries-container"></div>
+
+              <div style="display: flex; gap: 12px; margin-top: 20px">
+                <button
+                  type="button"
+                  class="btn"
+                  style="background: var(--btn-secondary); color: var(--text)"
+                  onclick="addInputRow()"
+                >
+                  + Add Row
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  id="submit-multiple-btn"
+                  onclick="submitMultipleRecords()"
+                >
+                  Submit All
+                </button>
+              </div>
+            </div>
+
+            <!-- TAB 2: Bulk Same Office -->
+            <div id="manual-panel-bulk" class="hidden" style="text-align: left">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                <div
+                  class="input-group"
+                  style="flex: 1 1 200px; margin-bottom: 14px"
+                >
+                  <label>Office</label>
+                  <div class="autocomplete-wrapper">
+                    <input
+                      type="text"
+                      id="bulk-office-input"
+                      placeholder="Search & Select Office..."
+                      autocomplete="off"
+                      oninput="handleBulkOfficeInput(this)"
+                      onfocus="handleBulkOfficeInput(this)"
+                      onblur="setTimeout(closeAllDropdowns, 200)"
+                      style="padding-right: 40px; width: 100%"
+                    />
+                    <button
+                      type="button"
+                      id="bulk-office-clear"
+                      class="clear-btn hidden"
+                      style="
+                        position: absolute;
+                        right: 6px;
+                        top: 6px;
+                        width: 36px;
+                        height: 36px;
+                        padding: 0;
+                        margin: 0;
+                        z-index: 2;
+                      "
+                      onclick="clearBulkOffice()"
+                      title="Clear Office"
+                    >
+                      ✕
+                    </button>
+                    <div
+                      id="bulk-office-dropdown"
+                      class="autocomplete-dropdown"
+                    ></div>
+                  </div>
+                </div>
+
+                <div
+                  class="input-group"
+                  style="flex: 0.6 1 120px; margin-bottom: 14px"
+                >
+                  <label>Pin</label>
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    id="bulk-pin-input"
+                    placeholder="e.g. 231501"
+                    autocomplete="off"
+                  />
+                </div>
+              </div>
+
+              <div class="input-group" style="margin-bottom: 8px">
+                <label>Addresses (one per line or separated by commas)</label>
+                <textarea
+                  id="bulk-addresses-input"
+                  class="bulk-textarea"
+                  placeholder="Example:&#10;Nauha&#10;Lapsi&#10;Khutaha Maunas&#10;&#10;Or paste: Nauha, Lapsi, Khutaha Maunas"
+                  oninput="updateBulkAddressPreview()"
+                ></textarea>
+              </div>
+
+              <!-- Live Preview Chips -->
+              <div id="bulk-preview-box" class="bulk-preview-box hidden">
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 8px;
+                  "
+                >
+                  <strong
+                    id="bulk-preview-count"
+                    style="font-size: 13px; color: var(--primary)"
+                  >
+                    0 addresses ready
+                  </strong>
+                  <button
+                    type="button"
+                    class="toolbar-btn"
+                    style="color: #ef4444; padding: 4px 8px"
+                    onclick="clearBulkAddresses()"
+                  >
+                    Clear List
+                  </button>
+                </div>
+                <div id="bulk-preview-chips" class="bulk-preview-chips"></div>
+              </div>
+
+              <div style="display: flex; gap: 12px; margin-top: 20px">
+                <button
+                  type="button"
+                  class="btn"
+                  id="submit-bulk-btn"
+                  onclick="submitBulkSameOffice()"
+                >
+                  Submit All Addresses
+                </button>
+              </div>
             </div>
           </div>
           <div class="upload-card" id="admin-excel-upload">
@@ -6278,6 +6645,277 @@
                 <polyline points="7 3 7 8 15 8"></polyline>
               </svg>
               <span>Save Changes</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIRECTORY QUICK-ADD MULTIPLE ADDRESSES MODAL -->
+    <div
+      id="quick-add-modal-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeQuickAddModal();"
+    >
+      <div class="modal-card edit-modal-card">
+        <div class="edit-modal-header">
+          <div class="edit-modal-header-left">
+            <div class="edit-modal-icon">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </div>
+            <div>
+              <h3 class="modal-title" style="margin: 0; font-size: 19px">
+                Add Addresses
+              </h3>
+              <span
+                id="quick-add-subtitle"
+                style="
+                  font-size: 12px;
+                  color: var(--text-light);
+                  font-weight: 600;
+                "
+              >
+                🏢 Office • 📍 PIN
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="edit-modal-close-btn"
+            onclick="closeQuickAddModal()"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="input-group edit-modal-field" style="margin-bottom: 10px">
+          <label>Addresses (one per line or separated by commas)</label>
+          <textarea
+            id="quick-add-addresses-input"
+            class="bulk-textarea"
+            style="min-height: 105px"
+            placeholder="Example:&#10;Nauha&#10;Lapsi, Khutaha Maunas"
+            oninput="updateQuickAddPreview()"
+          ></textarea>
+        </div>
+
+        <!-- Compact Live Preview Chips -->
+        <div
+          id="quick-add-preview-box"
+          class="bulk-preview-box edit-modal-field hidden"
+          style="
+            margin-top: 0;
+            margin-bottom: 6px;
+            max-height: 120px;
+            overflow-y: auto;
+          "
+        >
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 8px;
+            "
+          >
+            <strong
+              id="quick-add-preview-count"
+              style="font-size: 12.5px; color: var(--primary)"
+            >
+              0 addresses ready
+            </strong>
+            <button
+              type="button"
+              class="toolbar-btn"
+              style="color: #ef4444; padding: 2px 6px; font-size: 11.5px"
+              onclick="clearQuickAddAddresses()"
+            >
+              Clear
+            </button>
+          </div>
+          <div id="quick-add-preview-chips" class="bulk-preview-chips"></div>
+        </div>
+
+        <div class="edit-modal-actions">
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="closeQuickAddModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="quick-add-save-btn"
+            class="btn-save-profile"
+            onclick="submitQuickAddModal()"
+          >
+            <span class="btn-content" id="quick-add-save-btn-content">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"
+                ></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>Add Addresses</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIRECTORY QUICK-DELETE MULTIPLE ADDRESSES MODAL -->
+    <div
+      id="quick-delete-modal-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeQuickDeleteModal();"
+    >
+      <div class="modal-card edit-modal-card delete-modal-card">
+        <div class="edit-modal-header">
+          <div class="edit-modal-header-left">
+            <div class="edit-modal-icon delete-modal-icon">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+              </svg>
+            </div>
+            <div>
+              <h3 class="modal-title" style="margin: 0; font-size: 19px">
+                Delete Addresses
+              </h3>
+              <span
+                id="quick-delete-subtitle"
+                style="
+                  font-size: 12px;
+                  color: var(--text-light);
+                  font-weight: 600;
+                "
+              >
+                🏢 Office • 📍 PIN
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="edit-modal-close-btn"
+            onclick="closeQuickDeleteModal()"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Filter Addresses Inside Modal -->
+        <div class="input-group edit-modal-field" style="margin-bottom: 12px">
+          <div class="profile-input-wrapper">
+            <svg
+              class="field-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="quick-delete-filter-input"
+              placeholder="Filter addresses to delete..."
+              autocomplete="off"
+              oninput="renderQuickDeleteChips()"
+            />
+          </div>
+        </div>
+
+        <!-- Selection Toolbar -->
+        <div class="quick-delete-toolbar edit-modal-field">
+          <strong
+            id="quick-delete-count"
+            style="font-size: 12.5px; color: var(--text-light)"
+          >
+            0 selected
+          </strong>
+          <button
+            type="button"
+            id="quick-delete-select-all-btn"
+            class="toolbar-btn"
+            style="color: var(--primary); padding: 4px 8px; font-size: 12px"
+            onclick="toggleSelectAllQuickDelete()"
+          >
+            Select All
+          </button>
+        </div>
+
+        <!-- Tap-to-Select Address Chips -->
+        <div
+          id="quick-delete-chips-container"
+          class="quick-delete-chips-wrap edit-modal-field"
+        ></div>
+
+        <div class="edit-modal-actions">
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="closeQuickDeleteModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="quick-delete-submit-btn"
+            class="btn-save-profile btn-delete-profile"
+            onclick="confirmQuickDeleteModal()"
+            disabled
+          >
+            <span class="btn-content" id="quick-delete-submit-btn-content">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              </svg>
+              <span>Delete Selected</span>
             </span>
           </button>
         </div>
@@ -8830,16 +9468,34 @@
                                   <span>${escapeHTML(data.office)}</span>
                                 </div>
                                 <div class="directory-badges">
-                                  <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2);">
-                                    📑 ${totalAddresses} ${
-            totalAddresses === 1 ? "Address" : "Addresses"
-          }
-                                  </span>
-                                  <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px;">📍 ${escapeHTML(
-                                    data.pin
-                                  )}</span>
-                                </div>
-                              </div>
+  <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px; background: rgba(79, 70, 229, 0.1); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2);">
+    📑 ${totalAddresses} ${totalAddresses === 1 ? "Address" : "Addresses"}
+  </span>
+  <span class="badge" style="margin: 0; padding: 4px 8px; font-size: 12px;">📍 ${escapeHTML(
+    data.pin
+  )}</span>
+  <button
+    type="button"
+    class="dir-quick-add-btn"
+    onclick="quickAddForOffice('${escapeForOnclick(
+      data.office
+    )}', '${escapeForOnclick(data.pin)}')"
+    title="Add multiple addresses to ${escapeHTML(data.office)}"
+  >
+    + Add
+  </button>
+  <button
+  type="button"
+  class="dir-quick-delete-btn"
+  onclick="quickDeleteForOffice('${escapeForOnclick(
+    data.office
+  )}', '${escapeForOnclick(data.pin)}')"
+  title="Delete multiple addresses from ${escapeHTML(data.office)}"
+>
+  🗑️
+</button>
+</div>
+</div>
                               <div class="directory-address-list">
                           `;
 
@@ -10099,6 +10755,843 @@
         btn.textContent = "Submit All";
         btn.disabled = false;
       }
+
+      // --- BULK SAME OFFICE UPLOAD & DIRECTORY QUICK-ADD ---
+      let bulkReturnToDirectory = false;
+
+      function switchManualUploadTab(tab) {
+        const rowsTab = document.getElementById("tab-manual-rows");
+        const bulkTab = document.getElementById("tab-manual-bulk");
+        const rowsPanel = document.getElementById("manual-panel-rows");
+        const bulkPanel = document.getElementById("manual-panel-bulk");
+
+        if (tab === "bulk") {
+          rowsTab?.classList.remove("active");
+          bulkTab?.classList.add("active");
+          rowsPanel?.classList.add("hidden");
+          bulkPanel?.classList.remove("hidden");
+        } else {
+          bulkTab?.classList.remove("active");
+          rowsTab?.classList.add("active");
+          bulkPanel?.classList.add("hidden");
+          rowsPanel?.classList.remove("hidden");
+        }
+      }
+
+      let activeQuickAddOffice = { office: "", pin: "" };
+
+      function getQuickAddBtnDefaultHTML(count = 0) {
+        const baseLabel = isCurrentUserAdmin ? "Add" : "Submit";
+        const label =
+          count > 0
+            ? `${baseLabel} ${count} ${count === 1 ? "Address" : "Addresses"}`
+            : `${baseLabel} Addresses`;
+        return `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+      <polyline points="7 3 7 8 15 8"></polyline>
+    </svg>
+    <span>${label}</span>
+  `;
+      }
+
+      function quickAddForOffice(officeName, pinNumber) {
+        closeAllDirectoryActionTrays();
+
+        const cleanPin =
+          pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
+        activeQuickAddOffice = {
+          office: officeName || "",
+          pin: cleanPin,
+        };
+
+        document.getElementById("quick-add-subtitle").textContent = `🏢 ${
+          activeQuickAddOffice.office
+        }${cleanPin ? ` • 📍 ${cleanPin}` : ""}`;
+
+        const textarea = document.getElementById("quick-add-addresses-input");
+        const saveBtn = document.getElementById("quick-add-save-btn");
+        const saveBtnContent = document.getElementById(
+          "quick-add-save-btn-content"
+        );
+
+        if (textarea) textarea.value = "";
+        saveBtn.classList.remove("is-loading", "is-success");
+        saveBtn.disabled = false;
+        saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(0);
+
+        updateQuickAddPreview();
+        document
+          .getElementById("quick-add-modal-overlay")
+          .classList.add("show");
+        setTimeout(() => textarea?.focus(), 140);
+      }
+
+      function closeQuickAddModal() {
+        document
+          .getElementById("quick-add-modal-overlay")
+          ?.classList.remove("show");
+      }
+
+      function parseQuickAddAddresses() {
+        const raw =
+          document.getElementById("quick-add-addresses-input")?.value || "";
+        const seen = new Set();
+        const list = [];
+
+        raw
+          .split(/[\n,]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .forEach((addr) => {
+            const key = addr.toLowerCase();
+            if (!seen.has(key)) {
+              seen.add(key);
+              list.push(addr);
+            }
+          });
+
+        return list;
+      }
+
+      function updateQuickAddPreview() {
+        const addresses = parseQuickAddAddresses();
+        const box = document.getElementById("quick-add-preview-box");
+        const countEl = document.getElementById("quick-add-preview-count");
+        const chipsEl = document.getElementById("quick-add-preview-chips");
+        const saveBtn = document.getElementById("quick-add-save-btn");
+        const saveBtnContent = document.getElementById(
+          "quick-add-save-btn-content"
+        );
+
+        if (
+          saveBtn &&
+          !saveBtn.classList.contains("is-loading") &&
+          !saveBtn.classList.contains("is-success")
+        ) {
+          saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(
+            addresses.length
+          );
+        }
+
+        if (addresses.length === 0) {
+          box?.classList.add("hidden");
+          return;
+        }
+
+        const officeLower = activeQuickAddOffice.office.trim().toLowerCase();
+        const existingSet = new Set();
+        if (officeLower && cachedPostOffices) {
+          cachedPostOffices.forEach((r) => {
+            if (
+              String(r.Office || "")
+                .trim()
+                .toLowerCase() === officeLower
+            ) {
+              existingSet.add(
+                String(r.Address || "")
+                  .trim()
+                  .toLowerCase()
+              );
+            }
+          });
+        }
+
+        let dupCount = 0;
+        chipsEl.innerHTML = addresses
+          .map((addr, idx) => {
+            const isDup = existingSet.has(addr.toLowerCase());
+            if (isDup) dupCount++;
+            return `
+        <span class="bulk-chip ${isDup ? "is-duplicate" : ""}" title="${
+              isDup ? "Already exists in this office" : ""
+            }">
+          ${isDup ? "⚠️ " : ""}${escapeHTML(addr)}
+          <button type="button" onclick="removeQuickAddAddressAt(${idx})" title="Remove">✕</button>
+        </span>`;
+          })
+          .join("");
+
+        countEl.textContent = `${addresses.length} ${
+          addresses.length === 1 ? "address" : "addresses"
+        } ready${dupCount > 0 ? ` (${dupCount} already in DB)` : ""}`;
+        box?.classList.remove("hidden");
+      }
+
+      function removeQuickAddAddressAt(indexToRemove) {
+        const addresses = parseQuickAddAddresses();
+        addresses.splice(indexToRemove, 1);
+        const textarea = document.getElementById("quick-add-addresses-input");
+        if (textarea) textarea.value = addresses.join("\n");
+        updateQuickAddPreview();
+      }
+
+      function clearQuickAddAddresses() {
+        const textarea = document.getElementById("quick-add-addresses-input");
+        if (textarea) textarea.value = "";
+        updateQuickAddPreview();
+      }
+
+      async function submitQuickAddModal() {
+        if (!(await ensureOnline("Connect to internet to save changes.")))
+          return;
+
+        const addresses = parseQuickAddAddresses();
+        if (addresses.length === 0) {
+          return showToast("⚠️ Please enter at least one address.");
+        }
+
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+
+        if (!session || !session.user) {
+          closeQuickAddModal();
+          checkUserSession();
+          return alert("Your session has expired. Please sign in again.");
+        }
+
+        const saveBtn = document.getElementById("quick-add-save-btn");
+        const saveBtnContent = document.getElementById(
+          "quick-add-save-btn-content"
+        );
+
+        saveBtn.classList.add("is-loading");
+        saveBtn.disabled = true;
+        saveBtnContent.innerHTML = `
+    <div class="btn-spinner"></div>
+    <span>Saving...</span>
+  `;
+
+        const payloads = addresses.map((addr) => ({
+          action_type: "ADD",
+          proposed_data: {
+            Address: addr,
+            Office: activeQuickAddOffice.office,
+            Pin: activeQuickAddOffice.pin || null,
+          },
+          requested_by: session.user.id,
+        }));
+
+        try {
+          if (isCurrentUserAdmin) {
+            const { error } = await supabaseClient.rpc("admin_direct_submit", {
+              request_payloads: payloads,
+            });
+            if (error) throw error;
+
+            await fetchAllPostOffices(true);
+            invalidateApprovalsCache();
+
+            saveBtn.classList.remove("is-loading");
+            saveBtn.classList.add("is-success");
+            saveBtnContent.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Added!</span>
+      `;
+            showToast(
+              `✨ Added ${addresses.length} ${
+                addresses.length === 1 ? "address" : "addresses"
+              } to ${activeQuickAddOffice.office}!`
+            );
+          } else {
+            const { error } = await supabaseClient
+              .from("edit_requests")
+              .insert(payloads);
+            if (error) throw error;
+
+            invalidateApprovalsCache();
+
+            saveBtn.classList.remove("is-loading");
+            saveBtn.classList.add("is-success");
+            saveBtnContent.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Submitted!</span>
+      `;
+            showToast(
+              `✅ ${addresses.length} ${
+                addresses.length === 1 ? "address" : "addresses"
+              } submitted for approval!`
+            );
+          }
+
+          setTimeout(() => {
+            closeQuickAddModal();
+          }, 650);
+        } catch (err) {
+          saveBtn.classList.remove("is-loading", "is-success");
+          saveBtn.disabled = false;
+          saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(
+            addresses.length
+          );
+          alert("Error adding addresses: " + err.message);
+        }
+      }
+
+      // --- DIRECTORY QUICK-DELETE MULTIPLE ADDRESSES MODAL ---
+      let activeQuickDeleteOffice = { office: "", pin: "" };
+      let activeQuickDeleteItems = [];
+      let activeQuickDeleteSelectedIds = new Set();
+
+      function getQuickDeleteBtnDefaultHTML(count = 0) {
+        const baseLabel = isCurrentUserAdmin ? "Delete" : "Request Delete";
+        const label = count > 0 ? `${baseLabel} (${count})` : `${baseLabel}`;
+        return `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+    </svg>
+    <span>${label}</span>
+  `;
+      }
+
+      function quickDeleteForOffice(officeName, pinNumber) {
+        closeAllDirectoryActionTrays();
+
+        const cleanPin =
+          pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
+        activeQuickDeleteOffice = {
+          office: officeName || "",
+          pin: cleanPin,
+        };
+        activeQuickDeleteSelectedIds = new Set();
+
+        // Gather all addresses belonging to this office from local cache
+        const targetLower = activeQuickDeleteOffice.office.trim().toLowerCase();
+        activeQuickDeleteItems = (cachedPostOffices || [])
+          .filter(
+            (r) =>
+              String(r.Office || "")
+                .trim()
+                .toLowerCase() === targetLower
+          )
+          .sort((a, b) =>
+            String(a.Address || "").localeCompare(String(b.Address || ""))
+          );
+
+        document.getElementById("quick-delete-subtitle").textContent = `🏢 ${
+          activeQuickDeleteOffice.office
+        }${cleanPin ? ` • 📍 ${cleanPin}` : ""}`;
+
+        const filterInput = document.getElementById(
+          "quick-delete-filter-input"
+        );
+        if (filterInput) filterInput.value = "";
+
+        const submitBtn = document.getElementById("quick-delete-submit-btn");
+        submitBtn.classList.remove("is-loading", "is-success");
+
+        renderQuickDeleteChips();
+        document
+          .getElementById("quick-delete-modal-overlay")
+          .classList.add("show");
+      }
+
+      function closeQuickDeleteModal() {
+        document
+          .getElementById("quick-delete-modal-overlay")
+          ?.classList.remove("show");
+      }
+
+      function getFilteredQuickDeleteItems() {
+        const q = (
+          document.getElementById("quick-delete-filter-input")?.value || ""
+        )
+          .trim()
+          .toLowerCase();
+        if (!q) return activeQuickDeleteItems;
+        return activeQuickDeleteItems.filter((item) =>
+          String(item.Address || "")
+            .toLowerCase()
+            .includes(q)
+        );
+      }
+
+      function renderQuickDeleteChips() {
+        const container = document.getElementById(
+          "quick-delete-chips-container"
+        );
+        if (!container) return;
+
+        const visibleItems = getFilteredQuickDeleteItems();
+
+        if (visibleItems.length === 0) {
+          container.innerHTML = `<div style="width: 100%; text-align: center; padding: 18px 8px; font-size: 13px; color: var(--text-light);">No matching addresses found.</div>`;
+        } else {
+          container.innerHTML = visibleItems
+            .map((item) => {
+              const idStr = String(item.id);
+              const isSelected = activeQuickDeleteSelectedIds.has(idStr);
+              return `
+          <button
+            type="button"
+            class="delete-select-chip ${isSelected ? "selected" : ""}"
+            onclick="toggleQuickDeleteItem('${escapeForOnclick(idStr)}', this)"
+          >
+            <span class="delete-chip-check">${isSelected ? "✓" : ""}</span>
+            <span>${escapeHTML(item.Address)}</span>
+          </button>`;
+            })
+            .join("");
+        }
+
+        updateQuickDeleteUI();
+      }
+
+      function toggleQuickDeleteItem(idStr, chipEl) {
+        if (activeQuickDeleteSelectedIds.has(idStr)) {
+          activeQuickDeleteSelectedIds.delete(idStr);
+          chipEl?.classList.remove("selected");
+          const chk = chipEl?.querySelector(".delete-chip-check");
+          if (chk) chk.textContent = "";
+        } else {
+          activeQuickDeleteSelectedIds.add(idStr);
+          chipEl?.classList.add("selected");
+          const chk = chipEl?.querySelector(".delete-chip-check");
+          if (chk) chk.textContent = "✓";
+        }
+
+        if (navigator.vibrate) navigator.vibrate(20);
+        updateQuickDeleteUI();
+      }
+
+      function toggleSelectAllQuickDelete() {
+        const visibleItems = getFilteredQuickDeleteItems();
+        if (visibleItems.length === 0) return;
+
+        const allVisibleSelected = visibleItems.every((item) =>
+          activeQuickDeleteSelectedIds.has(String(item.id))
+        );
+
+        visibleItems.forEach((item) => {
+          const idStr = String(item.id);
+          if (allVisibleSelected) activeQuickDeleteSelectedIds.delete(idStr);
+          else activeQuickDeleteSelectedIds.add(idStr);
+        });
+
+        renderQuickDeleteChips();
+      }
+
+      function updateQuickDeleteUI() {
+        const count = activeQuickDeleteSelectedIds.size;
+        const countEl = document.getElementById("quick-delete-count");
+        const selectAllBtn = document.getElementById(
+          "quick-delete-select-all-btn"
+        );
+        const submitBtn = document.getElementById("quick-delete-submit-btn");
+        const submitBtnContent = document.getElementById(
+          "quick-delete-submit-btn-content"
+        );
+
+        if (countEl) {
+          countEl.textContent = `${count} of ${activeQuickDeleteItems.length} selected`;
+          countEl.style.color = count > 0 ? "#ef4444" : "var(--text-light)";
+        }
+
+        const visibleItems = getFilteredQuickDeleteItems();
+        const allVisibleSelected =
+          visibleItems.length > 0 &&
+          visibleItems.every((item) =>
+            activeQuickDeleteSelectedIds.has(String(item.id))
+          );
+        if (selectAllBtn) {
+          selectAllBtn.textContent = allVisibleSelected
+            ? "Deselect All"
+            : "Select All";
+        }
+
+        if (
+          submitBtn &&
+          !submitBtn.classList.contains("is-loading") &&
+          !submitBtn.classList.contains("is-success")
+        ) {
+          submitBtn.disabled = count === 0;
+          submitBtnContent.innerHTML = getQuickDeleteBtnDefaultHTML(count);
+        }
+      }
+
+      function confirmQuickDeleteModal() {
+        const count = activeQuickDeleteSelectedIds.size;
+        if (count === 0) return;
+
+        const title = isCurrentUserAdmin
+          ? `Admin: Delete ${count} ${count === 1 ? "Address" : "Addresses"}?`
+          : `Request Deletion of ${count} ${
+              count === 1 ? "Address" : "Addresses"
+            }?`;
+
+        const message = isCurrentUserAdmin
+          ? `This will immediately delete ${count} selected ${
+              count === 1 ? "address" : "addresses"
+            } from ${activeQuickDeleteOffice.office}. Continue?`
+          : `This will submit ${count} deletion ${
+              count === 1 ? "request" : "requests"
+            } for ${
+              activeQuickDeleteOffice.office
+            } to the community for approval.`;
+
+        const btnText = isCurrentUserAdmin
+          ? "Delete Instantly"
+          : "Submit Requests";
+
+        showCustomConfirm(title, message, btnText, () => {
+          executeQuickDeleteModal();
+        });
+      }
+
+      async function executeQuickDeleteModal() {
+        if (!(await ensureOnline("Connect to internet to save changes.")))
+          return;
+
+        const idsToDelete = Array.from(activeQuickDeleteSelectedIds);
+        if (idsToDelete.length === 0) return;
+
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+
+        if (!session || !session.user) {
+          closeQuickDeleteModal();
+          checkUserSession();
+          return alert("Your session has expired. Please sign in again.");
+        }
+
+        const submitBtn = document.getElementById("quick-delete-submit-btn");
+        const submitBtnContent = document.getElementById(
+          "quick-delete-submit-btn-content"
+        );
+
+        submitBtn.classList.add("is-loading");
+        submitBtn.disabled = true;
+        submitBtnContent.innerHTML = `
+    <div class="btn-spinner"></div>
+    <span>Deleting...</span>
+  `;
+
+        const payloads = idsToDelete.map((id) => ({
+          post_office_id: id,
+          action_type: "DELETE",
+          proposed_data: {},
+          requested_by: session.user.id,
+        }));
+
+        try {
+          if (isCurrentUserAdmin) {
+            const { error } = await supabaseClient.rpc("admin_direct_submit", {
+              request_payloads: payloads,
+            });
+            if (error) throw error;
+
+            // Remove instantly from local cache, Directory, Search & Favorites
+            idsToDelete.forEach((id) => removeLocalPostOffice(id));
+            invalidateApprovalsCache();
+
+            submitBtn.classList.remove("is-loading");
+            submitBtn.classList.add("is-success");
+            submitBtnContent.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Deleted!</span>
+      `;
+            showToast(
+              `🗑️ Admin: Deleted ${idsToDelete.length} ${
+                idsToDelete.length === 1 ? "address" : "addresses"
+              } from ${activeQuickDeleteOffice.office}.`
+            );
+          } else {
+            const { error } = await supabaseClient
+              .from("edit_requests")
+              .insert(payloads);
+            if (error) throw error;
+
+            invalidateApprovalsCache();
+
+            submitBtn.classList.remove("is-loading");
+            submitBtn.classList.add("is-success");
+            submitBtnContent.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Submitted!</span>
+      `;
+            showToast(
+              `📝 ${idsToDelete.length} deletion ${
+                idsToDelete.length === 1 ? "request" : "requests"
+              } submitted for approval!`
+            );
+          }
+
+          setTimeout(() => {
+            closeQuickDeleteModal();
+          }, 650);
+        } catch (err) {
+          submitBtn.classList.remove("is-loading", "is-success");
+          submitBtn.disabled = false;
+          submitBtnContent.innerHTML = getQuickDeleteBtnDefaultHTML(
+            idsToDelete.length
+          );
+          alert("Error deleting addresses: " + err.message);
+        }
+      }
+
+      function handleBulkOfficeInput(inputElement) {
+        const val = inputElement.value;
+        const dropdown = document.getElementById("bulk-office-dropdown");
+        const clearBtn = document.getElementById("bulk-office-clear");
+        const pinInput = document.getElementById("bulk-pin-input");
+
+        if (clearBtn) clearBtn.classList.toggle("hidden", val.length === 0);
+
+        const officeMap = new Map();
+        if (cachedPostOffices) {
+          cachedPostOffices.forEach((row) => {
+            if (row.Office && !officeMap.has(row.Office)) {
+              officeMap.set(row.Office, row.Pin || "");
+            }
+          });
+        }
+
+        let matchedOffices = Array.from(officeMap.keys());
+        if (val) {
+          const lowerVal = val.toLowerCase();
+          matchedOffices = matchedOffices.filter((o) =>
+            o.toLowerCase().includes(lowerVal)
+          );
+        }
+        matchedOffices.sort();
+
+        if (matchedOffices.length === 0) {
+          dropdown.classList.remove("show");
+        } else {
+          dropdown.innerHTML = matchedOffices
+            .slice(0, 10)
+            .map((office) => {
+              const pin = officeMap.get(office);
+              return `<div class="autocomplete-item" onmousedown="event.preventDefault(); selectBulkOffice('${escapeForOnclick(
+                office
+              )}', '${escapeForOnclick(pin)}')">🏢 ${escapeHTML(office)}</div>`;
+            })
+            .join("");
+          dropdown.classList.add("show");
+        }
+
+        if (pinInput) {
+          if (val.trim() === "") {
+            pinInput.value = "";
+          } else {
+            const exactMatch = Array.from(officeMap.keys()).find(
+              (k) => k.toLowerCase() === val.toLowerCase()
+            );
+            if (exactMatch) pinInput.value = officeMap.get(exactMatch);
+          }
+        }
+
+        updateBulkAddressPreview();
+      }
+
+      function selectBulkOffice(officeName, pinNumber) {
+        const offInput = document.getElementById("bulk-office-input");
+        const pinInput = document.getElementById("bulk-pin-input");
+        const clearBtn = document.getElementById("bulk-office-clear");
+
+        offInput.value = officeName;
+        if (pinInput) pinInput.value = pinNumber;
+        clearBtn?.classList.remove("hidden");
+
+        closeAllDropdowns();
+        updateBulkAddressPreview();
+        document.getElementById("bulk-addresses-input")?.focus();
+      }
+
+      function clearBulkOffice() {
+        const offInput = document.getElementById("bulk-office-input");
+        const pinInput = document.getElementById("bulk-pin-input");
+        if (offInput) offInput.value = "";
+        if (pinInput) pinInput.value = "";
+        offInput?.focus();
+        handleBulkOfficeInput(offInput);
+      }
+
+      function parseBulkAddresses() {
+        const raw =
+          document.getElementById("bulk-addresses-input")?.value || "";
+        const seen = new Set();
+        const list = [];
+
+        raw
+          .split(/[\n,]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .forEach((addr) => {
+            const key = addr.toLowerCase();
+            if (!seen.has(key)) {
+              seen.add(key);
+              list.push(addr);
+            }
+          });
+
+        return list;
+      }
+
+      function updateBulkAddressPreview() {
+        const addresses = parseBulkAddresses();
+        const box = document.getElementById("bulk-preview-box");
+        const countEl = document.getElementById("bulk-preview-count");
+        const chipsEl = document.getElementById("bulk-preview-chips");
+        const submitBtn = document.getElementById("submit-bulk-btn");
+        const officeVal = (
+          document.getElementById("bulk-office-input")?.value || ""
+        )
+          .trim()
+          .toLowerCase();
+
+        if (addresses.length === 0) {
+          box?.classList.add("hidden");
+          if (submitBtn) submitBtn.textContent = "Submit All Addresses";
+          return;
+        }
+
+        // Flag addresses that already exist under the selected office
+        const existingSet = new Set();
+        if (officeVal && cachedPostOffices) {
+          cachedPostOffices.forEach((r) => {
+            if (
+              String(r.Office || "")
+                .trim()
+                .toLowerCase() === officeVal
+            ) {
+              existingSet.add(
+                String(r.Address || "")
+                  .trim()
+                  .toLowerCase()
+              );
+            }
+          });
+        }
+
+        let dupCount = 0;
+        chipsEl.innerHTML = addresses
+          .map((addr, idx) => {
+            const isDup = existingSet.has(addr.toLowerCase());
+            if (isDup) dupCount++;
+            return `
+        <span class="bulk-chip ${isDup ? "is-duplicate" : ""}" title="${
+              isDup ? "Already exists in this office" : ""
+            }">
+          ${isDup ? "⚠️ " : ""}${escapeHTML(addr)}
+          <button type="button" onclick="removeBulkAddressAt(${idx})" title="Remove">✕</button>
+        </span>`;
+          })
+          .join("");
+
+        countEl.textContent = `${addresses.length} ${
+          addresses.length === 1 ? "address" : "addresses"
+        } ready${dupCount > 0 ? ` (${dupCount} already in DB)` : ""}`;
+
+        if (submitBtn) {
+          submitBtn.textContent = `Submit ${addresses.length} ${
+            addresses.length === 1 ? "Address" : "Addresses"
+          }`;
+        }
+        box?.classList.remove("hidden");
+      }
+
+      function removeBulkAddressAt(indexToRemove) {
+        const addresses = parseBulkAddresses();
+        addresses.splice(indexToRemove, 1);
+        const textarea = document.getElementById("bulk-addresses-input");
+        if (textarea) textarea.value = addresses.join("\n");
+        updateBulkAddressPreview();
+      }
+
+      function clearBulkAddresses() {
+        const textarea = document.getElementById("bulk-addresses-input");
+        if (textarea) textarea.value = "";
+        updateBulkAddressPreview();
+      }
+
+      async function submitBulkSameOffice() {
+        if (!(await ensureOnline("Connect to internet to save changes.")))
+          return;
+
+        const office = document
+          .getElementById("bulk-office-input")
+          ?.value.trim();
+        const pin = document.getElementById("bulk-pin-input")?.value.trim();
+        const addresses = parseBulkAddresses();
+
+        if (!office)
+          return showToast("⚠️ Please select or enter an Office first.");
+        if (addresses.length === 0) {
+          return showToast("⚠️ Please enter at least one address.");
+        }
+
+        const {
+          data: { session },
+        } = await supabaseClient.auth.getSession();
+
+        if (!session || !session.user) {
+          checkUserSession();
+          return alert("Your session has expired. Please sign in again.");
+        }
+
+        const payloads = addresses.map((addr) => ({
+          action_type: "ADD",
+          proposed_data: {
+            Address: addr,
+            Office: office,
+            Pin: pin || null,
+          },
+          requested_by: session.user.id,
+        }));
+
+        const btn = document.getElementById("submit-bulk-btn");
+        btn.textContent = `Submitting ${addresses.length}...`;
+        btn.disabled = true;
+
+        try {
+          if (isCurrentUserAdmin) {
+            const { error } = await supabaseClient.rpc("admin_direct_submit", {
+              request_payloads: payloads,
+            });
+            if (error) throw error;
+            showToast(
+              `✅ Admin: Added ${addresses.length} addresses to ${office}!`
+            );
+            await fetchAllPostOffices(true);
+          } else {
+            const { error } = await supabaseClient
+              .from("edit_requests")
+              .insert(payloads);
+            if (error) throw error;
+            showToast(
+              `✅ ${addresses.length} addresses submitted for approval!`
+            );
+          }
+
+          invalidateApprovalsCache();
+          clearBulkAddresses();
+
+          if (bulkReturnToDirectory) {
+            bulkReturnToDirectory = false;
+            switchDashboardView("directory");
+          } else {
+            switchDashboardView("search");
+          }
+        } catch (err) {
+          alert("Error submitting addresses: " + err.message);
+        } finally {
+          btn.disabled = false;
+          updateBulkAddressPreview();
+        }
+      }
+
       let activeInlineEditRecord = null;
 
       function closeEditRecordModal() {
@@ -12956,13 +14449,16 @@
           // 2. Only hit Supabase for Admin status, Profile & Realtime when actually online
           if (navigator.onLine && supabaseClient) {
             Promise.all([
-              checkIfAdmin(session.user.id).catch(() => isCurrentUserAdmin),
-              supabaseClient
-                .from("profiles")
-                .select("name, designation, employee_id, mobile, avatar_url")
-                .eq("id", session.user.id)
-                .single()
-                .catch(() => ({ data: null })),
+              Promise.resolve(checkIfAdmin(session.user.id)).catch(
+                () => isCurrentUserAdmin
+              ),
+              Promise.resolve(
+                supabaseClient
+                  .from("profiles")
+                  .select("name, designation, employee_id, mobile, avatar_url")
+                  .eq("id", session.user.id)
+                  .single()
+              ).catch(() => ({ data: null })),
             ]).then(([isAdmin, profRes]) => {
               isCurrentUserAdmin = isAdmin;
               applyAdminUI();
