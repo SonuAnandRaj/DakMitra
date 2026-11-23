@@ -985,7 +985,10 @@
 
         <section id="view-favorites" class="view-section">
           <div class="search-hero">
-            <h2>Saved Favorites</h2>
+            <h2 style="margin-bottom: 6px">Saved Favorites</h2>
+            <p style="color: var(--text-light); font-size: 13px">
+              Personal bookmarks saved only on this device. (To boost search rank for everyone, use ⚡ Priority.)
+            </p>
           </div>
           <div
             class="results-container-scroll expanded"
@@ -2956,6 +2959,143 @@
         </div>
       </div>
     </div>
+
+    <!-- DIRECTORY BULK PRIORITY (FREQUENT ADDRESSES) MODAL -->
+    <div
+      id="quick-priority-modal-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeQuickPriorityModal();"
+    >
+      <div class="modal-card edit-modal-card priority-modal-card">
+        <div class="edit-modal-header">
+          <div class="edit-modal-header-left">
+            <div class="edit-modal-icon priority-modal-icon">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </div>
+            <div>
+              <h3 class="modal-title" style="margin: 0; font-size: 19px">
+                Frequent Addresses
+              </h3>
+              <span
+                id="quick-priority-subtitle"
+                style="
+                  font-size: 12px;
+                  color: var(--text-light);
+                  font-weight: 600;
+                "
+              >
+                🏢 Office • 📍 PIN
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="edit-modal-close-btn"
+            onclick="closeQuickPriorityModal()"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="priority-modal-note edit-modal-field">
+          🌐 <strong>Shared with all staff:</strong> Tap high-density villages to rank them higher in search. <strong>HO / SO / BO</strong> rank on top automatically.
+        </div>
+
+        <!-- Filter Addresses Inside Modal -->
+        <div class="input-group edit-modal-field" style="margin-bottom: 10px">
+          <div class="profile-input-wrapper">
+            <svg
+              class="field-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="search"
+              id="quick-priority-filter-input"
+              placeholder="Filter addresses..."
+              autocomplete="off"
+              oninput="renderQuickPriorityChips()"
+            />
+          </div>
+        </div>
+
+        <!-- Selection Toolbar -->
+        <div class="quick-delete-toolbar edit-modal-field">
+          <strong
+            id="quick-priority-count"
+            style="font-size: 12.5px; color: var(--text-light)"
+          >
+            0 frequent
+          </strong>
+          <button
+            type="button"
+            id="quick-priority-hide-bo-btn"
+            class="toolbar-btn"
+            style="color: var(--primary); padding: 4px 8px; font-size: 12px"
+            onclick="toggleQuickPriorityNonBoOnly()"
+          >
+            Hide BO/SO/HO
+          </button>
+        </div>
+
+        <!-- Tap-to-Toggle Address Chips -->
+        <div
+          id="quick-priority-chips-container"
+          class="quick-delete-chips-wrap edit-modal-field"
+        ></div>
+
+        <div class="edit-modal-actions">
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="closeQuickPriorityModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="quick-priority-save-btn"
+            class="btn-save-profile btn-priority-save"
+            onclick="saveQuickPriorityModal()"
+            disabled
+          >
+            <span class="btn-content" id="quick-priority-save-btn-content">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <span>Save Changes</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- CUSTOM ALERT MODAL -->
     <div id="alert-modal-overlay" class="modal-overlay">
       <div class="modal-card" style="padding: 28px 24px 24px">

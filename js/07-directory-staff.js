@@ -74,6 +74,22 @@ function renderDirectoryBatch() {
             <div class="directory-header-actions">
               <button
                 type="button"
+                class="dir-quick-priority-btn"
+                onclick="quickPriorityForOffice('${escapeForOnclick(
+                  data.office,
+                )}', '${escapeForOnclick(data.pin)}')"
+                title="Mark frequent / high-priority addresses in ${escapeHTML(
+                  data.office,
+                )}"
+                aria-label="Manage frequent addresses"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </button>
+
+              <button
+                type="button"
                 class="dir-quick-add-btn"
                 onclick="quickAddForOffice('${escapeForOnclick(
                   data.office,
@@ -116,6 +132,8 @@ function renderDirectoryBatch() {
       const recordId = typeof item === "object" ? item.id : "";
       const officeName = typeof item === "object" ? item.Office : data.office;
       const pinVal = typeof item === "object" ? item.Pin : data.pin;
+      const isPriority =
+        typeof item === "object" && Number(item.priority) >= 1;
       const officeType = detectOfficeType(addressText);
 
       if (officeType) {
@@ -125,7 +143,19 @@ function renderDirectoryBatch() {
           officeName,
         )}" data-pin="${escapeHTML(
           pinVal || "",
-        )}" title="Tap for options">📮 ${escapeHTML(addressText)}</span>`;
+        )}" title="Tap for options">📮 ${escapeHTML(addressText)}${
+          isPriority ? " ⚡" : ""
+        }</span>`;
+      } else if (isPriority) {
+        html += `<span class="directory-address-chip priority-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
+          recordId,
+        )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
+          officeName,
+        )}" data-pin="${escapeHTML(
+          pinVal || "",
+        )}" title="Frequent / High-Priority (Shared) • Tap for options">⚡ ${escapeHTML(
+          addressText,
+        )}</span>`;
       } else {
         html += `<span class="directory-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
           recordId,
@@ -322,9 +352,31 @@ function openDirectoryChipActions(chipEl) {
       )}')" class="toolbar-btn info-i-btn" title="View ${officeType} Staff Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"></circle><line x1="12" y1="16" x2="12" y2="11.5"></line><circle cx="12" cy="8.2" r="0.6" fill="currentColor"></circle></svg></button>`
     : "";
 
+  const liveRecord = cachedPostOffices.find(
+    (r) => String(r.id) === String(recordId),
+  );
+  const isPriority = Number(liveRecord?.priority) >= 1;
+  const isAutoTopOffice = officeType === "HO" || officeType === "SO";
+
+  const priorityBtnHtml =
+    recordId && !isAutoTopOffice
+      ? `<button onclick="event.stopPropagation(); toggleRecordPriority('${escapeForOnclick(
+          recordId,
+        )}', this)" class="toolbar-btn priority-bolt-btn ${
+          isPriority ? "is-active" : ""
+        }" title="${
+          isPriority
+            ? "Frequent Priority ON (Shared with all staff) — Tap to remove"
+            : "Mark as Frequent Priority (Shared with all staff)"
+        }" aria-label="Toggle Shared Priority"><svg width="16" height="16" viewBox="0 0 24 24" fill="${
+          isPriority ? "currentColor" : "none"
+        }" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></button>`
+      : "";
+
   bar.innerHTML = `
       <div class="card-actions">
         ${infoBtnHtml}
+        ${priorityBtnHtml}
         <button onclick="event.stopPropagation(); viewHistory('${escapeForOnclick(
           recordId,
         )}')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
@@ -332,7 +384,7 @@ function openDirectoryChipActions(chipEl) {
           recordId,
         )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
           office,
-        )}', '${escapeForOnclick(pin)}', this)" class="toolbar-btn" style="${
+        )}', '${escapeForOnclick(pin)}', this)" class="toolbar-btn" title="Personal Favorite (saved only on this device)" style="${
           favStyle.style
         }">${favStyle.icon}</button>
         <button onclick="event.stopPropagation(); updateRecord('${escapeForOnclick(
@@ -400,15 +452,6 @@ document
 // --- OFFICE STAFF DETAILS MODAL (BO / SO / HO CRUD) ---
 let activeOfficeRecord = null;
 let activeOfficeType = null;
-
-function detectOfficeType(address) {
-  if (!address) return null;
-  const clean = String(address).replace(/\./g, "");
-  if (/\bBO\b/i.test(clean)) return "BO";
-  if (/\bSO\b/i.test(clean)) return "SO";
-  if (/\bHO\b/i.test(clean)) return "HO";
-  return null;
-}
 
 function hasValidValue(val) {
   return (
@@ -1543,5 +1586,341 @@ async function executeQuickDeleteModal() {
       idsToDelete.length,
     );
     alert("Error deleting addresses: " + err.message);
+  }
+}
+
+// --- 1-TAP SHARED PRIORITY TOGGLE (OPTIMISTIC UI + ROLLBACK) ---
+async function toggleRecordPriority(recordId, btnEl) {
+  if (!(await ensureOnline("Connect to internet to update priority."))) return;
+
+  const idx = cachedPostOffices.findIndex(
+    (r) => String(r.id) === String(recordId),
+  );
+  if (idx === -1) return;
+
+  const prevPriority = Number(cachedPostOffices[idx].priority) >= 1 ? 1 : 0;
+  const nextPriority = prevPriority === 1 ? 0 : 1;
+
+  // Optimistic local update
+  cachedPostOffices[idx].priority = nextPriority;
+  updateSearchIndexRow(cachedPostOffices[idx]);
+  persistPostOfficeCache();
+
+  if (btnEl) {
+    btnEl.classList.toggle("is-active", nextPriority === 1);
+    const svg = btnEl.querySelector("svg");
+    if (svg) {
+      svg.setAttribute("fill", nextPriority === 1 ? "currentColor" : "none");
+    }
+  }
+
+  closeAllDirectoryActionTrays();
+  refreshSearchInPlace();
+  refreshDirectoryInPlace();
+
+  showToast(
+    nextPriority === 1
+      ? "⚡ Marked as Frequent (shared with all staff)"
+      : "Removed from Frequent priority",
+    nextPriority === 1 ? "success" : "info",
+  );
+
+  try {
+    const numericId = Number(recordId);
+    const { error } = await supabaseClient.rpc("update_address_priorities", {
+      promote_ids: nextPriority === 1 ? [numericId] : [],
+      demote_ids: nextPriority === 0 ? [numericId] : [],
+    });
+    if (error) throw error;
+  } catch (err) {
+    // Rollback on failure
+    cachedPostOffices[idx].priority = prevPriority;
+    updateSearchIndexRow(cachedPostOffices[idx]);
+    persistPostOfficeCache();
+    refreshSearchInPlace();
+    refreshDirectoryInPlace();
+    alert("Failed to update priority: " + err.message);
+  }
+}
+
+// --- DIRECTORY BULK PRIORITY (FREQUENT ADDRESSES) MODAL ---
+let activeQuickPriorityOffice = { office: "", pin: "" };
+let activeQuickPriorityItems = [];
+let activeQuickPriorityInitial = new Set();
+let activeQuickPriorityDraft = new Set();
+let quickPriorityNonBoOnly = false;
+
+function getQuickPriorityDelta() {
+  const promoteIds = [];
+  const demoteIds = [];
+
+  activeQuickPriorityDraft.forEach((idStr) => {
+    if (!activeQuickPriorityInitial.has(idStr)) {
+      promoteIds.push(Number(idStr));
+    }
+  });
+
+  activeQuickPriorityInitial.forEach((idStr) => {
+    if (!activeQuickPriorityDraft.has(idStr)) {
+      demoteIds.push(Number(idStr));
+    }
+  });
+
+  return {
+    promoteIds,
+    demoteIds,
+    totalChanges: promoteIds.length + demoteIds.length,
+  };
+}
+
+function getQuickPrioritySaveBtnHTML(changeCount = 0) {
+  const label =
+    changeCount > 0
+      ? `Save (${changeCount} ${changeCount === 1 ? "change" : "changes"})`
+      : "Save Changes";
+  return `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+      </svg>
+      <span>${label}</span>
+    `;
+}
+
+function quickPriorityForOffice(officeName, pinNumber) {
+  closeAllDirectoryActionTrays();
+
+  const cleanPin =
+    pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
+  activeQuickPriorityOffice = {
+    office: officeName || "",
+    pin: cleanPin,
+  };
+  quickPriorityNonBoOnly = false;
+
+  const targetLower = activeQuickPriorityOffice.office.trim().toLowerCase();
+  activeQuickPriorityItems = (cachedPostOffices || [])
+    .filter(
+      (r) =>
+        String(r.Office || "")
+          .trim()
+          .toLowerCase() === targetLower,
+    )
+    .sort((a, b) => compareByPriorityOnly(a, b));
+
+  activeQuickPriorityInitial = new Set();
+  activeQuickPriorityItems.forEach((item) => {
+    if (Number(item.priority) >= 1) {
+      activeQuickPriorityInitial.add(String(item.id));
+    }
+  });
+  activeQuickPriorityDraft = new Set(activeQuickPriorityInitial);
+
+  document.getElementById("quick-priority-subtitle").textContent = `🏢 ${
+    activeQuickPriorityOffice.office
+  }${cleanPin ? ` • 📍 ${cleanPin}` : ""}`;
+
+  const filterInput = document.getElementById("quick-priority-filter-input");
+  if (filterInput) filterInput.value = "";
+
+  const saveBtn = document.getElementById("quick-priority-save-btn");
+  saveBtn.classList.remove("is-loading", "is-success");
+
+  renderQuickPriorityChips();
+
+  const overlay = document.getElementById("quick-priority-modal-overlay");
+  const chipsContainer = document.getElementById(
+    "quick-priority-chips-container",
+  );
+  overlay.classList.add("show");
+  if (chipsContainer) chipsContainer.scrollTop = 0;
+  overlay.scrollTop = 0;
+}
+
+function closeQuickPriorityModal() {
+  const overlay = document.getElementById("quick-priority-modal-overlay");
+  const chipsContainer = document.getElementById(
+    "quick-priority-chips-container",
+  );
+  overlay?.classList.remove("show");
+  if (chipsContainer) chipsContainer.scrollTop = 0;
+  if (overlay) overlay.scrollTop = 0;
+}
+
+function toggleQuickPriorityNonBoOnly() {
+  quickPriorityNonBoOnly = !quickPriorityNonBoOnly;
+  renderQuickPriorityChips();
+}
+
+function renderQuickPriorityChips() {
+  const container = document.getElementById("quick-priority-chips-container");
+  if (!container) return;
+
+  const q = (
+    document.getElementById("quick-priority-filter-input")?.value || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const visibleItems = activeQuickPriorityItems.filter((item) => {
+    const ot = detectOfficeType(item.Address);
+    if (quickPriorityNonBoOnly && ot) return false;
+    if (q && !String(item.Address || "").toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  if (visibleItems.length === 0) {
+    container.innerHTML = `<div style="width: 100%; text-align: center; padding: 18px 8px; font-size: 13px; color: var(--text-light);">No matching addresses found.</div>`;
+  } else {
+    container.innerHTML = visibleItems
+      .map((item) => {
+        const idStr = String(item.id);
+        const ot = detectOfficeType(item.Address);
+        const isAutoTop = ot === "HO" || ot === "SO";
+        const isSelected = activeQuickPriorityDraft.has(idStr);
+
+        if (isAutoTop) {
+          return `
+            <button type="button" class="priority-select-chip is-auto-top" disabled title="${ot} always ranks on top automatically">
+              <span>📮 ${escapeHTML(item.Address)}</span>
+              <span class="priority-chip-tag">Auto-Top</span>
+            </button>`;
+        }
+
+        return `
+          <button
+            type="button"
+            class="priority-select-chip ${isSelected ? "selected" : ""}"
+            onclick="toggleQuickPriorityItem('${escapeForOnclick(idStr)}', this)"
+          >
+            <span>${isSelected ? "⚡" : ot === "BO" ? "📮" : "•"}</span>
+            <span>${escapeHTML(item.Address)}</span>
+            ${ot === "BO" ? `<span class="priority-chip-tag">Auto-BO</span>` : ""}
+          </button>`;
+      })
+      .join("");
+  }
+
+  updateQuickPriorityUI();
+}
+
+function toggleQuickPriorityItem(idStr, chipEl) {
+  const item = activeQuickPriorityItems.find((i) => String(i.id) === idStr);
+  const ot = item ? detectOfficeType(item.Address) : null;
+
+  if (activeQuickPriorityDraft.has(idStr)) {
+    activeQuickPriorityDraft.delete(idStr);
+    chipEl?.classList.remove("selected");
+    const iconSpan = chipEl?.querySelector("span");
+    if (iconSpan) iconSpan.textContent = ot === "BO" ? "📮" : "•";
+  } else {
+    activeQuickPriorityDraft.add(idStr);
+    chipEl?.classList.add("selected");
+    const iconSpan = chipEl?.querySelector("span");
+    if (iconSpan) iconSpan.textContent = "⚡";
+  }
+
+  if (navigator.vibrate) navigator.vibrate(20);
+  updateQuickPriorityUI();
+}
+
+function updateQuickPriorityUI() {
+  const countEl = document.getElementById("quick-priority-count");
+  const hideBoBtn = document.getElementById("quick-priority-hide-bo-btn");
+  const saveBtn = document.getElementById("quick-priority-save-btn");
+  const saveBtnContent = document.getElementById(
+    "quick-priority-save-btn-content",
+  );
+
+  const { totalChanges } = getQuickPriorityDelta();
+
+  if (countEl) {
+    countEl.textContent = `${activeQuickPriorityDraft.size} marked Frequent`;
+    countEl.style.color =
+      activeQuickPriorityDraft.size > 0 ? "#d97706" : "var(--text-light)";
+  }
+
+  if (hideBoBtn) {
+    hideBoBtn.textContent = quickPriorityNonBoOnly
+      ? "Show All"
+      : "Hide BO/SO/HO";
+  }
+
+  if (
+    saveBtn &&
+    !saveBtn.classList.contains("is-loading") &&
+    !saveBtn.classList.contains("is-success")
+  ) {
+    saveBtn.disabled = totalChanges === 0;
+    saveBtnContent.innerHTML = getQuickPrioritySaveBtnHTML(totalChanges);
+  }
+}
+
+async function saveQuickPriorityModal() {
+  if (!(await ensureOnline("Connect to internet to save priority changes."))) {
+    return;
+  }
+
+  const { promoteIds, demoteIds, totalChanges } = getQuickPriorityDelta();
+  if (totalChanges === 0) return;
+
+  const saveBtn = document.getElementById("quick-priority-save-btn");
+  const saveBtnContent = document.getElementById(
+    "quick-priority-save-btn-content",
+  );
+
+  saveBtn.classList.add("is-loading");
+  saveBtn.disabled = true;
+  saveBtnContent.innerHTML = `
+      <div class="btn-spinner"></div>
+      <span>Saving...</span>
+    `;
+
+  try {
+    const { error } = await supabaseClient.rpc("update_address_priorities", {
+      promote_ids: promoteIds,
+      demote_ids: demoteIds,
+    });
+    if (error) throw error;
+
+    const promoteSet = new Set(promoteIds.map(String));
+    const demoteSet = new Set(demoteIds.map(String));
+
+    cachedPostOffices.forEach((row) => {
+      const idStr = String(row.id);
+      if (promoteSet.has(idStr)) {
+        row.priority = 1;
+        updateSearchIndexRow(row);
+      } else if (demoteSet.has(idStr)) {
+        row.priority = 0;
+        updateSearchIndexRow(row);
+      }
+    });
+
+    persistPostOfficeCache();
+    refreshSearchInPlace();
+    refreshDirectoryInPlace();
+
+    saveBtn.classList.remove("is-loading");
+    saveBtn.classList.add("is-success");
+    saveBtnContent.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Saved!</span>
+      `;
+    showToast(
+      `⚡ Updated ${totalChanges} ${
+        totalChanges === 1 ? "address" : "addresses"
+      } for all staff!`,
+    );
+
+    setTimeout(() => {
+      closeQuickPriorityModal();
+    }, 600);
+  } catch (err) {
+    saveBtn.classList.remove("is-loading", "is-success");
+    saveBtn.disabled = false;
+    saveBtnContent.innerHTML = getQuickPrioritySaveBtnHTML(totalChanges);
+    alert("Error updating priorities: " + err.message);
   }
 }

@@ -99,6 +99,7 @@ async function exportFullTableToExcel(includeDeleted = true) {
       Address: row.Address,
       Office: row.Office,
       Pin: row.Pin ?? "",
+      Priority: Number(row.priority) >= 1 ? 1 : 0,
       Status: "Active (Cached)",
     }));
     const ws = XLSX.utils.json_to_sheet(formattedRows);
@@ -123,7 +124,7 @@ async function exportFullTableToExcel(includeDeleted = true) {
     while (true) {
       let query = supabaseClient
         .from("post_offices")
-        .select("Address, Office, Pin, is_deleted")
+        .select("Address, Office, Pin, priority, is_deleted")
         .order("Office", { ascending: true })
         .range(from, from + batchSize - 1);
 
@@ -149,11 +150,18 @@ async function exportFullTableToExcel(includeDeleted = true) {
       Address: row.Address,
       Office: row.Office,
       Pin: row.Pin ?? "",
+      Priority: Number(row.priority) >= 1 ? 1 : 0,
       Status: row.is_deleted ? "Deleted" : "Active",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(formattedRows);
-    worksheet["!cols"] = [{ wch: 28 }, { wch: 22 }, { wch: 12 }, { wch: 12 }];
+    worksheet["!cols"] = [
+      { wch: 28 },
+      { wch: 22 },
+      { wch: 12 },
+      { wch: 10 },
+      { wch: 12 },
+    ];
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Post Offices");
@@ -224,15 +232,18 @@ function bootAppInstantly() {
     if (cachedDataString) {
       try {
         cachedPostOffices = JSON.parse(cachedDataString);
+        if (typeof buildSearchIndex === "function") buildSearchIndex();
         document.getElementById("stat-addresses").textContent =
           cachedPostOffices.length;
         document.getElementById("stat-offices").textContent = new Set(
           cachedPostOffices.map((o) => o.Office),
         ).size;
-        currentFilteredData = cachedPostOffices.map((item) => ({
-          item,
-          matches: [],
-        }));
+        currentFilteredData = cachedPostOffices
+          .map((item) => ({
+            item,
+            matches: [],
+          }))
+          .sort((a, b) => compareByPriorityOnly(a.item, b.item));
         renderResults(false);
       } catch (e) {}
     }

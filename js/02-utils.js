@@ -316,3 +316,40 @@ function postalPhoneticKey(addr) {
   _phoneticKeyCache.set(input, s);
   return s;
 }
+
+// --- SHARED OFFICE TYPE & EFFECTIVE PRIORITY HELPERS ---
+function detectOfficeType(address) {
+  if (!address) return null;
+  const clean = String(address).replace(/\./g, "");
+  if (/\b(HO|GPO)\b/i.test(clean)) return "HO";
+  if (/\bSO\b/i.test(clean)) return "SO";
+  if (/\b(BO|EDBO)\b/i.test(clean)) return "BO";
+  return null;
+}
+
+function stripPostalSuffixes(text) {
+  if (!text) return "";
+  return String(text)
+    .replace(/\./g, "")
+    .toLowerCase()
+    .replace(/\b(edbo|gpo|bo|so|ho|po|village|vill|gram)\b/gi, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * Effective Priority Tiers (higher = ranks first):
+ * 4 = HO / SO (Automatic top)
+ * 3 = BO + manually marked Frequent (breaks ties between same-name BOs)
+ * 2 = BO (Automatic above regular villages)
+ * 1 = Non-BO village manually marked Frequent / Important
+ * 0 = Normal scattered village
+ */
+function getEffectivePriority(row) {
+  if (!row) return 0;
+  const officeType = detectOfficeType(row.Address);
+  const isPriority = Number(row.priority) >= 1;
+  if (officeType === "HO" || officeType === "SO") return 4;
+  if (officeType === "BO") return isPriority ? 3 : 2;
+  return isPriority ? 1 : 0;
+}

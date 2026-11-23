@@ -380,91 +380,221 @@ function findPhoneticMatchIndices(originalText, qKey) {
   return coreText ? [[0, coreText.length - 1]] : [];
 }
 
-// Helper: Merges Supabase-equivalent phonetic deduplication matches with Fuse.js results
-function mergePhoneticSearchResults(
+// Evaluates direct word/core match (Pool 0) vs loose fuzzy/mid-word match (Pool 1)
+function evaluateFieldMatch(
+  rawLower,
+  core,
+  words,
+  phonetic,
+  wordPhonetics,
+  qLower,
+  qCore,
+  qWords,
+  qPhon,
+  qWordPhons,
+) {
+  // Handle literal suffix-only queries like "bo", "so", "ho"
+  if (!qCore) {
+    const cleanRaw = rawLower.replace(/\./g, "");
+    const re = new RegExp(
+      "\\b" + qLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b",
+      "i",
+    );
+    return re.test(cleanRaw)
+      ? { pool: 0, tightness: 0 }
+      : { pool: 1, tightness: 9 };
+  }
+
+  if (core === qCore) return { pool: 0, tightness: 0 };
+  if (qPhon.length >= 2 && phonetic === qPhon) return { pool: 0, tightness: 1 };
+  if (core.startsWith(qCore + " ")) return { pool: 0, tightness: 2 };
+  if (qCore.length >= 2 && core.startsWith(qCore)) {
+    return { pool: 0, tightness: 3 };
+  }
+
+  if (qWords.length > 0) {
+    let allTokensMatched = true;
+    for (let i = 0; i < qWords.length; i++) {
+      const qw = qWords[i];
+      const qwp = qWordPhons[i] || "";
+      const wordHit = words.some(
+        (w) => w === qw || (qw.length >= 2 && w.startsWith(qw)),
+      );
+      const phonHit =
+        qwp.length > 0 &&
+        wordPhonetics.some(
+          (wp) => wp === qwp || (qwp.length >= 3 && wp.startsWith(qwp)),
+        );
+      if (!wordHit && !phonHit) {
+        allTokensMatched = false;
+        break;
+      }
+    }
+    if (allTokensMatched) return { pool: 0, tightness: 4 };
+  }
+
+  if (qPhon.length >= 3 && phonetic.startsWith(qPhon)) {
+    return { pool: 0, tightness: 5 };
+  }
+
+  return { pool: 1, tightness: 9 };
+}
+
+// Merges Fuse.js hits + precomputed phonetic matches and ranks by Relevance Pool -> Priority -> Tightness
+function mergeAndRankSearchResults(
   fuseResults,
   dataset,
   cleanQuery,
   keysToSearch,
 ) {
-  const phoneticKeys = keysToSearch.filter(
+  const textKeys = keysToSearch.filter(
     (k) => k === "Address" || k === "Office",
   );
-  if (phoneticKeys.length === 0) return fuseResults;
+  if (textKeys.length === 0) return fuseResults;
 
-  const qLower = cleanQuery.toLowerCase();
-  const qKey = postalPhoneticKey(cleanQuery);
-  if (!qKey || qKey.length < 2) return fuseResults;
+  const qLower = cleanQuery.toLowerCase().trim();
+  const qCore = stripPostalSuffixes(cleanQuery);
+  const qWords = qCore ? qCore.split(" ") : [];
+  const qPhon = postalPhoneticKey(cleanQuery);
+  const qWordPhons = qWords.map((w) => postalPhoneticKey(w));
 
-  // Map Fuse results first so we preserve Fuse scores & exact match metadata
   const rankedMap = new Map();
-  fuseResults.forEach((res, idx) => {
+
+  const scoreRow = (row, fuseScore) => {
+    const meta = getSearchMeta(row);
+    let bestPool = 1;
+    let bestTightness = 9;
+
+    for (let i = 0; i < textKeys.length; i++) {
+      const key = textKeys[i];
+      const res =
+        key === "Address"
+          ? evaluateFieldMatch(
+              meta.addrLower,
+              meta.addrCore,
+              meta.addrWords,
+              meta.addrPhonetic,
+              meta.addrWordPhonetics,
+              qLower,
+              qCore,
+              qWords,
+              qPhon,
+              qWordPhons,
+            )
+          : evaluateFieldMatch(
+              meta.officeLower,
+              meta.officeCore,
+              meta.officeWords,
+              meta.officePhonetic,
+              meta.officeWordPhonetics,
+              qLower,
+              qCore,
+              qWords,
+              qPhon,
+              qWordPhons,
+            );
+
+      if (
+        res.pool < bestPool ||
+        (res.pool === bestPool && res.tightness < bestTightness)
+      ) {
+        bestPool = res.pool;
+        bestTightness = res.tightness;
+      }
+    }
+
+    return {
+      pool: bestPool,
+      tightness: bestTightness,
+      effectivePriority: meta.effectivePriority,
+      fuseScore: typeof fuseScore === "number" ? fuseScore : 0.25,
+      addrLower: meta.addrLower,
+    };
+  };
+
+  // 1. Seed with Fuse.js results (preserving match highlights & score)
+  for (let i = 0; i < fuseResults.length; i++) {
+    const res = fuseResults[i];
     const row = res.item;
-    const isExactText = phoneticKeys.some(
-      (k) =>
-        String(row[k] || "")
-          .trim()
-          .toLowerCase() === qLower,
-    );
     rankedMap.set(String(row.id), {
       result: res,
-      tier: isExactText ? 0 : 2,
-      order: idx,
+      rank: scoreRow(row, res.score),
     });
-  });
+  }
 
-  // Scan dataset using the exact same phonetic deduplication key
-  dataset.forEach((row, idx) => {
-    let bestTier = 99;
-    const syntheticMatches = [];
+  // 2. Catch phonetic & word-boundary matches via O(1) precomputed metadata
+  if (qPhon.length >= 2 || qCore.length >= 2) {
+    for (let i = 0; i < dataset.length; i++) {
+      const row = dataset[i];
+      const idKey = String(row.id);
+      if (rankedMap.has(idKey)) continue;
 
-    for (const key of phoneticKeys) {
-      const rawVal = String(row[key] || "").trim();
-      if (!rawVal) continue;
+      const meta = getSearchMeta(row);
+      const syntheticMatches = [];
+      let matched = false;
 
-      const fieldKey = postalPhoneticKey(rawVal);
-      if (!fieldKey) continue;
+      for (let k = 0; k < textKeys.length; k++) {
+        const key = textKeys[k];
+        const fieldPhon =
+          key === "Address" ? meta.addrPhonetic : meta.officePhonetic;
+        const fieldWordPhons =
+          key === "Address" ? meta.addrWordPhonetics : meta.officeWordPhonetics;
 
-      let matchedTier = 99;
-      if (rawVal.toLowerCase() === qLower) {
-        matchedTier = 0; // Exact text match
-      } else if (fieldKey === qKey) {
-        matchedTier = 1; // Exact deduplication key match (e.g. manbsa === manabasa)
-      } else if (qKey.length >= 3 && fieldKey.startsWith(qKey)) {
-        matchedTier = 3; // Phonetic prefix match (e.g. manbs -> Manabasa Khas)
-      } else if (qKey.length >= 3 && fieldKey.includes(qKey)) {
-        matchedTier = 4; // Phonetic substring match
-      }
+        const isPhonHit =
+          (qPhon.length >= 2 && fieldPhon === qPhon) ||
+          (qPhon.length >= 3 && fieldPhon.includes(qPhon)) ||
+          (qPhon.length >= 3 &&
+            fieldWordPhons.some(
+              (wp) => wp === qPhon || wp.startsWith(qPhon),
+            ));
 
-      if (matchedTier < 99) {
-        if (matchedTier < bestTier) bestTier = matchedTier;
-        const indices = findPhoneticMatchIndices(rawVal, qKey);
-        if (indices.length > 0) {
-          syntheticMatches.push({ key, indices });
+        if (isPhonHit) {
+          matched = true;
+          const indices = findPhoneticMatchIndices(row[key], qPhon);
+          if (indices.length > 0) {
+            syntheticMatches.push({ key, indices });
+          }
         }
       }
-    }
 
-    if (bestTier === 99) return;
-
-    const idKey = String(row.id);
-    if (rankedMap.has(idKey)) {
-      const existing = rankedMap.get(idKey);
-      // Promote Fuse hit if it is an exact deduplication match
-      if (bestTier < existing.tier) {
-        existing.tier = bestTier;
+      if (matched) {
+        rankedMap.set(idKey, {
+          result: { item: row, matches: syntheticMatches },
+          rank: scoreRow(row, 0.22),
+        });
       }
-    } else {
-      rankedMap.set(idKey, {
-        result: { item: row, matches: syntheticMatches },
-        tier: bestTier,
-        order: fuseResults.length + idx,
-      });
     }
-  });
+  }
 
+  // 3. Sort:
+  //    Pool 0 (Direct matches): Effective Priority DESC -> Tightness ASC -> Fuse Score ASC -> A-Z
+  //    Pool 1 (Fuzzy/Mid-word): Fuse Score Bucket ASC -> Effective Priority DESC -> A-Z
   return Array.from(rankedMap.values())
-    .sort((a, b) => a.tier - b.tier || a.order - b.order)
+    .sort((a, b) => {
+      const ra = a.rank;
+      const rb = b.rank;
+
+      if (ra.pool !== rb.pool) return ra.pool - rb.pool;
+
+      if (ra.pool === 0) {
+        if (rb.effectivePriority !== ra.effectivePriority) {
+          return rb.effectivePriority - ra.effectivePriority;
+        }
+        if (ra.tightness !== rb.tightness) return ra.tightness - rb.tightness;
+        if (Math.abs(ra.fuseScore - rb.fuseScore) > 0.02) {
+          return ra.fuseScore - rb.fuseScore;
+        }
+        return ra.addrLower.localeCompare(rb.addrLower);
+      }
+
+      const bucketA = Math.round(ra.fuseScore * 20);
+      const bucketB = Math.round(rb.fuseScore * 20);
+      if (bucketA !== bucketB) return bucketA - bucketB;
+      if (rb.effectivePriority !== ra.effectivePriority) {
+        return rb.effectivePriority - ra.effectivePriority;
+      }
+      return ra.addrLower.localeCompare(rb.addrLower);
+    })
     .map((entry) => entry.result);
 }
 
@@ -508,10 +638,9 @@ function triggerSearch(hidePanels = false) {
   updateActiveFilterIndicators();
 
   if (!searchInput && !filterOffice && !filterPin) {
-    currentFilteredData = cachedPostOffices.map((item) => ({
-      item,
-      matches: [],
-    }));
+    currentFilteredData = cachedPostOffices
+      .map((item) => ({ item, matches: [] }))
+      .sort((a, b) => compareByPriorityOnly(a.item, b.item));
     renderResults();
     return;
   }
@@ -529,7 +658,9 @@ function triggerSearch(hidePanels = false) {
 
   let baseData = [];
   if (!cleanQuery) {
-    baseData = searchDataset.map((item) => ({ item, matches: [] }));
+    baseData = searchDataset
+      .map((item) => ({ item, matches: [] }))
+      .sort((a, b) => compareByPriorityOnly(a.item, b.item));
   } else {
     let keysToSearch = ["Address", "Office", "Pin"];
     if (filterVal === "address") keysToSearch = ["Address"];
@@ -547,6 +678,7 @@ function triggerSearch(hidePanels = false) {
       location: 0,
       distance: 100,
       includeMatches: true,
+      includeScore: true,
       getFn: (obj, path) => {
         const value = obj[path];
         return value === null || value === undefined ? "" : String(value);
@@ -555,14 +687,15 @@ function triggerSearch(hidePanels = false) {
 
     baseData = fuse.search(cleanQuery);
 
-    // Apply Supabase-equivalent phonetic deduplication matching for text queries
     if (!isNumericSearch && filterVal !== "pin") {
-      baseData = mergePhoneticSearchResults(
+      baseData = mergeAndRankSearchResults(
         baseData,
         searchDataset,
         cleanQuery,
         keysToSearch,
       );
+    } else {
+      baseData.sort((a, b) => compareByPriorityOnly(a.item, b.item));
     }
   }
 
@@ -880,6 +1013,7 @@ function renderResults(isLoadMore = false) {
         );
         const officeHtml = highlightText(row.Office, result.matches, "Office");
         const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+        const isPriority = Number(row.priority) >= 1;
 
         html += `
             <li class="list-item"
@@ -900,6 +1034,11 @@ function renderResults(isLoadMore = false) {
                     )}')" title="Double-click to open in Directory">📍 ${
                       PinHtml || "N/A"
                     }</span>
+                    ${
+                      isPriority
+                        ? `<span class="badge badge-priority" title="Frequent / High-Priority (Shared with all staff)">⚡ Frequent</span>`
+                        : ""
+                    }
                   </div>
                 </div>
             </li>`;
@@ -927,6 +1066,7 @@ function renderResults(isLoadMore = false) {
         );
         const officeHtml = highlightText(row.Office, result.matches, "Office");
         const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+        const isPriority = Number(row.priority) >= 1;
 
         html += `<tr class="list-item"
                       onclick="openDirectoryChipActions(this)"
@@ -934,7 +1074,11 @@ function renderResults(isLoadMore = false) {
                       data-address="${escapeHTML(row.Address)}"
                       data-office="${escapeHTML(row.Office)}"
                       data-pin="${escapeHTML(row.Pin || "")}">
-                      <td>${addressHtml}</td>
+                      <td>${addressHtml}${
+                        isPriority
+                          ? `<span class="priority-dot-inline" title="Frequent / High-Priority (Shared)">⚡</span>`
+                          : ""
+                      }</td>
                       <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
                         row.Office,
                       )}')" title="Double-click to open in Directory">

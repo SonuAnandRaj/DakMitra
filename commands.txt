@@ -13,6 +13,7 @@ Get-ChildItem js -Recurse -Include 01-*.js,02-*.js,03-*.js,04-*.js,05-*.js | Sor
 
 # 4. JS Features (06 to 10)
 Get-ChildItem js -Recurse -Include 06-*.js,07-*.js,08-*.js,09-*.js,10-*.js | Sort-Object Name | ForEach-Object { "`n// ===== FILE: $($_.Name) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-4-js-features.txt -Encoding UTF8
+
 VS code to generate one big file
 
 Get-ChildItem -Recurse -Include *.html,*.css,*.js,*.json | Where-Object { $_.FullName -notmatch '\\(node_modules|\.git)\\' } | ForEach-Object { "`n// ===== FILE: $($_.FullName.Replace((Get-Location).Path + '\', '')) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content dakmitra_bundle.txt -Encoding UTF8 

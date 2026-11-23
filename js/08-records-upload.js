@@ -1104,16 +1104,31 @@ async function uploadExcel() {
         return alert("Your session has expired. Please sign in again.");
       }
 
-      const formattedData = jsonData.map((row) => ({
-        Address: row["Address"],
-        Office: row["Office"],
-        Pin: row["Pin"] ? parseInt(row["Pin"], 10) || null : null,
-        user_id: session.user.id,
-        last_modified_by: session.user.id,
-        last_approved_by: session.user.id,
-        upload_method: "excel_bulk",
-        is_deleted: false,
-      }));
+      const formattedData = jsonData.map((row) => {
+        const rawPrio = String(row["Priority"] ?? "")
+          .trim()
+          .toLowerCase();
+        const priorityVal =
+          rawPrio === "1" ||
+          rawPrio === "high" ||
+          rawPrio === "frequent" ||
+          rawPrio === "yes" ||
+          rawPrio === "true"
+            ? 1
+            : 0;
+
+        return {
+          Address: row["Address"],
+          Office: row["Office"],
+          Pin: row["Pin"] ? parseInt(row["Pin"], 10) || null : null,
+          priority: priorityVal,
+          user_id: session.user.id,
+          last_modified_by: session.user.id,
+          last_approved_by: session.user.id,
+          upload_method: "excel_bulk",
+          is_deleted: false,
+        };
+      });
 
       const { error } = await supabaseClient
         .from("post_offices")

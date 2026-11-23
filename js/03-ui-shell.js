@@ -333,6 +333,11 @@ function switchDashboardView(viewId) {
         ) {
           closeQuickDeleteModal();
         } else if (
+          topModal.id === "quick-priority-modal-overlay" &&
+          window.closeQuickPriorityModal
+        ) {
+          closeQuickPriorityModal();
+        } else if (
           topModal.id === "office-details-modal-overlay" &&
           window.closeOfficeDetailsModal
         ) {

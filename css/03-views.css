@@ -3681,3 +3681,214 @@ body.keyboard-open
 body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   max-height: calc(var(--vvh, 100dvh) - 210px);
 }
+
+/* =========================================================
+   SHARED PRIORITY (FREQUENT ADDRESSES) STYLES
+   ========================================================= */
+
+/* Compact 32x32 Priority Bolt Button inside Floating Action Bar */
+.card-actions .priority-bolt-btn,
+.directory-floating-bar .priority-bolt-btn {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  border-radius: 12px !important;
+  background: var(--input-bg) !important;
+  color: var(--text-light) !important;
+  border: 1px solid transparent !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0 !important;
+}
+
+.card-actions .priority-bolt-btn.is-active,
+.directory-floating-bar .priority-bolt-btn.is-active {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #d97706 !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+[data-theme="dark"] .card-actions .priority-bolt-btn.is-active,
+[data-theme="dark"] .directory-floating-bar .priority-bolt-btn.is-active {
+  background: rgba(251, 191, 36, 0.18) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(251, 191, 36, 0.4) !important;
+}
+
+/* Search Result List & Table Priority Badges */
+.badge.badge-priority {
+  background: rgba(245, 158, 11, 0.14) !important;
+  color: #b45309 !important;
+  border-color: rgba(245, 158, 11, 0.32) !important;
+}
+
+[data-theme="dark"] .badge.badge-priority {
+  background: rgba(251, 191, 36, 0.16) !important;
+  color: #fbbf24 !important;
+  border-color: rgba(251, 191, 36, 0.34) !important;
+}
+
+.priority-dot-inline {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+/* Directory Card Header Bolt Button */
+.dir-quick-priority-btn {
+  margin: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(245, 158, 11, 0.14);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+[data-theme="dark"] .dir-quick-priority-btn {
+  background: rgba(251, 191, 36, 0.16);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.34);
+}
+
+.dir-quick-priority-btn:hover {
+  background: #f59e0b;
+  color: #ffffff;
+  border-color: #f59e0b;
+}
+
+.dir-quick-priority-btn:active {
+  transform: scale(0.92);
+}
+
+/* Directory Frequent Non-BO Chip */
+.directory-address-chip.priority-address-chip {
+  border-color: rgba(245, 158, 11, 0.42);
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400e;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+[data-theme="dark"] .directory-address-chip.priority-address-chip {
+  border-color: rgba(251, 191, 36, 0.36);
+  background: rgba(251, 191, 36, 0.13);
+  color: #fcd34d;
+}
+
+/* Bulk Priority Modal Accent & Chips */
+.priority-modal-card::before {
+  background: linear-gradient(135deg, #f59e0b 0%, var(--primary) 100%) top /
+    100% 4px no-repeat !important;
+}
+
+.priority-modal-icon {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.18) 0%,
+    rgba(79, 70, 229, 0.14) 100%
+  ) !important;
+  color: #d97706 !important;
+}
+
+[data-theme="dark"] .priority-modal-icon {
+  color: #fbbf24 !important;
+}
+
+.priority-modal-note {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-light);
+  background: var(--bg);
+  border: 1px dashed rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+}
+
+.priority-select-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.priority-select-chip:hover:not(:disabled) {
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
+.priority-select-chip:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.priority-select-chip.selected {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: #f59e0b;
+  color: #b45309;
+  box-shadow: 0 4px 10px -3px rgba(245, 158, 11, 0.28);
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .priority-select-chip.selected {
+  background: rgba(251, 191, 36, 0.18);
+  border-color: #fbbf24;
+  color: #fde68a;
+}
+
+.priority-select-chip.is-auto-top {
+  opacity: 0.72;
+  cursor: default;
+  border-style: dashed;
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.28);
+  color: var(--primary);
+}
+
+.priority-chip-tag {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(79, 70, 229, 0.12);
+  color: var(--primary);
+}
+
+.btn-priority-save {
+  background: linear-gradient(
+    135deg,
+    #f59e0b 0%,
+    #d97706 50%,
+    var(--primary) 100%
+  ) !important;
+  box-shadow: 0 8px 20px -6px rgba(245, 158, 11, 0.45) !important;
+}
+
+.btn-priority-save:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none !important;
+}

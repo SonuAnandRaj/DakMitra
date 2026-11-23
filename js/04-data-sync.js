@@ -94,6 +94,87 @@ function buildPinSuffixIndex() {
   });
 }
 
+// --- PRECOMPUTED SEARCH & PRIORITY INDEX (ZERO-LAG MOBILE RANKING) ---
+let searchIndexMap = new Map();
+
+function createSearchMeta(row) {
+  const addrRaw = String(row.Address || "").trim();
+  const offRaw = String(row.Office || "").trim();
+  const officeType = detectOfficeType(addrRaw);
+  const isPriority = Number(row.priority) >= 1;
+  const effectivePriority = getEffectivePriority(row);
+
+  const addrCore = stripPostalSuffixes(addrRaw);
+  const addrWords = addrCore ? addrCore.split(" ") : [];
+  const addrWordPhonetics = [];
+  for (let i = 0; i < addrWords.length; i++) {
+    const pk = postalPhoneticKey(addrWords[i]);
+    if (pk) addrWordPhonetics.push(pk);
+  }
+
+  const officeCore = stripPostalSuffixes(offRaw);
+  const officeWords = officeCore ? officeCore.split(" ") : [];
+  const officeWordPhonetics = [];
+  for (let i = 0; i < officeWords.length; i++) {
+    const pk = postalPhoneticKey(officeWords[i]);
+    if (pk) officeWordPhonetics.push(pk);
+  }
+
+  return {
+    officeType,
+    isPriority,
+    effectivePriority,
+    addrLower: addrRaw.toLowerCase(),
+    addrCore,
+    addrWords,
+    addrPhonetic: postalPhoneticKey(addrRaw),
+    addrWordPhonetics,
+    officeLower: offRaw.toLowerCase(),
+    officeCore,
+    officeWords,
+    officePhonetic: postalPhoneticKey(offRaw),
+    officeWordPhonetics,
+  };
+}
+
+function buildSearchIndex() {
+  searchIndexMap.clear();
+  if (!cachedPostOffices) return;
+  for (let i = 0; i < cachedPostOffices.length; i++) {
+    const row = cachedPostOffices[i];
+    if (row && row.id !== undefined && row.id !== null) {
+      searchIndexMap.set(String(row.id), createSearchMeta(row));
+    }
+  }
+}
+
+function updateSearchIndexRow(row) {
+  if (!row || row.id === undefined || row.id === null) return;
+  searchIndexMap.set(String(row.id), createSearchMeta(row));
+}
+
+function getSearchMeta(row) {
+  if (!row) return null;
+  const key = String(row.id);
+  let meta = searchIndexMap.get(key);
+  if (!meta) {
+    meta = createSearchMeta(row);
+    if (row.id !== undefined && row.id !== null) {
+      searchIndexMap.set(key, meta);
+    }
+  }
+  return meta;
+}
+
+function compareByPriorityOnly(aRow, bRow) {
+  const aMeta = getSearchMeta(aRow);
+  const bMeta = getSearchMeta(bRow);
+  const prioDiff =
+    (bMeta?.effectivePriority || 0) - (aMeta?.effectivePriority || 0);
+  if (prioDiff !== 0) return prioDiff;
+  return (aMeta?.addrLower || "").localeCompare(bMeta?.addrLower || "");
+}
+
 function parseSmartSearchQuery(
   rawInput,
   searchMode,
@@ -134,6 +215,7 @@ function parseSmartSearchQuery(
 
 function initializeSearchAndRender(dataChanged = false) {
   buildPinSuffixIndex();
+  buildSearchIndex();
   const totalRecords = cachedPostOffices.length;
   const uniqueOffices = new Set(cachedPostOffices.map((o) => o.Office)).size;
 
@@ -144,6 +226,7 @@ function initializeSearchAndRender(dataChanged = false) {
     fuse = new Fuse(cachedPostOffices, {
       keys: ["Address", "Office", "Pin"],
       threshold: 0.3,
+      includeScore: true,
       ignoreLocation: false,
       location: 0,
       distance: 100,
@@ -174,11 +257,14 @@ function buildDirectoryGroupedData() {
     if (!grouped[office]) {
       grouped[office] = { pin: row.Pin || "N/A", addresses: [] };
     }
+    const meta = getSearchMeta(row);
     grouped[office].addresses.push({
       id: row.id,
       Address: row.Address || "",
       Office: office,
       Pin: row.Pin || "",
+      priority: Number(row.priority) >= 1 ? 1 : 0,
+      effectivePriority: meta ? meta.effectivePriority : 0,
     });
   });
 
@@ -187,8 +273,10 @@ function buildDirectoryGroupedData() {
     .map((office) => ({
       office: office,
       pin: grouped[office].pin,
-      addresses: grouped[office].addresses.sort((a, b) =>
-        String(a.Address).localeCompare(String(b.Address)),
+      addresses: grouped[office].addresses.sort(
+        (a, b) =>
+          b.effectivePriority - a.effectivePriority ||
+          String(a.Address).localeCompare(String(b.Address)),
       ),
       searchString: (office + " " + grouped[office].pin).toLowerCase(),
     }));
@@ -320,6 +408,7 @@ function scheduleLocalUiRefresh() {
   clearTimeout(uiRefreshTimer);
   uiRefreshTimer = setTimeout(() => {
     buildPinSuffixIndex();
+    buildSearchIndex();
     const statAddrEl = document.getElementById("stat-addresses");
     const statOffEl = document.getElementById("stat-offices");
     if (statAddrEl) statAddrEl.textContent = cachedPostOffices.length;
@@ -334,6 +423,7 @@ function scheduleLocalUiRefresh() {
         keys: ["Address", "Office", "Pin"],
         threshold: 0.3,
         ignoreLocation: false,
+        includeScore: true,
         location: 0,
         distance: 100,
         includeMatches: true,
