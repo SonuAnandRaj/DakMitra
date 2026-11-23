@@ -268,6 +268,15 @@ function closeHistoryModal() {
   document.getElementById("history-modal-overlay").classList.remove("show");
 }
 
+function openOfficeFromHistory(officeOrPin) {
+  const target = String(officeOrPin || "").trim();
+  if (!target || target === "N/A" || target === "Unknown Office") return;
+  closeHistoryModal();
+  if (typeof goToDirectoryOffice === "function") {
+    goToDirectoryOffice(target);
+  }
+}
+
 async function viewHistory(postOfficeId) {
   closeAllDirectoryActionTrays();
   const contentDiv = document.getElementById("history-modal-content");
@@ -316,6 +325,36 @@ async function viewHistory(postOfficeId) {
       if (adminData) adminData.forEach((a) => adminSet.add(a.id));
     }
 
+    const buildHistoryDirLink = (
+      displayText,
+      targetOffice,
+      fallbackPin = "",
+      extraClass = "",
+    ) => {
+      const label = String(displayText ?? "").trim();
+      if (!label) return "";
+      const cleanOffice = String(targetOffice ?? "").trim();
+      const cleanPin = String(fallbackPin ?? "").trim();
+      const target =
+        cleanOffice &&
+        cleanOffice !== "Unknown Office" &&
+        cleanOffice !== "N/A"
+          ? cleanOffice
+          : cleanPin && cleanPin !== "N/A"
+            ? cleanPin
+            : "";
+
+      if (!target || label === "N/A" || label === "Unknown Office") {
+        return escapeHTML(label);
+      }
+
+      return `<button type="button" class="history-dir-link ${extraClass}" onclick="openOfficeFromHistory('${escapeForOnclick(
+        target,
+      )}')" title="Open ${escapeHTML(target)} in Directory">${escapeHTML(
+        label,
+      )}</button>`;
+    };
+
     let html = `<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">`;
 
     data.forEach((log) => {
@@ -355,7 +394,13 @@ async function viewHistory(postOfficeId) {
       let actionBadge = "";
       let changesHtml = "";
 
-      const formatField = (oldVal, newVal, prefix = "", fallback = "N/A") => {
+      const formatField = (
+        oldVal,
+        newVal,
+        prefix = "",
+        fallback = "N/A",
+        linkTargets = null,
+      ) => {
         const rawOld =
           oldVal === undefined || oldVal === null ? "" : String(oldVal).trim();
         const rawNew =
@@ -363,31 +408,63 @@ async function viewHistory(postOfficeId) {
         const sOld = rawOld === "" ? fallback : rawOld;
         const sNew = rawNew === "" ? fallback : rawNew;
 
+        const oldHtml = linkTargets
+          ? buildHistoryDirLink(
+              sOld,
+              linkTargets.oldOffice,
+              linkTargets.oldPin,
+              "is-muted",
+            )
+          : escapeHTML(sOld);
+
+        const newHtml = linkTargets
+          ? buildHistoryDirLink(
+              sNew,
+              linkTargets.newOffice,
+              linkTargets.newPin,
+            )
+          : escapeHTML(sNew);
+
         if (sOld !== sNew) {
-          return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${escapeHTML(
-            sOld,
-          )}</span> ➡️ <b>${escapeHTML(sNew)}</b></div>`;
+          return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${oldHtml}</span> ➡️ <b>${newHtml}</b></div>`;
         }
-        return `<div style="margin-bottom: 4px;">${prefix} ${escapeHTML(
-          sNew,
-        )}</div>`;
+        return `<div style="margin-bottom: 4px;">${prefix} ${newHtml}</div>`;
       };
 
       if (log.action === "INSERT") {
         actionBadge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px;">➕ CREATED</span>`;
+        const newOff = log.new_data?.Office || log.new_data?.office || "";
+        const newPin = log.new_data?.Pin ?? log.new_data?.pin ?? "";
         changesHtml = `
           <div style="margin-bottom: 4px;"><b>${escapeHTML(
             log.new_data?.Address,
           )}</b></div>
-          <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
-            log.new_data?.Office,
+          <div style="margin-bottom: 4px;">🏢 ${buildHistoryDirLink(
+            newOff || "Unknown Office",
+            newOff,
+            newPin,
           )}</div>
-          <div>📍 ${escapeHTML(log.new_data?.Pin || "N/A")}</div>
+          <div>📍 ${buildHistoryDirLink(
+            newPin || "N/A",
+            newOff,
+            newPin,
+          )}</div>
         `;
       } else if (log.action === "UPDATE") {
         actionBadge = `<span class="badge" style="background:#fef9c3;color:#854d0e; padding: 4px 8px; font-size: 12px;">✏️ EDITED</span>`;
         const oldD = log.old_data || {};
         const newD = log.new_data || {};
+        const oldOff = oldD.Office || oldD.office || "";
+        const newOff = newD.Office || newD.office || "";
+        const oldPin = oldD.Pin ?? oldD.pin ?? "";
+        const newPin = newD.Pin ?? newD.pin ?? "";
+
+        const linkTargets = {
+          oldOffice: oldOff,
+          newOffice: newOff,
+          oldPin: oldPin,
+          newPin: newPin,
+        };
 
         changesHtml =
           formatField(
@@ -396,13 +473,8 @@ async function viewHistory(postOfficeId) {
             "📮",
             "Unknown Address",
           ) +
-          formatField(
-            oldD.Office || oldD.office,
-            newD.Office || newD.office,
-            "🏢",
-            "Unknown Office",
-          ) +
-          formatField(oldD.Pin || oldD.pin, newD.Pin || newD.pin, "📍", "N/A");
+          formatField(oldOff, newOff, "🏢", "Unknown Office", linkTargets) +
+          formatField(oldPin, newPin, "📍", "N/A", linkTargets);
 
         if (oldD.is_deleted !== newD.is_deleted) {
           changesHtml += `<div style="margin-top: 8px;"><b>Status:</b> ${
@@ -411,15 +483,23 @@ async function viewHistory(postOfficeId) {
         }
       } else if (log.action === "DELETE") {
         actionBadge = `<span class="badge" style="background:#fee2e2;color:#991b1b; padding: 4px 8px; font-size: 12px;">🗑️ DELETED</span>`;
+        const oldOff = log.old_data?.Office || log.old_data?.office || "";
+        const oldPin = log.old_data?.Pin ?? log.old_data?.pin ?? "";
         changesHtml = `
           <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
             log.old_data?.Address,
           )}</b></div>
-          <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
-            log.old_data?.Office,
+          <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${buildHistoryDirLink(
+            oldOff || "Unknown Office",
+            oldOff,
+            oldPin,
+            "is-muted",
           )}</div>
-          <div style="text-decoration: line-through; color: var(--text-light);">📍 ${escapeHTML(
-            log.old_data?.Pin || "N/A",
+          <div style="text-decoration: line-through; color: var(--text-light);">📍 ${buildHistoryDirLink(
+            oldPin || "N/A",
+            oldOff,
+            oldPin,
+            "is-muted",
           )}</div>
           <div style="margin-top: 8px; color: #991b1b; font-weight: 600;">Record was permanently deleted.</div>
         `;

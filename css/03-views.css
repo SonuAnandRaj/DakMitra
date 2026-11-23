@@ -1895,9 +1895,19 @@ table.data-table .card-actions {
   }
 }
 
-/* Keep modal usable while typing on mobile */
+/* Dynamically size chip list to fill space above keyboard without wasting room */
 body.keyboard-open .quick-delete-chips-wrap {
-  max-height: 135px;
+  max-height: clamp(135px, calc(var(--vvh, 100dvh) - 310px), 340px);
+}
+
+body.keyboard-open
+  #quick-delete-modal-overlay:has(#quick-delete-selected-box:not(.hidden))
+  .quick-delete-chips-wrap {
+  max-height: clamp(115px, calc(var(--vvh, 100dvh) - 390px), 260px);
+}
+
+body.keyboard-open #quick-priority-chips-container {
+  max-height: clamp(120px, calc(var(--vvh, 100dvh) - 365px), 290px);
 }
 
 body.keyboard-open .quick-delete-selected-chips.is-expanded {
@@ -4084,3 +4094,35 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   .dir-filter-reset-btn:active {
     transform: scale(0.93);
   }
+
+  /* Clickable Office / PIN links inside Record History Modal */
+.history-dir-link {
+  display: inline;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: opacity 0.18s ease, color 0.18s ease;
+}
+
+.history-dir-link:hover,
+.history-dir-link:active {
+  opacity: 0.72;
+}
+
+.history-dir-link.is-muted {
+  color: var(--text-light);
+  font-weight: 600;
+  text-decoration: line-through;
+}
+
+.history-dir-link.is-muted:hover {
+  color: var(--primary);
+}

@@ -157,6 +157,27 @@ function closeSidebar() {
   document.getElementById("sidebar-overlay").classList.remove("show");
 }
 
+function resetOuterPageScroll(activeViewEl) {
+  const applyReset = () => {
+    window.scrollTo(0, 0);
+    if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    if (activeViewEl) {
+      activeViewEl.scrollTop = 0;
+    }
+
+    const mainContainer = document.querySelector(
+      "#dashboard-view main.container",
+    );
+    if (mainContainer) mainContainer.scrollTop = 0;
+  };
+
+  applyReset();
+  requestAnimationFrame(applyReset);
+}
+
 function switchDashboardView(viewId) {
   if (typeof closeAllDirectoryActionTrays === "function") {
     closeAllDirectoryActionTrays();
@@ -168,9 +189,19 @@ function switchDashboardView(viewId) {
       el.classList.remove("active");
     });
 
-  document.getElementById("view-" + viewId)?.classList.add("active");
+  const activeViewEl = document.getElementById("view-" + viewId);
+  activeViewEl?.classList.add("active");
   document.getElementById("nav-" + viewId)?.classList.add("active");
   document.getElementById("bottom-nav-" + viewId)?.classList.add("active");
+
+  if (
+    document.activeElement &&
+    typeof document.activeElement.blur === "function" &&
+    (!activeViewEl || !activeViewEl.contains(document.activeElement))
+  ) {
+    document.activeElement.blur();
+  }
+  resetOuterPageScroll(activeViewEl);
 
   const searchVal = document.getElementById("search-input")?.value.trim();
   const officeFilterVal = document
