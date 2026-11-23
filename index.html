@@ -5412,6 +5412,20 @@
         touch-action: none;
         overscroll-behavior: none;
       }
+
+      input[type="search"] {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      input[type="search"]::-webkit-search-decoration,
+      input[type="search"]::-webkit-search-cancel-button,
+      input[type="search"]::-webkit-search-results-button,
+      input[type="search"]::-webkit-search-results-decoration {
+        -webkit-appearance: none;
+        appearance: none;
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -6409,7 +6423,7 @@
                 <div class="search-bar-modern">
                   <div class="search-input-wrapper">
                     <input
-                      type="text"
+                      type="search"
                       id="search-input"
                       placeholder="Type address, office, or Pin..."
                       autocomplete="off"
@@ -6603,7 +6617,7 @@
                       <div class="search-input-wrapper filter-wrapper">
                         <span class="filter-icon">🏢</span>
                         <input
-                          type="text"
+                          type="search"
                           id="filter-office"
                           placeholder="Must be in Office..."
                           oninput="handleSearchOfficeFilterInput(this)"
@@ -6633,7 +6647,7 @@
                     <div class="search-input-wrapper filter-wrapper">
                       <span class="filter-icon">📍</span>
                       <input
-                        type="text"
+                        type="search"
                         id="filter-pin"
                         inputmode="numeric"
                         placeholder="Must have Pin..."
@@ -6752,7 +6766,7 @@
                   <div class="search-input-wrapper">
                     <span style="margin-left: 12px; font-size: 16px">🔍</span>
                     <input
-                      type="text"
+                      type="search"
                       id="directory-filter-input"
                       placeholder="Filter by office name or PIN..."
                       oninput="toggleDirClearBtn(); filterDirectory();"
@@ -7145,7 +7159,7 @@
                   <label>Office</label>
                   <div class="autocomplete-wrapper">
                     <input
-                      type="text"
+                      type="search"
                       id="bulk-office-input"
                       placeholder="Search & Select Office..."
                       autocomplete="off"
@@ -7187,7 +7201,7 @@
                 >
                   <label>Pin</label>
                   <input
-                    type="text"
+                    type="search"
                     inputmode="numeric"
                     id="bulk-pin-input"
                     placeholder="e.g. 231501"
@@ -7860,7 +7874,7 @@
               <polyline points="9 22 9 12 15 12 15 22"></polyline>
             </svg>
             <input
-              type="text"
+              type="search"
               id="inline-edit-address"
               placeholder="Address"
               autocomplete="off"
