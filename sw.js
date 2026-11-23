@@ -1,11 +1,28 @@
-const CACHE_NAME = "po-directory-v12"; // Bumped version so the new SW activates cleanly
+const CACHE_NAME = "po-directory-v13"; // Bumped from v12 so the new modular files cache cleanly
+
 const LOCAL_ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
+  // Modular Stylesheets
+  "./css/01-base-layout.css",
+  "./css/02-components.css",
+  "./css/03-views.css",
+  // Modular Scripts
+  "./js/01-config.js",
+  "./js/02-utils.js",
+  "./js/03-ui-shell.js",
+  "./js/04-data-sync.js",
+  "./js/05-auth-profile.js",
+  "./js/06-search-ai.js",
+  "./js/07-directory-staff.js",
+  "./js/08-records-upload.js",
+  "./js/09-approvals-favs.js",
+  "./js/10-settings-boot.js"
 ];
+
 const CDN_ASSETS = [
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
   "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"
@@ -15,7 +32,10 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      await cache.addAll(LOCAL_ASSETS);
+      // Bypass browser HTTP cache on install so GitHub Pages always delivers the latest CSS/JS
+      await cache.addAll(
+        LOCAL_ASSETS.map((url) => new Request(url, { cache: "no-cache" }))
+      );
       await Promise.allSettled(
         CDN_ASSETS.map((url) =>
           fetch(url).then((res) => {
@@ -62,7 +82,9 @@ self.addEventListener("fetch", (event) => {
   ) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match("./index.html", { ignoreSearch: true });
+        const cached = await cache.match("./index.html", {
+          ignoreSearch: true
+        });
 
         const networkFetch = fetch("./index.html", { cache: "no-cache" })
           .then((networkResponse) => {
@@ -84,21 +106,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // STALE-WHILE-REVALIDATE for static assets (manifest, icons, CDN libraries, fonts)
+  // STALE-WHILE-REVALIDATE for static assets (CSS, JS, manifest, icons, CDN libraries, fonts)
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
-      cache.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-        const networkFetch = fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              cache.put(event.request, networkResponse.clone());
-            }
-            return networkResponse;
-          })
-          .catch(() => null);
+      cache
+        .match(event.request, { ignoreSearch: true })
+        .then((cachedResponse) => {
+          const networkFetch = fetch(event.request)
+            .then((networkResponse) => {
+              if (networkResponse && networkResponse.status === 200) {
+                cache.put(event.request, networkResponse.clone());
+              }
+              return networkResponse;
+            })
+            .catch(() => null);
 
-        return cachedResponse || networkFetch;
-      })
+          return cachedResponse || networkFetch;
+        })
     )
   );
 });
