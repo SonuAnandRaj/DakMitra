@@ -5674,12 +5674,28 @@
         animation: aiSparkleTwinkle 3.6s ease-in-out infinite;
       }
 
-      .ai-search-bar-btn:not(.loading) {
-        background: linear-gradient(
-          135deg,
-          rgba(79, 70, 229, 0.1) 0%,
-          rgba(245, 158, 11, 0.12) 100%
-        );
+      /* =========================================================
+   BOTTOM CLEARANCE ABOVE FLOATING NAVIGATION BAR
+   ========================================================= */
+
+      /* Scrollable list/card containers (Search, Directory, Approvals, Favorites, Help) */
+      .results-container-scroll {
+        padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+      }
+
+      /* Scrollable page views (Upload, Profile, Settings) */
+      #view-upload.active,
+      #view-profile.active,
+      #view-settings.active {
+        padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+      }
+
+      /* Remove extra bottom-nav clearance while the mobile keyboard is open (since .bottom-nav hides) */
+      body.keyboard-open .results-container-scroll,
+      body.keyboard-open #view-upload.active,
+      body.keyboard-open #view-profile.active,
+      body.keyboard-open #view-settings.active {
+        padding-bottom: 16px;
       }
     </style>
   </head>
@@ -9196,21 +9212,40 @@
 
       // --- UNIFIED OFFLINE TOAST & CHECK HELPER ---
       let lastOfflineToastTime = 0;
+      let hasShownPassiveOfflineToast = false;
 
-      function showOfflineToast(extraMsg = "Using cached version.") {
+      // Reset the one-time passive flag as soon as internet returns
+      window.addEventListener("online", () => {
+        hasShownPassiveOfflineToast = false;
+      });
+
+      function showOfflineToast(
+        extraMsg = "Using cached version.",
+        isActiveAction = false
+      ) {
+        // For passive views (like opening Approvals), only show once while offline
+        if (!isActiveAction && hasShownPassiveOfflineToast) return;
+
         const now = Date.now();
         // Prevents spamming multiple toasts within 2 seconds
         if (now - lastOfflineToastTime < 2000) return;
         lastOfflineToastTime = now;
+
+        if (!isActiveAction) hasShownPassiveOfflineToast = true;
         showToast(`📴 No internet connection. ${extraMsg}`);
       }
 
-      async function ensureOnline(offlineMsg = "Using cached version.") {
+      // Defaults to isActiveAction = true so uploads, edits, deletes, and syncs always notify
+      async function ensureOnline(
+        offlineMsg = "Using cached version.",
+        isActiveAction = true
+      ) {
         const online = await checkActualInternet();
         if (!online) {
-          showOfflineToast(offlineMsg);
+          showOfflineToast(offlineMsg, isActiveAction);
           return false;
         }
+        hasShownPassiveOfflineToast = false; // Connection confirmed, reset passive flag
         return true;
       }
 
@@ -15083,7 +15118,7 @@
 
         const online = await checkActualInternet();
         if (!online) {
-          showOfflineToast("Showing cached approvals.");
+          showOfflineToast("Showing cached approvals.", false);
           const savedHtml = localStorage.getItem(
             "dakmitra_approvals_cache_" + activeTab
           );
