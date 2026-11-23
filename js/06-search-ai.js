@@ -647,10 +647,125 @@ function clearSearchInput() {
   searchInput.focus();
 }
 
+function findOrderedMatchPositions(t, q) {
+  const n = t.length;
+  const m = q.length;
+  if (!n || !m) return [];
+
+  const dp = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      if (t[i - 1] === q[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1;
+      } else {
+        dp[i][j] = dp[i - 1][j] >= dp[i][j - 1] ? dp[i - 1][j] : dp[i][j - 1];
+      }
+    }
+  }
+
+  const matched = [];
+  let i = n;
+  let j = m;
+  while (i > 0 && j > 0) {
+    if (t[i - 1] === q[j - 1] && dp[i][j] === dp[i - 1][j - 1] + 1) {
+      if (dp[i - 1][j] === dp[i][j]) {
+        i--;
+      } else {
+        matched.push(i - 1);
+        i--;
+        j--;
+      }
+    } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+      i--;
+    } else {
+      j--;
+    }
+  }
+
+  matched.reverse();
+  return matched;
+}
+
+function computeSmartHighlightRanges(text, query) {
+  const t = text.toLowerCase();
+  const q = query.toLowerCase().trim();
+  if (!t || !q) return [];
+
+  // 1. Exact substring match (e.g. "kane" in "Kanethi BO")
+  const exactIndex = t.indexOf(q);
+  if (exactIndex !== -1) {
+    return [[exactIndex, exactIndex + q.length - 1]];
+  }
+
+  // 2. Single-word query: align inside the single best-matching word first
+  //    so stray letters in later words don't light up.
+  let matched = [];
+  if (!q.includes(" ")) {
+    let bestPos = [];
+    let bestSpan = Infinity;
+    const wordRegex = /\S+/g;
+    let m;
+
+    while ((m = wordRegex.exec(t)) !== null) {
+      const pos = findOrderedMatchPositions(m[0], q);
+      if (pos.length === 0) continue;
+      const span = pos[pos.length - 1] - pos[0];
+      if (
+        pos.length > bestPos.length ||
+        (pos.length === bestPos.length && span < bestSpan)
+      ) {
+        bestPos = pos.map((p) => p + m.index);
+        bestSpan = span;
+      }
+    }
+
+    // Fall back to full text only for tight multi-word matches (e.g. "ramnagar" -> "Ram Nagar")
+    const fullPos = findOrderedMatchPositions(t, q);
+    if (
+      fullPos.length > bestPos.length &&
+      fullPos[fullPos.length - 1] - fullPos[0] <= q.length + 3
+    ) {
+      matched = fullPos;
+    } else {
+      matched = bestPos;
+    }
+  } else {
+    matched = findOrderedMatchPositions(t, q);
+  }
+
+  if (matched.length === 0) return [];
+
+  // Merge adjacent matched character indices into ranges
+  const ranges = [];
+  let start = matched[0];
+  let prev = matched[0];
+  for (let k = 1; k < matched.length; k++) {
+    if (matched[k] === prev + 1) {
+      prev = matched[k];
+    } else {
+      ranges.push([start, prev]);
+      start = prev = matched[k];
+    }
+  }
+  ranges.push([start, prev]);
+
+  // Drop isolated single-character matches separated by > 2 skipped chars
+  if (ranges.length <= 1) return ranges;
+  const kept = ranges.filter(([s, e], idx) => {
+    if (e - s + 1 > 1) return true;
+    const distPrev = idx > 0 ? s - ranges[idx - 1][1] - 1 : Infinity;
+    const distNext =
+      idx < ranges.length - 1 ? ranges[idx + 1][0] - e - 1 : Infinity;
+    return Math.min(distPrev, distNext) <= 2;
+  });
+
+  return kept.length > 0 ? kept : ranges;
+}
+
 function highlightText(text, matches, key) {
   if (text === null || text === undefined) return "";
   text = String(text);
-  let safeText = escapeHTML(text);
+  const safeText = escapeHTML(text);
 
   if (!matches || matches.length === 0) return safeText;
   const match = matches.find((m) => m.key === key);
@@ -662,38 +777,23 @@ function highlightText(text, matches, key) {
   ).trim();
 
   if (searchInput.length > 0) {
-    const lowerText = text.toLowerCase();
-    const lowerSearch = searchInput.toLowerCase();
-    const exactIndex = lowerText.indexOf(lowerSearch);
-
-    if (exactIndex !== -1) {
-      const before = escapeHTML(text.substring(0, exactIndex));
-      const highlighted = escapeHTML(
-        text.substring(exactIndex, exactIndex + searchInput.length),
-      );
-      const after = escapeHTML(text.substring(exactIndex + searchInput.length));
-      return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
+    const ranges = computeSmartHighlightRanges(text, searchInput);
+    if (ranges.length > 0) {
+      let out = "";
+      let last = 0;
+      for (const [start, end] of ranges) {
+        out += escapeHTML(text.substring(last, start));
+        out += `<span class="highlight-text">${escapeHTML(
+          text.substring(start, end + 1),
+        )}</span>`;
+        last = end + 1;
+      }
+      out += escapeHTML(text.substring(last));
+      return out;
     }
   }
 
-  if (!match.indices || match.indices.length === 0) return safeText;
-
-  let bestIndex = match.indices[0];
-  let maxLen = bestIndex[1] - bestIndex[0];
-  for (let i = 1; i < match.indices.length; i++) {
-    const currentLen = match.indices[i][1] - match.indices[i][0];
-    if (currentLen > maxLen) {
-      maxLen = currentLen;
-      bestIndex = match.indices[i];
-    }
-  }
-
-  const [start, end] = bestIndex;
-  const before = escapeHTML(text.substring(0, start));
-  const highlighted = escapeHTML(text.substring(start, end + 1));
-  const after = escapeHTML(text.substring(end + 1));
-
-  return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
+  return safeText;
 }
 
 window.searchDisplayLimit = 10;

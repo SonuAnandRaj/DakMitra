@@ -3,7 +3,7 @@
 // =========================================================
 
 // --- CENTRAL APP VERSION CONTROL ---
-const APP_VERSION = "1.0.1"; // <-- Change ONLY this when releasing a new version
+const APP_VERSION = "1.0.2"; // <-- Change ONLY this when releasing a new version
 const APP_BUILD_CODE = "100"; // <-- Increment for each build (e.g., 101, 102)
 
 // --- SPLASH TIMING ---
