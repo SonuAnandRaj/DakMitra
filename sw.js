@@ -1,4 +1,4 @@
-const CACHE_NAME = "po-directory-v11";
+const CACHE_NAME = "po-directory-v12"; // Bumped version so the new SW activates cleanly
 const LOCAL_ASSETS = [
   "./",
   "./index.html",
@@ -16,7 +16,6 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
       await cache.addAll(LOCAL_ASSETS);
-      // Cache CDN scripts individually so a flaky network never breaks SW install
       await Promise.allSettled(
         CDN_ASSETS.map((url) =>
           fetch(url).then((res) => {
@@ -43,22 +42,6 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Helper: Fetch with a timeout so Lie-Fi doesn't hang the app
-function fetchWithTimeout(request, timeoutMs = 2500) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("timeout")), timeoutMs);
-    fetch(request, { cache: "no-cache" })
-      .then((res) => {
-        clearTimeout(timer);
-        resolve(res);
-      })
-      .catch((err) => {
-        clearTimeout(timer);
-        reject(err);
-      });
-  });
-}
-
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (!event.request.url.startsWith("http")) return;
@@ -71,27 +54,37 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // NETWORK-FIRST for index.html / navigation: Always gets the latest deployed version when online
+  // CACHE-FIRST (STALE-WHILE-REVALIDATE) for navigation & index.html
+  // Launches instantly in standalone mode even on slow internet, updates in background
   if (
     event.request.mode === "navigate" ||
     event.request.url.endsWith("index.html")
   ) {
     event.respondWith(
-      caches.open(CACHE_NAME).then((cache) =>
-        fetchWithTimeout(event.request, 1000)
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match("./index.html", { ignoreSearch: true });
+
+        const networkFetch = fetch("./index.html", { cache: "no-cache" })
           .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
+            if (
+              networkResponse &&
+              networkResponse.status === 200 &&
+              !networkResponse.redirected
+            ) {
               cache.put("./index.html", networkResponse.clone());
             }
             return networkResponse;
           })
-          .catch(() => cache.match("./index.html", { ignoreSearch: true }))
-      )
+          .catch(() => null);
+
+        // Return cached shell immediately; only wait for network on very first visit
+        return cached || networkFetch;
+      })
     );
     return;
   }
 
-  // STALE-WHILE-REVALIDATE for static assets (icons, CDN libraries, fonts)
+  // STALE-WHILE-REVALIDATE for static assets (manifest, icons, CDN libraries, fonts)
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
       cache.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
