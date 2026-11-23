@@ -10971,7 +10971,7 @@
         if (!container) return;
 
         if (!navigator.onLine) {
-          showOfflineToast("AI lookup requires internet.");
+          showOfflineToast("AI lookup requires internet.", true);
           container.innerHTML = `
                               <ul class="list-container">
                                 <li class="list-empty" style="margin-top:0;">
@@ -15636,6 +15636,7 @@
       }
 
       async function syncDatabase() {
+        if (!(await ensureOnline("Connect to internet to sync database."))) return;
         const syncBtn = document.getElementById("sync-db-btn");
         if (!syncBtn) return;
 
