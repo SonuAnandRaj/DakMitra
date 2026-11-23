@@ -79,7 +79,7 @@ function applyTheme(theme) {
     isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     document.documentElement.setAttribute(
       "data-theme",
-      isDark ? "dark" : "light",
+      isDark ? "dark" : "light"
     );
   } else {
     isDark = theme === "dark";
@@ -169,7 +169,7 @@ function resetOuterPageScroll(activeViewEl) {
     }
 
     const mainContainer = document.querySelector(
-      "#dashboard-view main.container",
+      "#dashboard-view main.container"
     );
     if (mainContainer) mainContainer.scrollTop = 0;
   };
@@ -250,7 +250,6 @@ function switchDashboardView(viewId) {
     membersHeroController.setCollapsed(false, true);
     if (typeof renderMembersDirectory === "function") renderMembersDirectory();
   }
-  
 
   closeSidebar();
 }
@@ -258,6 +257,7 @@ function switchDashboardView(viewId) {
 // --- PWA ANDROID / BROWSER BACK BUTTON HANDLER ---
 (function initPwaBackNavigation() {
   let isHandlingPopstate = false;
+  let isRestoringFromPopstate = false;
   let rootGuardPushed = false;
 
   function isRootCleanState() {
@@ -275,10 +275,12 @@ function switchDashboardView(viewId) {
     return !hasOpenModal && !hasOpenSidebar && !hasOpenPopover && searchActive;
   }
 
-  function pushNavStep(tag) {
-    if (isHandlingPopstate) return;
+  function pushNavStep(tag, viewId = null) {
+    if (isHandlingPopstate || isRestoringFromPopstate) return;
     try {
-      history.pushState({ dakmitraNav: tag, ts: Date.now() }, "");
+      const stateObj = { dakmitraNav: tag, ts: Date.now() };
+      if (viewId) stateObj.viewId = viewId;
+      history.pushState(stateObj, "");
       rootGuardPushed = true;
     } catch (_) {}
   }
@@ -289,7 +291,7 @@ function switchDashboardView(viewId) {
         history.replaceState({ dakmitraBase: true }, "");
       }
       if (!rootGuardPushed) {
-        history.pushState({ dakmitraNav: "root" }, "");
+        history.pushState({ dakmitraNav: "root", viewId: "search" }, "");
         rootGuardPushed = true;
       }
     } catch (_) {}
@@ -318,8 +320,8 @@ function switchDashboardView(viewId) {
   if (typeof origSwitchView === "function") {
     window.switchDashboardView = function (viewId) {
       origSwitchView.apply(this, arguments);
-      if (viewId && viewId !== "search") {
-        pushNavStep("view:" + viewId);
+      if (viewId) {
+        pushNavStep("view:" + viewId, viewId);
       }
     };
   }
@@ -343,12 +345,12 @@ function switchDashboardView(viewId) {
     modalObserver.observe(modal, { attributes: true });
   });
 
-  window.addEventListener("popstate", () => {
+  window.addEventListener("popstate", (event) => {
     isHandlingPopstate = true;
 
     try {
       const openModals = Array.from(
-        document.querySelectorAll(".modal-overlay.show"),
+        document.querySelectorAll(".modal-overlay.show")
       );
       if (openModals.length > 0) {
         const topModal = openModals[openModals.length - 1];
@@ -433,11 +435,39 @@ function switchDashboardView(viewId) {
         return;
       }
 
-      const searchActive = document
-        .getElementById("view-search")
-        ?.classList.contains("active");
-      if (!searchActive && typeof switchDashboardView === "function") {
-        switchDashboardView("search");
+      const targetView =
+        event.state && typeof event.state.viewId === "string"
+          ? event.state.viewId
+          : "search";
+
+      const currentViewId =
+        viewOrder.find((v) =>
+          document.getElementById("view-" + v)?.classList.contains("active")
+        ) ||
+        (document.getElementById("view-members")?.classList.contains("active")
+          ? "members"
+          : document
+              .getElementById("view-profile")
+              ?.classList.contains("active")
+          ? "profile"
+          : document
+              .getElementById("view-favorites")
+              ?.classList.contains("active")
+          ? "favorites"
+          : "search");
+
+      if (
+        currentViewId !== targetView &&
+        typeof origSwitchView === "function"
+      ) {
+        isRestoringFromPopstate = true;
+        try {
+          origSwitchView.call(window, targetView);
+        } finally {
+          setTimeout(() => {
+            isRestoringFromPopstate = false;
+          }, 0);
+        }
         return;
       }
 
@@ -539,7 +569,7 @@ function switchDashboardView(viewId) {
     const kbHeight = Math.max(0, Math.round(baselineHeight - vvHeight));
     const fixedOffset = Math.max(
       0,
-      Math.round(window.innerHeight - vvHeight - vvTop),
+      Math.round(window.innerHeight - vvHeight - vvTop)
     );
     const isKeyboardOpen = activeIsEditable && kbHeight > 110;
 
@@ -548,7 +578,7 @@ function switchDashboardView(viewId) {
     root.style.setProperty("--kb-height", `${isKeyboardOpen ? kbHeight : 0}px`);
     root.style.setProperty(
       "--kb-fixed-offset",
-      `${isKeyboardOpen ? fixedOffset : 0}px`,
+      `${isKeyboardOpen ? fixedOffset : 0}px`
     );
 
     document.body.classList.toggle("keyboard-open", isKeyboardOpen);
@@ -587,7 +617,7 @@ function switchDashboardView(viewId) {
 
   function getTopActiveOverlay() {
     const active = Array.from(
-      document.querySelectorAll(".modal-overlay.show, .sidebar.open"),
+      document.querySelectorAll(".modal-overlay.show, .sidebar.open")
     );
     if (active.length === 0) return null;
 
@@ -602,7 +632,7 @@ function switchDashboardView(viewId) {
     const hasActiveOverlay = !!getTopActiveOverlay();
     document.documentElement.classList.toggle(
       "dm-scroll-locked",
-      hasActiveOverlay,
+      hasActiveOverlay
     );
     document.body.classList.toggle("dm-scroll-locked", hasActiveOverlay);
   }
@@ -640,7 +670,7 @@ function switchDashboardView(viewId) {
         touchStartY = e.touches[0].clientY;
       }
     },
-    { passive: true },
+    { passive: true }
   );
 
   document.addEventListener(
@@ -674,7 +704,7 @@ function switchDashboardView(viewId) {
         e.preventDefault();
       }
     },
-    { passive: false },
+    { passive: false }
   );
 
   document.addEventListener(
@@ -703,7 +733,7 @@ function switchDashboardView(viewId) {
         e.preventDefault();
       }
     },
-    { passive: false },
+    { passive: false }
   );
 })();
 
@@ -778,7 +808,7 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
       (e) => {
         pullStartY = e.touches[0].clientY;
       },
-      { passive: true },
+      { passive: true }
     );
 
     scrollEl.addEventListener(
@@ -792,7 +822,7 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
           setCollapsed(false);
         }
       },
-      { passive: true },
+      { passive: true }
     );
 
     scrollEl.addEventListener(
@@ -802,7 +832,7 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
           setCollapsed(false);
         }
       },
-      { passive: true },
+      { passive: true }
     );
 
     scrollEl.addEventListener(
@@ -852,7 +882,7 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
           }
         });
       },
-      { passive: true },
+      { passive: true }
     );
   }
 
@@ -867,12 +897,12 @@ const searchHeroController = createCollapsibleHero(
     document.getElementById("advanced-filters-panel")?.classList.add("hidden");
     document.getElementById("search-history-panel")?.classList.add("hidden");
     closeAllDropdowns();
-  },
+  }
 );
 
 const approvalsHeroController = createCollapsibleHero(
   "approvals-display-area",
-  "approvals-hero-collapse-wrap",
+  "approvals-hero-collapse-wrap"
 );
 
 const directoryHeroController = createCollapsibleHero(
@@ -880,7 +910,7 @@ const directoryHeroController = createCollapsibleHero(
   "directory-hero-collapse-wrap",
   () => {
     document.getElementById("directory-filter-input")?.blur();
-  },
+  }
 );
 
 const membersHeroController = createCollapsibleHero(
@@ -888,7 +918,7 @@ const membersHeroController = createCollapsibleHero(
   "members-hero-collapse-wrap",
   () => {
     document.getElementById("members-filter-input")?.blur();
-  },
+  }
 );
 
 function setSearchHeroCollapsed(shouldCollapse, instant = false) {
@@ -912,7 +942,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
 
     if (
       target.closest(
-        ".dir-filter-bar, .dir-filter-chips, .quick-delete-selected-chips, #top-profile-btn, input, textarea, select",
+        ".dir-filter-bar, .dir-filter-chips, .quick-delete-selected-chips, #top-profile-btn, input, textarea, select"
       )
     ) {
       return true;
@@ -945,7 +975,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       touchStartY = e.changedTouches[0].screenY;
       touchStartTime = performance.now();
     },
-    { passive: true },
+    { passive: true }
   );
 
   swipeArea.addEventListener(
@@ -953,7 +983,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     () => {
       ignoreSwipe = true;
     },
-    { passive: true },
+    { passive: true }
   );
 
   swipeArea.addEventListener(
@@ -987,7 +1017,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       // Hard-swipe thresholds: long distance + brisk flick + straight horizontal line
       const MIN_SWIPE_DISTANCE = Math.max(
         135,
-        Math.round(window.innerWidth * 0.36),
+        Math.round(window.innerWidth * 0.36)
       );
       const MAX_SWIPE_DURATION = 420;
       const MIN_SWIPE_VELOCITY = 0.45;
@@ -1002,7 +1032,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
         absX > absY * HORIZONTAL_RATIO
       ) {
         const currentActiveId = viewOrder.find((view) =>
-          document.getElementById("view-" + view)?.classList.contains("active"),
+          document.getElementById("view-" + view)?.classList.contains("active")
         );
 
         let currentIndex = viewOrder.indexOf(currentActiveId);
@@ -1015,7 +1045,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
         }
       }
     },
-    { passive: true },
+    { passive: true }
   );
 })();
 
@@ -1035,7 +1065,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       startY = e.touches[0].clientY;
       dragTriggered = false;
     },
-    { passive: true },
+    { passive: true }
   );
 
   profileBtn.addEventListener(
@@ -1055,7 +1085,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
         startX = null;
       }
     },
-    { passive: true },
+    { passive: true }
   );
 
   profileBtn.addEventListener(
@@ -1075,7 +1105,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       }
       startX = null;
     },
-    { passive: true },
+    { passive: true }
   );
 
   let mouseDownX = null;
@@ -1153,9 +1183,9 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     const container = currentInput.closest(GROUP_CONTAINERS);
     if (container) {
       const visibleInputs = Array.from(
-        container.querySelectorAll(TEXT_INPUT_SELECTOR),
+        container.querySelectorAll(TEXT_INPUT_SELECTOR)
       ).filter(
-        (el) => el.offsetParent !== null && !el.disabled && !el.readOnly,
+        (el) => el.offsetParent !== null && !el.disabled && !el.readOnly
       );
 
       const currentIndex = visibleInputs.indexOf(currentInput);
@@ -1191,7 +1221,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     }
 
     const visibleInputs = Array.from(
-      container.querySelectorAll(TEXT_INPUT_SELECTOR),
+      container.querySelectorAll(TEXT_INPUT_SELECTOR)
     ).filter((el) => el.offsetParent !== null && !el.disabled && !el.readOnly);
 
     const isLast = visibleInputs.indexOf(input) === visibleInputs.length - 1;
