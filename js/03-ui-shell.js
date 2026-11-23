@@ -853,15 +853,57 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
   let touchEndX = 0;
   let touchStartY = 0;
   let touchEndY = 0;
+  let touchStartTime = 0;
+  let ignoreSwipe = false;
 
   const swipeArea = document.getElementById("dashboard-view");
   if (!swipeArea) return;
 
+  function isInsideHorizontalScroller(target) {
+    if (!(target instanceof Element)) return false;
+
+    if (
+      target.closest(
+        ".dir-filter-bar, .dir-filter-chips, .quick-delete-selected-chips, #top-profile-btn, input, textarea, select",
+      )
+    ) {
+      return true;
+    }
+
+    let el = target;
+    while (el && el !== swipeArea) {
+      const style = getComputedStyle(el);
+      const canScrollX =
+        (style.overflowX === "auto" || style.overflowX === "scroll") &&
+        el.scrollWidth > el.clientWidth + 4;
+      if (canScrollX) return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
+
   swipeArea.addEventListener(
     "touchstart",
     (e) => {
+      if (e.touches.length !== 1) {
+        ignoreSwipe = true;
+        return;
+      }
+
+      ignoreSwipe = isInsideHorizontalScroller(e.target);
+      if (ignoreSwipe) return;
+
       touchStartX = e.changedTouches[0].screenX;
       touchStartY = e.changedTouches[0].screenY;
+      touchStartTime = performance.now();
+    },
+    { passive: true },
+  );
+
+  swipeArea.addEventListener(
+    "touchcancel",
+    () => {
+      ignoreSwipe = true;
     },
     { passive: true },
   );
@@ -869,27 +911,47 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
   swipeArea.addEventListener(
     "touchend",
     (e) => {
+      if (ignoreSwipe || e.changedTouches.length === 0) {
+        ignoreSwipe = false;
+        return;
+      }
+
       touchEndX = e.changedTouches[0].screenX;
       touchEndY = e.changedTouches[0].screenY;
+      const elapsed = Math.max(1, performance.now() - touchStartTime);
 
       if (
         document.getElementById("sidebar")?.classList.contains("open") ||
-        document.querySelector(".modal-overlay.show")
+        document.querySelector(".modal-overlay.show") ||
+        document
+          .getElementById("directory-floating-bar")
+          ?.classList.contains("open")
       ) {
         return;
       }
 
       const deltaX = touchEndX - touchStartX;
       const deltaY = touchEndY - touchStartY;
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+      const velocity = absX / elapsed; // px per ms
 
-      const MIN_SWIPE_DISTANCE = 100;
-      const MAX_VERTICAL_DRIFT = 60;
-      const HORIZONTAL_RATIO = 2.2;
+      // Hard-swipe thresholds: long distance + brisk flick + straight horizontal line
+      const MIN_SWIPE_DISTANCE = Math.max(
+        135,
+        Math.round(window.innerWidth * 0.36),
+      );
+      const MAX_SWIPE_DURATION = 420;
+      const MIN_SWIPE_VELOCITY = 0.45;
+      const MAX_VERTICAL_DRIFT = 50;
+      const HORIZONTAL_RATIO = 2.6;
 
       if (
-        Math.abs(deltaX) > MIN_SWIPE_DISTANCE &&
-        Math.abs(deltaY) < MAX_VERTICAL_DRIFT &&
-        Math.abs(deltaX) > Math.abs(deltaY) * HORIZONTAL_RATIO
+        absX > MIN_SWIPE_DISTANCE &&
+        elapsed <= MAX_SWIPE_DURATION &&
+        velocity >= MIN_SWIPE_VELOCITY &&
+        absY < MAX_VERTICAL_DRIFT &&
+        absX > absY * HORIZONTAL_RATIO
       ) {
         const currentActiveId = viewOrder.find((view) =>
           document.getElementById("view-" + view)?.classList.contains("active"),
