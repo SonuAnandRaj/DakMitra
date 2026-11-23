@@ -3904,3 +3904,183 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
 #view-search ul.list-container.no-card-anim li.list-item.record-updated-flash {
   animation: recordUpdatedPulse 0.9s ease-out !important;
 }
+
+/* =========================================================
+   UNIVERSAL DIRECTORY FILTER BAR
+   ========================================================= */
+
+   .dir-filter-bar {
+    flex-shrink: 0;
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .dir-filter-chips {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  
+  .dir-filter-chips::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .dir-filter-chip {
+    flex-shrink: 0;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px 7px 12px;
+    border-radius: 999px;
+    background: var(--card-bg);
+    color: var(--text-light);
+    border: 1.5px solid var(--border);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition:
+      transform 0.18s var(--dm-ease-spring),
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  
+  .dir-filter-chip:active {
+    transform: scale(0.94);
+  }
+  
+  .dir-chip-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    background: var(--input-bg);
+    color: var(--text-light);
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+  
+  /* Active: All */
+  .dir-filter-chip.active {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 6px 14px -4px rgba(79, 70, 229, 0.45);
+  }
+  
+  .dir-filter-chip.active .dir-chip-count {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+  }
+  
+  /* Active: Offices (BO / SO / HO) */
+  .dir-filter-chip.is-office.active {
+    background: rgba(79, 70, 229, 0.14);
+    color: var(--primary);
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px -4px rgba(79, 70, 229, 0.35);
+  }
+  
+  [data-theme="dark"] .dir-filter-chip.is-office.active {
+    background: rgba(129, 140, 248, 0.2);
+  }
+  
+  .dir-filter-chip.is-office.active .dir-chip-count {
+    background: var(--primary);
+    color: #ffffff;
+  }
+  
+  /* Active: Priority */
+  .dir-filter-chip.is-priority.active {
+    background: rgba(245, 158, 11, 0.16);
+    color: #b45309;
+    border-color: #f59e0b;
+    box-shadow: 0 4px 12px -4px rgba(245, 158, 11, 0.35);
+  }
+  
+  [data-theme="dark"] .dir-filter-chip.is-priority.active {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+    border-color: #fbbf24;
+  }
+  
+  .dir-filter-chip.is-priority.active .dir-chip-count {
+    background: #f59e0b;
+    color: #ffffff;
+  }
+  
+  /* Active: Regular Villages */
+  .dir-filter-chip.is-regular.active {
+    background: rgba(16, 185, 129, 0.14);
+    color: #047857;
+    border-color: #10b981;
+    box-shadow: 0 4px 12px -4px rgba(16, 185, 129, 0.3);
+  }
+  
+  [data-theme="dark"] .dir-filter-chip.is-regular.active {
+    background: rgba(52, 211, 153, 0.18);
+    color: #34d399;
+    border-color: #34d399;
+  }
+  
+  .dir-filter-chip.is-regular.active .dir-chip-count {
+    background: #10b981;
+    color: #ffffff;
+  }
+  
+  /* Compact Active-Filter Summary Strip */
+  .dir-filter-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: var(--card-bg);
+    border: 1px dashed var(--dm-border-tint);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-light);
+    animation: fadeInDown 0.22s ease;
+  }
+  
+  .dir-filter-reset-btn {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      transform 0.15s ease;
+  }
+  
+  .dir-filter-reset-btn:hover {
+    background: #ef4444;
+    color: #ffffff;
+  }
+  
+  .dir-filter-reset-btn:active {
+    transform: scale(0.93);
+  }

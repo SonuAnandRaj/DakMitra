@@ -2,9 +2,217 @@
 // 07-DIRECTORY-STAFF.JS — Directory, Action Bar, Staff CRUD & Quick Modals
 // =========================================================
 
-// --- DIRECTORY RENDERING & FILTERING ---
+// --- DIRECTORY RENDERING & UNIVERSAL FILTERING ---
+const DIRECTORY_FILTER_TYPES = ["office", "priority", "regular"];
+let directoryActiveFilters = new Set();
+
+function getDirectoryBatchSize() {
+  return directoryActiveFilters.size > 0 ? 10 : DIRECTORY_PAGE_SIZE;
+}
+
+function getDirectoryItemFlags(item) {
+  const officeType =
+    item && item.officeType !== undefined
+      ? item.officeType
+      : detectOfficeType(typeof item === "object" ? item.Address : item);
+  const isOffice = Boolean(officeType);
+  const isPriority = typeof item === "object" && Number(item.priority) >= 1;
+  const isRegular = !isOffice && !isPriority;
+  return { officeType, isOffice, isPriority, isRegular };
+}
+
+function matchesDirectoryUniversalFilter(item) {
+  if (directoryActiveFilters.size === 0) return true;
+  const { isOffice, isPriority, isRegular } = getDirectoryItemFlags(item);
+  if (directoryActiveFilters.has("office") && isOffice) return true;
+  if (directoryActiveFilters.has("priority") && isPriority) return true;
+  if (directoryActiveFilters.has("regular") && isRegular) return true;
+  return false;
+}
+
+function updateDirectoryFilterUI(textMatchedOffices, filteredOffices) {
+  let allCount = 0;
+  let officeCount = 0;
+  let priorityCount = 0;
+  let regularCount = 0;
+
+  textMatchedOffices.forEach((group) => {
+    const list = Array.isArray(group.addresses) ? group.addresses : [];
+    for (let i = 0; i < list.length; i++) {
+      allCount++;
+      const { isOffice, isPriority, isRegular } = getDirectoryItemFlags(
+        list[i],
+      );
+      if (isOffice) officeCount++;
+      if (isPriority) priorityCount++;
+      if (isRegular) regularCount++;
+    }
+  });
+
+  const setTxt = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  setTxt("dir-count-all", allCount);
+  setTxt("dir-count-office", officeCount);
+  setTxt("dir-count-priority", priorityCount);
+  setTxt("dir-count-regular", regularCount);
+
+  const isAll = directoryActiveFilters.size === 0;
+  document.getElementById("dir-chip-all")?.classList.toggle("active", isAll);
+  document
+    .getElementById("dir-chip-office")
+    ?.classList.toggle("active", directoryActiveFilters.has("office"));
+  document
+    .getElementById("dir-chip-priority")
+    ?.classList.toggle("active", directoryActiveFilters.has("priority"));
+  document
+    .getElementById("dir-chip-regular")
+    ?.classList.toggle("active", directoryActiveFilters.has("regular"));
+
+  const summaryEl = document.getElementById("dir-filter-summary");
+  const summaryTextEl = document.getElementById("dir-filter-summary-text");
+  if (summaryEl && summaryTextEl) {
+    if (isAll) {
+      summaryEl.classList.add("hidden");
+      summaryTextEl.textContent = "";
+    } else {
+      const matchedOffices = filteredOffices.length;
+      const matchedAddresses = filteredOffices.reduce(
+        (sum, g) => sum + (g.addresses ? g.addresses.length : 0),
+        0,
+      );
+      summaryTextEl.textContent = `Showing ${matchedOffices} ${
+        matchedOffices === 1 ? "office" : "offices"
+      } • ${matchedAddresses} ${
+        matchedAddresses === 1 ? "address" : "addresses"
+      }`;
+      summaryEl.classList.remove("hidden");
+    }
+  }
+}
+
+function fillDirectoryViewportIfNeeded() {
+  const displayArea = document.getElementById("directory-display-area");
+  if (!displayArea) return;
+
+  const batchSize = getDirectoryBatchSize();
+  let guard = 0;
+  while (
+    guard < 6 &&
+    directoryCurrentPage * batchSize < directoryFilteredData.length &&
+    displayArea.scrollHeight <= displayArea.clientHeight + 180
+  ) {
+    renderDirectoryBatch();
+    guard++;
+  }
+}
+
+function applyDirectoryFilters(options = {}) {
+  const preserveScroll = Boolean(options?.preserveScroll);
+  const minPages = Math.max(1, Number(options?.minPages) || 1);
+
+  const displayArea = document.getElementById("directory-display-area");
+  const prevScroll = preserveScroll && displayArea ? displayArea.scrollTop : 0;
+
+  const filterInput = document.getElementById("directory-filter-input");
+  const filterValue = filterInput ? filterInput.value.toLowerCase().trim() : "";
+
+  const textMatchedOffices = filterValue
+    ? directoryGroupedData.filter((item) =>
+        item.searchString.includes(filterValue),
+      )
+    : directoryGroupedData;
+
+  const isFiltered = directoryActiveFilters.size > 0;
+
+  if (!isFiltered) {
+    directoryFilteredData = textMatchedOffices.map((group) => ({
+      ...group,
+      totalAddresses: group.addresses.length,
+    }));
+  } else {
+    directoryFilteredData = [];
+    textMatchedOffices.forEach((group) => {
+      const matchedAddresses = group.addresses.filter((addr) =>
+        matchesDirectoryUniversalFilter(addr),
+      );
+      if (matchedAddresses.length > 0) {
+        directoryFilteredData.push({
+          ...group,
+          addresses: matchedAddresses,
+          totalAddresses: group.addresses.length,
+        });
+      }
+    });
+  }
+
+  updateDirectoryFilterUI(textMatchedOffices, directoryFilteredData);
+
+  directoryCurrentPage = 0;
+  const contentDiv = document.getElementById("directory-content");
+  if (contentDiv) contentDiv.innerHTML = "";
+
+  const batchSize = getDirectoryBatchSize();
+  for (let i = 0; i < minPages; i++) {
+    if (
+      directoryCurrentPage * batchSize < directoryFilteredData.length ||
+      i === 0
+    ) {
+      renderDirectoryBatch();
+    }
+  }
+
+  fillDirectoryViewportIfNeeded();
+
+  if (displayArea) {
+    displayArea.scrollTop = preserveScroll ? prevScroll : 0;
+  }
+
+  if (
+    !preserveScroll &&
+    typeof directoryHeroController !== "undefined" &&
+    directoryFilteredData.length <= 3
+  ) {
+    directoryHeroController.setCollapsed(false);
+  }
+}
+
+function toggleDirectoryFilterChip(type) {
+  closeAllDirectoryActionTrays();
+
+  if (type === "all") {
+    directoryActiveFilters.clear();
+  } else if (DIRECTORY_FILTER_TYPES.includes(type)) {
+    if (directoryActiveFilters.has(type)) {
+      directoryActiveFilters.delete(type);
+    } else {
+      directoryActiveFilters.add(type);
+    }
+
+    // If all 3 categories are selected together, snap cleanly back to All
+    if (directoryActiveFilters.size === DIRECTORY_FILTER_TYPES.length) {
+      directoryActiveFilters.clear();
+    }
+  }
+
+  if (navigator.vibrate) navigator.vibrate(18);
+  applyDirectoryFilters({ preserveScroll: false, minPages: 1 });
+}
+
+function resetDirectoryUniversalFilters() {
+  closeAllDirectoryActionTrays();
+  directoryActiveFilters.clear();
+  if (navigator.vibrate) navigator.vibrate(18);
+  applyDirectoryFilters({ preserveScroll: false, minPages: 1 });
+}
+
 function renderDirectory() {
   const displayArea = document.getElementById("directory-display-area");
+
+  // Auto-reset universal filter chips & office search whenever Directory is opened
+  directoryActiveFilters.clear();
 
   const filterInput = document.getElementById("directory-filter-input");
   const clearBtn = document.getElementById("clear-dir-filter-btn");
@@ -12,6 +220,7 @@ function renderDirectory() {
   if (clearBtn) clearBtn.classList.add("hidden");
 
   if (!cachedPostOffices || cachedPostOffices.length === 0) {
+    updateDirectoryFilterUI([], []);
     displayArea.innerHTML = `<div class="list-empty">No data available.</div>`;
     return;
   }
@@ -20,9 +229,6 @@ function renderDirectory() {
     buildDirectoryGroupedData();
   }
 
-  directoryFilteredData = [...directoryGroupedData];
-  directoryCurrentPage = 0;
-
   displayArea.innerHTML = `
       <div id="directory-content" style="padding: 4px;"></div>
       <div id="directory-sentinel" style="height: 40px; text-align: center; color: var(--text-light); font-size: 13px; padding: 10px;"></div>
@@ -30,7 +236,7 @@ function renderDirectory() {
   displayArea.scrollTop = 0;
 
   setupDirectoryObserver();
-  renderDirectoryBatch();
+  applyDirectoryFilters({ preserveScroll: false, minPages: 1 });
 }
 
 function renderDirectoryBatch() {
@@ -38,21 +244,46 @@ function renderDirectoryBatch() {
   const sentinel = document.getElementById("directory-sentinel");
   if (!contentDiv) return;
 
-  const startIndex = directoryCurrentPage * DIRECTORY_PAGE_SIZE;
-  const endIndex = startIndex + DIRECTORY_PAGE_SIZE;
+  const batchSize = getDirectoryBatchSize();
+  const startIndex = directoryCurrentPage * batchSize;
+  const endIndex = startIndex + batchSize;
   const batch = directoryFilteredData.slice(startIndex, endIndex);
 
   if (batch.length === 0 && directoryCurrentPage === 0) {
-    contentDiv.innerHTML = `<div class="list-empty">No offices match your filter.</div>`;
+    const isUniversalFiltered = directoryActiveFilters.size > 0;
+    contentDiv.innerHTML = `
+      <div class="list-empty" style="gap: 10px;">
+        <span>${
+          isUniversalFiltered
+            ? "No addresses match your active filter."
+            : "No offices match your filter."
+        }</span>
+        ${
+          isUniversalFiltered
+            ? `<button type="button" class="dm-btn dm-btn-secondary dm-btn-sm" onclick="resetDirectoryUniversalFilters()">Reset Filters</button>`
+            : ""
+        }
+      </div>`;
     if (sentinel) sentinel.style.display = "none";
     return;
   }
 
+  const isUniversalFiltered = directoryActiveFilters.size > 0;
   let html = "";
   batch.forEach((data) => {
     const safeId = "dir-office-" + data.office.replace(/\W/g, "-");
     const addressList = Array.isArray(data.addresses) ? data.addresses : [];
-    const totalAddresses = addressList.length;
+    const shownCount = addressList.length;
+    const totalCount =
+      typeof data.totalAddresses === "number"
+        ? data.totalAddresses
+        : shownCount;
+
+    const countLabel = isUniversalFiltered
+      ? `${shownCount} / ${totalCount} ${
+          totalCount === 1 ? "Address" : "Addresses"
+        }`
+      : `${shownCount} ${shownCount === 1 ? "Address" : "Addresses"}`;
 
     html += `
         <div class="directory-card" id="${safeId}">
@@ -65,9 +296,7 @@ function renderDirectoryBatch() {
               <div class="directory-office-meta">
                 <span>📍 ${escapeHTML(data.pin)}</span>
                 <span class="meta-dot">•</span>
-                <span class="meta-count">${totalAddresses} ${
-      totalAddresses === 1 ? "Address" : "Addresses"
-    }</span>
+                <span class="meta-count">${countLabel}</span>
               </div>
             </div>
   
@@ -76,10 +305,10 @@ function renderDirectoryBatch() {
                 type="button"
                 class="dir-quick-priority-btn"
                 onclick="quickPriorityForOffice('${escapeForOnclick(
-                  data.office
+                  data.office,
                 )}', '${escapeForOnclick(data.pin)}')"
                 title="Mark priority addresses in ${escapeHTML(data.office)}"
-aria-label="Manage priority addresses"
+                aria-label="Manage priority addresses"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -90,7 +319,7 @@ aria-label="Manage priority addresses"
                 type="button"
                 class="dir-quick-add-btn"
                 onclick="quickAddForOffice('${escapeForOnclick(
-                  data.office
+                  data.office,
                 )}', '${escapeForOnclick(data.pin)}')"
                 title="Add multiple addresses to ${escapeHTML(data.office)}"
                 aria-label="Add addresses"
@@ -105,10 +334,10 @@ aria-label="Manage priority addresses"
                 type="button"
                 class="dir-quick-delete-btn"
                 onclick="quickDeleteForOffice('${escapeForOnclick(
-                  data.office
+                  data.office,
                 )}', '${escapeForOnclick(data.pin)}')"
                 title="Delete multiple addresses from ${escapeHTML(
-                  data.office
+                  data.office,
                 )}"
                 aria-label="Delete addresses"
               >
@@ -130,36 +359,40 @@ aria-label="Manage priority addresses"
       const recordId = typeof item === "object" ? item.id : "";
       const officeName = typeof item === "object" ? item.Office : data.office;
       const pinVal = typeof item === "object" ? item.Pin : data.pin;
-      const isPriority = typeof item === "object" && Number(item.priority) >= 1;
-      const officeType = detectOfficeType(addressText);
+      const isPriority =
+        typeof item === "object" && Number(item.priority) >= 1;
+      const officeType =
+        typeof item === "object" && item.officeType !== undefined
+          ? item.officeType
+          : detectOfficeType(addressText);
 
       if (officeType) {
         html += `<span class="directory-address-chip clickable-office-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
-          recordId
+          recordId,
         )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
-          officeName
+          officeName,
         )}" data-pin="${escapeHTML(
-          pinVal || ""
+          pinVal || "",
         )}" title="Tap for options">📮 ${escapeHTML(addressText)}${
           isPriority ? " ⚡" : ""
         }</span>`;
       } else if (isPriority) {
         html += `<span class="directory-address-chip priority-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
-          recordId
+          recordId,
         )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
-          officeName
+          officeName,
         )}" data-pin="${escapeHTML(
-          pinVal || ""
+          pinVal || "",
         )}" title="Priority Address (Shared) • Tap for options">⚡ ${escapeHTML(
-          addressText
+          addressText,
         )}</span>`;
       } else {
         html += `<span class="directory-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
-          recordId
+          recordId,
         )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
-          officeName
+          officeName,
         )}" data-pin="${escapeHTML(
-          pinVal || ""
+          pinVal || "",
         )}" title="Tap for options">${escapeHTML(addressText)}</span>`;
       }
     });
@@ -193,10 +426,8 @@ function setupDirectoryObserver() {
   directoryObserver = new IntersectionObserver(
     (entries) => {
       if (entries[0].isIntersecting) {
-        if (
-          directoryCurrentPage * DIRECTORY_PAGE_SIZE <
-          directoryFilteredData.length
-        ) {
+        const batchSize = getDirectoryBatchSize();
+        if (directoryCurrentPage * batchSize < directoryFilteredData.length) {
           renderDirectoryBatch();
         }
       }
@@ -205,7 +436,7 @@ function setupDirectoryObserver() {
       root: displayArea,
       rootMargin: "300px",
       threshold: 0.1,
-    }
+    },
   );
 
   if (sentinel) directoryObserver.observe(sentinel);
@@ -243,24 +474,7 @@ function goToDirectoryOffice(officeName) {
 }
 
 function filterDirectory() {
-  const filterValue = document
-    .getElementById("directory-filter-input")
-    .value.toLowerCase()
-    .trim();
-
-  if (!filterValue) {
-    directoryFilteredData = [...directoryGroupedData];
-  } else {
-    directoryFilteredData = directoryGroupedData.filter((item) =>
-      item.searchString.includes(filterValue)
-    );
-  }
-
-  directoryCurrentPage = 0;
-  const contentDiv = document.getElementById("directory-content");
-  if (contentDiv) contentDiv.innerHTML = "";
-
-  renderDirectoryBatch();
+  applyDirectoryFilters({ preserveScroll: false, minPages: 1 });
 }
 
 function toggleDirClearBtn() {

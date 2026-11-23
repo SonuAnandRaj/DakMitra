@@ -1442,6 +1442,69 @@
             </div>
           </div>
 
+          <!-- UNIVERSAL DIRECTORY FILTER BAR (Stays pinned when hero collapses) -->
+          <div id="directory-universal-filters" class="dir-filter-bar">
+            <div
+              class="dir-filter-chips"
+              role="group"
+              aria-label="Filter directory addresses"
+            >
+              <button
+                type="button"
+                id="dir-chip-all"
+                class="dir-filter-chip active"
+                onclick="toggleDirectoryFilterChip('all')"
+              >
+                <span>All</span>
+                <span class="dir-chip-count" id="dir-count-all">0</span>
+              </button>
+
+              <button
+                type="button"
+                id="dir-chip-office"
+                class="dir-filter-chip is-office"
+                onclick="toggleDirectoryFilterChip('office')"
+                title="Show BO, SO, and HO addresses"
+              >
+                <span>📮 Offices</span>
+                <span class="dir-chip-count" id="dir-count-office">0</span>
+              </button>
+
+              <button
+                type="button"
+                id="dir-chip-priority"
+                class="dir-filter-chip is-priority"
+                onclick="toggleDirectoryFilterChip('priority')"
+                title="Show Priority addresses"
+              >
+                <span>⚡ Priority</span>
+                <span class="dir-chip-count" id="dir-count-priority">0</span>
+              </button>
+
+              <button
+                type="button"
+                id="dir-chip-regular"
+                class="dir-filter-chip is-regular"
+                onclick="toggleDirectoryFilterChip('regular')"
+                title="Show regular villages (non-office, non-priority)"
+              >
+                <span>Regular</span>
+                <span class="dir-chip-count" id="dir-count-regular">0</span>
+              </button>
+            </div>
+
+            <div id="dir-filter-summary" class="dir-filter-summary hidden">
+              <span id="dir-filter-summary-text"></span>
+              <button
+                type="button"
+                class="dir-filter-reset-btn"
+                onclick="resetDirectoryUniversalFilters()"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+
           <div
             class="results-container-scroll expanded"
             id="directory-display-area"

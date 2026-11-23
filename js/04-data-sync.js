@@ -272,6 +272,7 @@ function buildDirectoryGroupedData() {
       Address: row.Address || "",
       Office: grouped[officeKey].office,
       Pin: row.Pin || "",
+      officeType: detectOfficeType(row.Address),
       priority: Number(row.priority) >= 1 ? 1 : 0,
       effectivePriority: getEffectivePriority(row),
     });
@@ -285,7 +286,7 @@ function buildDirectoryGroupedData() {
       addresses: group.addresses.sort(
         (a, b) =>
           b.effectivePriority - a.effectivePriority ||
-          String(a.Address).localeCompare(String(b.Address))
+          String(a.Address).localeCompare(String(b.Address)),
       ),
       searchString: (group.office + " " + group.pin).toLowerCase(),
     }));
@@ -491,35 +492,12 @@ function refreshDirectoryInPlace() {
   const dirView = document.getElementById("view-directory");
   if (!dirView || !dirView.classList.contains("active")) return;
 
-  const displayArea = document.getElementById("directory-display-area");
-  const prevScroll = displayArea ? displayArea.scrollTop : 0;
   const pagesToRender = Math.max(1, directoryCurrentPage);
-
-  const filterInput = document.getElementById("directory-filter-input");
-  const filterValue = filterInput ? filterInput.value.toLowerCase().trim() : "";
-
-  directoryFilteredData = filterValue
-    ? directoryGroupedData.filter((item) =>
-        item.searchString.includes(filterValue)
-      )
-    : [...directoryGroupedData];
-
-  directoryCurrentPage = 0;
-  const contentDiv = document.getElementById("directory-content");
-  if (contentDiv) contentDiv.innerHTML = "";
-
-  for (let i = 0; i < pagesToRender; i++) {
-    if (
-      directoryCurrentPage * DIRECTORY_PAGE_SIZE <
-        directoryFilteredData.length ||
-      i === 0
-    ) {
-      if (typeof renderDirectoryBatch === "function") renderDirectoryBatch();
-    }
-  }
-
-  if (displayArea) {
-    displayArea.scrollTop = prevScroll;
+  if (typeof applyDirectoryFilters === "function") {
+    applyDirectoryFilters({
+      preserveScroll: true,
+      minPages: pagesToRender,
+    });
   }
 }
 
