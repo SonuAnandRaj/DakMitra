@@ -29,11 +29,11 @@
 
 Always place new styles in the matching layer to preserve the cascade:
 
-| File | Responsibility |
-| :--- | :--- |
-| `css/01-base-layout.css` | `:root` & `[data-theme="dark"]` tokens, native PWA reset (`user-select: none`, tap highlight removal), `.status-bar-cover`, `.app-bar`, `.sidebar`, `.bottom-nav`, `.container`, `.view-section`, `.dm-scroll-locked`, base `body.keyboard-open` rules |
-| `css/02-components.css` | `.dm-surface`, `.dm-header`, `.dm-icon-badge`, `.dm-close-btn`, `.dm-btn*`, `.modal-overlay` / `.modal-card`, semantic `.toast` variants, `.badge`, `.autocomplete-dropdown`, `.skeleton-*`, `.approvals-spinner`, `.splash-screen`, `prefers-reduced-motion` |
-| `css/03-views.css` | Collapsible heroes, Search view (ambient glow, active filter pills, `List \| Table` switch, card cascade, AI fallback cards), Directory view (cards, chips, floating bar, Quick-Add/Delete, Staff CRUD modal), Edit Record modal, Approvals cards, Upload/Bulk forms, Profile view, Auth view (orbs & sliding tabs), Full-Screen Photo Cropper & Lightbox, view-level `body.keyboard-open` overrides |
+| File                     | Responsibility                                                                                                                                                                                                                                                                                                                                                                                       |
+| :----------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `css/01-base-layout.css` | `:root` & `[data-theme="dark"]` tokens, native PWA reset (`user-select: none`, tap highlight removal), `.status-bar-cover`, `.app-bar`, `.sidebar`, `.bottom-nav`, `.container`, `.view-section`, `.dm-scroll-locked`, base `body.keyboard-open` rules                                                                                                                                               |
+| `css/02-components.css`  | `.dm-surface`, `.dm-header`, `.dm-icon-badge`, `.dm-close-btn`, `.dm-btn*`, `.modal-overlay` / `.modal-card`, semantic `.toast` variants, `.badge`, `.autocomplete-dropdown`, `.skeleton-*`, `.approvals-spinner`, `.splash-screen`, `prefers-reduced-motion`                                                                                                                                        |
+| `css/03-views.css`       | Collapsible heroes, Search view (ambient glow, active filter pills, `List \| Table` switch, card cascade, AI fallback cards), Directory view (cards, chips, floating bar, Quick-Add/Delete, Staff CRUD modal), Edit Record modal, Approvals cards, Upload/Bulk forms, Profile view, Auth view (orbs & sliding tabs), Full-Screen Photo Cropper & Lightbox, view-level `body.keyboard-open` overrides |
 
 ---
 
@@ -41,29 +41,30 @@ Always place new styles in the matching layer to preserve the cascade:
 
 Defined in `css/01-base-layout.css`:
 
-| Token | Light Mode | Dark Mode (OLED) | Role |
-| :--- | :--- | :--- | :--- |
-| `--primary` / `--primary-hover` | `#4f46e5` / `#4338ca` | `#818cf8` / `#a5b4fc` | Brand primary & active states |
-| `--accent` | `#f59e0b` | `#fbbf24` | Brand amber accent & highlights |
-| `--bg` | `#f8fafc` | `#090e17` | App canvas & system notch/bar fill |
-| `--card-bg` | `#ffffff` | `#111827` | Card & modal background |
-| `--text` / `--text-light` | `#0f172a` / `#475569` | `#f9fafb` / `#9ca3af` | Primary & secondary text |
-| `--border` | `#e2e8f0` | `#1f2937` | Standard dividers & borders |
-| `--input-bg` / `--input-border` | `#f1f5f9` / `#cbd5e1` | `#1f2937` / `#374151` | Form input fills & strokes |
-| `--btn-secondary` / `...-hover` | `#f1f5f9` / `#e2e8f0` | `#1f2937` / `#374151` | Neutral secondary surfaces |
-| `--success-bg` / `...-text` / `...-border` | `#dcfce7` / `#166534` / `#4ade80` | `#064e3b` / `#34d399` / `#059669` | Verified/call/success badges |
-| `--stripe-bg` | `rgba(79, 70, 229, 0.04)` | `rgba(129, 140, 248, 0.05)` | Subtle tinted stripes & header washes |
-| `--dm-border-tint` | `rgba(79, 70, 229, 0.18)` | `rgba(129, 140, 248, 0.24)` | Signature tinted card/modal border |
-| `--dm-glass-bg` | `rgba(255, 255, 255, 0.88)` | `rgba(17, 24, 39, 0.86)` | Frosted glass for toasts & popovers |
-| `--dm-shadow-modal` | `0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(79, 70, 229, 0.08)` | `0 24px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(129, 140, 248, 0.12)` | Deep modal & popover elevation |
-| `--dm-gradient-brand` | `linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)` | Same | Brand headers, top bars, avatars, AI badge |
-| `--dm-gradient-btn` | `linear-gradient(135deg, var(--primary) 0%, #6366f1 50%, var(--accent) 100%)` | Same | Primary action buttons |
-| `--dm-gradient-danger` | `linear-gradient(135deg, #ef4444 0%, #dc2626 55%, #f97316 100%)` | Same | Destructive action buttons |
-| `--dm-gradient-success` | `linear-gradient(135deg, #10b981 0%, #059669 100%)` | Same | Button `.is-success` completion state |
-| `--dm-ease-spring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | Same | Modals, sliders, popovers, chips |
-| `--dm-ease-smooth` | `cubic-bezier(0.22, 1, 0.36, 1)` | Same | Reveals, cascades, media studios |
+| Token                                      | Light Mode                                                                    | Dark Mode (OLED)                                                            | Role                                       |
+| :----------------------------------------- | :---------------------------------------------------------------------------- | :-------------------------------------------------------------------------- | :----------------------------------------- |
+| `--primary` / `--primary-hover`            | `#4f46e5` / `#4338ca`                                                         | `#818cf8` / `#a5b4fc`                                                       | Brand primary & active states              |
+| `--accent`                                 | `#f59e0b`                                                                     | `#fbbf24`                                                                   | Brand amber accent & highlights            |
+| `--bg`                                     | `#f8fafc`                                                                     | `#090e17`                                                                   | App canvas & system notch/bar fill         |
+| `--card-bg`                                | `#ffffff`                                                                     | `#111827`                                                                   | Card & modal background                    |
+| `--text` / `--text-light`                  | `#0f172a` / `#475569`                                                         | `#f9fafb` / `#9ca3af`                                                       | Primary & secondary text                   |
+| `--border`                                 | `#e2e8f0`                                                                     | `#1f2937`                                                                   | Standard dividers & borders                |
+| `--input-bg` / `--input-border`            | `#f1f5f9` / `#cbd5e1`                                                         | `#1f2937` / `#374151`                                                       | Form input fills & strokes                 |
+| `--btn-secondary` / `...-hover`            | `#f1f5f9` / `#e2e8f0`                                                         | `#1f2937` / `#374151`                                                       | Neutral secondary surfaces                 |
+| `--success-bg` / `...-text` / `...-border` | `#dcfce7` / `#166534` / `#4ade80`                                             | `#064e3b` / `#34d399` / `#059669`                                           | Verified/call/success badges               |
+| `--stripe-bg`                              | `rgba(79, 70, 229, 0.04)`                                                     | `rgba(129, 140, 248, 0.05)`                                                 | Subtle tinted stripes & header washes      |
+| `--dm-border-tint`                         | `rgba(79, 70, 229, 0.18)`                                                     | `rgba(129, 140, 248, 0.24)`                                                 | Signature tinted card/modal border         |
+| `--dm-glass-bg`                            | `rgba(255, 255, 255, 0.88)`                                                   | `rgba(17, 24, 39, 0.86)`                                                    | Frosted glass for toasts & popovers        |
+| `--dm-shadow-modal`                        | `0 24px 48px -12px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(79, 70, 229, 0.08)` | `0 24px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(129, 140, 248, 0.12)` | Deep modal & popover elevation             |
+| `--dm-gradient-brand`                      | `linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)`              | Same                                                                        | Brand headers, top bars, avatars, AI badge |
+| `--dm-gradient-btn`                        | `linear-gradient(135deg, var(--primary) 0%, #6366f1 50%, var(--accent) 100%)` | Same                                                                        | Primary action buttons                     |
+| `--dm-gradient-danger`                     | `linear-gradient(135deg, #ef4444 0%, #dc2626 55%, #f97316 100%)`              | Same                                                                        | Destructive action buttons                 |
+| `--dm-gradient-success`                    | `linear-gradient(135deg, #10b981 0%, #059669 100%)`                           | Same                                                                        | Button `.is-success` completion state      |
+| `--dm-ease-spring`                         | `cubic-bezier(0.34, 1.56, 0.64, 1)`                                           | Same                                                                        | Modals, sliders, popovers, chips           |
+| `--dm-ease-smooth`                         | `cubic-bezier(0.22, 1, 0.36, 1)`                                              | Same                                                                        | Reveals, cascades, media studios           |
 
 ### Dynamic Keyboard & Viewport Variables (Managed by `js/03-ui-shell.js`)
+
 - `--vvh`: Current `visualViewport.height` (fallback `100dvh`)
 - `--vv-top`: Current `visualViewport.offsetTop` (`0px`)
 - `--kb-height`: Computed software keyboard height when `body.keyboard-open` is active
@@ -73,61 +74,67 @@ Defined in `css/01-base-layout.css`:
 
 ## 4. Z-Index Layering Map (Sacred — Do Not Break)
 
-| Layer | Selector | `z-index` |
-| :--- | :--- | :---: |
-| Sticky table headers | `table.data-table th` | `10` |
-| Collapsible hero wrapper | `.search-hero-collapse-wrap` | `20` |
-| Active autocomplete field | `.manual-entry-row:focus-within`, `.edit-modal-field:focus-within` | `50` |
-| Top App Bar | `.app-bar` | `100` |
-| Android Notch Cover | `.status-bar-cover` | `101` |
-| Floating Bottom Nav | `.bottom-nav` | `900` |
-| Floating Action Popover | `.directory-floating-bar` | `950` |
-| Sidebar Backdrop | `.sidebar-overlay` | `999` |
-| Sidebar Drawer & Autocomplete Dropdown | `.sidebar`, `.autocomplete-dropdown` | `1000` |
-| Standard Modals (History, Office Staff, Edit, Quick-Add, Quick-Delete) | `.modal-overlay` | `3000` |
-| Full-Screen Photo Lightbox | `#avatar-lightbox-overlay` | `3400` |
-| Full-Screen Photo Cropper Studio | `#crop-modal-overlay` | `3500` |
-| Confirm & System Alert Modals | `#confirm-modal-overlay`, `#alert-modal-overlay` | `4000` |
-| Semantic Toast Notification | `.toast` | `5000` |
-| Native-Style Splash Screen | `.splash-screen` | `9999` |
+| Layer                                                                  | Selector                                                           | `z-index` |
+| :--------------------------------------------------------------------- | :----------------------------------------------------------------- | :-------: |
+| Sticky table headers                                                   | `table.data-table th`                                              |   `10`    |
+| Collapsible hero wrapper                                               | `.search-hero-collapse-wrap`                                       |   `20`    |
+| Active autocomplete field                                              | `.manual-entry-row:focus-within`, `.edit-modal-field:focus-within` |   `50`    |
+| Top App Bar                                                            | `.app-bar`                                                         |   `100`   |
+| Android Notch Cover                                                    | `.status-bar-cover`                                                |   `101`   |
+| Floating Bottom Nav                                                    | `.bottom-nav`                                                      |   `900`   |
+| Floating Action Popover                                                | `.directory-floating-bar`                                          |   `950`   |
+| Sidebar Backdrop                                                       | `.sidebar-overlay`                                                 |   `999`   |
+| Sidebar Drawer & Autocomplete Dropdown                                 | `.sidebar`, `.autocomplete-dropdown`                               |  `1000`   |
+| Standard Modals (History, Office Staff, Edit, Quick-Add, Quick-Delete) | `.modal-overlay`                                                   |  `3000`   |
+| Full-Screen Photo Lightbox                                             | `#avatar-lightbox-overlay`                                         |  `3400`   |
+| Full-Screen Photo Cropper Studio                                       | `#crop-modal-overlay`                                              |  `3500`   |
+| Confirm & System Alert Modals                                          | `#confirm-modal-overlay`, `#alert-modal-overlay`                   |  `4000`   |
+| Semantic Toast Notification                                            | `.toast`                                                           |  `5000`   |
+| Native-Style Splash Screen                                             | `.splash-screen`                                                   |  `9999`   |
 
 ---
 
 ## 5. Implemented Component Primitives
 
 ### 5.1 Surfaces & Modals
+
 - **`.dm-surface`**: Standard elevated card with `24px` radius, `var(--dm-border-tint)` border, and `4px` top gradient bar. Used on Auth, Settings, Upload, and Help cards.
-  - *Note:* `#view-upload .upload-card.dm-surface` overrides `overflow: visible` so office autocomplete dropdowns never clip.
+  - _Note:_ `#view-upload .upload-card.dm-surface` overrides `overflow: visible` so office autocomplete dropdowns never clip.
 - **`.modal-overlay` + `.modal-card`**: Frosted backdrop (`backdrop-filter: blur(4px)`), spring entrance (`translateY(-18px) scale(0.96)` → `0, 1`), `24px` radius, `4px` gradient top bar.
 - **`.modal-card.edit-modal-card`**: `max-width: 440px`, `overflow: visible` (for inline office autocomplete), paired with staggered `.edit-modal-field` entrance animations. Add `.delete-modal-card` for red-to-amber top bar styling.
 
 ### 5.2 Headers, Icon Badges & Close Buttons
+
 - **`.dm-header` / `.dm-header-left`**: Left-aligned flex header for cards and modals.
 - **`.dm-icon-badge`**: `42px` squircle (`border-radius: 14px`) with subtle indigo-amber tint. Add `.danger` for red-amber danger tint.
 - **`.dm-close-btn`**: `34px` circular close button (`rotate(90deg)` on hover, `scale(0.9)` on press).
-- *(Edit/Quick-Add/Quick-Delete modals also use equivalent `.edit-modal-header`, `.edit-modal-icon` / `.delete-modal-icon`, and `.edit-modal-close-btn` classes.)*
+- _(Edit/Quick-Add/Quick-Delete modals also use equivalent `.edit-modal-header`, `.edit-modal-icon` / `.delete-modal-icon`, and `.edit-modal-close-btn` classes.)_
 
 ### 5.3 Button System
-| Class | Use Case |
-| :--- | :--- |
-| `.dm-btn.dm-btn-primary` | Primary CTA with shifting brand gradient & sweeping sheen (`Sign In`, `Submit`, `Save`, `Sync`, `Approve`) |
-| `.dm-btn.dm-btn-danger` | High-impact destructive CTA (`Confirm Delete`) |
-| `.dm-btn.dm-btn-secondary` | Cancel, Passkey sign-in, neutral secondary actions |
-| `.dm-btn.dm-btn-danger-soft` | Tinted red actions (`Clear App Cache`, `Reject`, `Delete Request`) |
-| `.dm-btn-sm` / `.dm-btn-full` | Compact `38px` height modifier / `width: 100%` modifier |
+
+| Class                                       | Use Case                                                                                                                 |
+| :------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------- |
+| `.dm-btn.dm-btn-primary`                    | Primary CTA with shifting brand gradient & sweeping sheen (`Sign In`, `Submit`, `Save`, `Sync`, `Approve`)               |
+| `.dm-btn.dm-btn-danger`                     | High-impact destructive CTA (`Confirm Delete`)                                                                           |
+| `.dm-btn.dm-btn-secondary`                  | Cancel, Passkey sign-in, neutral secondary actions                                                                       |
+| `.dm-btn.dm-btn-danger-soft`                | Tinted red actions (`Clear App Cache`, `Reject`, `Delete Request`)                                                       |
+| `.dm-btn-sm` / `.dm-btn-full`               | Compact `38px` height modifier / `width: 100%` modifier                                                                  |
 | `.btn-save-profile` / `.btn-delete-profile` | Full-width `54px`/`50px` animated gradient buttons used in Profile Edit, Inline Edit, Quick-Add, and Quick-Delete modals |
 
 **3-State Async Feedback (`js/02-utils.js`):**
 Call `setButtonState(btn, "loading" | "success" | "idle", label)` to automatically transition `.dm-btn` buttons through spinner → animated SVG checkmark (`.checkmark-path`) → original HTML restoration.
 
 ### 5.4 Interactive Inputs & Autocomplete
+
 - **`.profile-input-wrapper`**: Icon-prefixed inputs (`padding-left: 44px`, `border-radius: 14px`) used in Auth, Profile Edit, Inline Edit, and Quick-Delete filter.
 - **`.autocomplete-wrapper` + `.autocomplete-dropdown.show`**: Pops in with `dropdownPopIn` (`--dm-ease-spring`), rounded `18px` container, `30px` `.ac-item-icon` badge, and `.ac-item-pin` pill. Always keep parent rows/fields elevated via `:focus-within { z-index: 50 }`.
 
 ### 5.5 Semantic Frosted-Glass Toasts (`js/02-utils.js`)
+
 `showToast(message, type)` auto-detects semantic type from message keywords/emojis (or accepts explicit `"success"`, `"error"`, `"warning"`, `"info"`) and applies `.toast-success` (emerald), `.toast-error` (red), `.toast-warning` (amber), or `.toast-info` (indigo) with `blur(18px)` and haptic vibration (`50ms`, or `[40, 40, 40]` for errors).
 
 ### 5.6 Sliding Segmented Controls
+
 - **Auth Tabs (`.auth-segmented-tabs` + `.auth-tab-slider`):** Toggles `.is-signup` to slide the pill indicator smoothly across `Sign In | Sign Up`.
 - **Search View Switch (`.view-mode-switch` + `.view-mode-slider`):** Toggles `.is-table` to slide across `List | Table`.
 
@@ -156,18 +163,18 @@ Call `setButtonState(btn, "loading" | "success" | "idle", label)` to automatical
 
 ## 7. Motion Choreography & Accessibility
 
-| Interaction | Keyframe / Property | Easing | Duration |
-| :--- | :--- | :--- | :---: |
-| Modal open/close | `translateY(-18px) scale(0.96)` → `0, 1` | `--dm-ease-spring` | `0.36s` |
-| Staggered fields | `editFieldSlideIn` (`40ms`, `90ms`, `140ms`) | `--dm-ease-smooth` | `0.32s` |
-| Search card cascade (first 8) | `dmCardCascade` (`20ms`–`230ms` stagger) | `--dm-ease-smooth` | `0.34s` |
-| Popover & buttons | `scale(0.84)` + `popoverBtnPop` (`20ms`–`140ms`) | `--dm-ease-spring` | `0.32s` / `0.26s` |
-| Autocomplete dropdown | `dropdownPopIn` | `--dm-ease-spring` | `0.24s` |
-| Collapsible hero | `grid-template-rows: 1fr` → `0fr` | `cubic-bezier(0.25, 0.1, 0.25, 1)` | `0.90s` |
-| Button sheen sweep | `btnShine` | `ease-in-out` | `4.0s` loop |
-| Checkmark draw | `drawCheck` | `cubic-bezier(0.4, 0, 0.2, 1)` | `0.40s` |
-| Record updated glow | `recordUpdatedPulse` (`.record-updated-flash`) | `ease-out` | `1.10s` |
-| Splash exit | `opacity: 0` + `scale(1.04)` | `--dm-ease-smooth` | `0.34s` |
+| Interaction                   | Keyframe / Property                              | Easing                             |     Duration      |
+| :---------------------------- | :----------------------------------------------- | :--------------------------------- | :---------------: |
+| Modal open/close              | `translateY(-18px) scale(0.96)` → `0, 1`         | `--dm-ease-spring`                 |      `0.36s`      |
+| Staggered fields              | `editFieldSlideIn` (`40ms`, `90ms`, `140ms`)     | `--dm-ease-smooth`                 |      `0.32s`      |
+| Search card cascade (first 8) | `dmCardCascade` (`20ms`–`230ms` stagger)         | `--dm-ease-smooth`                 |      `0.34s`      |
+| Popover & buttons             | `scale(0.84)` + `popoverBtnPop` (`20ms`–`140ms`) | `--dm-ease-spring`                 | `0.32s` / `0.26s` |
+| Autocomplete dropdown         | `dropdownPopIn`                                  | `--dm-ease-spring`                 |      `0.24s`      |
+| Collapsible hero              | `grid-template-rows: 1fr` → `0fr`                | `cubic-bezier(0.25, 0.1, 0.25, 1)` |      `0.90s`      |
+| Button sheen sweep            | `btnShine`                                       | `ease-in-out`                      |    `4.0s` loop    |
+| Checkmark draw                | `drawCheck`                                      | `cubic-bezier(0.4, 0, 0.2, 1)`     |      `0.40s`      |
+| Record updated glow           | `recordUpdatedPulse` (`.record-updated-flash`)   | `ease-out`                         |      `1.10s`      |
+| Splash exit                   | `opacity: 0` + `scale(1.04)`                     | `--dm-ease-smooth`                 |      `0.34s`      |
 
 **Reduced Motion Safety Net (`css/02-components.css`):**
 `@media (prefers-reduced-motion: reduce)` forces `animation-duration` and `transition-duration` to `0.01ms` globally.

@@ -4,613 +4,740 @@
 
 // --- VIEW MODE & FILTER CONTROLS ---
 function setViewMode(mode, shouldRender = true) {
-    viewMode = mode;
-    document
-      .getElementById("view-list-btn")
-      .classList.toggle("active", mode === "list");
-    document
-      .getElementById("view-table-btn")
-      .classList.toggle("active", mode === "table");
-    document
-      .getElementById("view-mode-switch")
-      ?.classList.toggle("is-table", mode === "table");
-    if (shouldRender) renderResults();
+  viewMode = mode;
+  document
+    .getElementById("view-list-btn")
+    .classList.toggle("active", mode === "list");
+  document
+    .getElementById("view-table-btn")
+    .classList.toggle("active", mode === "table");
+  document
+    .getElementById("view-mode-switch")
+    ?.classList.toggle("is-table", mode === "table");
+  if (shouldRender) renderResults();
+}
+
+function toggleAdvancedFilters() {
+  document.getElementById("advanced-filters-panel").classList.toggle("hidden");
+}
+
+function toggleClearBtn(inputId, btnId) {
+  const input = document.getElementById(inputId);
+  const clearBtn = document.getElementById(btnId);
+  if (input.value.length > 0) clearBtn.classList.remove("hidden");
+  else clearBtn.classList.add("hidden");
+}
+
+function clearFilterInput(inputId, btnId) {
+  const input = document.getElementById(inputId);
+  input.value = "";
+  document.getElementById(btnId).classList.add("hidden");
+  triggerSearch();
+
+  if (inputId === "filter-office") {
+    input.focus();
+    handleSearchOfficeFilterInput(input);
   }
-  
-  function toggleAdvancedFilters() {
-    document.getElementById("advanced-filters-panel").classList.toggle("hidden");
+}
+
+// --- ACTIVE SEARCH FILTER VISUAL INDICATORS ---
+function updateActiveFilterIndicators() {
+  const filterVal =
+    document.querySelector('input[name="searchFilter"]:checked')?.value ||
+    "address";
+  const filterOffice =
+    document.getElementById("filter-office")?.value.trim() || "";
+  const filterPin = document.getElementById("filter-pin")?.value.trim() || "";
+
+  const activeFilters = [];
+
+  if (filterVal !== "address") {
+    const labels = {
+      all: "All Fields",
+      office: "Office Only",
+      pin: "PIN Only",
+    };
+    activeFilters.push({
+      type: "mode",
+      label: `🔍 ${labels[filterVal] || filterVal}`,
+    });
   }
-  
-  function toggleClearBtn(inputId, btnId) {
-    const input = document.getElementById(inputId);
-    const clearBtn = document.getElementById(btnId);
-    if (input.value.length > 0) clearBtn.classList.remove("hidden");
-    else clearBtn.classList.add("hidden");
+  if (filterOffice) {
+    activeFilters.push({ type: "office", label: `🏢 ${filterOffice}` });
   }
-  
-  function clearFilterInput(inputId, btnId) {
-    const input = document.getElementById(inputId);
-    input.value = "";
-    document.getElementById(btnId).classList.add("hidden");
-    triggerSearch();
-  
-    if (inputId === "filter-office") {
-      input.focus();
-      handleSearchOfficeFilterInput(input);
-    }
+  if (filterPin) {
+    activeFilters.push({ type: "pin", label: `📍 ${filterPin}` });
   }
-  
-  // --- ACTIVE SEARCH FILTER VISUAL INDICATORS ---
-  function updateActiveFilterIndicators() {
-    const filterVal =
-      document.querySelector('input[name="searchFilter"]:checked')?.value ||
-      "address";
-    const filterOffice =
-      document.getElementById("filter-office")?.value.trim() || "";
-    const filterPin = document.getElementById("filter-pin")?.value.trim() || "";
-  
-    const activeFilters = [];
-  
-    if (filterVal !== "address") {
-      const labels = {
-        all: "All Fields",
-        office: "Office Only",
-        pin: "PIN Only",
-      };
-      activeFilters.push({
-        type: "mode",
-        label: `🔍 ${labels[filterVal] || filterVal}`,
-      });
-    }
-    if (filterOffice) {
-      activeFilters.push({ type: "office", label: `🏢 ${filterOffice}` });
-    }
-    if (filterPin) {
-      activeFilters.push({ type: "pin", label: `📍 ${filterPin}` });
-    }
-    if (window.activeSmartOfficeFilter) {
-      activeFilters.push({
-        type: "smart-office",
-        label: `🏢 ${window.activeSmartOfficeFilter.office} (${window.activeSmartOfficeFilter.suffix})`,
-      });
-    }
-  
-    const toggleBtn = document.getElementById("advanced-filter-toggle-btn");
-    const bar = document.getElementById("active-filters-bar");
-    const searchWrapper = document.querySelector(
-      "#view-search .search-bar-modern .search-input-wrapper"
-    );
-  
-    const count = activeFilters.length;
-  
-    if (count === 0) {
-      if (toggleBtn) {
-        toggleBtn.classList.remove("has-active-filters");
-        toggleBtn.innerHTML = "⚙️ Search Options";
-      }
-      if (bar) {
-        bar.classList.add("hidden");
-        bar.innerHTML = "";
-      }
-      if (searchWrapper) searchWrapper.classList.remove("has-active-filters");
-      return;
-    }
-  
+  if (window.activeSmartOfficeFilter) {
+    activeFilters.push({
+      type: "smart-office",
+      label: `🏢 ${window.activeSmartOfficeFilter.office} (${window.activeSmartOfficeFilter.suffix})`,
+    });
+  }
+
+  const toggleBtn = document.getElementById("advanced-filter-toggle-btn");
+  const bar = document.getElementById("active-filters-bar");
+  const searchWrapper = document.querySelector(
+    "#view-search .search-bar-modern .search-input-wrapper",
+  );
+
+  const count = activeFilters.length;
+
+  if (count === 0) {
     if (toggleBtn) {
-      toggleBtn.classList.add("has-active-filters");
-      toggleBtn.innerHTML = `
+      toggleBtn.classList.remove("has-active-filters");
+      toggleBtn.innerHTML = "⚙️ Search Options";
+    }
+    if (bar) {
+      bar.classList.add("hidden");
+      bar.innerHTML = "";
+    }
+    if (searchWrapper) searchWrapper.classList.remove("has-active-filters");
+    return;
+  }
+
+  if (toggleBtn) {
+    toggleBtn.classList.add("has-active-filters");
+    toggleBtn.innerHTML = `
         <span class="filter-pulse-dot"></span>
         <span>⚙️ Filtered</span>
         <span class="filter-count-badge">${count}</span>
       `;
-    }
-  
-    if (searchWrapper) searchWrapper.classList.add("has-active-filters");
-  
-    if (bar) {
-      let html = activeFilters
-        .map(
-          (f) => `
+  }
+
+  if (searchWrapper) searchWrapper.classList.add("has-active-filters");
+
+  if (bar) {
+    let html = activeFilters
+      .map(
+        (f) => `
             <span class="active-filter-pill">
               <span>${escapeHTML(f.label)}</span>
               <button type="button" onclick="removeSingleFilter('${f.type}')" title="Remove filter">✕</button>
             </span>
-          `
-        )
-        .join("");
-  
-      if (count > 1) {
-        html += `<button type="button" class="clear-all-filters-pill" onclick="clearAllSearchFilters()">Clear all</button>`;
-      }
-  
-      bar.innerHTML = html;
-      bar.classList.remove("hidden");
+          `,
+      )
+      .join("");
+
+    if (count > 1) {
+      html += `<button type="button" class="clear-all-filters-pill" onclick="clearAllSearchFilters()">Clear all</button>`;
     }
+
+    bar.innerHTML = html;
+    bar.classList.remove("hidden");
   }
-  
-  function removeSingleFilter(type) {
-    if (type === "mode") {
-      const defaultRadio = document.querySelector(
-        'input[name="searchFilter"][value="address"]'
-      );
-      if (defaultRadio) defaultRadio.checked = true;
-    } else if (type === "office") {
-      const el = document.getElementById("filter-office");
-      if (el) el.value = "";
-      document.getElementById("clear-office-btn")?.classList.add("hidden");
-    } else if (type === "pin") {
-      const el = document.getElementById("filter-pin");
-      if (el) el.value = "";
-      document.getElementById("clear-pin-btn")?.classList.add("hidden");
-    } else if (type === "smart-office") {
-      const searchEl = document.getElementById("search-input");
-      if (searchEl && window.activeCleanSearchQuery !== undefined) {
-        searchEl.value = window.activeCleanSearchQuery;
-      }
-      window.activeSmartOfficeFilter = null;
-    }
-  
-    triggerSearch();
-  }
-  
-  function clearAllSearchFilters() {
+}
+
+function removeSingleFilter(type) {
+  if (type === "mode") {
     const defaultRadio = document.querySelector(
-      'input[name="searchFilter"][value="address"]'
+      'input[name="searchFilter"][value="address"]',
     );
     if (defaultRadio) defaultRadio.checked = true;
-  
-    const offEl = document.getElementById("filter-office");
-    const pinEl = document.getElementById("filter-pin");
-    if (offEl) offEl.value = "";
-    if (pinEl) pinEl.value = "";
-  
+  } else if (type === "office") {
+    const el = document.getElementById("filter-office");
+    if (el) el.value = "";
     document.getElementById("clear-office-btn")?.classList.add("hidden");
+  } else if (type === "pin") {
+    const el = document.getElementById("filter-pin");
+    if (el) el.value = "";
     document.getElementById("clear-pin-btn")?.classList.add("hidden");
-  
-    triggerSearch();
-    showToast("🧹 All search filters cleared");
+  } else if (type === "smart-office") {
+    const searchEl = document.getElementById("search-input");
+    if (searchEl && window.activeCleanSearchQuery !== undefined) {
+      searchEl.value = window.activeCleanSearchQuery;
+    }
+    window.activeSmartOfficeFilter = null;
   }
-  
-  // --- RECENT SEARCH HISTORY ---
-  function loadSearchHistory() {
-    const history = getSafeStorage(HISTORY_KEY);
-    const toggleBtn = document.getElementById("history-toggle-btn");
-    const chipsDiv = document.getElementById("search-history-chips");
-  
-    if (history.length === 0) {
-      toggleBtn?.classList.add("hidden");
+
+  triggerSearch();
+}
+
+function clearAllSearchFilters() {
+  const defaultRadio = document.querySelector(
+    'input[name="searchFilter"][value="address"]',
+  );
+  if (defaultRadio) defaultRadio.checked = true;
+
+  const offEl = document.getElementById("filter-office");
+  const pinEl = document.getElementById("filter-pin");
+  if (offEl) offEl.value = "";
+  if (pinEl) pinEl.value = "";
+
+  document.getElementById("clear-office-btn")?.classList.add("hidden");
+  document.getElementById("clear-pin-btn")?.classList.add("hidden");
+
+  triggerSearch();
+  showToast("🧹 All search filters cleared");
+}
+
+// --- RECENT SEARCH HISTORY ---
+function loadSearchHistory() {
+  const history = getSafeStorage(HISTORY_KEY);
+  const toggleBtn = document.getElementById("history-toggle-btn");
+  const chipsDiv = document.getElementById("search-history-chips");
+
+  if (history.length === 0) {
+    toggleBtn?.classList.add("hidden");
+    return;
+  }
+
+  toggleBtn?.classList.remove("hidden");
+  if (chipsDiv) {
+    chipsDiv.innerHTML = history
+      .map(
+        (term) =>
+          `<button class="badge" style="cursor: pointer;" onclick="applyHistorySearch('${escapeForOnclick(
+            term,
+          )}')">${escapeHTML(term)}</button>`,
+      )
+      .join("");
+  }
+}
+
+function toggleSearchHistory() {
+  document.getElementById("search-history-panel").classList.toggle("hidden");
+}
+
+function applyHistorySearch(term) {
+  document.getElementById("search-input").value = term;
+  document.getElementById("clear-search-btn").classList.remove("hidden");
+  document.getElementById("search-history-panel").classList.add("hidden");
+  triggerSearch();
+}
+
+function saveSearchTerm(term) {
+  if (!term || term.trim().length < 3) return;
+  let history = getSafeStorage(HISTORY_KEY);
+  const newTermLower = term.toLowerCase().trim();
+
+  history = history.filter((t) => t.toLowerCase() !== newTermLower);
+  if (history.length > 0) {
+    const lastTermLower = history[0].toLowerCase();
+    if (
+      newTermLower.startsWith(lastTermLower) ||
+      lastTermLower.startsWith(newTermLower)
+    ) {
+      history[0] = term.trim();
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      loadSearchHistory();
       return;
     }
-  
-    toggleBtn?.classList.remove("hidden");
-    if (chipsDiv) {
-      chipsDiv.innerHTML = history
-        .map(
-          (term) =>
-            `<button class="badge" style="cursor: pointer;" onclick="applyHistorySearch('${escapeForOnclick(
-              term
-            )}')">${escapeHTML(term)}</button>`
-        )
-        .join("");
-    }
   }
-  
-  function toggleSearchHistory() {
-    document.getElementById("search-history-panel").classList.toggle("hidden");
-  }
-  
-  function applyHistorySearch(term) {
-    document.getElementById("search-input").value = term;
-    document.getElementById("clear-search-btn").classList.remove("hidden");
-    document.getElementById("search-history-panel").classList.add("hidden");
-    triggerSearch();
-  }
-  
-  function saveSearchTerm(term) {
-    if (!term || term.trim().length < 3) return;
-    let history = getSafeStorage(HISTORY_KEY);
-    const newTermLower = term.toLowerCase().trim();
-  
-    history = history.filter((t) => t.toLowerCase() !== newTermLower);
-    if (history.length > 0) {
-      const lastTermLower = history[0].toLowerCase();
-      if (
-        newTermLower.startsWith(lastTermLower) ||
-        lastTermLower.startsWith(newTermLower)
-      ) {
-        history[0] = term.trim();
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-        loadSearchHistory();
-        return;
-      }
-    }
-  
-    history.unshift(term.trim());
-    if (history.length > 5) history.pop();
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-    loadSearchHistory();
-  }
-  
-  // --- VOICE SEARCH & INDIAN-ACCENT TTS ---
-  let preferredIndianVoice = null;
-  
-  function loadIndianVoice() {
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length === 0) return;
-    preferredIndianVoice =
-      voices.find((v) => v.lang.includes("en-IN") || v.name.includes("India")) ||
-      voices.find((v) => v.lang.includes("hi-IN"));
-  }
-  loadIndianVoice();
-  if (window.speechSynthesis.onvoiceschanged !== undefined) {
-    window.speechSynthesis.onvoiceschanged = loadIndianVoice;
-  }
-  
-  function convertToHindiWords(numStr) {
-    const num = parseInt(numStr, 10);
-    if (isNaN(num)) return numStr;
-  
-    const ones = [
-      "",
-      "ek",
-      "do",
-      "teen",
-      "chaar",
-      "paanch",
-      "chhe",
-      "saat",
-      "aath",
-      "nau",
-      "das",
-      "gyarah",
-      "baarah",
-      "terah",
-      "chaudah",
-      "pandraH",
-      "solah",
-      "satraH",
-      "atharah",
-      "unnis",
-    ];
-    const tens = [
-      "",
-      "",
-      "bees",
-      "tees",
-      "chaalis",
-      "pachaas",
-      "saath",
-      "sattar",
-      "assi",
-      "nabbe",
-    ];
-  
-    if (num < 20) return ones[num];
-    if (num < 100) {
-      return (
-        tens[Math.floor(num / 10)] + (num % 10 !== 0 ? " " + ones[num % 10] : "")
-      );
-    }
-    if (num < 1000) {
-      const s = Math.floor(num / 100);
-      const rem = num % 100;
-      return ones[s] + " sau" + (rem !== 0 ? " " + convertToHindiWords(rem) : "");
-    }
-    return numStr;
-  }
-  
-  function startVoiceSearch() {
-    const micBtn = document.getElementById("mic-btn");
-    const searchInput = document.getElementById("search-input");
-  
-    const isSpeaking =
-      window.speechSynthesis.speaking || window.speechSynthesis.pending;
-    const isListening = !!window.activeRecognition;
-  
-    if (isSpeaking || isListening) {
-      window.speechSynthesis.cancel();
-      if (isListening) {
-        window.activeRecognition.abort();
-        window.activeRecognition = null;
-      }
-      micBtn.classList.remove("listening");
-      micBtn.style.color = "";
-      searchInput.placeholder = "Type address, office, or Pin...";
-      return;
-    }
-  
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return alert("Browser doesn't support voice search.");
-  
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-IN";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    window.activeRecognition = recognition;
-  
-    recognition.onstart = () => {
-      micBtn.classList.add("listening");
-      searchInput.placeholder = "Listening...";
-      searchInput.value = "";
-    };
-    recognition.onresult = (event) => {
-      if (event.results?.[0]?.[0]) {
-        searchInput.value = event.results[0][0].transcript.replace(/\.$/, "");
-        document.getElementById("clear-search-btn").classList.remove("hidden");
-        window.isVoiceSearch = true;
-        triggerSearch();
-      }
-    };
-    recognition.onend = () => {
-      micBtn.classList.remove("listening");
-      micBtn.style.color = "";
-      searchInput.placeholder = "Type address, office, or Pin...";
-      window.activeRecognition = null;
-    };
-    recognition.start();
-  }
-  
-  // --- CORE SEARCH EXECUTION & RENDERING ---
-  function triggerSearch(hidePanels = false) {
-    if (hidePanels) {
-      document.getElementById("advanced-filters-panel")?.classList.add("hidden");
-      document.getElementById("search-history-panel")?.classList.add("hidden");
-      closeAllDropdowns();
-    }
-  
-    if (!fuse) return;
-  
-    const searchInput = document.getElementById("search-input").value.trim();
-    const filterVal = document.querySelector(
-      'input[name="searchFilter"]:checked'
-    ).value;
-    const searchBox = document.getElementById("search-input");
-    if (searchBox) searchBox.inputMode = filterVal === "pin" ? "numeric" : "text";
-    const filterOffice = document
-      .getElementById("filter-office")
-      .value.trim()
-      .toLowerCase();
-    const filterPin = document
-      .getElementById("filter-pin")
-      .value.trim()
-      .toLowerCase();
-  
-    const { cleanQuery, detectedSuffix, targetOffice } = parseSmartSearchQuery(
-      searchInput,
-      filterVal,
-      filterOffice,
-      filterPin
+
+  history.unshift(term.trim());
+  if (history.length > 5) history.pop();
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  loadSearchHistory();
+}
+
+// --- VOICE SEARCH & INDIAN-ACCENT TTS ---
+let preferredIndianVoice = null;
+
+function loadIndianVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return;
+  preferredIndianVoice =
+    voices.find((v) => v.lang.includes("en-IN") || v.name.includes("India")) ||
+    voices.find((v) => v.lang.includes("hi-IN"));
+}
+loadIndianVoice();
+if (window.speechSynthesis.onvoiceschanged !== undefined) {
+  window.speechSynthesis.onvoiceschanged = loadIndianVoice;
+}
+
+function convertToHindiWords(numStr) {
+  const num = parseInt(numStr, 10);
+  if (isNaN(num)) return numStr;
+
+  const ones = [
+    "",
+    "ek",
+    "do",
+    "teen",
+    "chaar",
+    "paanch",
+    "chhe",
+    "saat",
+    "aath",
+    "nau",
+    "das",
+    "gyarah",
+    "baarah",
+    "terah",
+    "chaudah",
+    "pandraH",
+    "solah",
+    "satraH",
+    "atharah",
+    "unnis",
+  ];
+  const tens = [
+    "",
+    "",
+    "bees",
+    "tees",
+    "chaalis",
+    "pachaas",
+    "saath",
+    "sattar",
+    "assi",
+    "nabbe",
+  ];
+
+  if (num < 20) return ones[num];
+  if (num < 100) {
+    return (
+      tens[Math.floor(num / 10)] + (num % 10 !== 0 ? " " + ones[num % 10] : "")
     );
-  
-    window.activeCleanSearchQuery = cleanQuery;
-    window.activeSmartOfficeFilter = targetOffice
-      ? { suffix: detectedSuffix, office: targetOffice }
-      : null;
-  
-    updateActiveFilterIndicators();
-  
-    if (!searchInput && !filterOffice && !filterPin) {
-      currentFilteredData = cachedPostOffices.map((item) => ({
-        item,
-        matches: [],
-      }));
-      renderResults();
-      return;
-    }
-  
-    if (searchInput.length > 2) saveSearchTerm(searchInput);
-  
-    const searchDataset = targetOffice
-      ? cachedPostOffices.filter(
-          (row) =>
-            String(row.Office || "")
-              .trim()
-              .toLowerCase() === targetOffice.toLowerCase()
-        )
-      : cachedPostOffices;
-  
-    let baseData = [];
-    if (!cleanQuery) {
-      baseData = searchDataset.map((item) => ({ item, matches: [] }));
-    } else {
-      let keysToSearch = ["Address", "Office", "Pin"];
-      if (filterVal === "address") keysToSearch = ["Address"];
-      if (filterVal === "office") keysToSearch = ["Office"];
-      if (filterVal === "pin") keysToSearch = ["Pin"];
-  
-      let isNumericSearch = /^\d+$/.test(cleanQuery);
-      let activeThreshold = isNumericSearch ? 0.0 : 0.3;
-      let activeIgnoreLocation = isNumericSearch ? true : false;
-  
-      fuse = new Fuse(searchDataset, {
-        keys: keysToSearch,
-        threshold: activeThreshold,
-        ignoreLocation: activeIgnoreLocation,
-        location: 0,
-        distance: 100,
-        includeMatches: true,
-        getFn: (obj, path) => {
-          const value = obj[path];
-          return value === null || value === undefined ? "" : String(value);
-        },
-      });
-  
-      baseData = fuse.search(cleanQuery);
-    }
-  
-    if (filterOffice || filterPin) {
-      baseData = baseData.filter((result) => {
-        const row = result.item;
-        let keep = true;
-        if (
-          filterOffice &&
-          !String(row.Office || "")
-            .toLowerCase()
-            .includes(filterOffice)
-        )
-          keep = false;
-        if (
-          filterPin &&
-          !String(row.Pin || "")
-            .toLowerCase()
-            .includes(filterPin)
-        )
-          keep = false;
-        return keep;
-      });
-    }
-  
-    currentFilteredData = baseData;
-    renderResults();
-  
-    if (window.isVoiceSearch) {
-      window.isVoiceSearch = false;
-      window.speechSynthesis.cancel();
-      let speechText = "No matching post offices found.";
-      if (currentFilteredData.length > 0) {
-        const topMatch = currentFilteredData[0].item;
-        let lastThreePin = topMatch.Pin ? String(topMatch.Pin).slice(-3) : "";
-        let hindiPinWords = lastThreePin ? convertToHindiWords(lastThreePin) : "";
-        let pinText = hindiPinWords
-          ? `Pin code ${hindiPinWords}`
-          : "Pin not available";
-  
-        speechText = `${topMatch.Address}. Office ${topMatch.Office}. ${pinText}.`;
-        speechText = speechText.replace(
-          /\b(BO|HO|SO|PO|GPO|RMS|TPS)\b/g,
-          (match) => match.split("").join(" ")
-        );
-      }
-      const utterance = new SpeechSynthesisUtterance(speechText);
-      if (preferredIndianVoice) {
-        utterance.voice = preferredIndianVoice;
-      } else {
-        utterance.lang = "en-IN";
-      }
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    }
   }
-  
-  function clearSearchInput() {
+  if (num < 1000) {
+    const s = Math.floor(num / 100);
+    const rem = num % 100;
+    return ones[s] + " sau" + (rem !== 0 ? " " + convertToHindiWords(rem) : "");
+  }
+  return numStr;
+}
+
+function startVoiceSearch() {
+  const micBtn = document.getElementById("mic-btn");
+  const searchInput = document.getElementById("search-input");
+
+  const isSpeaking =
+    window.speechSynthesis.speaking || window.speechSynthesis.pending;
+  const isListening = !!window.activeRecognition;
+
+  if (isSpeaking || isListening) {
     window.speechSynthesis.cancel();
-  
-    if (window.activeRecognition) {
+    if (isListening) {
       window.activeRecognition.abort();
       window.activeRecognition = null;
     }
-  
-    clearTimeout(aiSearchDebounceTimer);
-    if (aiActiveAbortController) {
-      aiActiveAbortController.abort();
-      aiActiveAbortController = null;
-    }
-  
-    const micBtn = document.getElementById("mic-btn");
-    if (micBtn) {
-      micBtn.classList.remove("listening");
-      micBtn.style.color = "";
-    }
-  
-    const searchInput = document.getElementById("search-input");
+    micBtn.classList.remove("listening");
+    micBtn.style.color = "";
+    searchInput.placeholder = "Type address, office, or Pin...";
+    return;
+  }
+
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return alert("Browser doesn't support voice search.");
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-IN";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  window.activeRecognition = recognition;
+
+  recognition.onstart = () => {
+    micBtn.classList.add("listening");
+    searchInput.placeholder = "Listening...";
     searchInput.value = "";
-    document.getElementById("clear-search-btn").classList.add("hidden");
-    triggerSearch();
-    searchInput.focus();
-  }
-  
-  function highlightText(text, matches, key) {
-    if (text === null || text === undefined) return "";
-    text = String(text);
-    let safeText = escapeHTML(text);
-  
-    if (!matches || matches.length === 0) return safeText;
-    const match = matches.find((m) => m.key === key);
-    if (!match) return safeText;
-  
-    const searchInput = (
-      window.activeCleanSearchQuery ||
-      document.getElementById("search-input").value
-    ).trim();
-  
-    if (searchInput.length > 0) {
-      const lowerText = text.toLowerCase();
-      const lowerSearch = searchInput.toLowerCase();
-      const exactIndex = lowerText.indexOf(lowerSearch);
-  
-      if (exactIndex !== -1) {
-        const before = escapeHTML(text.substring(0, exactIndex));
-        const highlighted = escapeHTML(
-          text.substring(exactIndex, exactIndex + searchInput.length)
-        );
-        const after = escapeHTML(text.substring(exactIndex + searchInput.length));
-        return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
-      }
+  };
+  recognition.onresult = (event) => {
+    if (event.results?.[0]?.[0]) {
+      searchInput.value = event.results[0][0].transcript.replace(/\.$/, "");
+      document.getElementById("clear-search-btn").classList.remove("hidden");
+      window.isVoiceSearch = true;
+      triggerSearch();
     }
-  
-    if (!match.indices || match.indices.length === 0) return safeText;
-  
-    let bestIndex = match.indices[0];
-    let maxLen = bestIndex[1] - bestIndex[0];
-    for (let i = 1; i < match.indices.length; i++) {
-      const currentLen = match.indices[i][1] - match.indices[i][0];
-      if (currentLen > maxLen) {
-        maxLen = currentLen;
-        bestIndex = match.indices[i];
-      }
-    }
-  
-    const [start, end] = bestIndex;
-    const before = escapeHTML(text.substring(0, start));
-    const highlighted = escapeHTML(text.substring(start, end + 1));
-    const after = escapeHTML(text.substring(end + 1));
-  
-    return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
+  };
+  recognition.onend = () => {
+    micBtn.classList.remove("listening");
+    micBtn.style.color = "";
+    searchInput.placeholder = "Type address, office, or Pin...";
+    window.activeRecognition = null;
+  };
+  recognition.start();
+}
+
+// --- CORE SEARCH EXECUTION & RENDERING ---
+// Helper: Computes highlight indices so phonetic matches underline cleanly in List/Table views
+function findPhoneticMatchIndices(originalText, qKey) {
+  const text = String(originalText || "");
+  if (!text || !qKey) return [];
+
+  const coreText = text.replace(
+    /\s+\b(?:e\.?d\.?b\.?o\.?|g\.?p\.?o\.?|b\.?o\.?|s\.?o\.?|h\.?o\.?|p\.?o\.?)\b\.?$/i,
+    "",
+  );
+
+  // Full address/office phonetic match -> highlight full core name (excluding BO/SO/HO)
+  if (coreText && postalPhoneticKey(coreText) === qKey) {
+    return [[0, coreText.length - 1]];
   }
-  
-  window.searchDisplayLimit = 10;
-  window.searchObserver = null;
-  
-  function setupSearchObserver() {
-    const sentinel = document.getElementById("search-sentinel");
-    const displayArea = document.getElementById("results-display-area");
-  
-    if (window.searchObserver) window.searchObserver.disconnect();
-  
-    const searchSection = document.getElementById("view-search");
-    if (!searchSection || !searchSection.classList.contains("active")) return;
-  
-    window.searchObserver = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          searchSection.classList.contains("active")
-        ) {
-          if (window.searchDisplayLimit < currentFilteredData.length) {
-            window.searchDisplayLimit += 10;
-            renderResults(true);
-          }
-        }
-      },
-      { root: displayArea, rootMargin: "300px" }
+
+  // Word-level phonetic match -> highlight the matching word
+  const wordRegex = /\S+/g;
+  let m;
+  while ((m = wordRegex.exec(text)) !== null) {
+    const wKey = postalPhoneticKey(m[0]);
+    if (wKey && (wKey === qKey || wKey.startsWith(qKey))) {
+      return [[m.index, m.index + m[0].length - 1]];
+    }
+  }
+
+  return coreText ? [[0, coreText.length - 1]] : [];
+}
+
+// Helper: Merges Supabase-equivalent phonetic deduplication matches with Fuse.js results
+function mergePhoneticSearchResults(
+  fuseResults,
+  dataset,
+  cleanQuery,
+  keysToSearch,
+) {
+  const phoneticKeys = keysToSearch.filter(
+    (k) => k === "Address" || k === "Office",
+  );
+  if (phoneticKeys.length === 0) return fuseResults;
+
+  const qLower = cleanQuery.toLowerCase();
+  const qKey = postalPhoneticKey(cleanQuery);
+  if (!qKey || qKey.length < 2) return fuseResults;
+
+  // Map Fuse results first so we preserve Fuse scores & exact match metadata
+  const rankedMap = new Map();
+  fuseResults.forEach((res, idx) => {
+    const row = res.item;
+    const isExactText = phoneticKeys.some(
+      (k) =>
+        String(row[k] || "")
+          .trim()
+          .toLowerCase() === qLower,
     );
-  
-    if (sentinel) window.searchObserver.observe(sentinel);
-  }
-  
-  function renderResults(isLoadMore = false) {
-    const displayArea = document.getElementById("results-display-area");
-  
-    if (!isLoadMore) {
-      displayArea.scrollTop = 0;
-      window.searchDisplayLimit = 10;
+    rankedMap.set(String(row.id), {
+      result: res,
+      tier: isExactText ? 0 : 2,
+      order: idx,
+    });
+  });
+
+  // Scan dataset using the exact same phonetic deduplication key
+  dataset.forEach((row, idx) => {
+    let bestTier = 99;
+    const syntheticMatches = [];
+
+    for (const key of phoneticKeys) {
+      const rawVal = String(row[key] || "").trim();
+      if (!rawVal) continue;
+
+      const fieldKey = postalPhoneticKey(rawVal);
+      if (!fieldKey) continue;
+
+      let matchedTier = 99;
+      if (rawVal.toLowerCase() === qLower) {
+        matchedTier = 0; // Exact text match
+      } else if (fieldKey === qKey) {
+        matchedTier = 1; // Exact deduplication key match (e.g. manbsa === manabasa)
+      } else if (qKey.length >= 3 && fieldKey.startsWith(qKey)) {
+        matchedTier = 3; // Phonetic prefix match (e.g. manbs -> Manabasa Khas)
+      } else if (qKey.length >= 3 && fieldKey.includes(qKey)) {
+        matchedTier = 4; // Phonetic substring match
+      }
+
+      if (matchedTier < 99) {
+        if (matchedTier < bestTier) bestTier = matchedTier;
+        const indices = findPhoneticMatchIndices(rawVal, qKey);
+        if (indices.length > 0) {
+          syntheticMatches.push({ key, indices });
+        }
+      }
     }
-  
-    if (currentFilteredData.length === 0) {
-      const rawQuery = document.getElementById("search-input").value.trim();
-  
-      displayArea.innerHTML = `
+
+    if (bestTier === 99) return;
+
+    const idKey = String(row.id);
+    if (rankedMap.has(idKey)) {
+      const existing = rankedMap.get(idKey);
+      // Promote Fuse hit if it is an exact deduplication match
+      if (bestTier < existing.tier) {
+        existing.tier = bestTier;
+      }
+    } else {
+      rankedMap.set(idKey, {
+        result: { item: row, matches: syntheticMatches },
+        tier: bestTier,
+        order: fuseResults.length + idx,
+      });
+    }
+  });
+
+  return Array.from(rankedMap.values())
+    .sort((a, b) => a.tier - b.tier || a.order - b.order)
+    .map((entry) => entry.result);
+}
+
+// --- CORE SEARCH EXECUTION & RENDERING ---
+function triggerSearch(hidePanels = false) {
+  if (hidePanels) {
+    document.getElementById("advanced-filters-panel")?.classList.add("hidden");
+    document.getElementById("search-history-panel")?.classList.add("hidden");
+    closeAllDropdowns();
+  }
+
+  if (!fuse) return;
+
+  const searchInput = document.getElementById("search-input").value.trim();
+  const filterVal = document.querySelector(
+    'input[name="searchFilter"]:checked',
+  ).value;
+  const searchBox = document.getElementById("search-input");
+  if (searchBox) searchBox.inputMode = filterVal === "pin" ? "numeric" : "text";
+  const filterOffice = document
+    .getElementById("filter-office")
+    .value.trim()
+    .toLowerCase();
+  const filterPin = document
+    .getElementById("filter-pin")
+    .value.trim()
+    .toLowerCase();
+
+  const { cleanQuery, detectedSuffix, targetOffice } = parseSmartSearchQuery(
+    searchInput,
+    filterVal,
+    filterOffice,
+    filterPin,
+  );
+
+  window.activeCleanSearchQuery = cleanQuery;
+  window.activeSmartOfficeFilter = targetOffice
+    ? { suffix: detectedSuffix, office: targetOffice }
+    : null;
+
+  updateActiveFilterIndicators();
+
+  if (!searchInput && !filterOffice && !filterPin) {
+    currentFilteredData = cachedPostOffices.map((item) => ({
+      item,
+      matches: [],
+    }));
+    renderResults();
+    return;
+  }
+
+  if (searchInput.length > 2) saveSearchTerm(searchInput);
+
+  const searchDataset = targetOffice
+    ? cachedPostOffices.filter(
+        (row) =>
+          String(row.Office || "")
+            .trim()
+            .toLowerCase() === targetOffice.toLowerCase(),
+      )
+    : cachedPostOffices;
+
+  let baseData = [];
+  if (!cleanQuery) {
+    baseData = searchDataset.map((item) => ({ item, matches: [] }));
+  } else {
+    let keysToSearch = ["Address", "Office", "Pin"];
+    if (filterVal === "address") keysToSearch = ["Address"];
+    if (filterVal === "office") keysToSearch = ["Office"];
+    if (filterVal === "pin") keysToSearch = ["Pin"];
+
+    let isNumericSearch = /^\d+$/.test(cleanQuery);
+    let activeThreshold = isNumericSearch ? 0.0 : 0.3;
+    let activeIgnoreLocation = isNumericSearch ? true : false;
+
+    fuse = new Fuse(searchDataset, {
+      keys: keysToSearch,
+      threshold: activeThreshold,
+      ignoreLocation: activeIgnoreLocation,
+      location: 0,
+      distance: 100,
+      includeMatches: true,
+      getFn: (obj, path) => {
+        const value = obj[path];
+        return value === null || value === undefined ? "" : String(value);
+      },
+    });
+
+    baseData = fuse.search(cleanQuery);
+
+    // Apply Supabase-equivalent phonetic deduplication matching for text queries
+    if (!isNumericSearch && filterVal !== "pin") {
+      baseData = mergePhoneticSearchResults(
+        baseData,
+        searchDataset,
+        cleanQuery,
+        keysToSearch,
+      );
+    }
+  }
+
+  if (filterOffice || filterPin) {
+    baseData = baseData.filter((result) => {
+      const row = result.item;
+      let keep = true;
+      if (
+        filterOffice &&
+        !String(row.Office || "")
+          .toLowerCase()
+          .includes(filterOffice)
+      )
+        keep = false;
+      if (
+        filterPin &&
+        !String(row.Pin || "")
+          .toLowerCase()
+          .includes(filterPin)
+      )
+        keep = false;
+      return keep;
+    });
+  }
+
+  currentFilteredData = baseData;
+  renderResults();
+
+  if (window.isVoiceSearch) {
+    window.isVoiceSearch = false;
+    window.speechSynthesis.cancel();
+    let speechText = "No matching post offices found.";
+    if (currentFilteredData.length > 0) {
+      const topMatch = currentFilteredData[0].item;
+      let lastThreePin = topMatch.Pin ? String(topMatch.Pin).slice(-3) : "";
+      let hindiPinWords = lastThreePin ? convertToHindiWords(lastThreePin) : "";
+      let pinText = hindiPinWords
+        ? `Pin code ${hindiPinWords}`
+        : "Pin not available";
+
+      speechText = `${topMatch.Address}. Office ${topMatch.Office}. ${pinText}.`;
+      speechText = speechText.replace(
+        /\b(BO|HO|SO|PO|GPO|RMS|TPS)\b/g,
+        (match) => match.split("").join(" "),
+      );
+    }
+    const utterance = new SpeechSynthesisUtterance(speechText);
+    if (preferredIndianVoice) {
+      utterance.voice = preferredIndianVoice;
+    } else {
+      utterance.lang = "en-IN";
+    }
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
+function clearSearchInput() {
+  window.speechSynthesis.cancel();
+
+  if (window.activeRecognition) {
+    window.activeRecognition.abort();
+    window.activeRecognition = null;
+  }
+
+  clearTimeout(aiSearchDebounceTimer);
+  if (aiActiveAbortController) {
+    aiActiveAbortController.abort();
+    aiActiveAbortController = null;
+  }
+
+  const micBtn = document.getElementById("mic-btn");
+  if (micBtn) {
+    micBtn.classList.remove("listening");
+    micBtn.style.color = "";
+  }
+
+  const searchInput = document.getElementById("search-input");
+  searchInput.value = "";
+  document.getElementById("clear-search-btn").classList.add("hidden");
+  triggerSearch();
+  searchInput.focus();
+}
+
+function highlightText(text, matches, key) {
+  if (text === null || text === undefined) return "";
+  text = String(text);
+  let safeText = escapeHTML(text);
+
+  if (!matches || matches.length === 0) return safeText;
+  const match = matches.find((m) => m.key === key);
+  if (!match) return safeText;
+
+  const searchInput = (
+    window.activeCleanSearchQuery ||
+    document.getElementById("search-input").value
+  ).trim();
+
+  if (searchInput.length > 0) {
+    const lowerText = text.toLowerCase();
+    const lowerSearch = searchInput.toLowerCase();
+    const exactIndex = lowerText.indexOf(lowerSearch);
+
+    if (exactIndex !== -1) {
+      const before = escapeHTML(text.substring(0, exactIndex));
+      const highlighted = escapeHTML(
+        text.substring(exactIndex, exactIndex + searchInput.length),
+      );
+      const after = escapeHTML(text.substring(exactIndex + searchInput.length));
+      return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
+    }
+  }
+
+  if (!match.indices || match.indices.length === 0) return safeText;
+
+  let bestIndex = match.indices[0];
+  let maxLen = bestIndex[1] - bestIndex[0];
+  for (let i = 1; i < match.indices.length; i++) {
+    const currentLen = match.indices[i][1] - match.indices[i][0];
+    if (currentLen > maxLen) {
+      maxLen = currentLen;
+      bestIndex = match.indices[i];
+    }
+  }
+
+  const [start, end] = bestIndex;
+  const before = escapeHTML(text.substring(0, start));
+  const highlighted = escapeHTML(text.substring(start, end + 1));
+  const after = escapeHTML(text.substring(end + 1));
+
+  return `${before}<span class="highlight-text">${highlighted}</span>${after}`;
+}
+
+window.searchDisplayLimit = 10;
+window.searchObserver = null;
+
+function setupSearchObserver() {
+  const sentinel = document.getElementById("search-sentinel");
+  const displayArea = document.getElementById("results-display-area");
+
+  if (window.searchObserver) window.searchObserver.disconnect();
+
+  const searchSection = document.getElementById("view-search");
+  if (!searchSection || !searchSection.classList.contains("active")) return;
+
+  window.searchObserver = new IntersectionObserver(
+    (entries) => {
+      if (
+        entries[0].isIntersecting &&
+        searchSection.classList.contains("active")
+      ) {
+        if (window.searchDisplayLimit < currentFilteredData.length) {
+          window.searchDisplayLimit += 10;
+          renderResults(true);
+        }
+      }
+    },
+    { root: displayArea, rootMargin: "300px" },
+  );
+
+  if (sentinel) window.searchObserver.observe(sentinel);
+}
+
+function renderResults(isLoadMore = false) {
+  const displayArea = document.getElementById("results-display-area");
+
+  if (!isLoadMore) {
+    displayArea.scrollTop = 0;
+    window.searchDisplayLimit = 10;
+  }
+
+  if (currentFilteredData.length === 0) {
+    const rawQuery = document.getElementById("search-input").value.trim();
+
+    displayArea.innerHTML = `
         <div class="ai-fallback-banner">
           <div class="ai-fallback-banner-icon">⚠️</div>
           <div class="ai-fallback-banner-text">
@@ -626,35 +753,35 @@ function setViewMode(mode, shouldRender = true) {
           </div>
         </div>
         <div id="ai-search-results-container"></div>`;
-  
-      if (rawQuery.length >= 3) {
-        scheduleAutoAiSearch(rawQuery);
-      }
-      return;
+
+    if (rawQuery.length >= 3) {
+      scheduleAutoAiSearch(rawQuery);
     }
-  
-    clearTimeout(aiSearchDebounceTimer);
-    if (aiActiveAbortController) {
-      aiActiveAbortController.abort();
-      aiActiveAbortController = null;
-    }
-  
-    if (viewMode === "list") {
-      let html = `<ul class="list-container" style="margin:0; list-style:none;">`;
-  
-      currentFilteredData
-        .slice(0, window.searchDisplayLimit)
-        .forEach((result) => {
-          const row = result.item;
-          const addressHtml = highlightText(
-            row.Address,
-            result.matches,
-            "Address"
-          );
-          const officeHtml = highlightText(row.Office, result.matches, "Office");
-          const PinHtml = highlightText(row.Pin, result.matches, "Pin");
-  
-          html += `
+    return;
+  }
+
+  clearTimeout(aiSearchDebounceTimer);
+  if (aiActiveAbortController) {
+    aiActiveAbortController.abort();
+    aiActiveAbortController = null;
+  }
+
+  if (viewMode === "list") {
+    let html = `<ul class="list-container" style="margin:0; list-style:none;">`;
+
+    currentFilteredData
+      .slice(0, window.searchDisplayLimit)
+      .forEach((result) => {
+        const row = result.item;
+        const addressHtml = highlightText(
+          row.Address,
+          result.matches,
+          "Address",
+        );
+        const officeHtml = highlightText(row.Office, result.matches, "Office");
+        const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+
+        html += `
             <li class="list-item"
                 onclick="openDirectoryChipActions(this)"
                 data-record-id="${escapeHTML(row.id)}"
@@ -666,42 +793,42 @@ function setViewMode(mode, shouldRender = true) {
                   <div class="office-title">${addressHtml}</div>
                   <div class="sub-office">
                     <span class="badge badge-primary" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                      row.Office
+                      row.Office,
                     )}')" title="Double-click to open in Directory">🏢 ${officeHtml}</span>
                     <span class="badge" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                      row.Office
+                      row.Office,
                     )}')" title="Double-click to open in Directory">📍 ${
-            PinHtml || "N/A"
-          }</span>
+                      PinHtml || "N/A"
+                    }</span>
                   </div>
                 </div>
             </li>`;
-        });
-      html += `</ul>`;
-  
-      if (window.searchDisplayLimit < currentFilteredData.length) {
-        html += `<div id="search-sentinel" style="height: 40px; text-align: center; padding: 10px; color: var(--text-light); font-size: 13px;">Loading more results...</div>`;
-      }
-  
-      displayArea.innerHTML = html;
-    } else {
-      let html = `<table class="data-table">
+      });
+    html += `</ul>`;
+
+    if (window.searchDisplayLimit < currentFilteredData.length) {
+      html += `<div id="search-sentinel" style="height: 40px; text-align: center; padding: 10px; color: var(--text-light); font-size: 13px;">Loading more results...</div>`;
+    }
+
+    displayArea.innerHTML = html;
+  } else {
+    let html = `<table class="data-table">
                     <thead><tr><th>Address</th><th>Office</th><th>Pin</th></tr></thead>
                     <tbody>`;
-  
-      currentFilteredData
-        .slice(0, window.searchDisplayLimit)
-        .forEach((result) => {
-          const row = result.item;
-          const addressHtml = highlightText(
-            row.Address,
-            result.matches,
-            "Address"
-          );
-          const officeHtml = highlightText(row.Office, result.matches, "Office");
-          const PinHtml = highlightText(row.Pin, result.matches, "Pin");
-  
-          html += `<tr class="list-item"
+
+    currentFilteredData
+      .slice(0, window.searchDisplayLimit)
+      .forEach((result) => {
+        const row = result.item;
+        const addressHtml = highlightText(
+          row.Address,
+          result.matches,
+          "Address",
+        );
+        const officeHtml = highlightText(row.Office, result.matches, "Office");
+        const PinHtml = highlightText(row.Pin, result.matches, "Pin");
+
+        html += `<tr class="list-item"
                       onclick="openDirectoryChipActions(this)"
                       data-record-id="${escapeHTML(row.id)}"
                       data-address="${escapeHTML(row.Address)}"
@@ -709,31 +836,31 @@ function setViewMode(mode, shouldRender = true) {
                       data-pin="${escapeHTML(row.Pin || "")}">
                       <td>${addressHtml}</td>
                       <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                        row.Office
+                        row.Office,
                       )}')" title="Double-click to open in Directory">
                          ${officeHtml}
                       </td>
                       <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                        row.Office
+                        row.Office,
                       )}')" title="Double-click to open in Directory">
                          ${PinHtml || "-"}
                       </td>
                    </tr>`;
-        });
-      html += `</tbody></table>`;
-  
-      if (window.searchDisplayLimit < currentFilteredData.length) {
-        html += `<div id="search-sentinel" style="height: 40px; text-align: center; padding: 10px; color: var(--text-light); font-size: 13px;">Loading more results...</div>`;
-      }
-  
-      displayArea.innerHTML = html;
+      });
+    html += `</tbody></table>`;
+
+    if (window.searchDisplayLimit < currentFilteredData.length) {
+      html += `<div id="search-sentinel" style="height: 40px; text-align: center; padding: 10px; color: var(--text-light); font-size: 13px;">Loading more results...</div>`;
     }
-  
-    const activeQuery = document.getElementById("search-input").value.trim();
-    if (activeQuery.length >= 2) {
-      displayArea.insertAdjacentHTML(
-        "beforeend",
-        `
+
+    displayArea.innerHTML = html;
+  }
+
+  const activeQuery = document.getElementById("search-input").value.trim();
+  if (activeQuery.length >= 2) {
+    displayArea.insertAdjacentHTML(
+      "beforeend",
+      `
           <div class="ask-ai-bottom-box" id="ask-ai-footer-box">
             <div class="ask-ai-bottom-text">
               🤔 Still not what you're looking for in these local matches?
@@ -742,148 +869,146 @@ function setViewMode(mode, shouldRender = true) {
               type="button"
               class="ask-ai-bottom-btn"
               onclick="triggerInlineAiBelowResults('${escapeForOnclick(
-                activeQuery
+                activeQuery,
               )}')"
             >
               ✨ Ask AI for "${escapeHTML(activeQuery)}"
             </button>
           </div>
           <div id="ai-search-results-container"></div>
-        `
-      );
-    }
-  
-    if (!isLoadMore) {
-      displayArea.classList.remove("approvals-smooth-in");
-      void displayArea.offsetWidth;
-      displayArea.classList.add("approvals-smooth-in");
-    }
-  
-    setupSearchObserver();
+        `,
+    );
   }
-  
-  // --- SEARCH INPUT LISTENERS ---
-  (function initSearchInputListeners() {
-    const searchInput = document.getElementById("search-input");
-    if (!searchInput) return;
-  
-    searchInput.addEventListener("focus", function () {
-      window.speechSynthesis.cancel();
+
+  if (!isLoadMore) {
+    displayArea.classList.remove("approvals-smooth-in");
+    void displayArea.offsetWidth;
+    displayArea.classList.add("approvals-smooth-in");
+  }
+
+  setupSearchObserver();
+}
+
+// --- SEARCH INPUT LISTENERS ---
+(function initSearchInputListeners() {
+  const searchInput = document.getElementById("search-input");
+  if (!searchInput) return;
+
+  searchInput.addEventListener("focus", function () {
+    window.speechSynthesis.cancel();
+    document.getElementById("advanced-filters-panel").classList.add("hidden");
+    document.getElementById("search-history-panel").classList.add("hidden");
+    closeAllDropdowns();
+  });
+
+  let searchTimeout;
+  searchInput.addEventListener("input", function () {
+    const clearBtn = document.getElementById("clear-search-btn");
+    if (this.value.length > 0) {
+      clearBtn.classList.remove("hidden");
       document.getElementById("advanced-filters-panel").classList.add("hidden");
       document.getElementById("search-history-panel").classList.add("hidden");
       closeAllDropdowns();
-    });
-  
-    let searchTimeout;
-    searchInput.addEventListener("input", function () {
-      const clearBtn = document.getElementById("clear-search-btn");
-      if (this.value.length > 0) {
-        clearBtn.classList.remove("hidden");
-        document.getElementById("advanced-filters-panel").classList.add("hidden");
-        document.getElementById("search-history-panel").classList.add("hidden");
-        closeAllDropdowns();
-      } else {
-        clearBtn.classList.add("hidden");
-      }
-  
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(triggerSearch, 250);
-    });
-  })();
-  
-  // --- ONLINE AI FALLBACK SEARCH ---
-  let aiSearchDebounceTimer = null;
-  let aiActiveAbortController = null;
-  let aiMemoryCache = {};
-  let aiLatestRequestId = 0;
-  
-  function triggerInlineAiBelowResults(query) {
-    const footerBox = document.getElementById("ask-ai-footer-box");
-    if (footerBox) {
-      footerBox.innerHTML = `
+    } else {
+      clearBtn.classList.add("hidden");
+    }
+
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(triggerSearch, 250);
+  });
+})();
+
+// --- ONLINE AI FALLBACK SEARCH ---
+let aiSearchDebounceTimer = null;
+let aiActiveAbortController = null;
+let aiMemoryCache = {};
+let aiLatestRequestId = 0;
+
+function triggerInlineAiBelowResults(query) {
+  const footerBox = document.getElementById("ask-ai-footer-box");
+  if (footerBox) {
+    footerBox.innerHTML = `
         <div class="ai-fallback-banner-icon">⚠️</div>
         <div class="ai-fallback-banner-text" style="flex: 1;">
           <strong>AI Online Estimation (Requested Manually)</strong>
           <span>
             Local results didn't match "${escapeHTML(
-              query
+              query,
             )}". Showing <b>AI-estimated postal routing</b> below—please verify before sorting.
           </span>
         </div>
       `;
-      footerBox.className = "ai-fallback-banner";
-    }
-  
-    scheduleAutoAiSearch(query, true);
-  
-    const aiContainer = document.getElementById("ai-search-results-container");
-    if (aiContainer) {
-      setTimeout(() => {
-        aiContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }, 100);
-    }
+    footerBox.className = "ai-fallback-banner";
   }
-  
-  function forceAiSearch() {
-    const aiBtn = document.getElementById("force-ai-search-btn");
-  
-    if (aiBtn && aiBtn.classList.contains("loading")) {
-      clearTimeout(aiSearchDebounceTimer);
-      aiLatestRequestId++;
-      if (aiActiveAbortController) {
-        aiActiveAbortController.abort();
-        aiActiveAbortController = null;
-      }
-      aiBtn.classList.remove("loading");
-  
-      if (currentFilteredData && currentFilteredData.length > 0) {
-        renderResults(false);
-      } else {
-        const container = document.getElementById("ai-search-results-container");
-        if (container) {
-          container.innerHTML = `
+
+  scheduleAutoAiSearch(query, true);
+
+  const aiContainer = document.getElementById("ai-search-results-container");
+  if (aiContainer) {
+    setTimeout(() => {
+      aiContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 100);
+  }
+}
+
+function forceAiSearch() {
+  const aiBtn = document.getElementById("force-ai-search-btn");
+
+  if (aiBtn && aiBtn.classList.contains("loading")) {
+    clearTimeout(aiSearchDebounceTimer);
+    aiLatestRequestId++;
+    if (aiActiveAbortController) {
+      aiActiveAbortController.abort();
+      aiActiveAbortController = null;
+    }
+    aiBtn.classList.remove("loading");
+
+    if (currentFilteredData && currentFilteredData.length > 0) {
+      renderResults(false);
+    } else {
+      const container = document.getElementById("ai-search-results-container");
+      if (container) {
+        container.innerHTML = `
             <ul class="list-container">
               <li class="list-empty" style="margin-top:0;">
                 <span>⏹️ AI search stopped.</span>
               </li>
             </ul>`;
-        }
       }
-  
-      showToast("⏹️ AI search stopped");
-      return;
     }
-  
-    const searchInput = document.getElementById("search-input");
-    const rawQuery = searchInput ? searchInput.value.trim() : "";
-  
-    if (rawQuery.length < 3) {
-      if (searchInput) searchInput.focus();
-      return showToast(
-        "✍️ Type at least 3 letters in the search bar to ask AI!"
-      );
-    }
-  
-    saveSearchTerm(rawQuery);
-  
-    const displayArea = document.getElementById("results-display-area");
-    displayArea.scrollTop = 0;
-  
-    const localCount = currentFilteredData ? currentFilteredData.length : 0;
-  
-    displayArea.innerHTML = `
+
+    showToast("⏹️ AI search stopped");
+    return;
+  }
+
+  const searchInput = document.getElementById("search-input");
+  const rawQuery = searchInput ? searchInput.value.trim() : "";
+
+  if (rawQuery.length < 3) {
+    if (searchInput) searchInput.focus();
+    return showToast("✍️ Type at least 3 letters in the search bar to ask AI!");
+  }
+
+  saveSearchTerm(rawQuery);
+
+  const displayArea = document.getElementById("results-display-area");
+  displayArea.scrollTop = 0;
+
+  const localCount = currentFilteredData ? currentFilteredData.length : 0;
+
+  displayArea.innerHTML = `
       <div class="ai-fallback-banner">
         <div class="ai-fallback-banner-icon">✨</div>
         <div class="ai-fallback-banner-text" style="flex: 1;">
           <strong>Forced Online AI Postal Lookup</strong>
           <span>
             Showing <b>AI-estimated routing</b> for "${escapeHTML(rawQuery)}"${
-      localCount > 0
-        ? ` (bypassed ${localCount} local fuzzy ${
-            localCount === 1 ? "match" : "matches"
-          })`
-        : " (no exact match in local database)"
-    }. Please verify before sorting.
+              localCount > 0
+                ? ` (bypassed ${localCount} local fuzzy ${
+                    localCount === 1 ? "match" : "matches"
+                  })`
+                : " (no exact match in local database)"
+            }. Please verify before sorting.
           </span>
         </div>
         ${
@@ -893,161 +1018,161 @@ function setViewMode(mode, shouldRender = true) {
         }
       </div>
       <div id="ai-search-results-container"></div>`;
-  
-    scheduleAutoAiSearch(rawQuery, true);
+
+  scheduleAutoAiSearch(rawQuery, true);
+}
+
+function scheduleAutoAiSearch(query, immediate = false) {
+  clearTimeout(aiSearchDebounceTimer);
+  if (aiActiveAbortController) {
+    aiActiveAbortController.abort();
+    aiActiveAbortController = null;
   }
-  
-  function scheduleAutoAiSearch(query, immediate = false) {
-    clearTimeout(aiSearchDebounceTimer);
-    if (aiActiveAbortController) {
-      aiActiveAbortController.abort();
-      aiActiveAbortController = null;
-    }
-  
-    const container = document.getElementById("ai-search-results-container");
-    if (!container) return;
-  
-    if (!navigator.onLine) {
-      showOfflineToast("AI lookup requires internet.", true);
-      container.innerHTML = `
+
+  const container = document.getElementById("ai-search-results-container");
+  if (!container) return;
+
+  if (!navigator.onLine) {
+    showOfflineToast("AI lookup requires internet.", true);
+    container.innerHTML = `
         <ul class="list-container">
           <li class="list-empty" style="margin-top:0;">
             <span>📴 You are offline. Connect to the internet for AI postal estimation.</span>
           </li>
         </ul>`;
-      return;
-    }
-  
-    container.innerHTML = `
+    return;
+  }
+
+  container.innerHTML = `
       <div style="text-align: center; padding: 20px 12px;">
         <div class="approvals-loader-pill">
           <div class="approvals-spinner"></div>
           <span>✨ AI is searching online for "${escapeHTML(query)}"...</span>
         </div>
       </div>`;
-  
-    aiSearchDebounceTimer = setTimeout(
-      () => {
-        executeAiOfficeEstimation(query);
-      },
-      immediate ? 0 : 700
+
+  aiSearchDebounceTimer = setTimeout(
+    () => {
+      executeAiOfficeEstimation(query);
+    },
+    immediate ? 0 : 700,
+  );
+}
+
+function buildDivisionOfficeDirectoryContext(query) {
+  const officeGroups = new Map();
+
+  cachedPostOffices.forEach((row) => {
+    const off = String(row.Office || "").trim();
+    const pin = String(row.Pin || "N/A").trim();
+    const addr = String(row.Address || "").trim();
+    if (!off) return;
+
+    if (!officeGroups.has(off)) {
+      officeGroups.set(off, { pin, localities: [] });
+    }
+    if (addr) {
+      officeGroups.get(off).localities.push(addr);
+    }
+  });
+
+  const qLower = query.toLowerCase().trim();
+  const qPrefix = qLower.slice(0, 3);
+
+  const summaryLines = [];
+  officeGroups.forEach((info, officeName) => {
+    const sortedLocs = [...info.localities].sort((a, b) => {
+      const aMatch = a.toLowerCase().startsWith(qPrefix) ? -1 : 0;
+      const bMatch = b.toLowerCase().startsWith(qPrefix) ? -1 : 0;
+      return aMatch - bMatch;
+    });
+    const sampleStr = sortedLocs.slice(0, 18).join(", ");
+    summaryLines.push(
+      `- Delivery Office: "${officeName}" (PIN: ${info.pin}) -> Serves areas/BOs: [${sampleStr}]`,
+    );
+  });
+
+  return summaryLines.join("\n");
+}
+
+async function fetchVillageGeoContext(query, signal) {
+  const cleanQuery = query
+    .replace(/\b(BO|SO|HO|PO|vill|village|gram)\b/gi, "")
+    .trim();
+
+  const geoHints = [];
+
+  try {
+    const postRes = await fetch(
+      `https://api.postalpincode.in/postoffice/${encodeURIComponent(
+        cleanQuery,
+      )}`,
+      { signal },
+    );
+    if (postRes.ok) {
+      const postData = await postRes.json();
+      const offices = postData?.[0]?.PostOffice || [];
+
+      const localOffices = offices.filter(
+        (o) =>
+          /mirzapur|sonbhadra|sonebhadra|bhadohi|varanasi/i.test(
+            o.District || "",
+          ) || /^231/.test(String(o.Pincode || "")),
+      );
+
+      localOffices.forEach((o) => {
+        geoHints.push(
+          `Official India Post Database Match: Office/Branch "${o.Name}" (${o.BranchType}) | Block: ${o.Block} | District: ${o.District} | PIN Code: ${o.Pincode}`,
+        );
+      });
+    }
+  } catch (e) {
+    if (e.name === "AbortError") throw e;
+  }
+
+  const lowerQ = cleanQuery.toLowerCase();
+  if (
+    lowerQ.includes("lapsi") ||
+    lowerQ.includes("nauha") ||
+    lowerQ.includes("khutaha")
+  ) {
+    geoHints.push(
+      `CRITICAL LOCAL KNOWLEDGE: Village "${cleanQuery}" is located in the Kachhwa / Majhawa block of Mirzapur district. Its sorting office is Kachhwa SO with PIN code 231501.`,
     );
   }
-  
-  function buildDivisionOfficeDirectoryContext(query) {
-    const officeGroups = new Map();
-  
-    cachedPostOffices.forEach((row) => {
-      const off = String(row.Office || "").trim();
-      const pin = String(row.Pin || "N/A").trim();
-      const addr = String(row.Address || "").trim();
-      if (!off) return;
-  
-      if (!officeGroups.has(off)) {
-        officeGroups.set(off, { pin, localities: [] });
-      }
-      if (addr) {
-        officeGroups.get(off).localities.push(addr);
-      }
-    });
-  
-    const qLower = query.toLowerCase().trim();
-    const qPrefix = qLower.slice(0, 3);
-  
-    const summaryLines = [];
-    officeGroups.forEach((info, officeName) => {
-      const sortedLocs = [...info.localities].sort((a, b) => {
-        const aMatch = a.toLowerCase().startsWith(qPrefix) ? -1 : 0;
-        const bMatch = b.toLowerCase().startsWith(qPrefix) ? -1 : 0;
-        return aMatch - bMatch;
-      });
-      const sampleStr = sortedLocs.slice(0, 18).join(", ");
-      summaryLines.push(
-        `- Delivery Office: "${officeName}" (PIN: ${info.pin}) -> Serves areas/BOs: [${sampleStr}]`
-      );
-    });
-  
-    return summaryLines.join("\n");
+
+  return geoHints;
+}
+
+async function executeAiOfficeEstimation(query) {
+  const container = document.getElementById("ai-search-results-container");
+  if (!container) return;
+
+  const aiBtn = document.getElementById("force-ai-search-btn");
+  if (aiBtn) aiBtn.classList.add("loading");
+
+  const exactUserQuery = query.trim();
+  const cacheKey = exactUserQuery.toLowerCase();
+
+  if (aiMemoryCache[cacheKey]) {
+    if (aiBtn) aiBtn.classList.remove("loading");
+    renderAiEstimationCards(exactUserQuery, aiMemoryCache[cacheKey]);
+    return;
   }
-  
-  async function fetchVillageGeoContext(query, signal) {
-    const cleanQuery = query
-      .replace(/\b(BO|SO|HO|PO|vill|village|gram)\b/gi, "")
-      .trim();
-  
-    const geoHints = [];
-  
-    try {
-      const postRes = await fetch(
-        `https://api.postalpincode.in/postoffice/${encodeURIComponent(
-          cleanQuery
-        )}`,
-        { signal }
-      );
-      if (postRes.ok) {
-        const postData = await postRes.json();
-        const offices = postData?.[0]?.PostOffice || [];
-  
-        const localOffices = offices.filter(
-          (o) =>
-            /mirzapur|sonbhadra|sonebhadra|bhadohi|varanasi/i.test(
-              o.District || ""
-            ) || /^231/.test(String(o.Pincode || ""))
-        );
-  
-        localOffices.forEach((o) => {
-          geoHints.push(
-            `Official India Post Database Match: Office/Branch "${o.Name}" (${o.BranchType}) | Block: ${o.Block} | District: ${o.District} | PIN Code: ${o.Pincode}`
-          );
-        });
-      }
-    } catch (e) {
-      if (e.name === "AbortError") throw e;
-    }
-  
-    const lowerQ = cleanQuery.toLowerCase();
-    if (
-      lowerQ.includes("lapsi") ||
-      lowerQ.includes("nauha") ||
-      lowerQ.includes("khutaha")
-    ) {
-      geoHints.push(
-        `CRITICAL LOCAL KNOWLEDGE: Village "${cleanQuery}" is located in the Kachhwa / Majhawa block of Mirzapur district. Its sorting office is Kachhwa SO with PIN code 231501.`
-      );
-    }
-  
-    return geoHints;
-  }
-  
-  async function executeAiOfficeEstimation(query) {
-    const container = document.getElementById("ai-search-results-container");
-    if (!container) return;
-  
-    const aiBtn = document.getElementById("force-ai-search-btn");
-    if (aiBtn) aiBtn.classList.add("loading");
-  
-    const exactUserQuery = query.trim();
-    const cacheKey = exactUserQuery.toLowerCase();
-  
-    if (aiMemoryCache[cacheKey]) {
-      if (aiBtn) aiBtn.classList.remove("loading");
-      renderAiEstimationCards(exactUserQuery, aiMemoryCache[cacheKey]);
-      return;
-    }
-  
-    const thisRequestId = ++aiLatestRequestId;
-    aiActiveAbortController = new AbortController();
-  
-    try {
-      const geoHints = await fetchVillageGeoContext(
-        exactUserQuery,
-        aiActiveAbortController.signal
-      );
-  
-      const divisionDirectoryContext =
-        buildDivisionOfficeDirectoryContext(exactUserQuery);
-  
-      const prompt = `You are an expert India Post mail sorting assistant for Mirzapur and Sonbhadra districts (Uttar Pradesh, PIN 231xxx).
+
+  const thisRequestId = ++aiLatestRequestId;
+  aiActiveAbortController = new AbortController();
+
+  try {
+    const geoHints = await fetchVillageGeoContext(
+      exactUserQuery,
+      aiActiveAbortController.signal,
+    );
+
+    const divisionDirectoryContext =
+      buildDivisionOfficeDirectoryContext(exactUserQuery);
+
+    const prompt = `You are an expert India Post mail sorting assistant for Mirzapur and Sonbhadra districts (Uttar Pradesh, PIN 231xxx).
   
   The user searched for a village, mohalla, locality, or post office that was NOT found in the local database:
   User Search: "${exactUserQuery}"
@@ -1081,91 +1206,91 @@ function setViewMode(mode, shouldRender = true) {
       "reason": "Short 1-2 line explanation of why mail for this locality routes to this office."
     }
   ]`;
-  
-      const { data, error } = await supabaseClient.functions.invoke(
-        "ai-postal-search",
-        { body: { prompt } }
-      );
-  
-      if (thisRequestId !== aiLatestRequestId) return;
-  
-      if (error) {
-        let errMsg = error.message || "AI Lookup Error";
-        try {
-          const errBody = await error.context?.json();
-          if (errBody?.error) errMsg = errBody.error;
-        } catch (_) {}
-        throw new Error(errMsg);
-      }
-  
-      const rawText = data?.text || "[]";
-      const jsonMatch = rawText.match(/\[[\s\S]*\]/);
-      const parsedResults = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-  
-      aiMemoryCache[cacheKey] = parsedResults;
-  
-      if (aiBtn) aiBtn.classList.remove("loading");
-      renderAiEstimationCards(exactUserQuery, parsedResults);
-    } catch (err) {
-      if (aiBtn) aiBtn.classList.remove("loading");
-      if (err.name === "AbortError" || thisRequestId !== aiLatestRequestId)
-        return;
-      if (container) {
-        container.innerHTML = `
+
+    const { data, error } = await supabaseClient.functions.invoke(
+      "ai-postal-search",
+      { body: { prompt } },
+    );
+
+    if (thisRequestId !== aiLatestRequestId) return;
+
+    if (error) {
+      let errMsg = error.message || "AI Lookup Error";
+      try {
+        const errBody = await error.context?.json();
+        if (errBody?.error) errMsg = errBody.error;
+      } catch (_) {}
+      throw new Error(errMsg);
+    }
+
+    const rawText = data?.text || "[]";
+    const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+    const parsedResults = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+
+    aiMemoryCache[cacheKey] = parsedResults;
+
+    if (aiBtn) aiBtn.classList.remove("loading");
+    renderAiEstimationCards(exactUserQuery, parsedResults);
+  } catch (err) {
+    if (aiBtn) aiBtn.classList.remove("loading");
+    if (err.name === "AbortError" || thisRequestId !== aiLatestRequestId)
+      return;
+    if (container) {
+      container.innerHTML = `
           <ul class="list-container">
             <li class="list-empty" style="margin-top:0; gap:8px;">
               <span style="color:#ef4444;">⚠️ AI Lookup Error: ${escapeHTML(
-                err.message
+                err.message,
               )}</span>
               <button type="button" class="toolbar-btn" style="background:var(--input-bg);" onclick="scheduleAutoAiSearch('${escapeForOnclick(
-                exactUserQuery
+                exactUserQuery,
               )}', true)">🔄 Retry AI Search</button>
             </li>
           </ul>`;
-      }
     }
   }
-  
-  function renderAiEstimationCards(query, estimations) {
-    const container = document.getElementById("ai-search-results-container");
-    if (!container) return;
-  
-    if (!Array.isArray(estimations) || estimations.length === 0) {
-      container.innerHTML = `
+}
+
+function renderAiEstimationCards(query, estimations) {
+  const container = document.getElementById("ai-search-results-container");
+  if (!container) return;
+
+  if (!Array.isArray(estimations) || estimations.length === 0) {
+    container.innerHTML = `
         <ul class="list-container">
           <li class="list-empty" style="margin-top:0;">
             <span>🤖 AI could not confidently identify a serving Post Office in Mirzapur or Sonbhadra for "${escapeHTML(
-              query
+              query,
             )}".</span>
           </li>
         </ul>`;
-      return;
-    }
-  
-    let html = "";
-    estimations.forEach((est) => {
-      const locality = est.searched_text || query;
-      const servingBeat = est.serving_bo_or_beat || "";
-      const office = est.recommended_office || "Unknown Office";
-      const district = est.district || "";
-      const pin = est.pin || "N/A";
-      const confidence = est.confidence || "Medium";
-      const reason =
-        est.reason || "Estimated based on Mirzapur/Sonbhadra postal geography.";
-  
-      const existsInLocalDb = cachedPostOffices.some(
-        (r) =>
-          String(r.Office || "")
-            .trim()
-            .toLowerCase() === office.trim().toLowerCase()
-      );
-  
-      html += `
+    return;
+  }
+
+  let html = "";
+  estimations.forEach((est) => {
+    const locality = est.searched_text || query;
+    const servingBeat = est.serving_bo_or_beat || "";
+    const office = est.recommended_office || "Unknown Office";
+    const district = est.district || "";
+    const pin = est.pin || "N/A";
+    const confidence = est.confidence || "Medium";
+    const reason =
+      est.reason || "Estimated based on Mirzapur/Sonbhadra postal geography.";
+
+    const existsInLocalDb = cachedPostOffices.some(
+      (r) =>
+        String(r.Office || "")
+          .trim()
+          .toLowerCase() === office.trim().toLowerCase(),
+    );
+
+    html += `
         <div class="ai-result-card">
           <div class="ai-card-top-row">
             <span class="ai-badge">✨ AI Estimated Route (Not in Database)</span>
             <span class="ai-confidence-pill">🎯 Confidence: ${escapeHTML(
-              confidence
+              confidence,
             )}</span>
           </div>
   
@@ -1175,7 +1300,7 @@ function setViewMode(mode, shouldRender = true) {
               servingBeat &&
               servingBeat.toLowerCase() !== locality.toLowerCase()
                 ? `<span style="font-size: 13px; font-weight: 600; color: var(--text-light);"> (via ${escapeHTML(
-                    servingBeat
+                    servingBeat,
                   )})</span>`
                 : ""
             }
@@ -1183,11 +1308,11 @@ function setViewMode(mode, shouldRender = true) {
   
           <div class="sub-office">
             <span class="badge badge-primary" style="cursor: pointer;" onclick="goToDirectoryOffice('${escapeForOnclick(
-              office
+              office,
             )}')">
               🏢 Sort to Office: ${escapeHTML(office)} ${
-        existsInLocalDb ? "✓" : ""
-      }
+                existsInLocalDb ? "✓" : ""
+              }
             </span>
             <span class="badge">📍 PIN: ${escapeHTML(pin)}</span>
             ${
@@ -1205,75 +1330,75 @@ function setViewMode(mode, shouldRender = true) {
             ${
               existsInLocalDb
                 ? `<button type="button" class="toolbar-btn" style="background: var(--input-bg);" onclick="goToDirectoryOffice('${escapeForOnclick(
-                    office
+                    office,
                   )}')">📂 View Office in Directory</button>`
                 : ""
             }
             <button type="button" class="toolbar-btn" style="background: var(--primary); color: #ffffff;" onclick="prefillUploadFromAi('${escapeForOnclick(
-              locality
+              locality,
             )}', '${escapeForOnclick(office)}', '${escapeForOnclick(pin)}')">
               ➕ Propose "${escapeHTML(locality)}" to DB
             </button>
           </div>
         </div>
       `;
-    });
-  
-    container.innerHTML = html;
+  });
+
+  container.innerHTML = html;
+}
+
+function prefillUploadFromAi(address, office, pin) {
+  switchDashboardView("upload");
+  const container = document.getElementById("manual-entries-container");
+  const safePin = !pin || pin === "N/A" ? "" : pin;
+
+  container.innerHTML = getManualEntryRowHTML(true);
+  const firstRow = container.querySelector(".manual-entry-row");
+  if (firstRow) {
+    firstRow.querySelector(".manual-address").value = address;
+    firstRow.querySelector(".manual-office").value = office;
+    firstRow.querySelector(".manual-Pin").value = safePin;
   }
-  
-  function prefillUploadFromAi(address, office, pin) {
-    switchDashboardView("upload");
-    const container = document.getElementById("manual-entries-container");
-    const safePin = !pin || pin === "N/A" ? "" : pin;
-  
-    container.innerHTML = getManualEntryRowHTML(true);
-    const firstRow = container.querySelector(".manual-entry-row");
-    if (firstRow) {
-      firstRow.querySelector(".manual-address").value = address;
-      firstRow.querySelector(".manual-office").value = office;
-      firstRow.querySelector(".manual-Pin").value = safePin;
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    showToast("✨ Pre-filled! Tap Submit All to send for approval.");
-  }
-  
-  // --- COPY & CSV EXPORT ---
-  function copyResults() {
-    if (!currentFilteredData.length) return showToast("No data to copy!");
-    const text = currentFilteredData
-      .map(
-        (r) =>
-          `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin ${r.item.Pin}`
-      )
-      .join("\n");
-    navigator.clipboard
-      .writeText(text)
-      .then(() => showToast("📋 List copied to clipboard!"));
-  }
-  
-  function exportCSV() {
-    if (!currentFilteredData.length) return showToast("No data to export!");
-  
-    const escapeCSV = (str) => {
-      if (str === null || str === undefined) return "";
-      return String(str).replace(/"/g, '""');
-    };
-  
-    let csv = "Address,Office,Pin\n";
-    currentFilteredData.forEach((row) => {
-      csv += `"${escapeCSV(row.item.Address)}","${escapeCSV(
-        row.item.Office
-      )}","${escapeCSV(row.item.Pin)}"\n`;
-    });
-  
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "DakMitra_Export.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    showToast("📥 CSV Exported successfully!");
-  }
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  showToast("✨ Pre-filled! Tap Submit All to send for approval.");
+}
+
+// --- COPY & CSV EXPORT ---
+function copyResults() {
+  if (!currentFilteredData.length) return showToast("No data to copy!");
+  const text = currentFilteredData
+    .map(
+      (r) =>
+        `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin ${r.item.Pin}`,
+    )
+    .join("\n");
+  navigator.clipboard
+    .writeText(text)
+    .then(() => showToast("📋 List copied to clipboard!"));
+}
+
+function exportCSV() {
+  if (!currentFilteredData.length) return showToast("No data to export!");
+
+  const escapeCSV = (str) => {
+    if (str === null || str === undefined) return "";
+    return String(str).replace(/"/g, '""');
+  };
+
+  let csv = "Address,Office,Pin\n";
+  currentFilteredData.forEach((row) => {
+    csv += `"${escapeCSV(row.item.Address)}","${escapeCSV(
+      row.item.Office,
+    )}","${escapeCSV(row.item.Pin)}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "DakMitra_Export.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  showToast("📥 CSV Exported successfully!");
+}

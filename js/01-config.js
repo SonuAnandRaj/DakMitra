@@ -24,7 +24,7 @@ function initSupabaseClient() {
         auth: {
           experimental: { passkey: true },
         },
-      }
+      },
     );
   }
   return supabaseClient;
@@ -43,12 +43,12 @@ function loadScriptDynamically(src) {
 async function ensureSupabaseReady() {
   if (!window.supabase) {
     await loadScriptDynamically(
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
     );
   }
   if (!window.Fuse) {
     await loadScriptDynamically(
-      "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"
+      "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js",
     );
   }
   return initSupabaseClient();

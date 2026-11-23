@@ -80,7 +80,7 @@ window.addEventListener("online", () => {
 
 function showOfflineToast(
   extraMsg = "Using cached version.",
-  isActiveAction = false
+  isActiveAction = false,
 ) {
   if (!isActiveAction && hasShownPassiveOfflineToast) return;
 
@@ -94,7 +94,7 @@ function showOfflineToast(
 
 async function ensureOnline(
   offlineMsg = "Using cached version.",
-  isActiveAction = true
+  isActiveAction = true,
 ) {
   const online = await checkActualInternet();
   if (!online) {
@@ -112,21 +112,21 @@ function detectToastType(message) {
   const msg = String(message || "");
   if (
     /[✅🎉✨📥📋✉️]|\b(success|saved|updated|copied|exported|added|created|up to date)\b/i.test(
-      msg
+      msg,
     )
   ) {
     return "success";
   }
   if (
     /[❌🗑️]|\b(error|failed|deleted|removed|denied|expired|invalid)\b/i.test(
-      msg
+      msg,
     )
   ) {
     return "error";
   }
   if (
     /[⚠️📴⭐⏹️]|\b(offline|no internet|warning|stopped|please|not found)\b/i.test(
-      msg
+      msg,
     )
   ) {
     return "warning";
@@ -164,7 +164,7 @@ function setButtonState(btn, state, label = "") {
     btn.disabled = true;
     btn.classList.add("is-loading");
     btn.innerHTML = `<div class="btn-spinner"></div><span>${escapeHTML(
-      label || "Working..."
+      label || "Working...",
     )}</span>`;
   } else if (state === "success") {
     btn.disabled = true;
@@ -258,4 +258,61 @@ function closeAllDropdowns() {
   document
     .querySelectorAll(".autocomplete-dropdown.show")
     .forEach((el) => el.classList.remove("show"));
+}
+// --- UNIFIED POSTAL PHONETIC KEY (EXACT 1:1 PORT OF SUPABASE public.postal_phonetic_key) ---
+const _phoneticKeyCache = new Map();
+
+function postalPhoneticKey(addr) {
+  if (addr === null || addr === undefined) return "";
+  const input = String(addr);
+  if (_phoneticKeyCache.has(input)) return _phoneticKeyCache.get(input);
+
+  // 1. Lowercase, remove dots, and strip standalone BO/SO/HO/PO/Village tags
+  let s = input.replace(/\./g, "").toLowerCase();
+  s = s.replace(/\b(bo|so|ho|po|village|vill|gram)\b/gi, "");
+
+  // 2. Normalize common suffix spellings (Kalan/Kalna -> Kala, Gawn/Gawan/Ganw -> Gaon)
+  s = s.replace(/\b(kalan|kalna)\b/gi, "kala");
+  s = s.replace(/(gawn|gawan|ganw|gaon)\b/gi, "gaon");
+
+  // 3. Remove all spaces, hyphens, and non-alphanumeric characters
+  s = s.replace(/[^a-z0-9]/g, "");
+
+  // 4. Normalize Hindi consonant transliterations
+  s = s
+    .replace(/chh/g, "c")
+    .replace(/ch/g, "c")
+    .replace(/kh/g, "k")
+    .replace(/gh/g, "g")
+    .replace(/th/g, "t")
+    .replace(/dh/g, "d")
+    .replace(/sh/g, "s")
+    .replace(/w/g, "v")
+    .replace(/d/g, "r");
+
+  // 5. Normalize vowel variations
+  s = s
+    .replace(/ee/g, "i")
+    .replace(/oo/g, "u")
+    .replace(/aa/g, "a")
+    .replace(/iya/g, "ia")
+    .replace(/ue/g, "i")
+    .replace(/ui/g, "i")
+    .replace(/ai/g, "e")
+    .replace(/au/g, "o");
+
+  // 6. Normalize trailing nasal 'n' or silent 'h' after 'a'
+  s = s.replace(/a[nh]$/, "a");
+
+  // 7. Remove internal schwa 'a' vowels while preserving first and last character
+  if (s.length > 2) {
+    s = s[0] + s.slice(1, -1).replace(/a/g, "") + s[s.length - 1];
+  }
+
+  // 8. Collapse consecutive duplicate letters (e.g. Bichchhi -> Bici)
+  s = s.replace(/(.)\1+/g, "$1");
+
+  if (_phoneticKeyCache.size > 5000) _phoneticKeyCache.clear();
+  _phoneticKeyCache.set(input, s);
+  return s;
 }

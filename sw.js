@@ -1,4 +1,4 @@
-const CACHE_NAME = "po-directory-v13"; // Bumped from v12 so the new modular files cache cleanly
+const CACHE_NAME = "po-directory-v14";
 
 const LOCAL_ASSETS = [
   "./",
@@ -20,12 +20,12 @@ const LOCAL_ASSETS = [
   "./js/07-directory-staff.js",
   "./js/08-records-upload.js",
   "./js/09-approvals-favs.js",
-  "./js/10-settings-boot.js"
+  "./js/10-settings-boot.js",
 ];
 
 const CDN_ASSETS = [
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
-  "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"
+  "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js",
 ];
 
 self.addEventListener("install", (event) => {
@@ -34,16 +34,16 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE_NAME).then(async (cache) => {
       // Bypass browser HTTP cache on install so GitHub Pages always delivers the latest CSS/JS
       await cache.addAll(
-        LOCAL_ASSETS.map((url) => new Request(url, { cache: "no-cache" }))
+        LOCAL_ASSETS.map((url) => new Request(url, { cache: "no-cache" })),
       );
       await Promise.allSettled(
         CDN_ASSETS.map((url) =>
           fetch(url).then((res) => {
             if (res && res.status === 200) return cache.put(url, res);
-          })
-        )
+          }),
+        ),
       );
-    })
+    }),
   );
 });
 
@@ -55,10 +55,10 @@ self.addEventListener("activate", (event) => {
         Promise.all(
           keys.map((key) => {
             if (key !== CACHE_NAME) return caches.delete(key);
-          })
-        )
+          }),
+        ),
       )
-      .then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -83,7 +83,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await cache.match("./index.html", {
-          ignoreSearch: true
+          ignoreSearch: true,
         });
 
         const networkFetch = fetch("./index.html", { cache: "no-cache" })
@@ -101,7 +101,7 @@ self.addEventListener("fetch", (event) => {
 
         // Return cached shell immediately; only wait for network on very first visit
         return cached || networkFetch;
-      })
+      }),
     );
     return;
   }
@@ -122,7 +122,7 @@ self.addEventListener("fetch", (event) => {
             .catch(() => null);
 
           return cachedResponse || networkFetch;
-        })
-    )
+        }),
+    ),
   );
 });

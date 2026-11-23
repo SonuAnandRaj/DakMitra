@@ -44,7 +44,7 @@ function updateRecord(id, currentAddress, currentOffice, currentPin) {
   const clearOffBtn = document.getElementById("inline-edit-office-clear");
   const saveBtn = document.getElementById("inline-edit-save-btn");
   const saveBtnContent = document.getElementById(
-    "inline-edit-save-btn-content"
+    "inline-edit-save-btn-content",
   );
 
   addrInput.value = activeInlineEditRecord.oldAddress;
@@ -106,7 +106,7 @@ async function saveInlineEditRecord() {
 
   const saveBtn = document.getElementById("inline-edit-save-btn");
   const saveBtnContent = document.getElementById(
-    "inline-edit-save-btn-content"
+    "inline-edit-save-btn-content",
   );
   const editedId = activeInlineEditRecord.id;
 
@@ -278,7 +278,7 @@ async function viewHistory(postOfficeId) {
   if (!online) {
     showOfflineToast("Showing cached history.");
     const savedHistory = localStorage.getItem(
-      "dakmitra_history_" + postOfficeId
+      "dakmitra_history_" + postOfficeId,
     );
     contentDiv.innerHTML =
       savedHistory ||
@@ -294,7 +294,7 @@ async function viewHistory(postOfficeId) {
           *,
           requester:profiles!changed_by(name, employee_id),
           approver:profiles!approved_by(name, employee_id)
-        `
+        `,
       )
       .eq("post_office_id", postOfficeId)
       .order("changed_at", { ascending: false });
@@ -339,14 +339,14 @@ async function viewHistory(postOfficeId) {
           approverHtml = `
             <div style="font-size: 12px; color: var(--success-text); margin-top: 4px;">
               ✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
-                log.approver.name
+                log.approver.name,
               )} - ${escapeHTML(log.approver.employee_id)})
             </div>`;
         } else {
           approverHtml = `
             <div style="font-size: 12px; color: var(--primary); margin-top: 4px;">
               👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
-                log.approver.name
+                log.approver.name,
               )} - ${escapeHTML(log.approver.employee_id)})
             </div>`;
         }
@@ -365,11 +365,11 @@ async function viewHistory(postOfficeId) {
 
         if (sOld !== sNew) {
           return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${escapeHTML(
-            sOld
+            sOld,
           )}</span> ➡️ <b>${escapeHTML(sNew)}</b></div>`;
         }
         return `<div style="margin-bottom: 4px;">${prefix} ${escapeHTML(
-          sNew
+          sNew,
         )}</div>`;
       };
 
@@ -377,10 +377,10 @@ async function viewHistory(postOfficeId) {
         actionBadge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px;">➕ CREATED</span>`;
         changesHtml = `
           <div style="margin-bottom: 4px;"><b>${escapeHTML(
-            log.new_data?.Address
+            log.new_data?.Address,
           )}</b></div>
           <div style="margin-bottom: 4px;">🏢 ${escapeHTML(
-            log.new_data?.Office
+            log.new_data?.Office,
           )}</div>
           <div>📍 ${escapeHTML(log.new_data?.Pin || "N/A")}</div>
         `;
@@ -394,20 +394,15 @@ async function viewHistory(postOfficeId) {
             oldD.Address || oldD.address,
             newD.Address || newD.address,
             "📮",
-            "Unknown Address"
+            "Unknown Address",
           ) +
           formatField(
             oldD.Office || oldD.office,
             newD.Office || newD.office,
             "🏢",
-            "Unknown Office"
+            "Unknown Office",
           ) +
-          formatField(
-            oldD.Pin || oldD.pin,
-            newD.Pin || newD.pin,
-            "📍",
-            "N/A"
-          );
+          formatField(oldD.Pin || oldD.pin, newD.Pin || newD.pin, "📍", "N/A");
 
         if (oldD.is_deleted !== newD.is_deleted) {
           changesHtml += `<div style="margin-top: 8px;"><b>Status:</b> ${
@@ -418,13 +413,13 @@ async function viewHistory(postOfficeId) {
         actionBadge = `<span class="badge" style="background:#fee2e2;color:#991b1b; padding: 4px 8px; font-size: 12px;">🗑️ DELETED</span>`;
         changesHtml = `
           <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
-            log.old_data?.Address
+            log.old_data?.Address,
           )}</b></div>
           <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${escapeHTML(
-            log.old_data?.Office
+            log.old_data?.Office,
           )}</div>
           <div style="text-decoration: line-through; color: var(--text-light);">📍 ${escapeHTML(
-            log.old_data?.Pin || "N/A"
+            log.old_data?.Pin || "N/A",
           )}</div>
           <div style="margin-top: 8px; color: #991b1b; font-weight: 600;">Record was permanently deleted.</div>
         `;
@@ -436,12 +431,12 @@ async function viewHistory(postOfficeId) {
       const attributionHtml = isBulkExcelUpload
         ? `<div style="font-size: 12px; color: var(--success-text); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
              📊 <b>Added via Excel Bulk Upload</b> by Admin <b>${escapeHTML(
-               requesterName
+               requesterName,
              )}</b> (${escapeHTML(requesterId)})
            </div>`
         : `<div style="font-size: 12px; color: var(--text-light); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
              <div>👤 Requested by: <b>${escapeHTML(
-               requesterName
+               requesterName,
              )}</b> (${escapeHTML(requesterId)})</div>
              ${approverHtml}
            </div>`;
@@ -650,7 +645,7 @@ function parseBulkAddresses() {
   const list = [];
 
   raw
-    .split(/[\n,]+/)
+    .split(/[\n,]+| {2,}/)
     .map((s) => s.trim())
     .filter(Boolean)
     .forEach((addr) => {
@@ -680,7 +675,9 @@ function updateBulkAddressPreview() {
     return;
   }
 
-  const existingSet = new Set();
+  const existingExact = new Map();
+  const existingPhonetic = new Map();
+
   if (officeVal && cachedPostOffices) {
     cachedPostOffices.forEach((r) => {
       if (
@@ -688,11 +685,12 @@ function updateBulkAddressPreview() {
           .trim()
           .toLowerCase() === officeVal
       ) {
-        existingSet.add(
-          String(r.Address || "")
-            .trim()
-            .toLowerCase()
-        );
+        const rawAddr = String(r.Address || "").trim();
+        existingExact.set(rawAddr.toLowerCase(), rawAddr);
+        const pKey = postalPhoneticKey(rawAddr);
+        if (pKey && !existingPhonetic.has(pKey)) {
+          existingPhonetic.set(pKey, rawAddr);
+        }
       }
     });
   }
@@ -700,12 +698,16 @@ function updateBulkAddressPreview() {
   let dupCount = 0;
   chipsEl.innerHTML = addresses
     .map((addr, idx) => {
-      const isDup = existingSet.has(addr.toLowerCase());
+      const matchedName =
+        existingExact.get(addr.toLowerCase()) ||
+        existingPhonetic.get(postalPhoneticKey(addr)) ||
+        null;
+      const isDup = Boolean(matchedName);
       if (isDup) dupCount++;
       return `
         <span class="bulk-chip ${isDup ? "is-duplicate" : ""}" title="${
-        isDup ? "Already exists in this office" : ""
-      }">
+          isDup ? `Similar to existing: ${escapeHTML(matchedName)}` : ""
+        }">
           ${isDup ? "⚠️ " : ""}${escapeHTML(addr)}
           <button type="button" onclick="removeBulkAddressAt(${idx})" title="Remove">✕</button>
         </span>`;
@@ -808,7 +810,7 @@ async function submitBulkSameOffice() {
 // --- OFFICE AUTOCOMPLETE DROPDOWNS (INLINE EDIT, MANUAL, BULK & SEARCH FILTER) ---
 function buildOfficeOptionHTML(office, pin, mode) {
   return `<div class="autocomplete-item" onmousedown="pickOfficeOption(this, '${escapeForOnclick(
-    office
+    office,
   )}', '${escapeForOnclick(pin)}', '${mode}')">
     <div class="ac-item-main">
       <span class="ac-item-icon">
@@ -884,7 +886,7 @@ function handleInlineEditOfficeInput(inputElement) {
   if (val) {
     const lowerVal = val.toLowerCase();
     matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal)
+      o.toLowerCase().includes(lowerVal),
     );
   }
   matchedOffices.sort();
@@ -895,7 +897,7 @@ function handleInlineEditOfficeInput(inputElement) {
     dropdown.innerHTML = matchedOffices
       .slice(0, 10)
       .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "inline")
+        buildOfficeOptionHTML(office, officeMap.get(office), "inline"),
       )
       .join("");
     dropdown.classList.add("show");
@@ -906,7 +908,7 @@ function handleInlineEditOfficeInput(inputElement) {
       pinInput.value = "";
     } else {
       const exactMatch = Array.from(officeMap.keys()).find(
-        (k) => k.toLowerCase() === val.toLowerCase()
+        (k) => k.toLowerCase() === val.toLowerCase(),
       );
       if (exactMatch) pinInput.value = officeMap.get(exactMatch);
     }
@@ -938,7 +940,7 @@ function handleOfficeInput(inputElement) {
   if (val) {
     const lowerVal = val.toLowerCase();
     matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal)
+      o.toLowerCase().includes(lowerVal),
     );
   }
   matchedOffices.sort();
@@ -949,7 +951,7 @@ function handleOfficeInput(inputElement) {
     dropdown.innerHTML = matchedOffices
       .slice(0, 10)
       .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "manual")
+        buildOfficeOptionHTML(office, officeMap.get(office), "manual"),
       )
       .join("");
     dropdown.classList.add("show");
@@ -960,7 +962,7 @@ function handleOfficeInput(inputElement) {
       pinInput.value = "";
     } else {
       const exactMatch = Array.from(officeMap.keys()).find(
-        (k) => k.toLowerCase() === val.toLowerCase()
+        (k) => k.toLowerCase() === val.toLowerCase(),
       );
       if (exactMatch) pinInput.value = officeMap.get(exactMatch);
     }
@@ -990,7 +992,7 @@ function handleBulkOfficeInput(inputElement) {
   if (val) {
     const lowerVal = val.toLowerCase();
     matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal)
+      o.toLowerCase().includes(lowerVal),
     );
   }
   matchedOffices.sort();
@@ -1001,7 +1003,7 @@ function handleBulkOfficeInput(inputElement) {
     dropdown.innerHTML = matchedOffices
       .slice(0, 10)
       .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "bulk")
+        buildOfficeOptionHTML(office, officeMap.get(office), "bulk"),
       )
       .join("");
     dropdown.classList.add("show");
@@ -1012,7 +1014,7 @@ function handleBulkOfficeInput(inputElement) {
       pinInput.value = "";
     } else {
       const exactMatch = Array.from(officeMap.keys()).find(
-        (k) => k.toLowerCase() === val.toLowerCase()
+        (k) => k.toLowerCase() === val.toLowerCase(),
       );
       if (exactMatch) pinInput.value = officeMap.get(exactMatch);
     }
@@ -1035,7 +1037,7 @@ function handleSearchOfficeFilterInput(inputElement) {
   if (val) {
     const lowerVal = val.toLowerCase();
     matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal)
+      o.toLowerCase().includes(lowerVal),
     );
   }
   matchedOffices.sort();
@@ -1046,7 +1048,7 @@ function handleSearchOfficeFilterInput(inputElement) {
     dropdown.innerHTML = matchedOffices
       .slice(0, 10)
       .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "search-filter")
+        buildOfficeOptionHTML(office, officeMap.get(office), "search-filter"),
       )
       .join("");
     dropdown.classList.add("show");
@@ -1084,7 +1086,7 @@ async function uploadExcel() {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
       const jsonData = XLSX.utils.sheet_to_json(
-        workbook.Sheets[workbook.SheetNames[0]]
+        workbook.Sheets[workbook.SheetNames[0]],
       );
       if (jsonData.length === 0) {
         alert("The Excel file is empty.");

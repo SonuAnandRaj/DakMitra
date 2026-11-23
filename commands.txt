@@ -1,0 +1,1 @@
+npx prettier --write . // to format whole document with prettier

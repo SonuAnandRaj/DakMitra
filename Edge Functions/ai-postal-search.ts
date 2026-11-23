@@ -22,14 +22,14 @@ Deno.serve(async (req) => {
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const {
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -51,11 +51,13 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("GEMINI_API_KEY")?.trim();
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: "GEMINI_API_KEY is not set in Supabase Secrets." }),
+        JSON.stringify({
+          error: "GEMINI_API_KEY is not set in Supabase Secrets.",
+        }),
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -80,7 +82,7 @@ Deno.serve(async (req) => {
     for (const model of models) {
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(
-          apiKey
+          apiKey,
         )}`,
         {
           method: "POST",
@@ -89,7 +91,7 @@ Deno.serve(async (req) => {
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: { temperature: 0.1 },
           }),
-        }
+        },
       );
 
       if (res.ok) {
@@ -121,7 +123,7 @@ Deno.serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });
