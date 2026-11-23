@@ -31,8 +31,9 @@ async function fetchFromServerBackground() {
   if (!navigator.onLine) {
     console.log("Offline mode: Skipping background sync.");
     if (!cachedPostOffices || cachedPostOffices.length === 0) {
-      document.getElementById("results-display-area").innerHTML =
-        `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
+      document.getElementById(
+        "results-display-area"
+      ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
     }
     return false;
   }
@@ -179,7 +180,7 @@ function parseSmartSearchQuery(
   rawInput,
   searchMode,
   manualOfficeFilter,
-  manualPinFilter,
+  manualPinFilter
 ) {
   let text = String(rawInput || "").trim();
 
@@ -253,32 +254,40 @@ function buildDirectoryGroupedData() {
   }
   const grouped = {};
   cachedPostOffices.forEach((row) => {
-    const office = row.Office || "Unknown Office";
-    if (!grouped[office]) {
-      grouped[office] = { pin: row.Pin || "N/A", addresses: [] };
+    const rawOffice = String(row.Office || "Unknown Office")
+      .trim()
+      .replace(/\s+/g, " ");
+    const officeKey = rawOffice.toLowerCase();
+
+    if (!grouped[officeKey]) {
+      grouped[officeKey] = {
+        office: rawOffice,
+        pin: row.Pin || "N/A",
+        addresses: [],
+      };
     }
-    const meta = getSearchMeta(row);
-    grouped[office].addresses.push({
+
+    grouped[officeKey].addresses.push({
       id: row.id,
       Address: row.Address || "",
-      Office: office,
+      Office: grouped[officeKey].office,
       Pin: row.Pin || "",
       priority: Number(row.priority) >= 1 ? 1 : 0,
-      effectivePriority: meta ? meta.effectivePriority : 0,
+      effectivePriority: getEffectivePriority(row),
     });
   });
 
-  directoryGroupedData = Object.keys(grouped)
-    .sort()
-    .map((office) => ({
-      office: office,
-      pin: grouped[office].pin,
-      addresses: grouped[office].addresses.sort(
+  directoryGroupedData = Object.values(grouped)
+    .sort((a, b) => a.office.localeCompare(b.office))
+    .map((group) => ({
+      office: group.office,
+      pin: group.pin,
+      addresses: group.addresses.sort(
         (a, b) =>
           b.effectivePriority - a.effectivePriority ||
-          String(a.Address).localeCompare(String(b.Address)),
+          String(a.Address).localeCompare(String(b.Address))
       ),
-      searchString: (office + " " + grouped[office].pin).toLowerCase(),
+      searchString: (group.office + " " + group.pin).toLowerCase(),
     }));
 }
 
@@ -289,7 +298,7 @@ function persistPostOfficeCache() {
   try {
     localStorage.setItem(
       "dakmitra_offline_db",
-      JSON.stringify(cachedPostOffices),
+      JSON.stringify(cachedPostOffices)
     );
   } catch (e) {
     console.warn("Failed to persist offline DB:", e);
@@ -338,6 +347,27 @@ function syncFavoritesWithCache() {
   }
 }
 
+function isRowDataUnchanged(existing, incoming) {
+  if (!existing || !incoming) return false;
+  const keys = Object.keys(incoming);
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i];
+    const oldVal = existing[k];
+    const newVal = incoming[k];
+    if (oldVal === newVal) continue;
+    if (
+      oldVal !== null &&
+      newVal !== null &&
+      typeof oldVal === "object" &&
+      typeof newVal === "object"
+    ) {
+      if (JSON.stringify(oldVal) === JSON.stringify(newVal)) continue;
+    }
+    return false;
+  }
+  return true;
+}
+
 function upsertLocalPostOffice(row) {
   if (!row || row.id === undefined || row.id === null) return;
 
@@ -347,12 +377,17 @@ function upsertLocalPostOffice(row) {
   }
 
   const idx = cachedPostOffices.findIndex(
-    (r) => String(r.id) === String(row.id),
+    (r) => String(r.id) === String(row.id)
   );
   if (idx > -1) {
+    if (isRowDataUnchanged(cachedPostOffices[idx], row)) {
+      return;
+    }
     cachedPostOffices[idx] = { ...cachedPostOffices[idx], ...row };
+    updateSearchIndexRow(cachedPostOffices[idx]);
   } else {
     cachedPostOffices.push(row);
+    updateSearchIndexRow(row);
   }
 
   if (
@@ -386,7 +421,7 @@ function removeLocalPostOffice(id) {
 
   const beforeLen = cachedPostOffices.length;
   cachedPostOffices = cachedPostOffices.filter(
-    (r) => String(r.id) !== String(id),
+    (r) => String(r.id) !== String(id)
   );
   if (cachedPostOffices.length === beforeLen) return;
 
@@ -414,7 +449,7 @@ function scheduleLocalUiRefresh() {
     if (statAddrEl) statAddrEl.textContent = cachedPostOffices.length;
     if (statOffEl) {
       statOffEl.textContent = new Set(
-        cachedPostOffices.map((o) => o.Office),
+        cachedPostOffices.map((o) => o.Office)
       ).size;
     }
 
@@ -436,16 +471,13 @@ function scheduleLocalUiRefresh() {
   }, 80);
 }
 
-function refreshSearchInPlace() {
+function refreshSearchInPlace(silent = true) {
   const displayArea = document.getElementById("results-display-area");
   const prevScroll = displayArea ? displayArea.scrollTop : 0;
   const prevLimit = window.searchDisplayLimit || 10;
 
-  if (typeof triggerSearch === "function") triggerSearch();
-
-  if (prevLimit > 10 && currentFilteredData.length > 10) {
-    window.searchDisplayLimit = Math.min(prevLimit, currentFilteredData.length);
-    if (typeof renderResults === "function") renderResults(true);
+  if (typeof triggerSearch === "function") {
+    triggerSearch(false, { silent, preserveLimit: prevLimit });
   }
 
   if (displayArea) {
@@ -468,7 +500,7 @@ function refreshDirectoryInPlace() {
 
   directoryFilteredData = filterValue
     ? directoryGroupedData.filter((item) =>
-        item.searchString.includes(filterValue),
+        item.searchString.includes(filterValue)
       )
     : [...directoryGroupedData];
 
@@ -504,21 +536,21 @@ function initRealtimeSync() {
       { event: "INSERT", schema: "public", table: "post_offices" },
       (payload) => {
         upsertLocalPostOffice(payload.new);
-      },
+      }
     )
     .on(
       "postgres_changes",
       { event: "UPDATE", schema: "public", table: "post_offices" },
       (payload) => {
         upsertLocalPostOffice(payload.new);
-      },
+      }
     )
     .on(
       "postgres_changes",
       { event: "DELETE", schema: "public", table: "post_offices" },
       (payload) => {
         if (payload.old?.id) removeLocalPostOffice(payload.old.id);
-      },
+      }
     )
     .on(
       "postgres_changes",
@@ -532,7 +564,7 @@ function initRealtimeSync() {
         ) {
           switchApprovalTab(currentApprovalTab, true);
         }
-      },
+      }
     )
     .subscribe((status) => {
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
@@ -574,7 +606,7 @@ async function hydrateOnlineState(attempt = 1) {
       const delays = [1500, 3000, 5000, 8000];
       onlineRetryTimer = setTimeout(
         () => hydrateOnlineState(attempt + 1),
-        delays[attempt - 1],
+        delays[attempt - 1]
       );
     }
     return;
@@ -650,7 +682,7 @@ async function hydrateOnlineState(attempt = 1) {
     if (attempt <= 3 && navigator.onLine) {
       onlineRetryTimer = setTimeout(
         () => hydrateOnlineState(attempt + 1),
-        3000,
+        3000
       );
     }
   } finally {

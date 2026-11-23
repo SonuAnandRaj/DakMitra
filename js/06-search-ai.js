@@ -78,7 +78,7 @@ function updateActiveFilterIndicators() {
   const toggleBtn = document.getElementById("advanced-filter-toggle-btn");
   const bar = document.getElementById("active-filters-bar");
   const searchWrapper = document.querySelector(
-    "#view-search .search-bar-modern .search-input-wrapper",
+    "#view-search .search-bar-modern .search-input-wrapper"
   );
 
   const count = activeFilters.length;
@@ -113,9 +113,11 @@ function updateActiveFilterIndicators() {
         (f) => `
             <span class="active-filter-pill">
               <span>${escapeHTML(f.label)}</span>
-              <button type="button" onclick="removeSingleFilter('${f.type}')" title="Remove filter">✕</button>
+              <button type="button" onclick="removeSingleFilter('${
+                f.type
+              }')" title="Remove filter">✕</button>
             </span>
-          `,
+          `
       )
       .join("");
 
@@ -131,7 +133,7 @@ function updateActiveFilterIndicators() {
 function removeSingleFilter(type) {
   if (type === "mode") {
     const defaultRadio = document.querySelector(
-      'input[name="searchFilter"][value="address"]',
+      'input[name="searchFilter"][value="address"]'
     );
     if (defaultRadio) defaultRadio.checked = true;
   } else if (type === "office") {
@@ -155,7 +157,7 @@ function removeSingleFilter(type) {
 
 function clearAllSearchFilters() {
   const defaultRadio = document.querySelector(
-    'input[name="searchFilter"][value="address"]',
+    'input[name="searchFilter"][value="address"]'
   );
   if (defaultRadio) defaultRadio.checked = true;
 
@@ -188,8 +190,8 @@ function loadSearchHistory() {
       .map(
         (term) =>
           `<button class="badge" style="cursor: pointer;" onclick="applyHistorySearch('${escapeForOnclick(
-            term,
-          )}')">${escapeHTML(term)}</button>`,
+            term
+          )}')">${escapeHTML(term)}</button>`
       )
       .join("");
   }
@@ -359,7 +361,7 @@ function findPhoneticMatchIndices(originalText, qKey) {
 
   const coreText = text.replace(
     /\s+\b(?:e\.?d\.?b\.?o\.?|g\.?p\.?o\.?|b\.?o\.?|s\.?o\.?|h\.?o\.?|p\.?o\.?)\b\.?$/i,
-    "",
+    ""
   );
 
   // Full address/office phonetic match -> highlight full core name (excluding BO/SO/HO)
@@ -391,14 +393,14 @@ function evaluateFieldMatch(
   qCore,
   qWords,
   qPhon,
-  qWordPhons,
+  qWordPhons
 ) {
   // Handle literal suffix-only queries like "bo", "so", "ho"
   if (!qCore) {
     const cleanRaw = rawLower.replace(/\./g, "");
     const re = new RegExp(
       "\\b" + qLower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b",
-      "i",
+      "i"
     );
     return re.test(cleanRaw)
       ? { pool: 0, tightness: 0 }
@@ -418,12 +420,12 @@ function evaluateFieldMatch(
       const qw = qWords[i];
       const qwp = qWordPhons[i] || "";
       const wordHit = words.some(
-        (w) => w === qw || (qw.length >= 2 && w.startsWith(qw)),
+        (w) => w === qw || (qw.length >= 2 && w.startsWith(qw))
       );
       const phonHit =
         qwp.length > 0 &&
         wordPhonetics.some(
-          (wp) => wp === qwp || (qwp.length >= 3 && wp.startsWith(qwp)),
+          (wp) => wp === qwp || (qwp.length >= 3 && wp.startsWith(qwp))
         );
       if (!wordHit && !phonHit) {
         allTokensMatched = false;
@@ -445,10 +447,10 @@ function mergeAndRankSearchResults(
   fuseResults,
   dataset,
   cleanQuery,
-  keysToSearch,
+  keysToSearch
 ) {
   const textKeys = keysToSearch.filter(
-    (k) => k === "Address" || k === "Office",
+    (k) => k === "Address" || k === "Office"
   );
   if (textKeys.length === 0) return fuseResults;
 
@@ -479,7 +481,7 @@ function mergeAndRankSearchResults(
               qCore,
               qWords,
               qPhon,
-              qWordPhons,
+              qWordPhons
             )
           : evaluateFieldMatch(
               meta.officeLower,
@@ -491,7 +493,7 @@ function mergeAndRankSearchResults(
               qCore,
               qWords,
               qPhon,
-              qWordPhons,
+              qWordPhons
             );
 
       if (
@@ -544,9 +546,7 @@ function mergeAndRankSearchResults(
           (qPhon.length >= 2 && fieldPhon === qPhon) ||
           (qPhon.length >= 3 && fieldPhon.includes(qPhon)) ||
           (qPhon.length >= 3 &&
-            fieldWordPhons.some(
-              (wp) => wp === qPhon || wp.startsWith(qPhon),
-            ));
+            fieldWordPhons.some((wp) => wp === qPhon || wp.startsWith(qPhon)));
 
         if (isPhonHit) {
           matched = true;
@@ -599,7 +599,10 @@ function mergeAndRankSearchResults(
 }
 
 // --- CORE SEARCH EXECUTION & RENDERING ---
-function triggerSearch(hidePanels = false) {
+function triggerSearch(hidePanels = false, options = {}) {
+  const silent = Boolean(options?.silent);
+  const preserveLimit =
+    typeof options?.preserveLimit === "number" ? options.preserveLimit : null;
   if (hidePanels) {
     document.getElementById("advanced-filters-panel")?.classList.add("hidden");
     document.getElementById("search-history-panel")?.classList.add("hidden");
@@ -610,7 +613,7 @@ function triggerSearch(hidePanels = false) {
 
   const searchInput = document.getElementById("search-input").value.trim();
   const filterVal = document.querySelector(
-    'input[name="searchFilter"]:checked',
+    'input[name="searchFilter"]:checked'
   ).value;
   const searchBox = document.getElementById("search-input");
   if (searchBox) searchBox.inputMode = filterVal === "pin" ? "numeric" : "text";
@@ -627,7 +630,7 @@ function triggerSearch(hidePanels = false) {
     searchInput,
     filterVal,
     filterOffice,
-    filterPin,
+    filterPin
   );
 
   window.activeCleanSearchQuery = cleanQuery;
@@ -641,7 +644,13 @@ function triggerSearch(hidePanels = false) {
     currentFilteredData = cachedPostOffices
       .map((item) => ({ item, matches: [] }))
       .sort((a, b) => compareByPriorityOnly(a.item, b.item));
-    renderResults();
+    if (preserveLimit !== null) {
+      window.searchDisplayLimit = Math.max(
+        10,
+        Math.min(preserveLimit, currentFilteredData.length || 10)
+      );
+    }
+    renderResults(preserveLimit !== null, silent);
     return;
   }
 
@@ -652,7 +661,7 @@ function triggerSearch(hidePanels = false) {
         (row) =>
           String(row.Office || "")
             .trim()
-            .toLowerCase() === targetOffice.toLowerCase(),
+            .toLowerCase() === targetOffice.toLowerCase()
       )
     : cachedPostOffices;
 
@@ -692,7 +701,7 @@ function triggerSearch(hidePanels = false) {
         baseData,
         searchDataset,
         cleanQuery,
-        keysToSearch,
+        keysToSearch
       );
     } else {
       baseData.sort((a, b) => compareByPriorityOnly(a.item, b.item));
@@ -722,7 +731,13 @@ function triggerSearch(hidePanels = false) {
   }
 
   currentFilteredData = baseData;
-  renderResults();
+  if (preserveLimit !== null) {
+    window.searchDisplayLimit = Math.max(
+      10,
+      Math.min(preserveLimit, currentFilteredData.length || 10)
+    );
+  }
+  renderResults(preserveLimit !== null, silent);
 
   if (window.isVoiceSearch) {
     window.isVoiceSearch = false;
@@ -739,7 +754,7 @@ function triggerSearch(hidePanels = false) {
       speechText = `${topMatch.Address}. Office ${topMatch.Office}. ${pinText}.`;
       speechText = speechText.replace(
         /\b(BO|HO|SO|PO|GPO|RMS|TPS)\b/g,
-        (match) => match.split("").join(" "),
+        (match) => match.split("").join(" ")
       );
     }
     const utterance = new SpeechSynthesisUtterance(speechText);
@@ -917,7 +932,7 @@ function highlightText(text, matches, key) {
       for (const [start, end] of ranges) {
         out += escapeHTML(text.substring(last, start));
         out += `<span class="highlight-text">${escapeHTML(
-          text.substring(start, end + 1),
+          text.substring(start, end + 1)
         )}</span>`;
         last = end + 1;
       }
@@ -953,16 +968,16 @@ function setupSearchObserver() {
         }
       }
     },
-    { root: displayArea, rootMargin: "300px" },
+    { root: displayArea, rootMargin: "300px" }
   );
 
   if (sentinel) window.searchObserver.observe(sentinel);
 }
 
-function renderResults(isLoadMore = false) {
+function renderResults(isLoadMore = false, silent = false) {
   const displayArea = document.getElementById("results-display-area");
 
-  if (!isLoadMore) {
+  if (!isLoadMore && !silent) {
     displayArea.scrollTop = 0;
     window.searchDisplayLimit = 10;
   }
@@ -976,7 +991,9 @@ function renderResults(isLoadMore = false) {
           <div class="ai-fallback-banner-text">
             <strong>No Match in Local Database</strong>
             <span>
-              "${escapeHTML(rawQuery)}" is not listed in DakMitra's verified records.
+              "${escapeHTML(
+                rawQuery
+              )}" is not listed in DakMitra's verified records.
               ${
                 rawQuery.length >= 3
                   ? "Showing <b>AI-estimated postal routing</b> below—please verify before sorting."
@@ -1000,8 +1017,9 @@ function renderResults(isLoadMore = false) {
   }
 
   if (viewMode === "list") {
-    let html = `<ul class="list-container" style="margin:0; list-style:none;">`;
-
+    let html = `<ul class="list-container${
+      silent ? " no-card-anim" : ""
+    }" style="margin:0; list-style:none;">`;
     currentFilteredData
       .slice(0, window.searchDisplayLimit)
       .forEach((result) => {
@@ -1009,11 +1027,36 @@ function renderResults(isLoadMore = false) {
         const addressHtml = highlightText(
           row.Address,
           result.matches,
-          "Address",
+          "Address"
         );
         const officeHtml = highlightText(row.Office, result.matches, "Office");
         const PinHtml = highlightText(row.Pin, result.matches, "Pin");
         const isPriority = Number(row.priority) >= 1;
+        const officeType = detectOfficeType(row.Address);
+        const isAutoTopOffice = officeType === "HO" || officeType === "SO";
+
+        const priorityToggleHtml = !isAutoTopOffice
+          ? `<button
+              type="button"
+              class="card-priority-btn ${isPriority ? "is-active" : ""}"
+              onclick="event.stopPropagation(); toggleRecordPriority('${escapeForOnclick(
+                row.id
+              )}', this)"
+              title="${
+                isPriority
+                  ? "Priority ON (Shared with all staff) — Tap to remove"
+                  : "Mark as Priority (Shared with all staff)"
+              }"
+              aria-label="Toggle Priority"
+              aria-pressed="${isPriority ? "true" : "false"}"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="${
+                isPriority ? "currentColor" : "none"
+              }" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </button>`
+          : "";
 
         html += `
             <li class="list-item"
@@ -1024,19 +1067,22 @@ function renderResults(isLoadMore = false) {
                 data-pin="${escapeHTML(row.Pin || "")}"
                 style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
                 <div style="width: 100%;">
-                  <div class="office-title">${addressHtml}</div>
+                  <div class="search-card-top">
+                    <div class="office-title">${addressHtml}</div>
+                    ${priorityToggleHtml}
+                  </div>
                   <div class="sub-office">
                     <span class="badge badge-primary" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                      row.Office,
+                      row.Office
                     )}')" title="Double-click to open in Directory">🏢 ${officeHtml}</span>
                     <span class="badge" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                      row.Office,
+                      row.Office
                     )}')" title="Double-click to open in Directory">📍 ${
-                      PinHtml || "N/A"
-                    }</span>
+          PinHtml || "N/A"
+        }</span>
                     ${
                       isPriority
-                        ? `<span class="badge badge-priority" title="Frequent / High-Priority (Shared with all staff)">⚡ Frequent</span>`
+                        ? `<span class="badge badge-priority" title="Priority Address (Shared with all staff)">⚡ Priority</span>`
                         : ""
                     }
                   </div>
@@ -1062,11 +1108,35 @@ function renderResults(isLoadMore = false) {
         const addressHtml = highlightText(
           row.Address,
           result.matches,
-          "Address",
+          "Address"
         );
         const officeHtml = highlightText(row.Office, result.matches, "Office");
         const PinHtml = highlightText(row.Pin, result.matches, "Pin");
         const isPriority = Number(row.priority) >= 1;
+        const officeType = detectOfficeType(row.Address);
+        const isAutoTopOffice = officeType === "HO" || officeType === "SO";
+
+        const tablePriorityBtn = !isAutoTopOffice
+          ? `<button
+              type="button"
+              class="table-priority-btn ${isPriority ? "is-active" : ""}"
+              onclick="event.stopPropagation(); toggleRecordPriority('${escapeForOnclick(
+                row.id
+              )}', this)"
+              title="${
+                isPriority
+                  ? "Priority ON (Shared) — Tap to remove"
+                  : "Mark as Priority (Shared)"
+              }"
+              aria-label="Toggle Priority"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="${
+                isPriority ? "currentColor" : "none"
+              }" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </button>`
+          : "";
 
         html += `<tr class="list-item"
                       onclick="openDirectoryChipActions(this)"
@@ -1074,18 +1144,19 @@ function renderResults(isLoadMore = false) {
                       data-address="${escapeHTML(row.Address)}"
                       data-office="${escapeHTML(row.Office)}"
                       data-pin="${escapeHTML(row.Pin || "")}">
-                      <td>${addressHtml}${
-                        isPriority
-                          ? `<span class="priority-dot-inline" title="Frequent / High-Priority (Shared)">⚡</span>`
-                          : ""
-                      }</td>
+                      <td>
+                        <div class="table-addr-cell">
+                          <span>${addressHtml}</span>
+                          ${tablePriorityBtn}
+                        </div>
+                      </td>
                       <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                        row.Office,
+                        row.Office
                       )}')" title="Double-click to open in Directory">
                          ${officeHtml}
                       </td>
                       <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
-                        row.Office,
+                        row.Office
                       )}')" title="Double-click to open in Directory">
                          ${PinHtml || "-"}
                       </td>
@@ -1113,18 +1184,18 @@ function renderResults(isLoadMore = false) {
               type="button"
               class="ask-ai-bottom-btn"
               onclick="triggerInlineAiBelowResults('${escapeForOnclick(
-                activeQuery,
+                activeQuery
               )}')"
             >
               ✨ Ask AI for "${escapeHTML(activeQuery)}"
             </button>
           </div>
           <div id="ai-search-results-container"></div>
-        `,
+        `
     );
   }
 
-  if (!isLoadMore) {
+  if (!isLoadMore && !silent) {
     displayArea.classList.remove("approvals-smooth-in");
     void displayArea.offsetWidth;
     displayArea.classList.add("approvals-smooth-in");
@@ -1177,7 +1248,7 @@ function triggerInlineAiBelowResults(query) {
           <strong>AI Online Estimation (Requested Manually)</strong>
           <span>
             Local results didn't match "${escapeHTML(
-              query,
+              query
             )}". Showing <b>AI-estimated postal routing</b> below—please verify before sorting.
           </span>
         </div>
@@ -1247,12 +1318,12 @@ function forceAiSearch() {
           <strong>Forced Online AI Postal Lookup</strong>
           <span>
             Showing <b>AI-estimated routing</b> for "${escapeHTML(rawQuery)}"${
-              localCount > 0
-                ? ` (bypassed ${localCount} local fuzzy ${
-                    localCount === 1 ? "match" : "matches"
-                  })`
-                : " (no exact match in local database)"
-            }. Please verify before sorting.
+    localCount > 0
+      ? ` (bypassed ${localCount} local fuzzy ${
+          localCount === 1 ? "match" : "matches"
+        })`
+      : " (no exact match in local database)"
+  }. Please verify before sorting.
           </span>
         </div>
         ${
@@ -1299,7 +1370,7 @@ function scheduleAutoAiSearch(query, immediate = false) {
     () => {
       executeAiOfficeEstimation(query);
     },
-    immediate ? 0 : 700,
+    immediate ? 0 : 700
   );
 }
 
@@ -1332,7 +1403,7 @@ function buildDivisionOfficeDirectoryContext(query) {
     });
     const sampleStr = sortedLocs.slice(0, 18).join(", ");
     summaryLines.push(
-      `- Delivery Office: "${officeName}" (PIN: ${info.pin}) -> Serves areas/BOs: [${sampleStr}]`,
+      `- Delivery Office: "${officeName}" (PIN: ${info.pin}) -> Serves areas/BOs: [${sampleStr}]`
     );
   });
 
@@ -1349,9 +1420,9 @@ async function fetchVillageGeoContext(query, signal) {
   try {
     const postRes = await fetch(
       `https://api.postalpincode.in/postoffice/${encodeURIComponent(
-        cleanQuery,
+        cleanQuery
       )}`,
-      { signal },
+      { signal }
     );
     if (postRes.ok) {
       const postData = await postRes.json();
@@ -1360,13 +1431,13 @@ async function fetchVillageGeoContext(query, signal) {
       const localOffices = offices.filter(
         (o) =>
           /mirzapur|sonbhadra|sonebhadra|bhadohi|varanasi/i.test(
-            o.District || "",
-          ) || /^231/.test(String(o.Pincode || "")),
+            o.District || ""
+          ) || /^231/.test(String(o.Pincode || ""))
       );
 
       localOffices.forEach((o) => {
         geoHints.push(
-          `Official India Post Database Match: Office/Branch "${o.Name}" (${o.BranchType}) | Block: ${o.Block} | District: ${o.District} | PIN Code: ${o.Pincode}`,
+          `Official India Post Database Match: Office/Branch "${o.Name}" (${o.BranchType}) | Block: ${o.Block} | District: ${o.District} | PIN Code: ${o.Pincode}`
         );
       });
     }
@@ -1381,7 +1452,7 @@ async function fetchVillageGeoContext(query, signal) {
     lowerQ.includes("khutaha")
   ) {
     geoHints.push(
-      `CRITICAL LOCAL KNOWLEDGE: Village "${cleanQuery}" is located in the Kachhwa / Majhawa block of Mirzapur district. Its sorting office is Kachhwa SO with PIN code 231501.`,
+      `CRITICAL LOCAL KNOWLEDGE: Village "${cleanQuery}" is located in the Kachhwa / Majhawa block of Mirzapur district. Its sorting office is Kachhwa SO with PIN code 231501.`
     );
   }
 
@@ -1410,7 +1481,7 @@ async function executeAiOfficeEstimation(query) {
   try {
     const geoHints = await fetchVillageGeoContext(
       exactUserQuery,
-      aiActiveAbortController.signal,
+      aiActiveAbortController.signal
     );
 
     const divisionDirectoryContext =
@@ -1453,7 +1524,7 @@ async function executeAiOfficeEstimation(query) {
 
     const { data, error } = await supabaseClient.functions.invoke(
       "ai-postal-search",
-      { body: { prompt } },
+      { body: { prompt } }
     );
 
     if (thisRequestId !== aiLatestRequestId) return;
@@ -1484,10 +1555,10 @@ async function executeAiOfficeEstimation(query) {
           <ul class="list-container">
             <li class="list-empty" style="margin-top:0; gap:8px;">
               <span style="color:#ef4444;">⚠️ AI Lookup Error: ${escapeHTML(
-                err.message,
+                err.message
               )}</span>
               <button type="button" class="toolbar-btn" style="background:var(--input-bg);" onclick="scheduleAutoAiSearch('${escapeForOnclick(
-                exactUserQuery,
+                exactUserQuery
               )}', true)">🔄 Retry AI Search</button>
             </li>
           </ul>`;
@@ -1504,7 +1575,7 @@ function renderAiEstimationCards(query, estimations) {
         <ul class="list-container">
           <li class="list-empty" style="margin-top:0;">
             <span>🤖 AI could not confidently identify a serving Post Office in Mirzapur or Sonbhadra for "${escapeHTML(
-              query,
+              query
             )}".</span>
           </li>
         </ul>`;
@@ -1526,7 +1597,7 @@ function renderAiEstimationCards(query, estimations) {
       (r) =>
         String(r.Office || "")
           .trim()
-          .toLowerCase() === office.trim().toLowerCase(),
+          .toLowerCase() === office.trim().toLowerCase()
     );
 
     html += `
@@ -1534,7 +1605,7 @@ function renderAiEstimationCards(query, estimations) {
           <div class="ai-card-top-row">
             <span class="ai-badge">✨ AI Estimated Route (Not in Database)</span>
             <span class="ai-confidence-pill">🎯 Confidence: ${escapeHTML(
-              confidence,
+              confidence
             )}</span>
           </div>
   
@@ -1544,7 +1615,7 @@ function renderAiEstimationCards(query, estimations) {
               servingBeat &&
               servingBeat.toLowerCase() !== locality.toLowerCase()
                 ? `<span style="font-size: 13px; font-weight: 600; color: var(--text-light);"> (via ${escapeHTML(
-                    servingBeat,
+                    servingBeat
                   )})</span>`
                 : ""
             }
@@ -1552,11 +1623,11 @@ function renderAiEstimationCards(query, estimations) {
   
           <div class="sub-office">
             <span class="badge badge-primary" style="cursor: pointer;" onclick="goToDirectoryOffice('${escapeForOnclick(
-              office,
+              office
             )}')">
               🏢 Sort to Office: ${escapeHTML(office)} ${
-                existsInLocalDb ? "✓" : ""
-              }
+      existsInLocalDb ? "✓" : ""
+    }
             </span>
             <span class="badge">📍 PIN: ${escapeHTML(pin)}</span>
             ${
@@ -1574,12 +1645,12 @@ function renderAiEstimationCards(query, estimations) {
             ${
               existsInLocalDb
                 ? `<button type="button" class="toolbar-btn" style="background: var(--input-bg);" onclick="goToDirectoryOffice('${escapeForOnclick(
-                    office,
+                    office
                   )}')">📂 View Office in Directory</button>`
                 : ""
             }
             <button type="button" class="toolbar-btn" style="background: var(--primary); color: #ffffff;" onclick="prefillUploadFromAi('${escapeForOnclick(
-              locality,
+              locality
             )}', '${escapeForOnclick(office)}', '${escapeForOnclick(pin)}')">
               ➕ Propose "${escapeHTML(locality)}" to DB
             </button>
@@ -1613,7 +1684,7 @@ function copyResults() {
   const text = currentFilteredData
     .map(
       (r) =>
-        `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin ${r.item.Pin}`,
+        `Address: ${r.item.Address} | Office: ${r.item.Office} | Pin ${r.item.Pin}`
     )
     .join("\n");
   navigator.clipboard
@@ -1632,7 +1703,7 @@ function exportCSV() {
   let csv = "Address,Office,Pin\n";
   currentFilteredData.forEach((row) => {
     csv += `"${escapeCSV(row.item.Address)}","${escapeCSV(
-      row.item.Office,
+      row.item.Office
     )}","${escapeCSV(row.item.Pin)}"\n`;
   });
 

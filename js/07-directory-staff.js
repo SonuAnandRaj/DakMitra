@@ -66,8 +66,8 @@ function renderDirectoryBatch() {
                 <span>📍 ${escapeHTML(data.pin)}</span>
                 <span class="meta-dot">•</span>
                 <span class="meta-count">${totalAddresses} ${
-                  totalAddresses === 1 ? "Address" : "Addresses"
-                }</span>
+      totalAddresses === 1 ? "Address" : "Addresses"
+    }</span>
               </div>
             </div>
   
@@ -76,12 +76,10 @@ function renderDirectoryBatch() {
                 type="button"
                 class="dir-quick-priority-btn"
                 onclick="quickPriorityForOffice('${escapeForOnclick(
-                  data.office,
+                  data.office
                 )}', '${escapeForOnclick(data.pin)}')"
-                title="Mark frequent / high-priority addresses in ${escapeHTML(
-                  data.office,
-                )}"
-                aria-label="Manage frequent addresses"
+                title="Mark priority addresses in ${escapeHTML(data.office)}"
+aria-label="Manage priority addresses"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -92,7 +90,7 @@ function renderDirectoryBatch() {
                 type="button"
                 class="dir-quick-add-btn"
                 onclick="quickAddForOffice('${escapeForOnclick(
-                  data.office,
+                  data.office
                 )}', '${escapeForOnclick(data.pin)}')"
                 title="Add multiple addresses to ${escapeHTML(data.office)}"
                 aria-label="Add addresses"
@@ -107,10 +105,10 @@ function renderDirectoryBatch() {
                 type="button"
                 class="dir-quick-delete-btn"
                 onclick="quickDeleteForOffice('${escapeForOnclick(
-                  data.office,
+                  data.office
                 )}', '${escapeForOnclick(data.pin)}')"
                 title="Delete multiple addresses from ${escapeHTML(
-                  data.office,
+                  data.office
                 )}"
                 aria-label="Delete addresses"
               >
@@ -132,37 +130,36 @@ function renderDirectoryBatch() {
       const recordId = typeof item === "object" ? item.id : "";
       const officeName = typeof item === "object" ? item.Office : data.office;
       const pinVal = typeof item === "object" ? item.Pin : data.pin;
-      const isPriority =
-        typeof item === "object" && Number(item.priority) >= 1;
+      const isPriority = typeof item === "object" && Number(item.priority) >= 1;
       const officeType = detectOfficeType(addressText);
 
       if (officeType) {
         html += `<span class="directory-address-chip clickable-office-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
-          recordId,
+          recordId
         )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
-          officeName,
+          officeName
         )}" data-pin="${escapeHTML(
-          pinVal || "",
+          pinVal || ""
         )}" title="Tap for options">📮 ${escapeHTML(addressText)}${
           isPriority ? " ⚡" : ""
         }</span>`;
       } else if (isPriority) {
         html += `<span class="directory-address-chip priority-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
-          recordId,
+          recordId
         )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
-          officeName,
+          officeName
         )}" data-pin="${escapeHTML(
-          pinVal || "",
-        )}" title="Frequent / High-Priority (Shared) • Tap for options">⚡ ${escapeHTML(
-          addressText,
+          pinVal || ""
+        )}" title="Priority Address (Shared) • Tap for options">⚡ ${escapeHTML(
+          addressText
         )}</span>`;
       } else {
         html += `<span class="directory-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
-          recordId,
+          recordId
         )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
-          officeName,
+          officeName
         )}" data-pin="${escapeHTML(
-          pinVal || "",
+          pinVal || ""
         )}" title="Tap for options">${escapeHTML(addressText)}</span>`;
       }
     });
@@ -208,7 +205,7 @@ function setupDirectoryObserver() {
       root: displayArea,
       rootMargin: "300px",
       threshold: 0.1,
-    },
+    }
   );
 
   if (sentinel) directoryObserver.observe(sentinel);
@@ -255,7 +252,7 @@ function filterDirectory() {
     directoryFilteredData = [...directoryGroupedData];
   } else {
     directoryFilteredData = directoryGroupedData.filter((item) =>
-      item.searchString.includes(filterValue),
+      item.searchString.includes(filterValue)
     );
   }
 
@@ -292,7 +289,7 @@ function closeAllDirectoryActionTrays() {
   }
   document
     .querySelectorAll(
-      ".directory-address-chip.selected-chip, .list-item.selected-chip",
+      ".directory-address-chip.selected-chip, .list-item.selected-chip"
     )
     .forEach((c) => c.classList.remove("selected-chip"));
 }
@@ -314,11 +311,11 @@ function openDirectoryChipActions(chipEl) {
 
   bar.setAttribute(
     "data-open-record-id",
-    chipEl.getAttribute("data-record-id") || "",
+    chipEl.getAttribute("data-record-id") || ""
   );
   bar.setAttribute(
     "data-open-address",
-    chipEl.getAttribute("data-address") || "",
+    chipEl.getAttribute("data-address") || ""
   );
 
   let recordId = chipEl.getAttribute("data-record-id") || "";
@@ -334,7 +331,7 @@ function openDirectoryChipActions(chipEl) {
           .toLowerCase() === address.trim().toLowerCase() &&
         String(r.Office || "")
           .trim()
-          .toLowerCase() === office.trim().toLowerCase(),
+          .toLowerCase() === office.trim().toLowerCase()
     );
     if (match) recordId = String(match.id);
   }
@@ -346,14 +343,14 @@ function openDirectoryChipActions(chipEl) {
   const officeType = detectOfficeType(address);
   const infoBtnHtml = officeType
     ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
-        address,
+        address
       )}', '${escapeForOnclick(
-        office,
+        office
       )}')" class="toolbar-btn info-i-btn" title="View ${officeType} Staff Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"></circle><line x1="12" y1="16" x2="12" y2="11.5"></line><circle cx="12" cy="8.2" r="0.6" fill="currentColor"></circle></svg></button>`
     : "";
 
   const liveRecord = cachedPostOffices.find(
-    (r) => String(r.id) === String(recordId),
+    (r) => String(r.id) === String(recordId)
   );
   const isPriority = Number(liveRecord?.priority) >= 1;
   const isAutoTopOffice = officeType === "HO" || officeType === "SO";
@@ -361,13 +358,13 @@ function openDirectoryChipActions(chipEl) {
   const priorityBtnHtml =
     recordId && !isAutoTopOffice
       ? `<button onclick="event.stopPropagation(); toggleRecordPriority('${escapeForOnclick(
-          recordId,
+          recordId
         )}', this)" class="toolbar-btn priority-bolt-btn ${
           isPriority ? "is-active" : ""
         }" title="${
           isPriority
-            ? "Frequent Priority ON (Shared with all staff) — Tap to remove"
-            : "Mark as Frequent Priority (Shared with all staff)"
+            ? "Priority ON (Shared with all staff) — Tap to remove"
+            : "Mark as Priority (Shared with all staff)"
         }" aria-label="Toggle Shared Priority"><svg width="16" height="16" viewBox="0 0 24 24" fill="${
           isPriority ? "currentColor" : "none"
         }" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></button>`
@@ -378,24 +375,26 @@ function openDirectoryChipActions(chipEl) {
         ${infoBtnHtml}
         ${priorityBtnHtml}
         <button onclick="event.stopPropagation(); viewHistory('${escapeForOnclick(
-          recordId,
+          recordId
         )}')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
         <button onclick="event.stopPropagation(); toggleFavorite('${escapeForOnclick(
-          recordId,
+          recordId
         )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
-          office,
-        )}', '${escapeForOnclick(pin)}', this)" class="toolbar-btn" title="Personal Favorite (saved only on this device)" style="${
-          favStyle.style
-        }">${favStyle.icon}</button>
+    office
+  )}', '${escapeForOnclick(
+    pin
+  )}', this)" class="toolbar-btn" title="Personal Favorite (saved only on this device)" style="${
+    favStyle.style
+  }">${favStyle.icon}</button>
         <button onclick="event.stopPropagation(); updateRecord('${escapeForOnclick(
-          recordId,
+          recordId
         )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
-          office,
-        )}', '${escapeForOnclick(
-          pin,
-        )}')" class="toolbar-btn" style="background: var(--input-bg);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Edit</button>
+    office
+  )}', '${escapeForOnclick(
+    pin
+  )}')" class="toolbar-btn" style="background: var(--input-bg);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Edit</button>
         <button onclick="event.stopPropagation(); deleteRecord('${escapeForOnclick(
-          recordId,
+          recordId
         )}')" class="toolbar-btn" style="background: #fee2e2; color: #b91c1c;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
       </div>
     `;
@@ -408,7 +407,7 @@ function openDirectoryChipActions(chipEl) {
   let left = rect.left + rect.width / 2 - barWidth / 2;
   left = Math.max(
     margin,
-    Math.min(left, window.innerWidth - barWidth - margin),
+    Math.min(left, window.innerWidth - barWidth - margin)
   );
 
   let top = rect.bottom + 8;
@@ -434,12 +433,14 @@ document.addEventListener(
 
     closeAllDirectoryActionTrays();
 
+    if (e.target.closest(".card-priority-btn, .table-priority-btn")) return;
+
     if (e.target.closest(".directory-address-chip, .list-item")) {
       e.stopPropagation();
       e.preventDefault();
     }
   },
-  true,
+  true
 );
 
 document
@@ -495,7 +496,7 @@ function normalizeStaffList(rawList, extraNameKey, extraContactKey) {
   }
 
   return entries.filter(
-    (item) => hasValidValue(item.name) || hasValidValue(item.contact),
+    (item) => hasValidValue(item.name) || hasValidValue(item.contact)
   );
 }
 
@@ -533,7 +534,7 @@ function buildStaffCardHTML(roleLabel, personName, contactNumber) {
           ${
             hasContact
               ? `<div style="font-size: 13px; color: var(--text-light); margin-top: 2px;">📞 ${escapeHTML(
-                  contactNumber,
+                  contactNumber
                 )}</div>`
               : ""
           }
@@ -541,7 +542,7 @@ function buildStaffCardHTML(roleLabel, personName, contactNumber) {
         ${
           cleanPhone
             ? `<a href="tel:${escapeHTML(
-                cleanPhone,
+                cleanPhone
               )}" class="staff-call-btn">📞 Call</a>`
             : ""
         }
@@ -562,13 +563,13 @@ function showOfficeDetailsModal(addressName, parentOfficeName) {
           .toLowerCase() === String(addressName).trim().toLowerCase() &&
         String(r.Office || "")
           .trim()
-          .toLowerCase() === String(parentOfficeName).trim().toLowerCase(),
+          .toLowerCase() === String(parentOfficeName).trim().toLowerCase()
     ) ||
     cachedPostOffices.find(
       (r) =>
         String(r.Address || "")
           .trim()
-          .toLowerCase() === String(addressName).trim().toLowerCase(),
+          .toLowerCase() === String(addressName).trim().toLowerCase()
     );
 
   if (!record) {
@@ -612,25 +613,25 @@ function renderOfficeStaffViewMode() {
     cardsHtml += buildStaffCardHTML(
       "Branch Post Master (BPM)",
       record.bpm_name,
-      record.bpm_contact,
+      record.bpm_contact
     );
     cardsHtml += buildStaffCardHTML(
       "Assistant Branch Post Master (ABPM)",
       record.abpm_name,
-      record.abpm_contact,
+      record.abpm_contact
     );
   } else if (officeType === "SO" || officeType === "HO") {
     if (officeType === "SO") {
       cardsHtml += buildStaffCardHTML(
         "Sub Post Master (SPM)",
         record.spm_name,
-        record.spm_contact,
+        record.spm_contact
       );
     } else {
       cardsHtml += buildStaffCardHTML(
         "Post Master (PM)",
         record.pm_name,
-        record.pm_contact,
+        record.pm_contact
       );
     }
 
@@ -694,10 +695,10 @@ function openOfficeStaffEditor() {
           </div>
           <div class="staff-edit-inputs">
             <input type="text" id="crud-bpm-name" placeholder="BPM Full Name" value="${escapeHTML(
-              record.bpm_name || "",
+              record.bpm_name || ""
             )}" />
             <input type="tel" inputmode="numeric" id="crud-bpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-              record.bpm_contact || "",
+              record.bpm_contact || ""
             )}" />
           </div>
         </div>
@@ -709,10 +710,10 @@ function openOfficeStaffEditor() {
           </div>
           <div class="staff-edit-inputs">
             <input type="text" id="crud-abpm-name" placeholder="ABPM Full Name" value="${escapeHTML(
-              record.abpm_name || "",
+              record.abpm_name || ""
             )}" />
             <input type="tel" inputmode="numeric" id="crud-abpm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-              record.abpm_contact || "",
+              record.abpm_contact || ""
             )}" />
           </div>
         </div>
@@ -732,10 +733,10 @@ function openOfficeStaffEditor() {
           </div>
           <div class="staff-edit-inputs">
             <input type="text" id="crud-spm-name" placeholder="SPM Full Name" value="${escapeHTML(
-              record.spm_name || "",
+              record.spm_name || ""
             )}" />
             <input type="tel" inputmode="numeric" id="crud-spm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-              record.spm_contact || "",
+              record.spm_contact || ""
             )}" />
           </div>
         </div>`
@@ -747,10 +748,10 @@ function openOfficeStaffEditor() {
           </div>
           <div class="staff-edit-inputs">
             <input type="text" id="crud-pm-name" placeholder="Post Master Name" value="${escapeHTML(
-              record.pm_name || "",
+              record.pm_name || ""
             )}" />
             <input type="tel" inputmode="numeric" id="crud-pm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-              record.pm_contact || "",
+              record.pm_contact || ""
             )}" />
           </div>
         </div>`;
@@ -807,10 +808,10 @@ function addPaInputRow(name = "", contact = "") {
       </div>
       <div class="staff-edit-inputs">
         <input type="text" class="crud-pa-name" placeholder="PA Full Name" value="${escapeHTML(
-          name,
+          name
         )}" />
         <input type="tel" inputmode="numeric" class="crud-pa-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-          contact,
+          contact
         )}" />
       </div>
     `;
@@ -830,10 +831,10 @@ function addMtsInputRow(name = "", contact = "") {
       </div>
       <div class="staff-edit-inputs">
         <input type="text" class="crud-mts-name" placeholder="MTS Full Name" value="${escapeHTML(
-          name,
+          name
         )}" />
         <input type="tel" inputmode="numeric" class="crud-mts-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
-          contact,
+          contact
         )}" />
       </div>
     `;
@@ -920,7 +921,7 @@ async function saveOfficeStaffDetails() {
     Object.assign(activeOfficeRecord, updatePayload);
     localStorage.setItem(
       "dakmitra_offline_db",
-      JSON.stringify(cachedPostOffices),
+      JSON.stringify(cachedPostOffices)
     );
 
     showToast("✅ Office details updated!");
@@ -1065,8 +1066,8 @@ function updateQuickAddPreview() {
       if (isDup) dupCount++;
       return `
           <span class="bulk-chip ${isDup ? "is-duplicate" : ""}" title="${
-            isDup ? `Similar to existing: ${escapeHTML(matchedName)}` : ""
-          }">
+        isDup ? `Similar to existing: ${escapeHTML(matchedName)}` : ""
+      }">
             ${isDup ? "⚠️ " : ""}${escapeHTML(addr)}
             <button type="button" onclick="removeQuickAddAddressAt(${idx})" title="Remove">✕</button>
           </span>`;
@@ -1152,7 +1153,7 @@ async function submitQuickAddModal() {
       showToast(
         `✨ Added ${addresses.length} ${
           addresses.length === 1 ? "address" : "addresses"
-        } to ${activeQuickAddOffice.office}!`,
+        } to ${activeQuickAddOffice.office}!`
       );
     } else {
       const { error } = await supabaseClient
@@ -1173,7 +1174,7 @@ async function submitQuickAddModal() {
       showToast(
         `✅ ${addresses.length} ${
           addresses.length === 1 ? "address" : "addresses"
-        } submitted for approval!`,
+        } submitted for approval!`
       );
     }
 
@@ -1214,7 +1215,7 @@ function getFilteredQuickDeleteItems() {
   return activeQuickDeleteItems.filter((item) =>
     String(item.Address || "")
       .toLowerCase()
-      .includes(q),
+      .includes(q)
   );
 }
 
@@ -1236,10 +1237,10 @@ function quickDeleteForOffice(officeName, pinNumber) {
       (r) =>
         String(r.Office || "")
           .trim()
-          .toLowerCase() === targetLower,
+          .toLowerCase() === targetLower
     )
     .sort((a, b) =>
-      String(a.Address || "").localeCompare(String(b.Address || "")),
+      String(a.Address || "").localeCompare(String(b.Address || ""))
     );
 
   document.getElementById("quick-delete-subtitle").textContent = `🏢 ${
@@ -1256,7 +1257,7 @@ function quickDeleteForOffice(officeName, pinNumber) {
 
   const overlay = document.getElementById("quick-delete-modal-overlay");
   const chipsContainer = document.getElementById(
-    "quick-delete-chips-container",
+    "quick-delete-chips-container"
   );
   overlay.classList.add("show");
   if (chipsContainer) chipsContainer.scrollTop = 0;
@@ -1266,7 +1267,7 @@ function quickDeleteForOffice(officeName, pinNumber) {
 function closeQuickDeleteModal() {
   const overlay = document.getElementById("quick-delete-modal-overlay");
   const chipsContainer = document.getElementById(
-    "quick-delete-chips-container",
+    "quick-delete-chips-container"
   );
   isQuickDeleteTrayExpanded = false;
   overlay?.classList.remove("show");
@@ -1293,7 +1294,7 @@ function renderQuickDeleteChips() {
               class="delete-select-chip ${isSelected ? "selected" : ""}"
               data-delete-id="${escapeHTML(idStr)}"
               onclick="toggleQuickDeleteItem('${escapeForOnclick(
-                idStr,
+                idStr
               )}', this)"
             >
               <span class="delete-chip-check">${isSelected ? "✓" : ""}</span>
@@ -1340,12 +1341,12 @@ function renderQuickDeleteSelectedTray() {
   }
 
   const byId = new Map(
-    activeQuickDeleteItems.map((item) => [String(item.id), item.Address]),
+    activeQuickDeleteItems.map((item) => [String(item.id), item.Address])
   );
 
   // Newest selections appear first so each tap is immediately visible
   const selectedIdsNewestFirst = Array.from(
-    activeQuickDeleteSelectedIds,
+    activeQuickDeleteSelectedIds
   ).reverse();
 
   chipsEl.innerHTML = selectedIdsNewestFirst
@@ -1358,7 +1359,7 @@ function renderQuickDeleteSelectedTray() {
           <button
             type="button"
             onclick="removeQuickDeleteSelectedChip('${escapeForOnclick(
-              idStr,
+              idStr
             )}')"
             title="Remove from deletion list"
             aria-label="Remove ${escapeHTML(addr)}"
@@ -1392,7 +1393,7 @@ function removeQuickDeleteSelectedChip(idStr) {
   const container = document.getElementById("quick-delete-chips-container");
   if (container) {
     const btn = container.querySelector(
-      `.delete-select-chip[data-delete-id="${CSS.escape(String(idStr))}"]`,
+      `.delete-select-chip[data-delete-id="${CSS.escape(String(idStr))}"]`
     );
     if (btn) {
       btn.classList.remove("selected");
@@ -1422,7 +1423,7 @@ function toggleSelectAllQuickDelete() {
   if (visibleItems.length === 0) return;
 
   const allVisibleSelected = visibleItems.every((item) =>
-    activeQuickDeleteSelectedIds.has(String(item.id)),
+    activeQuickDeleteSelectedIds.has(String(item.id))
   );
 
   visibleItems.forEach((item) => {
@@ -1440,7 +1441,7 @@ function updateQuickDeleteUI() {
   const selectAllBtn = document.getElementById("quick-delete-select-all-btn");
   const submitBtn = document.getElementById("quick-delete-submit-btn");
   const submitBtnContent = document.getElementById(
-    "quick-delete-submit-btn-content",
+    "quick-delete-submit-btn-content"
   );
 
   if (countEl) {
@@ -1452,7 +1453,7 @@ function updateQuickDeleteUI() {
   const allVisibleSelected =
     visibleItems.length > 0 &&
     visibleItems.every((item) =>
-      activeQuickDeleteSelectedIds.has(String(item.id)),
+      activeQuickDeleteSelectedIds.has(String(item.id))
     );
   if (selectAllBtn) {
     selectAllBtn.textContent = allVisibleSelected
@@ -1513,7 +1514,7 @@ async function executeQuickDeleteModal() {
 
   const submitBtn = document.getElementById("quick-delete-submit-btn");
   const submitBtnContent = document.getElementById(
-    "quick-delete-submit-btn-content",
+    "quick-delete-submit-btn-content"
   );
 
   submitBtn.classList.add("is-loading");
@@ -1551,7 +1552,7 @@ async function executeQuickDeleteModal() {
       showToast(
         `🗑️ Admin: Deleted ${idsToDelete.length} ${
           idsToDelete.length === 1 ? "address" : "addresses"
-        } from ${activeQuickDeleteOffice.office}.`,
+        } from ${activeQuickDeleteOffice.office}.`
       );
     } else {
       const { error } = await supabaseClient
@@ -1572,7 +1573,7 @@ async function executeQuickDeleteModal() {
       showToast(
         `📝 ${idsToDelete.length} deletion ${
           idsToDelete.length === 1 ? "request" : "requests"
-        } submitted for approval!`,
+        } submitted for approval!`
       );
     }
 
@@ -1583,7 +1584,7 @@ async function executeQuickDeleteModal() {
     submitBtn.classList.remove("is-loading", "is-success");
     submitBtn.disabled = false;
     submitBtnContent.innerHTML = getQuickDeleteBtnDefaultHTML(
-      idsToDelete.length,
+      idsToDelete.length
     );
     alert("Error deleting addresses: " + err.message);
   }
@@ -1594,7 +1595,7 @@ async function toggleRecordPriority(recordId, btnEl) {
   if (!(await ensureOnline("Connect to internet to update priority."))) return;
 
   const idx = cachedPostOffices.findIndex(
-    (r) => String(r.id) === String(recordId),
+    (r) => String(r.id) === String(recordId)
   );
   if (idx === -1) return;
 
@@ -1608,6 +1609,7 @@ async function toggleRecordPriority(recordId, btnEl) {
 
   if (btnEl) {
     btnEl.classList.toggle("is-active", nextPriority === 1);
+    btnEl.setAttribute("aria-pressed", nextPriority === 1 ? "true" : "false");
     const svg = btnEl.querySelector("svg");
     if (svg) {
       svg.setAttribute("fill", nextPriority === 1 ? "currentColor" : "none");
@@ -1617,12 +1619,15 @@ async function toggleRecordPriority(recordId, btnEl) {
   closeAllDirectoryActionTrays();
   refreshSearchInPlace();
   refreshDirectoryInPlace();
+  if (typeof highlightUpdatedRecord === "function") {
+    highlightUpdatedRecord(recordId);
+  }
 
   showToast(
     nextPriority === 1
-      ? "⚡ Marked as Frequent (shared with all staff)"
-      : "Removed from Frequent priority",
-    nextPriority === 1 ? "success" : "info",
+      ? "⚡ Marked as Priority (shared with all staff)"
+      : "Removed from Priority",
+    nextPriority === 1 ? "success" : "info"
   );
 
   try {
@@ -1643,7 +1648,7 @@ async function toggleRecordPriority(recordId, btnEl) {
   }
 }
 
-// --- DIRECTORY BULK PRIORITY (FREQUENT ADDRESSES) MODAL ---
+// --- DIRECTORY BULK PRIORITY (PRIORITY ADDRESSES) MODAL ---
 let activeQuickPriorityOffice = { office: "", pin: "" };
 let activeQuickPriorityItems = [];
 let activeQuickPriorityInitial = new Set();
@@ -1703,7 +1708,7 @@ function quickPriorityForOffice(officeName, pinNumber) {
       (r) =>
         String(r.Office || "")
           .trim()
-          .toLowerCase() === targetLower,
+          .toLowerCase() === targetLower
     )
     .sort((a, b) => compareByPriorityOnly(a, b));
 
@@ -1729,7 +1734,7 @@ function quickPriorityForOffice(officeName, pinNumber) {
 
   const overlay = document.getElementById("quick-priority-modal-overlay");
   const chipsContainer = document.getElementById(
-    "quick-priority-chips-container",
+    "quick-priority-chips-container"
   );
   overlay.classList.add("show");
   if (chipsContainer) chipsContainer.scrollTop = 0;
@@ -1739,7 +1744,7 @@ function quickPriorityForOffice(officeName, pinNumber) {
 function closeQuickPriorityModal() {
   const overlay = document.getElementById("quick-priority-modal-overlay");
   const chipsContainer = document.getElementById(
-    "quick-priority-chips-container",
+    "quick-priority-chips-container"
   );
   overlay?.classList.remove("show");
   if (chipsContainer) chipsContainer.scrollTop = 0;
@@ -1764,7 +1769,13 @@ function renderQuickPriorityChips() {
   const visibleItems = activeQuickPriorityItems.filter((item) => {
     const ot = detectOfficeType(item.Address);
     if (quickPriorityNonBoOnly && ot) return false;
-    if (q && !String(item.Address || "").toLowerCase().includes(q)) return false;
+    if (
+      q &&
+      !String(item.Address || "")
+        .toLowerCase()
+        .includes(q)
+    )
+      return false;
     return true;
   });
 
@@ -1790,11 +1801,17 @@ function renderQuickPriorityChips() {
           <button
             type="button"
             class="priority-select-chip ${isSelected ? "selected" : ""}"
-            onclick="toggleQuickPriorityItem('${escapeForOnclick(idStr)}', this)"
+            onclick="toggleQuickPriorityItem('${escapeForOnclick(
+              idStr
+            )}', this)"
           >
             <span>${isSelected ? "⚡" : ot === "BO" ? "📮" : "•"}</span>
             <span>${escapeHTML(item.Address)}</span>
-            ${ot === "BO" ? `<span class="priority-chip-tag">Auto-BO</span>` : ""}
+            ${
+              ot === "BO"
+                ? `<span class="priority-chip-tag">Auto-BO</span>`
+                : ""
+            }
           </button>`;
       })
       .join("");
@@ -1828,13 +1845,13 @@ function updateQuickPriorityUI() {
   const hideBoBtn = document.getElementById("quick-priority-hide-bo-btn");
   const saveBtn = document.getElementById("quick-priority-save-btn");
   const saveBtnContent = document.getElementById(
-    "quick-priority-save-btn-content",
+    "quick-priority-save-btn-content"
   );
 
   const { totalChanges } = getQuickPriorityDelta();
 
   if (countEl) {
-    countEl.textContent = `${activeQuickPriorityDraft.size} marked Frequent`;
+    countEl.textContent = `${activeQuickPriorityDraft.size} marked Priority`;
     countEl.style.color =
       activeQuickPriorityDraft.size > 0 ? "#d97706" : "var(--text-light)";
   }
@@ -1865,7 +1882,7 @@ async function saveQuickPriorityModal() {
 
   const saveBtn = document.getElementById("quick-priority-save-btn");
   const saveBtnContent = document.getElementById(
-    "quick-priority-save-btn-content",
+    "quick-priority-save-btn-content"
   );
 
   saveBtn.classList.add("is-loading");
@@ -1911,7 +1928,7 @@ async function saveQuickPriorityModal() {
     showToast(
       `⚡ Updated ${totalChanges} ${
         totalChanges === 1 ? "address" : "addresses"
-      } for all staff!`,
+      } for all staff!`
     );
 
     setTimeout(() => {
