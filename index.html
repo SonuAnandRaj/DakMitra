@@ -2439,10 +2439,7 @@
       .toolbar-btn:hover {
         color: var(--text);
       }
-      .toolbar-btn.active {
-        background: var(--btn-secondary);
-        color: var(--text);
-      }
+
       /* --- CARD EXPANSION STYLES --- */
 
       /* Hide by default for both List (nested) and Table (adjacent sibling) */
@@ -2795,6 +2792,15 @@
         height: 4px;
         background: rgba(239, 68, 68, 0.2);
         border-radius: 2px;
+      }
+
+      /* Dark Mode: Warm Amber (matches --accent) */
+      [data-theme="dark"] .highlight-text {
+        color: #34d399 !important;
+      }
+
+      [data-theme="dark"] .highlight-text::after {
+        background: rgba(52, 211, 153, 0.28);
       }
 
       /* --- UPLOAD SECTION --- */
@@ -5426,6 +5432,255 @@
         appearance: none;
         display: none;
       }
+
+      /* =========================================================
+         SEARCH PAGE VISUAL POLISH & MICRO-ANIMATIONS
+         ========================================================= */
+
+      /* 1. Ambient Top Gradient Wash (Search View Only) */
+      #view-search {
+        position: relative;
+      }
+
+      #view-search::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 320px;
+        background: radial-gradient(
+            circle at 18% 12%,
+            rgba(79, 70, 229, 0.13) 0%,
+            transparent 55%
+          ),
+          radial-gradient(
+            circle at 86% 18%,
+            rgba(245, 158, 11, 0.12) 0%,
+            transparent 52%
+          );
+        -webkit-mask-image: linear-gradient(
+          to bottom,
+          #000 45%,
+          transparent 100%
+        );
+        mask-image: linear-gradient(to bottom, #000 45%, transparent 100%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      [data-theme="dark"] #view-search::before {
+        background: radial-gradient(
+            circle at 18% 12%,
+            rgba(129, 140, 248, 0.16) 0%,
+            transparent 55%
+          ),
+          radial-gradient(
+            circle at 86% 18%,
+            rgba(251, 191, 36, 0.11) 0%,
+            transparent 52%
+          );
+      }
+
+      #view-search > .results-toolbar,
+      #view-search > #results-display-area {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Slow ambient gradient drift on the Search button so both indigo & amber show */
+      @keyframes dmSearchBtnFlow {
+        0%,
+        100% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+      }
+
+      .search-action-btn {
+        background-size: 180% 180%;
+        animation: dmSearchBtnFlow 7s ease-in-out infinite;
+      }
+
+      /* 2. Amber-Tinted PIN Badges + Left Accent Strip on Result Cards */
+      #view-search .sub-office .badge:not(.badge-primary),
+      #view-favorites .sub-office .badge:not(.badge-primary) {
+        background: rgba(245, 158, 11, 0.12);
+        color: #b45309;
+        border-color: rgba(245, 158, 11, 0.28);
+      }
+
+      [data-theme="dark"] #view-search .sub-office .badge:not(.badge-primary),
+      [data-theme="dark"]
+        #view-favorites
+        .sub-office
+        .badge:not(.badge-primary) {
+        background: rgba(251, 191, 36, 0.14);
+        color: #fbbf24;
+        border-color: rgba(251, 191, 36, 0.28);
+      }
+
+      #view-search li.list-item,
+      #view-favorites li.list-item {
+        padding-left: 22px;
+        border-color: var(--dm-border-tint);
+      }
+
+      #view-search li.list-item::before,
+      #view-favorites li.list-item::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--dm-gradient-brand);
+        opacity: 0.78;
+        transition: opacity 0.2s ease, width 0.2s ease;
+      }
+
+      #view-search li.list-item:hover::before,
+      #view-search li.list-item.selected-chip::before,
+      #view-favorites li.list-item:hover::before {
+        opacity: 1;
+        width: 5px;
+      }
+
+      #view-search li.list-item:active {
+        transform: scale(0.985);
+      }
+
+      /* 3. Staggered Card Cascade for First 8 Search Results */
+      @keyframes dmCardCascade {
+        0% {
+          opacity: 0;
+          transform: translateY(10px) scale(0.985);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      #view-search li.list-item:nth-child(-n + 8) {
+        animation: dmCardCascade 0.34s var(--dm-ease-smooth) both;
+      }
+      #view-search li.list-item:nth-child(1) {
+        animation-delay: 0.02s;
+      }
+      #view-search li.list-item:nth-child(2) {
+        animation-delay: 0.05s;
+      }
+      #view-search li.list-item:nth-child(3) {
+        animation-delay: 0.08s;
+      }
+      #view-search li.list-item:nth-child(4) {
+        animation-delay: 0.11s;
+      }
+      #view-search li.list-item:nth-child(5) {
+        animation-delay: 0.14s;
+      }
+      #view-search li.list-item:nth-child(6) {
+        animation-delay: 0.17s;
+      }
+      #view-search li.list-item:nth-child(7) {
+        animation-delay: 0.2s;
+      }
+      #view-search li.list-item:nth-child(8) {
+        animation-delay: 0.23s;
+      }
+
+      /* 4. Sliding Segmented Toggle for List | Table + Frosted Toolbar Pills */
+      .view-mode-switch {
+        position: relative;
+        display: inline-grid;
+        grid-template-columns: 1fr 1fr;
+        padding: 3px;
+        border-radius: 12px;
+        background: var(--card-bg);
+        border: 1px solid var(--dm-border-tint);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .view-mode-slider {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: calc(50% - 3px);
+        height: calc(100% - 6px);
+        border-radius: 9px;
+        background: rgba(79, 70, 229, 0.12);
+        border: 1px solid rgba(79, 70, 229, 0.22);
+        box-shadow: none;
+        transition: transform 0.3s var(--dm-ease-spring);
+        pointer-events: none;
+      }
+
+      [data-theme="dark"] .view-mode-slider {
+        background: rgba(129, 140, 248, 0.18);
+        border-color: rgba(129, 140, 248, 0.3);
+      }
+
+      .view-mode-switch.is-table .view-mode-slider,
+      .view-mode-switch:has(#view-table-btn.active) .view-mode-slider {
+        transform: translateX(100%);
+      }
+
+      .view-mode-switch .toolbar-btn {
+        position: relative;
+        z-index: 1;
+        min-width: 54px;
+        justify-content: center;
+        padding: 5px 11px;
+        border-radius: 9px;
+        background: transparent !important;
+        box-shadow: none !important;
+        transform: none !important;
+        transition: color 0.22s ease;
+      }
+
+      .view-mode-switch .toolbar-btn.active {
+        color: var(--primary);
+      }
+
+      #view-fav-shortcut-btn,
+      #export-toolbar-group .toolbar-btn {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow-sm);
+      }
+
+      /* Gentle Twinkle on the AI Sparkle Button (Idle State) */
+      @keyframes aiSparkleTwinkle {
+        0%,
+        72%,
+        100% {
+          transform: scale(1) rotate(0deg);
+          filter: drop-shadow(0 0 0 rgba(245, 158, 11, 0));
+        }
+        82% {
+          transform: scale(1.16) rotate(12deg);
+          filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.65));
+        }
+        90% {
+          transform: scale(0.95) rotate(-6deg);
+        }
+      }
+
+      .ai-search-bar-btn:not(.loading) svg {
+        color: var(--primary);
+        animation: aiSparkleTwinkle 3.6s ease-in-out infinite;
+      }
+
+      .ai-search-bar-btn:not(.loading) {
+        background: linear-gradient(
+          135deg,
+          rgba(79, 70, 229, 0.1) 0%,
+          rgba(245, 158, 11, 0.12) 100%
+        );
+      }
     </style>
   </head>
   <body>
@@ -6674,24 +6929,26 @@
           </div>
 
           <div class="results-toolbar">
-            <div class="toolbar-group">
-              <button
-                type="button"
-                class="toolbar-btn active"
-                id="view-list-btn"
-                onclick="setViewMode('list')"
-              >
-                List
-              </button>
-
-              <button
-                type="button"
-                class="toolbar-btn"
-                id="view-table-btn"
-                onclick="setViewMode('table')"
-              >
-                Table
-              </button>
+            <div class="toolbar-group" style="align-items: center">
+              <div class="view-mode-switch" id="view-mode-switch">
+                <div class="view-mode-slider" aria-hidden="true"></div>
+                <button
+                  type="button"
+                  class="toolbar-btn active"
+                  id="view-list-btn"
+                  onclick="setViewMode('list')"
+                >
+                  List
+                </button>
+                <button
+                  type="button"
+                  class="toolbar-btn"
+                  id="view-table-btn"
+                  onclick="setViewMode('table')"
+                >
+                  Table
+                </button>
+              </div>
 
               <button
                 type="button"
@@ -10003,6 +10260,9 @@
         document
           .getElementById("view-table-btn")
           .classList.toggle("active", mode === "table");
+        document
+          .getElementById("view-mode-switch")
+          ?.classList.toggle("is-table", mode === "table");
         if (shouldRender) renderResults();
       }
 
