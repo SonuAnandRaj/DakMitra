@@ -1080,11 +1080,6 @@ function renderResults(isLoadMore = false, silent = false) {
                     )}')" title="Double-click to open in Directory">📍 ${
           PinHtml || "N/A"
         }</span>
-                    ${
-                      isPriority
-                        ? `<span class="badge badge-priority" title="Priority Address (Shared with all staff)">⚡ Priority</span>`
-                        : ""
-                    }
                   </div>
                 </div>
             </li>`;

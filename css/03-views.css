@@ -3610,9 +3610,6 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   max-height: calc(var(--vvh, 100dvh) - 210px);
 }
 
-/* =========================================================
-   SHARED PRIORITY (FREQUENT ADDRESSES) STYLES
-   ========================================================= */
 
 /* =========================================================
    SHARED PRIORITY STYLES
@@ -3713,19 +3710,6 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   background: rgba(251, 191, 36, 0.18);
   color: #fbbf24;
   border-color: rgba(251, 191, 36, 0.38);
-}
-
-/* Search Result Priority Badge */
-.badge.badge-priority {
-  background: rgba(245, 158, 11, 0.14) !important;
-  color: #b45309 !important;
-  border-color: rgba(245, 158, 11, 0.32) !important;
-}
-
-[data-theme="dark"] .badge.badge-priority {
-  background: rgba(251, 191, 36, 0.16) !important;
-  color: #fbbf24 !important;
-  border-color: rgba(251, 191, 36, 0.34) !important;
 }
 
 /* Directory Card Header Bolt Button */
