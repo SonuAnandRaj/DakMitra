@@ -298,13 +298,7 @@ async function viewHistory(postOfficeId) {
   try {
     const { data, error } = await supabaseClient
       .from("post_offices_history")
-      .select(
-        `
-          *,
-          requester:profiles!changed_by(name, employee_id),
-          approver:profiles!approved_by(name, employee_id)
-        `,
-      )
+      .select("*")
       .eq("post_office_id", postOfficeId)
       .order("changed_at", { ascending: false });
 
@@ -315,14 +309,25 @@ async function viewHistory(postOfficeId) {
       return;
     }
 
-    const approverIds = data.map((log) => log.approved_by).filter((id) => id);
-    let adminSet = new Set();
-    if (approverIds.length > 0) {
-      const { data: adminData } = await supabaseClient
-        .from("admins")
-        .select("id")
-        .in("id", approverIds);
-      if (adminData) adminData.forEach((a) => adminSet.add(a.id));
+    // Collect all unique user IDs and resolve via SECURITY DEFINER RPC (RLS-safe)
+    const userIdsToFetch = new Set();
+    data.forEach((log) => {
+      if (log.changed_by) userIdsToFetch.add(log.changed_by);
+      if (log.approved_by) userIdsToFetch.add(log.approved_by);
+    });
+
+    const profilesMap = {};
+    if (userIdsToFetch.size > 0) {
+      const { data: profileData, error: profileErr } =
+        await supabaseClient.rpc("get_public_profiles_by_ids", {
+          user_ids: Array.from(userIdsToFetch),
+        });
+      if (profileErr) throw profileErr;
+      if (Array.isArray(profileData)) {
+        profileData.forEach((p) => {
+          profilesMap[p.id] = p;
+        });
+      }
     }
 
     const buildHistoryDirLink = (
@@ -363,30 +368,36 @@ async function viewHistory(postOfficeId) {
         timeStyle: "short",
       });
 
-      const requesterName = log.requester
-        ? log.requester.name
-        : "System / Direct Upload";
-      const requesterId =
-        log.requester && log.requester.employee_id
-          ? log.requester.employee_id
-          : "No ID";
+      const reqProfile = log.changed_by ? profilesMap[log.changed_by] : null;
+      const appProfile = log.approved_by ? profilesMap[log.approved_by] : null;
+
+      const requesterName = reqProfile?.name || "System / Direct Upload";
+      const requesterId = reqProfile?.employee_id || "No ID";
+      const requesterLink = renderUserProfileLink(
+        log.changed_by,
+        requesterName,
+      );
 
       let approverHtml = "";
-      if (log.approver && log.approver.employee_id) {
-        const isAdmin = adminSet.has(log.approved_by);
-        if (isAdmin) {
+      if (appProfile) {
+        const approverId = appProfile.employee_id || "No ID";
+        const approverLink = renderUserProfileLink(
+          log.approved_by,
+          appProfile.name,
+        );
+        if (appProfile.is_admin) {
           approverHtml = `
             <div style="font-size: 12px; color: var(--success-text); margin-top: 4px;">
-              ✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
-                log.approver.name,
-              )} - ${escapeHTML(log.approver.employee_id)})
+              ✅ <b>Admin Approved</b> (Approved by: ${approverLink} - ${escapeHTML(
+                approverId,
+              )})
             </div>`;
         } else {
           approverHtml = `
             <div style="font-size: 12px; color: var(--primary); margin-top: 4px;">
-              👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
-                log.approver.name,
-              )} - ${escapeHTML(log.approver.employee_id)})
+              👥 <b>Community Approved</b> (Final vote by: ${approverLink} - ${escapeHTML(
+                approverId,
+              )})
             </div>`;
         }
       }
@@ -510,14 +521,14 @@ async function viewHistory(postOfficeId) {
 
       const attributionHtml = isBulkExcelUpload
         ? `<div style="font-size: 12px; color: var(--success-text); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
-             📊 <b>Added via Excel Bulk Upload</b> by Admin <b>${escapeHTML(
-               requesterName,
-             )}</b> (${escapeHTML(requesterId)})
+             📊 <b>Added via Excel Bulk Upload</b> by Admin ${requesterLink} (${escapeHTML(
+               requesterId,
+             )})
            </div>`
         : `<div style="font-size: 12px; color: var(--text-light); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
-             <div>👤 Requested by: <b>${escapeHTML(
-               requesterName,
-             )}</b> (${escapeHTML(requesterId)})</div>
+             <div>👤 Requested by: ${requesterLink} (${escapeHTML(
+               requesterId,
+             )})</div>
              ${approverHtml}
            </div>`;
 
@@ -539,7 +550,9 @@ async function viewHistory(postOfficeId) {
     contentDiv.innerHTML = html;
     localStorage.setItem("dakmitra_history_" + postOfficeId, html);
   } catch (err) {
-    contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error: ${err.message}</li></ul>`;
+    contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error: ${escapeHTML(
+      err.message,
+    )}</li></ul>`;
   }
 }
 

@@ -310,12 +310,14 @@ async function loadApprovalsBatch() {
 
     let profilesMap = {};
     if (userIdsToFetch.size > 0) {
-      const { data: profileData } = await supabaseClient
-        .from("profiles")
-        .select("id, name, employee_id")
-        .in("id", Array.from(userIdsToFetch));
+      const { data: profileData, error: profileErr } =
+        await supabaseClient.rpc("get_public_profiles_by_ids", {
+          user_ids: Array.from(userIdsToFetch),
+        });
 
-      if (profileData) {
+      if (profileErr) {
+        console.warn("Approvals profile lookup failed:", profileErr);
+      } else if (Array.isArray(profileData)) {
         profileData.forEach((p) => {
           profilesMap[p.id] = p;
         });
@@ -427,14 +429,18 @@ async function loadApprovalsBatch() {
           req.request_approvals[req.request_approvals.length - 1];
         const approverProfile = profilesMap[lastApproval.approved_by];
         if (approverProfile) {
+          const approverLink = renderUserProfileLink(
+            lastApproval.approved_by,
+            approverProfile.name,
+          );
           if (lastApproval.is_admin) {
-            approverDetailsHtml = `<div style="font-size: 12px; color: var(--success-text); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">✅ <b>Admin Approved</b> (Approved by: ${escapeHTML(
-              approverProfile.name,
-            )} - ${escapeHTML(approverProfile.employee_id)})</div>`;
+            approverDetailsHtml = `<div style="font-size: 12px; color: var(--success-text); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">✅ <b>Admin Approved</b> (Approved by: ${approverLink} - ${escapeHTML(
+              approverProfile.employee_id,
+            )})</div>`;
           } else {
-            approverDetailsHtml = `<div style="font-size: 12px; color: var(--primary); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">👥 <b>Community Approved</b> (Final vote by: ${escapeHTML(
-              approverProfile.name,
-            )} - ${escapeHTML(approverProfile.employee_id)})</div>`;
+            approverDetailsHtml = `<div style="font-size: 12px; color: var(--primary); margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border);">👥 <b>Community Approved</b> (Final vote by: ${approverLink} - ${escapeHTML(
+              approverProfile.employee_id,
+            )})</div>`;
           }
         }
       }
@@ -480,9 +486,10 @@ async function loadApprovalsBatch() {
         let rejecterText = "";
         if (req.last_approved_by && profilesMap[req.last_approved_by]) {
           const rej = profilesMap[req.last_approved_by];
-          rejecterText = ` (Rejected by: ${escapeHTML(
-            rej.name,
-          )} - ${escapeHTML(rej.employee_id)})`;
+          const rejLink = renderUserProfileLink(req.last_approved_by, rej.name);
+          rejecterText = ` (Rejected by: ${rejLink} - ${escapeHTML(
+            rej.employee_id,
+          )})`;
         }
         actionBarHtml = `<div style="text-align: right; color: #b91c1c; font-weight: 600; font-size: 13px; margin-top: 12px;">❌ Request Rejected${rejecterText}</div>`;
       }
@@ -493,9 +500,11 @@ async function loadApprovalsBatch() {
           }">
             <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
             <div class="approval-meta-box">
-              <div>👤 Requested by: <b>${escapeHTML(
+            <div class="approval-meta-box">
+              <div>👤 Requested by: ${renderUserProfileLink(
+                req.requested_by,
                 requesterName,
-              )}</b> (${escapeHTML(requesterId)})</div>
+              )} (${escapeHTML(requesterId)})</div>
               <div>📅 ${dateStr}</div>
               ${
                 req.status === "PENDING"

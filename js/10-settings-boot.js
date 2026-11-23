@@ -31,6 +31,7 @@ function clearAppCache() {
       localStorage.removeItem(HISTORY_KEY);
       localStorage.removeItem("dakmitra_default_view");
       localStorage.removeItem("dakmitra_offline_db");
+      localStorage.removeItem("dakmitra_members_cache");
       showToast("🧹 Cache cleared successfully!");
       loadSearchHistory();
       invalidateApprovalsCache();
@@ -313,7 +314,9 @@ async function checkUserSession() {
         Promise.resolve(
           supabaseClient
             .from("profiles")
-            .select("name, designation, employee_id, mobile, avatar_url")
+            .select(
+              "name, designation, employee_id, mobile, avatar_url, show_mobile",
+            )
             .eq("id", session.user.id)
             .single(),
         ).catch(() => ({ data: null })),

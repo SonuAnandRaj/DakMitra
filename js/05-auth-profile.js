@@ -109,7 +109,9 @@ async function handleAuth() {
 
     const { data: profileData, error: profileError } = await supabaseClient
       .from("profiles")
-      .select("device_id, name, designation, employee_id, mobile, avatar_url")
+      .select(
+        "device_id, name, designation, employee_id, mobile, avatar_url, show_mobile",
+      )
       .eq("id", authData.user.id)
       .single();
 
@@ -171,6 +173,8 @@ async function signOutApp() {
   teardownRealtimeSync();
   await supabaseClient.auth.signOut();
   localStorage.removeItem("dakmitra_cached_profile");
+  localStorage.removeItem("dakmitra_members_cache");
+  if (typeof userProfileCache !== "undefined") userProfileCache.clear();
   closeSidebar();
   checkUserSession();
 }
@@ -235,6 +239,10 @@ function renderUserProfileUI(profileData, userEmail) {
   if (desigSelect && profileData?.designation) {
     desigSelect.value = profileData.designation;
   }
+  const showMobileToggle = document.getElementById("edit-profile-show-mobile");
+  if (showMobileToggle) {
+    showMobileToggle.checked = profileData?.show_mobile !== false;
+  }
 
   const topAvatar = document.getElementById("top-profile-btn");
   const sidebarAvatar = document.getElementById("avatar-letter");
@@ -291,6 +299,9 @@ async function saveProfileDetails() {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
+  const showMobile =
+    document.getElementById("edit-profile-show-mobile")?.checked !== false;
+
   if (session) {
     const { error } = await supabaseClient
       .from("profiles")
@@ -298,6 +309,7 @@ async function saveProfileDetails() {
         name: newName,
         mobile: newMobile || null,
         designation: newDesignation,
+        show_mobile: showMobile,
       })
       .eq("id", session.user.id);
 
@@ -317,6 +329,9 @@ async function saveProfileDetails() {
     cachedProfile.name = newName;
     cachedProfile.mobile = newMobile || null;
     cachedProfile.designation = newDesignation;
+    cachedProfile.show_mobile = showMobile;
+    userProfileCache.delete(String(session.user.id));
+    membersDirectoryLoaded = false;
     localStorage.setItem(
       "dakmitra_cached_profile",
       JSON.stringify(cachedProfile),
@@ -377,6 +392,8 @@ async function updateAvatarInDatabase(avatarDataUrl) {
     "dakmitra_cached_profile",
     JSON.stringify(cachedProfile),
   );
+
+  userProfileCache.delete(String(session.user.id));
 
   renderUserProfileUI(cachedProfile, session.user.email);
   showToast("✨ Profile picture updated!");
@@ -770,34 +787,49 @@ function applyLightboxTransform(dragging = false) {
   }
 }
 
-function openProfilePhotoModal() {
+function openProfilePhotoModal(customOptions = null) {
   const avatarEl = document.getElementById("profile-page-avatar");
   const frame = document.getElementById("avatar-lightbox-frame");
   const nameEl = document.getElementById("lightbox-user-name");
   const deleteBtn = document.getElementById("lightbox-delete-btn");
+  const bottomBar = document.getElementById("lightbox-bottombar");
   const shell = document.getElementById("lightbox-shell");
   const overlay = document.getElementById("avatar-lightbox-overlay");
 
-  const existingImg = avatarEl?.querySelector("img");
-  const displayName =
-    document.getElementById("profile-page-name")?.textContent?.trim() ||
-    "Profile Photo";
+  const isReadOnly = Boolean(customOptions && customOptions.readOnly);
+  let imgSrc = null;
+  let displayName = "Profile Photo";
+  let initial = "U";
+
+  if (customOptions) {
+    imgSrc = customOptions.src || null;
+    displayName = customOptions.name || "Profile Photo";
+    initial = (customOptions.initial || displayName || "U")
+      .trim()
+      .charAt(0)
+      .toUpperCase();
+  } else {
+    const existingImg = avatarEl?.querySelector("img");
+    imgSrc = existingImg?.src || null;
+    displayName =
+      document.getElementById("profile-page-name")?.textContent?.trim() ||
+      "Profile Photo";
+    initial = (avatarEl?.textContent || "U").trim().charAt(0) || "U";
+  }
 
   if (nameEl) nameEl.textContent = displayName;
   shell?.classList.remove("ui-hidden");
+  bottomBar?.classList.toggle("hidden", isReadOnly);
 
   lbState.scale = 1;
   lbState.tx = 0;
   lbState.ty = 0;
-  lbState.hasPhoto = Boolean(existingImg && existingImg.src);
+  lbState.hasPhoto = Boolean(imgSrc);
 
   if (lbState.hasPhoto) {
-    frame.innerHTML = `<img src="${escapeHTML(
-      existingImg.src,
-    )}" alt="Profile Photo" />`;
-    deleteBtn?.classList.remove("hidden");
+    frame.innerHTML = `<img src="${escapeHTML(imgSrc)}" alt="Profile Photo" />`;
+    deleteBtn?.classList.toggle("hidden", isReadOnly);
   } else {
-    const initial = (avatarEl?.textContent || "U").trim().charAt(0) || "U";
     frame.innerHTML = `<div class="lightbox-initial-circle">${escapeHTML(
       initial,
     )}</div>`;
@@ -955,3 +987,438 @@ function removePhotoFromLightbox() {
     }
   });
 })();
+
+// =========================================================
+// PUBLIC USER PROFILES & MEMBERS DIRECTORY
+// =========================================================
+const MEMBERS_CACHE_KEY = "dakmitra_members_cache";
+const USER_PROFILE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+let membersDirectoryData = [];
+let membersDirectoryLoaded = false;
+let activeMemberRoleFilter = "all";
+const userProfileCache = new Map();
+let activeViewedProfile = null;
+
+// Shared inline clickable user-name helper (used by Approvals & Record History)
+function renderUserProfileLink(userId, displayName, extraClass = "") {
+  const safeName = escapeHTML(displayName || "Unknown User");
+  if (
+    !userId ||
+    !displayName ||
+    displayName === "System / Direct Upload" ||
+    displayName === "Unknown User"
+  ) {
+    return `<b>${safeName}</b>`;
+  }
+  return `<button type="button" class="history-dir-link ${extraClass}" onclick="event.stopPropagation(); openUserProfileModal('${escapeForOnclick(
+    userId,
+  )}', '${escapeForOnclick(displayName)}')" title="View ${safeName}'s profile">${safeName}</button>`;
+}
+
+const MEMBER_ROLE_CHIPS = [
+  { key: "all", label: "All" },
+  { key: "admin", label: "🛡️ Admins" },
+  { key: "Sorting Assistant (SA)", label: "SA" },
+  { key: "Postal Assistant (PA)", label: "PA" },
+  { key: "Post Man", label: "Post Man" },
+  { key: "Multi Tasking Staff (MTS)", label: "MTS" },
+  { key: "Branch Post Master (BPM)", label: "BPM" },
+  { key: "Assistant Branch Post Master (ABPM)", label: "ABPM" },
+];
+
+async function renderMembersDirectory(forceRefresh = false) {
+  const contentEl = document.getElementById("members-content");
+  if (!contentEl) return;
+
+  // 1. Instant render from local cache if available
+  if (membersDirectoryData.length === 0) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(MEMBERS_CACHE_KEY));
+      if (Array.isArray(cached) && cached.length > 0) {
+        membersDirectoryData = cached;
+      }
+    } catch (_) {}
+  }
+
+  if (membersDirectoryData.length > 0) {
+    renderMembersListUI();
+  } else {
+    contentEl.innerHTML = `
+      <div class="skeleton-card"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
+      <div class="skeleton-card"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>
+      <div class="skeleton-card"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>`;
+  }
+
+  if (membersDirectoryLoaded && !forceRefresh) return;
+
+  // 2. Refresh fresh list from Supabase RPC
+  const online = await checkActualInternet();
+  if (!online) {
+    if (membersDirectoryData.length === 0) {
+      contentEl.innerHTML = `<div class="list-empty">📡 No internet connection and no cached members saved yet.</div>`;
+    } else {
+      showOfflineToast("Showing cached members.");
+    }
+    return;
+  }
+
+  try {
+    await ensureSupabaseReady();
+    const { data, error } = await supabaseClient.rpc("get_members_directory");
+    if (error) throw error;
+
+    membersDirectoryData = Array.isArray(data) ? data : [];
+    membersDirectoryLoaded = true;
+    try {
+      localStorage.setItem(
+        MEMBERS_CACHE_KEY,
+        JSON.stringify(membersDirectoryData),
+      );
+    } catch (_) {}
+
+    renderMembersListUI();
+  } catch (err) {
+    if (membersDirectoryData.length === 0) {
+      contentEl.innerHTML = `<div class="list-empty" style="color: #ef4444;">Failed to load members: ${escapeHTML(
+        err.message,
+      )}</div>`;
+    }
+  }
+}
+
+function setMemberRoleFilter(roleKey) {
+  activeMemberRoleFilter = roleKey || "all";
+  if (navigator.vibrate) navigator.vibrate(18);
+  renderMembersListUI();
+}
+
+function filterMembersDirectory() {
+  const input = document.getElementById("members-filter-input");
+  const clearBtn = document.getElementById("clear-members-filter-btn");
+  if (clearBtn && input) {
+    clearBtn.classList.toggle("hidden", input.value.length === 0);
+  }
+  renderMembersListUI();
+}
+
+function clearMembersFilter() {
+  const input = document.getElementById("members-filter-input");
+  if (input) {
+    input.value = "";
+    input.focus();
+  }
+  document.getElementById("clear-members-filter-btn")?.classList.add("hidden");
+  renderMembersListUI();
+}
+
+function renderMembersListUI() {
+  const contentEl = document.getElementById("members-content");
+  const chipsEl = document.getElementById("members-filter-chips");
+  if (!contentEl) return;
+
+  const q = (document.getElementById("members-filter-input")?.value || "")
+    .trim()
+    .toLowerCase();
+
+  const textMatched = q
+    ? membersDirectoryData.filter((m) => {
+        const hay = `${m.name || ""} ${m.employee_id || ""} ${
+          m.designation || ""
+        }`.toLowerCase();
+        return hay.includes(q);
+      })
+    : membersDirectoryData;
+
+  if (chipsEl) {
+    chipsEl.innerHTML = MEMBER_ROLE_CHIPS.map((chip) => {
+      let count = textMatched.length;
+      if (chip.key === "admin") {
+        count = textMatched.filter((m) => Boolean(m.is_admin)).length;
+      } else if (chip.key !== "all") {
+        count = textMatched.filter(
+          (m) => String(m.designation || "") === chip.key,
+        ).length;
+      }
+
+      if (chip.key !== "all" && count === 0 && activeMemberRoleFilter !== chip.key) {
+        return "";
+      }
+
+      const activeCls = activeMemberRoleFilter === chip.key ? "active" : "";
+      const styleCls = chip.key === "admin" ? "is-priority" : "is-office";
+
+      return `
+        <button
+          type="button"
+          class="dir-filter-chip ${chip.key === "all" ? "" : styleCls} ${activeCls}"
+          onclick="setMemberRoleFilter('${escapeForOnclick(chip.key)}')"
+        >
+          <span>${escapeHTML(chip.label)}</span>
+          <span class="dir-chip-count">${count}</span>
+        </button>`;
+    }).join("");
+  }
+
+  const filtered = textMatched.filter((m) => {
+    if (activeMemberRoleFilter === "all") return true;
+    if (activeMemberRoleFilter === "admin") return Boolean(m.is_admin);
+    return String(m.designation || "") === activeMemberRoleFilter;
+  });
+
+  if (filtered.length === 0) {
+    contentEl.innerHTML = `<div class="list-empty">No matching members found.</div>`;
+    return;
+  }
+
+  contentEl.innerHTML = filtered
+    .map((m) => {
+      const name = m.name || "DakMitra User";
+      const initial = name.trim().charAt(0).toUpperCase() || "U";
+      const isSelf = currentUserId && String(m.id) === String(currentUserId);
+      const desig = m.designation || "Employee";
+      const empId = m.employee_id || "No ID";
+
+      return `
+        <button
+          type="button"
+          class="member-card"
+          onclick="openUserProfileModal('${escapeForOnclick(
+            m.id,
+          )}', '${escapeForOnclick(name)}')"
+        >
+          <div class="member-avatar">${escapeHTML(initial)}</div>
+          <div class="member-info">
+            <div class="member-name-row">
+              <span class="member-name">${escapeHTML(name)}</span>
+              ${m.is_admin ? `<span class="member-admin-badge">Admin</span>` : ""}
+              ${isSelf ? `<span class="member-you-badge">You</span>` : ""}
+            </div>
+            <div class="member-meta">
+              <span>${escapeHTML(desig)}</span>
+              <span>•</span>
+              <span>🆔 ${escapeHTML(empId)}</span>
+            </div>
+          </div>
+          <svg class="member-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>`;
+    })
+    .join("");
+}
+
+function closeUserProfileModal() {
+  document
+    .getElementById("user-profile-modal-overlay")
+    ?.classList.remove("show");
+}
+
+function openViewedUserPhotoLightbox() {
+  if (!activeViewedProfile) return;
+  const name = activeViewedProfile.name || "User Profile";
+  openProfilePhotoModal({
+    src: activeViewedProfile.avatar_url || null,
+    name: name,
+    initial: name.trim().charAt(0).toUpperCase() || "U",
+    readOnly: true,
+  });
+}
+
+function renderUserProfileModalContent(profile, isOfflineBasic = false) {
+  const bodyEl = document.getElementById("user-modal-body");
+  const actionsEl = document.getElementById("user-modal-actions");
+  if (!bodyEl) return;
+
+  activeViewedProfile = profile;
+  const name = profile.name || "DakMitra User";
+  const initial = name.trim().charAt(0).toUpperCase() || "U";
+  const designation = profile.designation || "Employee";
+  const empId = profile.employee_id || "Not Set";
+  const isSelf = currentUserId && String(profile.id) === String(currentUserId);
+  const avatarHtml = profile.avatar_url
+    ? `<img src="${escapeHTML(profile.avatar_url)}" alt="${escapeHTML(name)}" />`
+    : escapeHTML(initial);
+
+  const hasMobile = Boolean(profile.mobile && String(profile.mobile).trim());
+  const cleanPhone = hasMobile
+    ? String(profile.mobile).replace(/[^\d+]/g, "")
+    : "";
+
+  let mobileValueHtml = "";
+  if (isOfflineBasic) {
+    mobileValueHtml = `<strong style="color: var(--text-light); font-weight: 600;">Available online</strong>`;
+  } else if (hasMobile) {
+    mobileValueHtml = `
+      <div class="user-modal-mobile-row">
+        <div>
+          <strong>${escapeHTML(profile.mobile)}</strong>
+          ${
+            isSelf && profile.show_mobile === false
+              ? `<div style="font-size: 11px; color: var(--text-light); margin-top: 2px;">Hidden from colleagues</div>`
+              : ""
+          }
+        </div>
+        ${
+          cleanPhone
+            ? `<a href="tel:${escapeHTML(
+                cleanPhone,
+              )}" class="staff-call-btn">📞 Call</a>`
+            : ""
+        }
+      </div>`;
+  } else if (profile.show_mobile === false) {
+    mobileValueHtml = `<strong style="color: var(--text-light); font-weight: 600;">Hidden by user</strong>`;
+  } else {
+    mobileValueHtml = `<strong style="color: var(--text-light); font-weight: 600;">Not Set</strong>`;
+  }
+
+  const memberSinceHtml = profile.created_at
+    ? `<div class="profile-detail-box" style="grid-column: 1 / -1">
+         <span>Member Since</span>
+         <strong>${escapeHTML(
+           new Date(profile.created_at).toLocaleDateString("en-IN", {
+             month: "long",
+             year: "numeric",
+           }),
+         )}</strong>
+       </div>`
+    : "";
+
+  const statsHtml = isOfflineBasic
+    ? ""
+    : `<div class="member-stats-grid">
+         <div class="member-stat-pill">
+           <strong>${Number(profile.approved_requests_count || 0)}</strong>
+           <span>Approved Edits</span>
+         </div>
+         <div class="member-stat-pill">
+           <strong>${Number(profile.votes_cast_count || 0)}</strong>
+           <span>Votes Cast</span>
+         </div>
+       </div>`;
+
+  bodyEl.innerHTML = `
+    <div class="user-modal-banner"></div>
+    <div class="user-modal-avatar-wrap">
+      <div
+        class="user-modal-avatar"
+        onclick="openViewedUserPhotoLightbox()"
+        title="Tap to view photo"
+      >
+        ${avatarHtml}
+      </div>
+    </div>
+
+    <div style="padding: 0 20px;">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px;">
+        <h3 style="font-size: 20px; font-weight: 800; color: var(--text); margin: 0;">
+          ${escapeHTML(name)}
+        </h3>
+        ${profile.is_admin ? `<span class="member-admin-badge">🛡️ Admin</span>` : ""}
+        ${isSelf ? `<span class="member-you-badge">You</span>` : ""}
+      </div>
+
+      <div class="sidebar-designation" style="margin: 0 auto 4px; font-size: 12px; padding: 5px 12px;">
+        ${escapeHTML(designation)}
+      </div>
+    </div>
+
+    ${statsHtml}
+
+    <div class="profile-info-grid" style="padding: 14px 20px 18px;">
+      <div class="profile-detail-box">
+        <span>Employee ID</span>
+        <strong>${escapeHTML(empId)}</strong>
+      </div>
+      <div class="profile-detail-box">
+        <span>Mobile Number</span>
+        ${mobileValueHtml}
+      </div>
+      ${memberSinceHtml}
+    </div>
+  `;
+
+  if (actionsEl) {
+    actionsEl.innerHTML = isSelf
+      ? `<button type="button" class="dm-btn dm-btn-secondary" style="flex: 0.45" onclick="closeUserProfileModal()">Close</button>
+         <button type="button" class="dm-btn dm-btn-primary" style="flex: 1" onclick="closeUserProfileModal(); switchDashboardView('profile');">Edit My Profile</button>`
+      : `<button type="button" class="dm-btn dm-btn-secondary dm-btn-full" onclick="closeUserProfileModal()">Close</button>`;
+  }
+}
+
+async function openUserProfileModal(userId, fallbackName = "") {
+  if (!userId) return;
+
+  const overlay = document.getElementById("user-profile-modal-overlay");
+  const bodyEl = document.getElementById("user-modal-body");
+  const actionsEl = document.getElementById("user-modal-actions");
+  if (!overlay || !bodyEl) return;
+
+  const cacheKey = String(userId);
+  const cachedEntry = userProfileCache.get(cacheKey);
+  if (
+    cachedEntry &&
+    Date.now() - cachedEntry.ts < USER_PROFILE_CACHE_TTL_MS
+  ) {
+    renderUserProfileModalContent(cachedEntry.data);
+    overlay.classList.add("show");
+    return;
+  }
+
+  // Show immediate loading skeleton inside modal
+  const tempInitial = (fallbackName || "U").trim().charAt(0).toUpperCase();
+  bodyEl.innerHTML = `
+    <div class="user-modal-banner"></div>
+    <div class="user-modal-avatar-wrap">
+      <div class="user-modal-avatar">${escapeHTML(tempInitial)}</div>
+    </div>
+    <div style="padding: 0 20px 24px;">
+      <h3 style="font-size: 19px; font-weight: 800; color: var(--text); margin-bottom: 12px;">
+        ${escapeHTML(fallbackName || "Loading profile...")}
+      </h3>
+      <div class="skeleton-line medium" style="margin: 0 auto 10px;"></div>
+      <div class="skeleton-line short" style="margin: 0 auto;"></div>
+    </div>
+  `;
+  if (actionsEl) {
+    actionsEl.innerHTML = `<button type="button" class="dm-btn dm-btn-secondary dm-btn-full" onclick="closeUserProfileModal()">Close</button>`;
+  }
+  overlay.classList.add("show");
+
+  const online = await checkActualInternet();
+  if (!online) {
+    const basicMember = membersDirectoryData.find(
+      (m) => String(m.id) === cacheKey,
+    );
+    if (basicMember) {
+      renderUserProfileModalContent(basicMember, true);
+      showOfflineToast("Showing cached basic profile.");
+    } else {
+      bodyEl.innerHTML = `<div style="padding: 40px 20px; color: var(--text-light); font-size: 14px;">📡 Connect to the internet to load this user's profile.</div>`;
+    }
+    return;
+  }
+
+  try {
+    await ensureSupabaseReady();
+    const { data, error } = await supabaseClient.rpc(
+      "get_user_public_profile",
+      { target_user_id: userId },
+    );
+    if (error) throw error;
+
+    const profile = Array.isArray(data) ? data[0] : data;
+    if (!profile) {
+      bodyEl.innerHTML = `<div style="padding: 40px 20px; color: var(--text-light); font-size: 14px;">Profile not found.</div>`;
+      return;
+    }
+
+    userProfileCache.set(cacheKey, { data: profile, ts: Date.now() });
+    renderUserProfileModalContent(profile);
+  } catch (err) {
+    bodyEl.innerHTML = `<div style="padding: 40px 20px; color: #ef4444; font-size: 14px;">Error loading profile: ${escapeHTML(
+      err.message,
+    )}</div>`;
+  }
+}

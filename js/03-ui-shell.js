@@ -246,7 +246,11 @@ function switchDashboardView(viewId) {
   } else if (viewId === "directory") {
     directoryHeroController.setCollapsed(false, true);
     if (typeof renderDirectory === "function") renderDirectory();
+  } else if (viewId === "members") {
+    membersHeroController.setCollapsed(false, true);
+    if (typeof renderMembersDirectory === "function") renderMembersDirectory();
   }
+  
 
   closeSidebar();
 }
@@ -378,6 +382,11 @@ function switchDashboardView(viewId) {
           window.closeHistoryModal
         ) {
           closeHistoryModal();
+        } else if (
+          topModal.id === "user-profile-modal-overlay" &&
+          window.closeUserProfileModal
+        ) {
+          closeUserProfileModal();
         } else if (
           topModal.id === "crop-modal-overlay" &&
           window.closeCropModal
@@ -874,6 +883,14 @@ const directoryHeroController = createCollapsibleHero(
   },
 );
 
+const membersHeroController = createCollapsibleHero(
+  "members-display-area",
+  "members-hero-collapse-wrap",
+  () => {
+    document.getElementById("members-filter-input")?.blur();
+  },
+);
+
 function setSearchHeroCollapsed(shouldCollapse, instant = false) {
   searchHeroController.setCollapsed(shouldCollapse, instant);
 }
@@ -1121,7 +1138,10 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       return;
     }
 
-    if (currentInput.id === "directory-filter-input") {
+    if (
+      currentInput.id === "directory-filter-input" ||
+      currentInput.id === "members-filter-input"
+    ) {
       currentInput.blur();
       return;
     }
@@ -1155,7 +1175,11 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     const input = e.target;
     if (!input || input.tagName !== "INPUT") return;
 
-    if (input.id === "search-input" || input.id === "directory-filter-input") {
+    if (
+      input.id === "search-input" ||
+      input.id === "directory-filter-input" ||
+      input.id === "members-filter-input"
+    ) {
       input.setAttribute("enterkeyhint", "search");
       return;
     }

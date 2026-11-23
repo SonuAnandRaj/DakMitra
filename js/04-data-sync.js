@@ -622,7 +622,7 @@ async function hydrateOnlineState(attempt = 1) {
 
     const { data: profileData } = await client
       .from("profiles")
-      .select("name, designation, employee_id, mobile, avatar_url")
+      .select("name, designation, employee_id, mobile, avatar_url, show_mobile")
       .eq("id", session.user.id)
       .maybeSingle();
 

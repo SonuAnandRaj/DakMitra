@@ -525,6 +525,27 @@
 
           <button
             class="sidebar-menu-item"
+            id="nav-members"
+            onclick="switchDashboardView('members')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            <span>Members</span>
+          </button>
+
+          <button
+            class="sidebar-menu-item"
             id="nav-favorites"
             onclick="switchDashboardView('favorites')"
           >
@@ -956,6 +977,21 @@
               </div>
             </div>
 
+            <div class="dm-toggle-row">
+              <div>
+                <strong style="display: block; font-size: 14px; color: var(--text)">
+                  Show Mobile to Colleagues
+                </strong>
+                <span style="font-size: 12px; color: var(--text-light)">
+                  Allow other DakMitra users to see and call your mobile number
+                </span>
+              </div>
+              <label class="dm-toggle-switch" title="Toggle mobile visibility">
+                <input type="checkbox" id="edit-profile-show-mobile" checked />
+                <span class="dm-toggle-slider"></span>
+              </label>
+            </div>
+
             <button
               type="button"
               class="btn-save-profile"
@@ -980,6 +1016,69 @@
                 <span>Save Profile Changes</span>
               </span>
             </button>
+          </div>
+        </section>
+
+        <!-- MEMBERS DIRECTORY VIEW -->
+        <section id="view-members" class="view-section">
+          <div
+            class="search-hero-collapse-wrap"
+            id="members-hero-collapse-wrap"
+          >
+            <div class="search-hero-collapse-inner">
+              <div class="search-hero" style="text-align: center">
+                <h2 style="margin-bottom: 6px">Members Directory</h2>
+                <p style="color: var(--text-light); font-size: 14px">
+                  Connect with DakMitra colleagues and view their profiles.
+                </p>
+
+                <div
+                  style="
+                    margin-top: 16px;
+                    max-width: 420px;
+                    margin-left: auto;
+                    margin-right: auto;
+                  "
+                >
+                  <div class="search-input-wrapper">
+                    <span style="margin-left: 12px; font-size: 16px">🔍</span>
+                    <input
+                      type="search"
+                      id="members-filter-input"
+                      placeholder="Search by name, Emp ID, or role..."
+                      oninput="filterMembersDirectory()"
+                      autocomplete="off"
+                    />
+                    <button
+                      type="button"
+                      id="clear-members-filter-btn"
+                      class="clear-btn hidden"
+                      onclick="clearMembersFilter()"
+                      title="Clear Filter"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Designation Filter Chips (Stays pinned when hero collapses) -->
+          <div class="dir-filter-bar">
+            <div
+              id="members-filter-chips"
+              class="dir-filter-chips"
+              role="group"
+              aria-label="Filter members by designation"
+            ></div>
+          </div>
+
+          <div
+            class="results-container-scroll expanded"
+            id="members-display-area"
+          >
+            <div id="members-content" style="padding: 8px"></div>
           </div>
         </section>
 
@@ -2525,6 +2624,36 @@
       </div>
     </div>
 
+    <!-- READ-ONLY OTHER USER PROFILE MODAL -->
+    <div
+      id="user-profile-modal-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeUserProfileModal();"
+    >
+      <div class="modal-card user-profile-modal-card">
+        <button
+          type="button"
+          class="dm-close-btn user-modal-close-btn"
+          onclick="closeUserProfileModal()"
+          title="Close"
+        >
+          ✕
+        </button>
+
+        <div id="user-modal-body"></div>
+
+        <div id="user-modal-actions" class="modal-actions" style="padding: 0 20px 20px">
+          <button
+            type="button"
+            class="dm-btn dm-btn-secondary dm-btn-full"
+            onclick="closeUserProfileModal()"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- IN-PLACE EDIT RECORD MODAL -->
     <div
       id="edit-record-modal-overlay"
@@ -3403,7 +3532,7 @@
           <div class="lightbox-media-wrap" id="avatar-lightbox-frame"></div>
         </div>
 
-        <div class="lightbox-bottombar">
+        <div class="lightbox-bottombar" id="lightbox-bottombar">
           <div class="lightbox-action-dock">
             <button
               type="button"
