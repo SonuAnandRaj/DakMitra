@@ -7903,7 +7903,7 @@
                 <path d="M12 10h.01"></path>
               </svg>
               <input
-                type="text"
+                type="search"
                 id="inline-edit-office"
                 placeholder="Search & Select Office..."
                 autocomplete="off"
@@ -8205,7 +8205,7 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
             <input
-              type="text"
+              type="search"
               id="quick-delete-filter-input"
               placeholder="Filter addresses to delete..."
               autocomplete="off"
@@ -12526,19 +12526,19 @@
                     <div class="manual-entry-row">
                       <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
                         ${showLabels ? "<label>Address</label>" : ""}
-                        <input type="text" class="manual-address" placeholder="Address" autocomplete="off" />
+                        <input type="search" class="manual-address" placeholder="Address" autocomplete="off" />
                       </div>
                       <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
                         ${showLabels ? "<label>Office</label>" : ""}
                         <div class="autocomplete-wrapper">
-                          <input type="text" class="manual-office" placeholder="Search & Select Office..." autocomplete="off" oninput="handleOfficeInput(this)" onfocus="handleOfficeInput(this)" onblur="scheduleCloseDropdowns(200)"" style="padding-right: 40px; width: 100%;" />
+                          <input type="search" class="manual-office" placeholder="Search & Select Office..." autocomplete="off" oninput="handleOfficeInput(this)" onfocus="handleOfficeInput(this)" onblur="scheduleCloseDropdowns(200)"" style="padding-right: 40px; width: 100%;" />
                           <button type="button" class="clear-btn hidden" onpointerdown="event.preventDefault()" style="position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; padding: 0; margin: 0; z-index: 2;" onclick="clearOfficeInput(this)" title="Clear Office">✕</button>
                           <div class="autocomplete-dropdown"></div>
                         </div>
                       </div>
                       <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
                         ${showLabels ? "<label>Pin</label>" : ""}
-                        <input type="text" inputmode="numeric" class="manual-Pin" placeholder="e.g. 231305" autocomplete="off" />
+                        <input type="search" inputmode="numeric" class="manual-Pin" placeholder="e.g. 231305" autocomplete="off" />
                       </div>
                       <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
                     </div>
