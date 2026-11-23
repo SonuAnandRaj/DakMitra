@@ -2890,6 +2890,39 @@
           class="quick-delete-chips-wrap edit-modal-field"
         ></div>
 
+        <!-- Selected-for-Deletion Red Chips Tray -->
+        <div
+          id="quick-delete-selected-box"
+          class="quick-delete-selected-box hidden"
+        >
+          <div class="quick-delete-selected-header">
+            <strong id="quick-delete-selected-label"
+              >0 marked for deletion</strong
+            >
+            <div class="quick-delete-selected-controls">
+              <button
+                type="button"
+                id="quick-delete-expand-btn"
+                class="quick-delete-tray-btn hidden"
+                onclick="toggleQuickDeleteTrayExpand()"
+              >
+                Expand
+              </button>
+              <button
+                type="button"
+                class="quick-delete-tray-btn is-clear"
+                onclick="clearAllQuickDeleteSelected()"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+          <div
+            id="quick-delete-selected-chips"
+            class="quick-delete-selected-chips"
+          ></div>
+        </div>
+
         <div class="edit-modal-actions">
           <button
             type="button"
@@ -2923,7 +2956,6 @@
         </div>
       </div>
     </div>
-
     <!-- CUSTOM ALERT MODAL -->
     <div id="alert-modal-overlay" class="modal-overlay">
       <div class="modal-card" style="padding: 28px 24px 24px">

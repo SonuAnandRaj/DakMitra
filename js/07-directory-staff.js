@@ -1149,6 +1149,7 @@ async function submitQuickAddModal() {
 let activeQuickDeleteOffice = { office: "", pin: "" };
 let activeQuickDeleteItems = [];
 let activeQuickDeleteSelectedIds = new Set();
+let isQuickDeleteTrayExpanded = false;
 
 function getQuickDeleteBtnDefaultHTML(count = 0) {
   const baseLabel = isCurrentUserAdmin ? "Delete" : "Request Delete";
@@ -1184,6 +1185,7 @@ function quickDeleteForOffice(officeName, pinNumber) {
     pin: cleanPin,
   };
   activeQuickDeleteSelectedIds = new Set();
+  isQuickDeleteTrayExpanded = false;
 
   const targetLower = activeQuickDeleteOffice.office.trim().toLowerCase();
   activeQuickDeleteItems = (cachedPostOffices || [])
@@ -1223,6 +1225,7 @@ function closeQuickDeleteModal() {
   const chipsContainer = document.getElementById(
     "quick-delete-chips-container",
   );
+  isQuickDeleteTrayExpanded = false;
   overlay?.classList.remove("show");
   if (chipsContainer) chipsContainer.scrollTop = 0;
   if (overlay) overlay.scrollTop = 0;
@@ -1245,6 +1248,7 @@ function renderQuickDeleteChips() {
             <button
               type="button"
               class="delete-select-chip ${isSelected ? "selected" : ""}"
+              data-delete-id="${escapeHTML(idStr)}"
               onclick="toggleQuickDeleteItem('${escapeForOnclick(
                 idStr,
               )}', this)"
@@ -1274,6 +1278,100 @@ function toggleQuickDeleteItem(idStr, chipEl) {
 
   if (navigator.vibrate) navigator.vibrate(20);
   updateQuickDeleteUI();
+}
+
+function renderQuickDeleteSelectedTray() {
+  const box = document.getElementById("quick-delete-selected-box");
+  const labelEl = document.getElementById("quick-delete-selected-label");
+  const chipsEl = document.getElementById("quick-delete-selected-chips");
+  const expandBtn = document.getElementById("quick-delete-expand-btn");
+  if (!box || !chipsEl) return;
+
+  const count = activeQuickDeleteSelectedIds.size;
+  if (count === 0) {
+    isQuickDeleteTrayExpanded = false;
+    box.classList.add("hidden");
+    chipsEl.innerHTML = "";
+    chipsEl.classList.remove("is-expanded");
+    return;
+  }
+
+  const byId = new Map(
+    activeQuickDeleteItems.map((item) => [String(item.id), item.Address]),
+  );
+
+  // Newest selections appear first so each tap is immediately visible
+  const selectedIdsNewestFirst = Array.from(
+    activeQuickDeleteSelectedIds,
+  ).reverse();
+
+  chipsEl.innerHTML = selectedIdsNewestFirst
+    .map((idStr) => {
+      const addr = byId.get(idStr);
+      if (!addr) return "";
+      return `
+        <span class="delete-selected-pill">
+          <span>${escapeHTML(addr)}</span>
+          <button
+            type="button"
+            onclick="removeQuickDeleteSelectedChip('${escapeForOnclick(
+              idStr,
+            )}')"
+            title="Remove from deletion list"
+            aria-label="Remove ${escapeHTML(addr)}"
+          >✕</button>
+        </span>`;
+    })
+    .join("");
+
+  if (labelEl) {
+    labelEl.textContent = `${count} ${
+      count === 1 ? "address" : "addresses"
+    } marked for deletion`;
+  }
+
+  if (count <= 3) {
+    isQuickDeleteTrayExpanded = false;
+    expandBtn?.classList.add("hidden");
+  } else if (expandBtn) {
+    expandBtn.classList.remove("hidden");
+    expandBtn.textContent = isQuickDeleteTrayExpanded ? "Compact" : "Expand";
+  }
+
+  chipsEl.classList.toggle("is-expanded", isQuickDeleteTrayExpanded);
+  box.classList.remove("hidden");
+}
+
+function removeQuickDeleteSelectedChip(idStr) {
+  activeQuickDeleteSelectedIds.delete(idStr);
+
+  // Sync the matching main picker chip in-place without losing scroll position
+  const container = document.getElementById("quick-delete-chips-container");
+  if (container) {
+    const btn = container.querySelector(
+      `.delete-select-chip[data-delete-id="${CSS.escape(String(idStr))}"]`,
+    );
+    if (btn) {
+      btn.classList.remove("selected");
+      const chk = btn.querySelector(".delete-chip-check");
+      if (chk) chk.textContent = "";
+    }
+  }
+
+  if (navigator.vibrate) navigator.vibrate(15);
+  updateQuickDeleteUI();
+}
+
+function clearAllQuickDeleteSelected() {
+  activeQuickDeleteSelectedIds.clear();
+  isQuickDeleteTrayExpanded = false;
+  if (navigator.vibrate) navigator.vibrate(20);
+  renderQuickDeleteChips();
+}
+
+function toggleQuickDeleteTrayExpand() {
+  isQuickDeleteTrayExpanded = !isQuickDeleteTrayExpanded;
+  renderQuickDeleteSelectedTray();
 }
 
 function toggleSelectAllQuickDelete() {
@@ -1327,6 +1425,8 @@ function updateQuickDeleteUI() {
     submitBtn.disabled = count === 0;
     submitBtnContent.innerHTML = getQuickDeleteBtnDefaultHTML(count);
   }
+
+  renderQuickDeleteSelectedTray();
 }
 
 function confirmQuickDeleteModal() {
