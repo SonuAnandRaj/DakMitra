@@ -4,57 +4,57 @@
 
 // --- DIRECTORY RENDERING & FILTERING ---
 function renderDirectory() {
-    const displayArea = document.getElementById("directory-display-area");
-  
-    const filterInput = document.getElementById("directory-filter-input");
-    const clearBtn = document.getElementById("clear-dir-filter-btn");
-    if (filterInput) filterInput.value = "";
-    if (clearBtn) clearBtn.classList.add("hidden");
-  
-    if (!cachedPostOffices || cachedPostOffices.length === 0) {
-      displayArea.innerHTML = `<div class="list-empty">No data available.</div>`;
-      return;
-    }
-  
-    if (directoryGroupedData.length === 0) {
-      buildDirectoryGroupedData();
-    }
-  
-    directoryFilteredData = [...directoryGroupedData];
-    directoryCurrentPage = 0;
-  
-    displayArea.innerHTML = `
+  const displayArea = document.getElementById("directory-display-area");
+
+  const filterInput = document.getElementById("directory-filter-input");
+  const clearBtn = document.getElementById("clear-dir-filter-btn");
+  if (filterInput) filterInput.value = "";
+  if (clearBtn) clearBtn.classList.add("hidden");
+
+  if (!cachedPostOffices || cachedPostOffices.length === 0) {
+    displayArea.innerHTML = `<div class="list-empty">No data available.</div>`;
+    return;
+  }
+
+  if (directoryGroupedData.length === 0) {
+    buildDirectoryGroupedData();
+  }
+
+  directoryFilteredData = [...directoryGroupedData];
+  directoryCurrentPage = 0;
+
+  displayArea.innerHTML = `
       <div id="directory-content" style="padding: 4px;"></div>
       <div id="directory-sentinel" style="height: 40px; text-align: center; color: var(--text-light); font-size: 13px; padding: 10px;"></div>
     `;
-    displayArea.scrollTop = 0;
-  
-    setupDirectoryObserver();
-    renderDirectoryBatch();
+  displayArea.scrollTop = 0;
+
+  setupDirectoryObserver();
+  renderDirectoryBatch();
+}
+
+function renderDirectoryBatch() {
+  const contentDiv = document.getElementById("directory-content");
+  const sentinel = document.getElementById("directory-sentinel");
+  if (!contentDiv) return;
+
+  const startIndex = directoryCurrentPage * DIRECTORY_PAGE_SIZE;
+  const endIndex = startIndex + DIRECTORY_PAGE_SIZE;
+  const batch = directoryFilteredData.slice(startIndex, endIndex);
+
+  if (batch.length === 0 && directoryCurrentPage === 0) {
+    contentDiv.innerHTML = `<div class="list-empty">No offices match your filter.</div>`;
+    if (sentinel) sentinel.style.display = "none";
+    return;
   }
-  
-  function renderDirectoryBatch() {
-    const contentDiv = document.getElementById("directory-content");
-    const sentinel = document.getElementById("directory-sentinel");
-    if (!contentDiv) return;
-  
-    const startIndex = directoryCurrentPage * DIRECTORY_PAGE_SIZE;
-    const endIndex = startIndex + DIRECTORY_PAGE_SIZE;
-    const batch = directoryFilteredData.slice(startIndex, endIndex);
-  
-    if (batch.length === 0 && directoryCurrentPage === 0) {
-      contentDiv.innerHTML = `<div class="list-empty">No offices match your filter.</div>`;
-      if (sentinel) sentinel.style.display = "none";
-      return;
-    }
-  
-    let html = "";
-    batch.forEach((data) => {
-      const safeId = "dir-office-" + data.office.replace(/\W/g, "-");
-      const addressList = Array.isArray(data.addresses) ? data.addresses : [];
-      const totalAddresses = addressList.length;
-  
-      html += `
+
+  let html = "";
+  batch.forEach((data) => {
+    const safeId = "dir-office-" + data.office.replace(/\W/g, "-");
+    const addressList = Array.isArray(data.addresses) ? data.addresses : [];
+    const totalAddresses = addressList.length;
+
+    html += `
         <div class="directory-card" id="${safeId}">
           <div class="directory-card-header">
             <div class="directory-office-info">
@@ -66,8 +66,8 @@ function renderDirectory() {
                 <span>📍 ${escapeHTML(data.pin)}</span>
                 <span class="meta-dot">•</span>
                 <span class="meta-count">${totalAddresses} ${
-        totalAddresses === 1 ? "Address" : "Addresses"
-      }</span>
+      totalAddresses === 1 ? "Address" : "Addresses"
+    }</span>
               </div>
             </div>
   
@@ -93,7 +93,9 @@ function renderDirectory() {
                 onclick="quickDeleteForOffice('${escapeForOnclick(
                   data.office
                 )}', '${escapeForOnclick(data.pin)}')"
-                title="Delete multiple addresses from ${escapeHTML(data.office)}"
+                title="Delete multiple addresses from ${escapeHTML(
+                  data.office
+                )}"
                 aria-label="Delete addresses"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -108,220 +110,219 @@ function renderDirectory() {
           </div>
           <div class="directory-address-list">
       `;
-  
-      addressList.forEach((item) => {
-        const addressText = typeof item === "object" ? item.Address : item;
-        const recordId = typeof item === "object" ? item.id : "";
-        const officeName = typeof item === "object" ? item.Office : data.office;
-        const pinVal = typeof item === "object" ? item.Pin : data.pin;
-        const officeType = detectOfficeType(addressText);
-  
-        if (officeType) {
-          html += `<span class="directory-address-chip clickable-office-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
-            recordId
-          )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
-            officeName
-          )}" data-pin="${escapeHTML(
-            pinVal || ""
-          )}" title="Tap for options">📮 ${escapeHTML(addressText)}</span>`;
-        } else {
-          html += `<span class="directory-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
-            recordId
-          )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
-            officeName
-          )}" data-pin="${escapeHTML(
-            pinVal || ""
-          )}" title="Tap for options">${escapeHTML(addressText)}</span>`;
-        }
-      });
-  
-      html += `
+
+    addressList.forEach((item) => {
+      const addressText = typeof item === "object" ? item.Address : item;
+      const recordId = typeof item === "object" ? item.id : "";
+      const officeName = typeof item === "object" ? item.Office : data.office;
+      const pinVal = typeof item === "object" ? item.Pin : data.pin;
+      const officeType = detectOfficeType(addressText);
+
+      if (officeType) {
+        html += `<span class="directory-address-chip clickable-office-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
+          recordId
+        )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
+          officeName
+        )}" data-pin="${escapeHTML(
+          pinVal || ""
+        )}" title="Tap for options">📮 ${escapeHTML(addressText)}</span>`;
+      } else {
+        html += `<span class="directory-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
+          recordId
+        )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
+          officeName
+        )}" data-pin="${escapeHTML(
+          pinVal || ""
+        )}" title="Tap for options">${escapeHTML(addressText)}</span>`;
+      }
+    });
+
+    html += `
           </div>
           <div class="directory-action-tray"></div>
         </div>
       `;
-    });
-  
-    contentDiv.insertAdjacentHTML("beforeend", html);
-    directoryCurrentPage++;
-  
-    if (sentinel) {
-      sentinel.style.display = "block";
-      if (endIndex >= directoryFilteredData.length) {
-        sentinel.textContent = "End of directory";
-      } else {
-        sentinel.textContent = "Loading more...";
-      }
+  });
+
+  contentDiv.insertAdjacentHTML("beforeend", html);
+  directoryCurrentPage++;
+
+  if (sentinel) {
+    sentinel.style.display = "block";
+    if (endIndex >= directoryFilteredData.length) {
+      sentinel.textContent = "End of directory";
+    } else {
+      sentinel.textContent = "Loading more...";
     }
   }
-  
-  function setupDirectoryObserver() {
-    const sentinel = document.getElementById("directory-sentinel");
-    const displayArea = document.getElementById("directory-display-area");
-  
-    if (directoryObserver) directoryObserver.disconnect();
-  
-    directoryObserver = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          if (
-            directoryCurrentPage * DIRECTORY_PAGE_SIZE <
-            directoryFilteredData.length
-          ) {
-            renderDirectoryBatch();
-          }
+}
+
+function setupDirectoryObserver() {
+  const sentinel = document.getElementById("directory-sentinel");
+  const displayArea = document.getElementById("directory-display-area");
+
+  if (directoryObserver) directoryObserver.disconnect();
+
+  directoryObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting) {
+        if (
+          directoryCurrentPage * DIRECTORY_PAGE_SIZE <
+          directoryFilteredData.length
+        ) {
+          renderDirectoryBatch();
         }
-      },
-      {
-        root: displayArea,
-        rootMargin: "300px",
-        threshold: 0.1,
       }
-    );
-  
-    if (sentinel) directoryObserver.observe(sentinel);
-  }
-  
-  function goToDirectoryOffice(officeName) {
-    if (!officeName) return;
-  
-    switchDashboardView("directory");
-  
-    const filterInput = document.getElementById("directory-filter-input");
-    if (filterInput) {
-      filterInput.value = officeName;
-      toggleDirClearBtn();
-      filterDirectory();
+    },
+    {
+      root: displayArea,
+      rootMargin: "300px",
+      threshold: 0.1,
     }
-  
-    const cardId = "dir-office-" + officeName.replace(/\W/g, "-");
-  
-    setTimeout(() => {
-      const card = document.getElementById(cardId);
-      if (card) {
-        card.scrollIntoView({ behavior: "smooth", block: "start" });
-  
-        card.style.transition =
-          "background-color 0.5s ease, transform 0.3s ease";
-        card.style.backgroundColor = "rgba(79, 70, 229, 0.15)";
-        card.style.transform = "scale(1.02)";
-  
-        setTimeout(() => {
-          card.style.backgroundColor = "var(--card-bg)";
-          card.style.transform = "scale(1)";
-        }, 1200);
-      }
-    }, 50);
-  }
-  
-  function filterDirectory() {
-    const filterValue = document
-      .getElementById("directory-filter-input")
-      .value.toLowerCase()
-      .trim();
-  
-    if (!filterValue) {
-      directoryFilteredData = [...directoryGroupedData];
-    } else {
-      directoryFilteredData = directoryGroupedData.filter((item) =>
-        item.searchString.includes(filterValue)
-      );
-    }
-  
-    directoryCurrentPage = 0;
-    const contentDiv = document.getElementById("directory-content");
-    if (contentDiv) contentDiv.innerHTML = "";
-  
-    renderDirectoryBatch();
-  }
-  
-  function toggleDirClearBtn() {
-    const input = document.getElementById("directory-filter-input");
-    const clearBtn = document.getElementById("clear-dir-filter-btn");
-    if (input.value.length > 0) {
-      clearBtn.classList.remove("hidden");
-    } else {
-      clearBtn.classList.add("hidden");
-    }
-  }
-  
-  function clearDirectoryFilter() {
-    const input = document.getElementById("directory-filter-input");
-    input.value = "";
+  );
+
+  if (sentinel) directoryObserver.observe(sentinel);
+}
+
+function goToDirectoryOffice(officeName) {
+  if (!officeName) return;
+
+  switchDashboardView("directory");
+
+  const filterInput = document.getElementById("directory-filter-input");
+  if (filterInput) {
+    filterInput.value = officeName;
     toggleDirClearBtn();
     filterDirectory();
-    input.focus();
   }
-  
-  // --- FLOATING ACTION BAR (DIRECTORY CHIPS & SEARCH ITEMS) ---
-  function closeAllDirectoryActionTrays() {
-    const bar = document.getElementById("directory-floating-bar");
-    if (bar) {
-      bar.classList.remove("open");
+
+  const cardId = "dir-office-" + officeName.replace(/\W/g, "-");
+
+  setTimeout(() => {
+    const card = document.getElementById(cardId);
+    if (card) {
+      card.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      card.style.transition = "background-color 0.5s ease, transform 0.3s ease";
+      card.style.backgroundColor = "rgba(79, 70, 229, 0.15)";
+      card.style.transform = "scale(1.02)";
+
+      setTimeout(() => {
+        card.style.backgroundColor = "var(--card-bg)";
+        card.style.transform = "scale(1)";
+      }, 1200);
     }
-    document
-      .querySelectorAll(
-        ".directory-address-chip.selected-chip, .list-item.selected-chip"
-      )
-      .forEach((c) => c.classList.remove("selected-chip"));
+  }, 50);
+}
+
+function filterDirectory() {
+  const filterValue = document
+    .getElementById("directory-filter-input")
+    .value.toLowerCase()
+    .trim();
+
+  if (!filterValue) {
+    directoryFilteredData = [...directoryGroupedData];
+  } else {
+    directoryFilteredData = directoryGroupedData.filter((item) =>
+      item.searchString.includes(filterValue)
+    );
   }
-  
-  function openDirectoryChipActions(chipEl) {
-    if (!chipEl) return;
-    const bar = document.getElementById("directory-floating-bar");
-    if (!bar) return;
-  
-    const isSameAlreadyOpen =
-      bar.classList.contains("open") &&
-      (chipEl.classList.contains("selected-chip") ||
-        (chipEl.getAttribute("data-record-id") &&
-          chipEl.getAttribute("data-record-id") ===
-            bar.getAttribute("data-open-record-id")));
-  
-    closeAllDirectoryActionTrays();
-    if (isSameAlreadyOpen) return;
-  
-    bar.setAttribute(
-      "data-open-record-id",
-      chipEl.getAttribute("data-record-id") || ""
+
+  directoryCurrentPage = 0;
+  const contentDiv = document.getElementById("directory-content");
+  if (contentDiv) contentDiv.innerHTML = "";
+
+  renderDirectoryBatch();
+}
+
+function toggleDirClearBtn() {
+  const input = document.getElementById("directory-filter-input");
+  const clearBtn = document.getElementById("clear-dir-filter-btn");
+  if (input.value.length > 0) {
+    clearBtn.classList.remove("hidden");
+  } else {
+    clearBtn.classList.add("hidden");
+  }
+}
+
+function clearDirectoryFilter() {
+  const input = document.getElementById("directory-filter-input");
+  input.value = "";
+  toggleDirClearBtn();
+  filterDirectory();
+  input.focus();
+}
+
+// --- FLOATING ACTION BAR (DIRECTORY CHIPS & SEARCH ITEMS) ---
+function closeAllDirectoryActionTrays() {
+  const bar = document.getElementById("directory-floating-bar");
+  if (bar) {
+    bar.classList.remove("open");
+  }
+  document
+    .querySelectorAll(
+      ".directory-address-chip.selected-chip, .list-item.selected-chip"
+    )
+    .forEach((c) => c.classList.remove("selected-chip"));
+}
+
+function openDirectoryChipActions(chipEl) {
+  if (!chipEl) return;
+  const bar = document.getElementById("directory-floating-bar");
+  if (!bar) return;
+
+  const isSameAlreadyOpen =
+    bar.classList.contains("open") &&
+    (chipEl.classList.contains("selected-chip") ||
+      (chipEl.getAttribute("data-record-id") &&
+        chipEl.getAttribute("data-record-id") ===
+          bar.getAttribute("data-open-record-id")));
+
+  closeAllDirectoryActionTrays();
+  if (isSameAlreadyOpen) return;
+
+  bar.setAttribute(
+    "data-open-record-id",
+    chipEl.getAttribute("data-record-id") || ""
+  );
+  bar.setAttribute(
+    "data-open-address",
+    chipEl.getAttribute("data-address") || ""
+  );
+
+  let recordId = chipEl.getAttribute("data-record-id") || "";
+  const address = chipEl.getAttribute("data-address") || "";
+  const office = chipEl.getAttribute("data-office") || "";
+  const pin = chipEl.getAttribute("data-pin") || "";
+
+  if (!recordId && cachedPostOffices.length > 0) {
+    const match = cachedPostOffices.find(
+      (r) =>
+        String(r.Address || "")
+          .trim()
+          .toLowerCase() === address.trim().toLowerCase() &&
+        String(r.Office || "")
+          .trim()
+          .toLowerCase() === office.trim().toLowerCase()
     );
-    bar.setAttribute(
-      "data-open-address",
-      chipEl.getAttribute("data-address") || ""
-    );
-  
-    let recordId = chipEl.getAttribute("data-record-id") || "";
-    const address = chipEl.getAttribute("data-address") || "";
-    const office = chipEl.getAttribute("data-office") || "";
-    const pin = chipEl.getAttribute("data-pin") || "";
-  
-    if (!recordId && cachedPostOffices.length > 0) {
-      const match = cachedPostOffices.find(
-        (r) =>
-          String(r.Address || "")
-            .trim()
-            .toLowerCase() === address.trim().toLowerCase() &&
-          String(r.Office || "")
-            .trim()
-            .toLowerCase() === office.trim().toLowerCase()
-      );
-      if (match) recordId = String(match.id);
-    }
-  
-    const favorites = getSafeStorage(FAV_KEY);
-    const isFav = favorites.some((f) => String(f.id) === String(recordId));
-    const favStyle = getFavoriteBtnStyles(isFav, false);
-  
-    const officeType = detectOfficeType(address);
-    const infoBtnHtml = officeType
-      ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
-          address
-        )}', '${escapeForOnclick(
-          office
-        )}')" class="toolbar-btn info-i-btn" title="View ${officeType} Staff Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"></circle><line x1="12" y1="16" x2="12" y2="11.5"></line><circle cx="12" cy="8.2" r="0.6" fill="currentColor"></circle></svg></button>`
-      : "";
-  
-    bar.innerHTML = `
+    if (match) recordId = String(match.id);
+  }
+
+  const favorites = getSafeStorage(FAV_KEY);
+  const isFav = favorites.some((f) => String(f.id) === String(recordId));
+  const favStyle = getFavoriteBtnStyles(isFav, false);
+
+  const officeType = detectOfficeType(address);
+  const infoBtnHtml = officeType
+    ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
+        address
+      )}', '${escapeForOnclick(
+        office
+      )}')" class="toolbar-btn info-i-btn" title="View ${officeType} Staff Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"></circle><line x1="12" y1="16" x2="12" y2="11.5"></line><circle cx="12" cy="8.2" r="0.6" fill="currentColor"></circle></svg></button>`
+    : "";
+
+  bar.innerHTML = `
       <div class="card-actions">
         ${infoBtnHtml}
         <button onclick="event.stopPropagation(); viewHistory('${escapeForOnclick(
@@ -330,151 +331,154 @@ function renderDirectory() {
         <button onclick="event.stopPropagation(); toggleFavorite('${escapeForOnclick(
           recordId
         )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
-      office
-    )}', '${escapeForOnclick(pin)}', this)" class="toolbar-btn" style="${
-      favStyle.style
-    }">${favStyle.icon}</button>
+    office
+  )}', '${escapeForOnclick(pin)}', this)" class="toolbar-btn" style="${
+    favStyle.style
+  }">${favStyle.icon}</button>
         <button onclick="event.stopPropagation(); updateRecord('${escapeForOnclick(
           recordId
         )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
-      office
-    )}', '${escapeForOnclick(
-      pin
-    )}')" class="toolbar-btn" style="background: var(--input-bg);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Edit</button>
+    office
+  )}', '${escapeForOnclick(
+    pin
+  )}')" class="toolbar-btn" style="background: var(--input-bg);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Edit</button>
         <button onclick="event.stopPropagation(); deleteRecord('${escapeForOnclick(
           recordId
         )}')" class="toolbar-btn" style="background: #fee2e2; color: #b91c1c;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
       </div>
     `;
-  
-    const rect = chipEl.getBoundingClientRect();
-    const barWidth = bar.offsetWidth;
-    const barHeight = bar.offsetHeight;
-    const margin = 12;
-  
-    let left = rect.left + rect.width / 2 - barWidth / 2;
-    left = Math.max(margin, Math.min(left, window.innerWidth - barWidth - margin));
-  
-    let top = rect.bottom + 8;
-    if (top + barHeight > window.innerHeight - 90) {
-      top = rect.top - barHeight - 8;
-    }
-  
-    bar.style.left = `${left}px`;
-    bar.style.top = `${top}px`;
-  
-    chipEl.classList.add("selected-chip");
-    bar.classList.add("open");
-    if (navigator.vibrate) navigator.vibrate(30);
-  }
-  
-  // First tap outside closes the open options; second tap opens a new address
-  document.addEventListener(
-    "click",
-    (e) => {
-      const bar = document.getElementById("directory-floating-bar");
-      if (!bar || !bar.classList.contains("open")) return;
-      if (e.target.closest("#directory-floating-bar")) return;
-  
-      closeAllDirectoryActionTrays();
-  
-      if (e.target.closest(".directory-address-chip, .list-item")) {
-        e.stopPropagation();
-        e.preventDefault();
-      }
-    },
-    true
+
+  const rect = chipEl.getBoundingClientRect();
+  const barWidth = bar.offsetWidth;
+  const barHeight = bar.offsetHeight;
+  const margin = 12;
+
+  let left = rect.left + rect.width / 2 - barWidth / 2;
+  left = Math.max(
+    margin,
+    Math.min(left, window.innerWidth - barWidth - margin)
   );
-  
-  document
-    .getElementById("directory-display-area")
-    ?.addEventListener("scroll", closeAllDirectoryActionTrays, { passive: true });
-  document
-    .getElementById("results-display-area")
-    ?.addEventListener("scroll", closeAllDirectoryActionTrays, { passive: true });
-  
-  // --- OFFICE STAFF DETAILS MODAL (BO / SO / HO CRUD) ---
-  let activeOfficeRecord = null;
-  let activeOfficeType = null;
-  
-  function detectOfficeType(address) {
-    if (!address) return null;
-    const clean = String(address).replace(/\./g, "");
-    if (/\bBO\b/i.test(clean)) return "BO";
-    if (/\bSO\b/i.test(clean)) return "SO";
-    if (/\bHO\b/i.test(clean)) return "HO";
-    return null;
+
+  let top = rect.bottom + 8;
+  if (top + barHeight > window.innerHeight - 90) {
+    top = rect.top - barHeight - 8;
   }
-  
-  function hasValidValue(val) {
-    return (
-      val !== null &&
-      val !== undefined &&
-      String(val).trim() !== "" &&
-      String(val).trim().toLowerCase() !== "null" &&
-      String(val).trim().toLowerCase() !== "n/a"
-    );
-  }
-  
-  function normalizeStaffList(rawList, extraNameKey, extraContactKey) {
-    let entries = [];
-  
-    const mapItem = (p) => ({
-      name: p.name || p[extraNameKey] || "",
-      contact: p.contact || p.mobile || p.phone || p[extraContactKey] || "",
-    });
-  
-    if (Array.isArray(rawList)) {
-      entries = rawList.map(mapItem);
-    } else if (typeof rawList === "string" && rawList.trim() !== "") {
-      try {
-        const parsed = JSON.parse(rawList);
-        if (Array.isArray(parsed)) {
-          entries = parsed.map(mapItem);
-        }
-      } catch (e) {
-        rawList.split(/[\n,;]+/).forEach((entry) => {
-          const parts = entry.split(/[-:]/);
-          if (parts.length >= 2) {
-            entries.push({
-              name: parts[0].trim(),
-              contact: parts.slice(1).join("-").trim(),
-            });
-          } else if (parts[0].trim()) {
-            entries.push({ name: parts[0].trim(), contact: "" });
-          }
-        });
-      }
+
+  bar.style.left = `${left}px`;
+  bar.style.top = `${top}px`;
+
+  chipEl.classList.add("selected-chip");
+  bar.classList.add("open");
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+// First tap outside closes the open options; second tap opens a new address
+document.addEventListener(
+  "click",
+  (e) => {
+    const bar = document.getElementById("directory-floating-bar");
+    if (!bar || !bar.classList.contains("open")) return;
+    if (e.target.closest("#directory-floating-bar")) return;
+
+    closeAllDirectoryActionTrays();
+
+    if (e.target.closest(".directory-address-chip, .list-item")) {
+      e.stopPropagation();
+      e.preventDefault();
     }
-  
-    return entries.filter(
-      (item) => hasValidValue(item.name) || hasValidValue(item.contact)
-    );
+  },
+  true
+);
+
+document
+  .getElementById("directory-display-area")
+  ?.addEventListener("scroll", closeAllDirectoryActionTrays, { passive: true });
+document
+  .getElementById("results-display-area")
+  ?.addEventListener("scroll", closeAllDirectoryActionTrays, { passive: true });
+
+// --- OFFICE STAFF DETAILS MODAL (BO / SO / HO CRUD) ---
+let activeOfficeRecord = null;
+let activeOfficeType = null;
+
+function detectOfficeType(address) {
+  if (!address) return null;
+  const clean = String(address).replace(/\./g, "");
+  if (/\bBO\b/i.test(clean)) return "BO";
+  if (/\bSO\b/i.test(clean)) return "SO";
+  if (/\bHO\b/i.test(clean)) return "HO";
+  return null;
+}
+
+function hasValidValue(val) {
+  return (
+    val !== null &&
+    val !== undefined &&
+    String(val).trim() !== "" &&
+    String(val).trim().toLowerCase() !== "null" &&
+    String(val).trim().toLowerCase() !== "n/a"
+  );
+}
+
+function normalizeStaffList(rawList, extraNameKey, extraContactKey) {
+  let entries = [];
+
+  const mapItem = (p) => ({
+    name: p.name || p[extraNameKey] || "",
+    contact: p.contact || p.mobile || p.phone || p[extraContactKey] || "",
+  });
+
+  if (Array.isArray(rawList)) {
+    entries = rawList.map(mapItem);
+  } else if (typeof rawList === "string" && rawList.trim() !== "") {
+    try {
+      const parsed = JSON.parse(rawList);
+      if (Array.isArray(parsed)) {
+        entries = parsed.map(mapItem);
+      }
+    } catch (e) {
+      rawList.split(/[\n,;]+/).forEach((entry) => {
+        const parts = entry.split(/[-:]/);
+        if (parts.length >= 2) {
+          entries.push({
+            name: parts[0].trim(),
+            contact: parts.slice(1).join("-").trim(),
+          });
+        } else if (parts[0].trim()) {
+          entries.push({ name: parts[0].trim(), contact: "" });
+        }
+      });
+    }
   }
-  
-  function parsePaList(record) {
-    const rawPaList =
-      record?.pa_list || record?.PA_List || record?.postal_assistants;
-    return normalizeStaffList(rawPaList, "pa_name", "pa_contact");
-  }
-  
-  function parseMtsList(record) {
-    const rawMtsList =
-      record?.mts_list || record?.MTS_List || record?.multi_tasking_staff;
-    return normalizeStaffList(rawMtsList, "mts_name", "mts_contact");
-  }
-  
-  function buildStaffCardHTML(roleLabel, personName, contactNumber) {
-    const hasName = hasValidValue(personName);
-    const hasContact = hasValidValue(contactNumber);
-  
-    if (!hasName && !hasContact) return "";
-  
-    const cleanPhone = hasContact
-      ? String(contactNumber).replace(/[^\d+]/g, "")
-      : "";
-  
-    return `
+
+  return entries.filter(
+    (item) => hasValidValue(item.name) || hasValidValue(item.contact)
+  );
+}
+
+function parsePaList(record) {
+  const rawPaList =
+    record?.pa_list || record?.PA_List || record?.postal_assistants;
+  return normalizeStaffList(rawPaList, "pa_name", "pa_contact");
+}
+
+function parseMtsList(record) {
+  const rawMtsList =
+    record?.mts_list || record?.MTS_List || record?.multi_tasking_staff;
+  return normalizeStaffList(rawMtsList, "mts_name", "mts_contact");
+}
+
+function buildStaffCardHTML(roleLabel, personName, contactNumber) {
+  const hasName = hasValidValue(personName);
+  const hasContact = hasValidValue(contactNumber);
+
+  if (!hasName && !hasContact) return "";
+
+  const cleanPhone = hasContact
+    ? String(contactNumber).replace(/[^\d+]/g, "")
+    : "";
+
+  return `
       <div class="staff-detail-card">
         <div style="min-width: 0; flex: 1;">
           <span class="staff-role-label">${escapeHTML(roleLabel)}</span>
@@ -493,125 +497,125 @@ function renderDirectory() {
         </div>
         ${
           cleanPhone
-            ? `<a href="tel:${escapeHTML(cleanPhone)}" class="staff-call-btn">📞 Call</a>`
+            ? `<a href="tel:${escapeHTML(
+                cleanPhone
+              )}" class="staff-call-btn">📞 Call</a>`
             : ""
         }
       </div>
     `;
+}
+
+function showOfficeDetailsModal(addressName, parentOfficeName) {
+  closeAllDirectoryActionTrays();
+  const officeType = detectOfficeType(addressName);
+  if (!officeType) return;
+
+  const record =
+    cachedPostOffices.find(
+      (r) =>
+        String(r.Address || "")
+          .trim()
+          .toLowerCase() === String(addressName).trim().toLowerCase() &&
+        String(r.Office || "")
+          .trim()
+          .toLowerCase() === String(parentOfficeName).trim().toLowerCase()
+    ) ||
+    cachedPostOffices.find(
+      (r) =>
+        String(r.Address || "")
+          .trim()
+          .toLowerCase() === String(addressName).trim().toLowerCase()
+    );
+
+  if (!record) {
+    return showToast("⚠️ Office record not found in local database.");
   }
-  
-  function showOfficeDetailsModal(addressName, parentOfficeName) {
-    closeAllDirectoryActionTrays();
-    const officeType = detectOfficeType(addressName);
-    if (!officeType) return;
-  
-    const record =
-      cachedPostOffices.find(
-        (r) =>
-          String(r.Address || "")
-            .trim()
-            .toLowerCase() === String(addressName).trim().toLowerCase() &&
-          String(r.Office || "")
-            .trim()
-            .toLowerCase() === String(parentOfficeName).trim().toLowerCase()
-      ) ||
-      cachedPostOffices.find(
-        (r) =>
-          String(r.Address || "")
-            .trim()
-            .toLowerCase() === String(addressName).trim().toLowerCase()
+
+  activeOfficeRecord = record;
+  activeOfficeType = officeType;
+
+  const badgeLabels = {
+    BO: "Branch Office (BO)",
+    SO: "Sub Office (SO)",
+    HO: "Head Office (HO)",
+  };
+
+  document.getElementById("office-modal-badge").textContent =
+    badgeLabels[officeType] || officeType;
+  document.getElementById("office-modal-title").textContent =
+    record.Address || addressName;
+  document.getElementById("office-modal-subtitle").textContent = `🏢 ${
+    record.Office || parentOfficeName || "N/A"
+  } • 📍 PIN: ${record.Pin || "N/A"}`;
+
+  renderOfficeStaffViewMode();
+  document.getElementById("office-details-modal-overlay").classList.add("show");
+}
+
+function renderOfficeStaffViewMode() {
+  const record = activeOfficeRecord || {};
+  const officeType = activeOfficeType;
+
+  document.getElementById("office-modal-edit-btn").classList.remove("hidden");
+  document
+    .getElementById("office-modal-view-actions")
+    .classList.remove("hidden");
+  document.getElementById("office-modal-edit-actions").classList.add("hidden");
+
+  let cardsHtml = "";
+
+  if (officeType === "BO") {
+    cardsHtml += buildStaffCardHTML(
+      "Branch Post Master (BPM)",
+      record.bpm_name,
+      record.bpm_contact
+    );
+    cardsHtml += buildStaffCardHTML(
+      "Assistant Branch Post Master (ABPM)",
+      record.abpm_name,
+      record.abpm_contact
+    );
+  } else if (officeType === "SO" || officeType === "HO") {
+    if (officeType === "SO") {
+      cardsHtml += buildStaffCardHTML(
+        "Sub Post Master (SPM)",
+        record.spm_name,
+        record.spm_contact
       );
-  
-    if (!record) {
-      return showToast("⚠️ Office record not found in local database.");
+    } else {
+      cardsHtml += buildStaffCardHTML(
+        "Post Master (PM)",
+        record.pm_name,
+        record.pm_contact
+      );
     }
-  
-    activeOfficeRecord = record;
-    activeOfficeType = officeType;
-  
-    const badgeLabels = {
-      BO: "Branch Office (BO)",
-      SO: "Sub Office (SO)",
-      HO: "Head Office (HO)",
-    };
-  
-    document.getElementById("office-modal-badge").textContent =
-      badgeLabels[officeType] || officeType;
-    document.getElementById("office-modal-title").textContent =
-      record.Address || addressName;
-    document.getElementById("office-modal-subtitle").textContent = `🏢 ${
-      record.Office || parentOfficeName || "N/A"
-    } • 📍 PIN: ${record.Pin || "N/A"}`;
-  
-    renderOfficeStaffViewMode();
-    document
-      .getElementById("office-details-modal-overlay")
-      .classList.add("show");
+
+    const paEntries = parsePaList(record);
+    paEntries.forEach((pa, idx) => {
+      const label =
+        paEntries.length > 1
+          ? `Postal Assistant (PA #${idx + 1})`
+          : "Postal Assistant (PA)";
+      cardsHtml += buildStaffCardHTML(label, pa.name, pa.contact);
+    });
+
+    const mtsEntries = parseMtsList(record);
+    mtsEntries.forEach((mts, idx) => {
+      const label =
+        mtsEntries.length > 1
+          ? `Multi Tasking Staff (MTS #${idx + 1})`
+          : "Multi Tasking Staff (MTS)";
+      cardsHtml += buildStaffCardHTML(label, mts.name, mts.contact);
+    });
   }
-  
-  function renderOfficeStaffViewMode() {
-    const record = activeOfficeRecord || {};
-    const officeType = activeOfficeType;
-  
-    document.getElementById("office-modal-edit-btn").classList.remove("hidden");
-    document
-      .getElementById("office-modal-view-actions")
-      .classList.remove("hidden");
-    document.getElementById("office-modal-edit-actions").classList.add("hidden");
-  
-    let cardsHtml = "";
-  
-    if (officeType === "BO") {
-      cardsHtml += buildStaffCardHTML(
-        "Branch Post Master (BPM)",
-        record.bpm_name,
-        record.bpm_contact
-      );
-      cardsHtml += buildStaffCardHTML(
-        "Assistant Branch Post Master (ABPM)",
-        record.abpm_name,
-        record.abpm_contact
-      );
-    } else if (officeType === "SO" || officeType === "HO") {
-      if (officeType === "SO") {
-        cardsHtml += buildStaffCardHTML(
-          "Sub Post Master (SPM)",
-          record.spm_name,
-          record.spm_contact
-        );
-      } else {
-        cardsHtml += buildStaffCardHTML(
-          "Post Master (PM)",
-          record.pm_name,
-          record.pm_contact
-        );
-      }
-  
-      const paEntries = parsePaList(record);
-      paEntries.forEach((pa, idx) => {
-        const label =
-          paEntries.length > 1
-            ? `Postal Assistant (PA #${idx + 1})`
-            : "Postal Assistant (PA)";
-        cardsHtml += buildStaffCardHTML(label, pa.name, pa.contact);
-      });
-  
-      const mtsEntries = parseMtsList(record);
-      mtsEntries.forEach((mts, idx) => {
-        const label =
-          mtsEntries.length > 1
-            ? `Multi Tasking Staff (MTS #${idx + 1})`
-            : "Multi Tasking Staff (MTS)";
-        cardsHtml += buildStaffCardHTML(label, mts.name, mts.contact);
-      });
-    }
-  
-    const editBtn = document.getElementById("office-modal-edit-btn");
-    const bodyEl = document.getElementById("office-modal-body");
-  
-    if (!cardsHtml.trim()) {
-      editBtn.innerHTML = "➕ Add";
-      bodyEl.innerHTML = `
+
+  const editBtn = document.getElementById("office-modal-edit-btn");
+  const bodyEl = document.getElementById("office-modal-body");
+
+  if (!cardsHtml.trim()) {
+    editBtn.innerHTML = "➕ Add";
+    bodyEl.innerHTML = `
         <div class="list-empty" style="padding: 24px 16px; margin: 0; gap: 10px;">
           <span>No staff details stored for this ${officeType} yet.</span>
           <button type="button" class="btn" style="width: auto; padding: 8px 16px; font-size: 13px;" onclick="openOfficeStaffEditor()">
@@ -619,27 +623,27 @@ function renderDirectory() {
           </button>
         </div>
       `;
-    } else {
-      editBtn.innerHTML = "✎ Edit";
-      bodyEl.innerHTML = cardsHtml;
-    }
+  } else {
+    editBtn.innerHTML = "✎ Edit";
+    bodyEl.innerHTML = cardsHtml;
   }
-  
-  function openOfficeStaffEditor() {
-    const record = activeOfficeRecord || {};
-    const officeType = activeOfficeType;
-  
-    document.getElementById("office-modal-edit-btn").classList.add("hidden");
-    document.getElementById("office-modal-view-actions").classList.add("hidden");
-    document
-      .getElementById("office-modal-edit-actions")
-      .classList.remove("hidden");
-  
-    const bodyEl = document.getElementById("office-modal-body");
-    let formHtml = "";
-  
-    if (officeType === "BO") {
-      formHtml = `
+}
+
+function openOfficeStaffEditor() {
+  const record = activeOfficeRecord || {};
+  const officeType = activeOfficeType;
+
+  document.getElementById("office-modal-edit-btn").classList.add("hidden");
+  document.getElementById("office-modal-view-actions").classList.add("hidden");
+  document
+    .getElementById("office-modal-edit-actions")
+    .classList.remove("hidden");
+
+  const bodyEl = document.getElementById("office-modal-body");
+  let formHtml = "";
+
+  if (officeType === "BO") {
+    formHtml = `
         <div class="staff-edit-group">
           <div class="staff-edit-header">
             <span class="staff-role-label" style="margin:0;">Branch Post Master (BPM)</span>
@@ -670,14 +674,14 @@ function renderDirectory() {
           </div>
         </div>
       `;
-      bodyEl.innerHTML = formHtml;
-    } else if (officeType === "SO" || officeType === "HO") {
-      const existingPAs = parsePaList(record);
-      const existingMTS = parseMtsList(record);
-  
-      const headRoleHtml =
-        officeType === "SO"
-          ? `
+    bodyEl.innerHTML = formHtml;
+  } else if (officeType === "SO" || officeType === "HO") {
+    const existingPAs = parsePaList(record);
+    const existingMTS = parseMtsList(record);
+
+    const headRoleHtml =
+      officeType === "SO"
+        ? `
         <div class="staff-edit-group">
           <div class="staff-edit-header">
             <span class="staff-role-label" style="margin:0;">Sub Post Master (SPM)</span>
@@ -692,7 +696,7 @@ function renderDirectory() {
             )}" />
           </div>
         </div>`
-          : `
+        : `
         <div class="staff-edit-group">
           <div class="staff-edit-header">
             <span class="staff-role-label" style="margin:0;">Post Master (PM)</span>
@@ -707,8 +711,8 @@ function renderDirectory() {
             )}" />
           </div>
         </div>`;
-  
-      formHtml = `
+
+    formHtml = `
         ${headRoleHtml}
   
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
@@ -723,37 +727,37 @@ function renderDirectory() {
         </div>
         <div id="crud-mts-list-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
       `;
-  
-      bodyEl.innerHTML = formHtml;
-  
-      if (existingPAs.length === 0) {
-        addPaInputRow("", "");
-      } else {
-        existingPAs.forEach((pa) => addPaInputRow(pa.name, pa.contact));
-      }
-  
-      if (existingMTS.length === 0) {
-        addMtsInputRow("", "");
-      } else {
-        existingMTS.forEach((mts) => addMtsInputRow(mts.name, mts.contact));
-      }
+
+    bodyEl.innerHTML = formHtml;
+
+    if (existingPAs.length === 0) {
+      addPaInputRow("", "");
+    } else {
+      existingPAs.forEach((pa) => addPaInputRow(pa.name, pa.contact));
+    }
+
+    if (existingMTS.length === 0) {
+      addMtsInputRow("", "");
+    } else {
+      existingMTS.forEach((mts) => addMtsInputRow(mts.name, mts.contact));
     }
   }
-  
-  function clearStaffFieldGroup(nameInputId, contactInputId) {
-    const n = document.getElementById(nameInputId);
-    const c = document.getElementById(contactInputId);
-    if (n) n.value = "";
-    if (c) c.value = "";
-  }
-  
-  function addPaInputRow(name = "", contact = "") {
-    const container = document.getElementById("crud-pa-list-container");
-    if (!container) return;
-  
-    const row = document.createElement("div");
-    row.className = "staff-edit-group pa-crud-row";
-    row.innerHTML = `
+}
+
+function clearStaffFieldGroup(nameInputId, contactInputId) {
+  const n = document.getElementById(nameInputId);
+  const c = document.getElementById(contactInputId);
+  if (n) n.value = "";
+  if (c) c.value = "";
+}
+
+function addPaInputRow(name = "", contact = "") {
+  const container = document.getElementById("crud-pa-list-container");
+  if (!container) return;
+
+  const row = document.createElement("div");
+  row.className = "staff-edit-group pa-crud-row";
+  row.innerHTML = `
       <div class="staff-edit-header">
         <span class="staff-role-label" style="margin:0;">Postal Assistant (PA)</span>
         <button type="button" class="staff-remove-btn" onclick="this.closest('.pa-crud-row').remove()">✕ Remove</button>
@@ -767,16 +771,16 @@ function renderDirectory() {
         )}" />
       </div>
     `;
-    container.appendChild(row);
-  }
-  
-  function addMtsInputRow(name = "", contact = "") {
-    const container = document.getElementById("crud-mts-list-container");
-    if (!container) return;
-  
-    const row = document.createElement("div");
-    row.className = "staff-edit-group mts-crud-row";
-    row.innerHTML = `
+  container.appendChild(row);
+}
+
+function addMtsInputRow(name = "", contact = "") {
+  const container = document.getElementById("crud-mts-list-container");
+  if (!container) return;
+
+  const row = document.createElement("div");
+  row.className = "staff-edit-group mts-crud-row";
+  row.innerHTML = `
       <div class="staff-edit-header">
         <span class="staff-role-label" style="margin:0;">Multi Tasking Staff (MTS)</span>
         <button type="button" class="staff-remove-btn" onclick="this.closest('.mts-crud-row').remove()">✕ Remove</button>
@@ -790,120 +794,120 @@ function renderDirectory() {
         )}" />
       </div>
     `;
-    container.appendChild(row);
-  }
-  
-  async function saveOfficeStaffDetails() {
-    if (!(await ensureOnline("Connect to internet to save changes."))) return;
-    if (!activeOfficeRecord || !activeOfficeRecord.id) return;
-  
-    const saveBtn = document.getElementById("save-office-staff-btn");
-    setButtonState(saveBtn, "loading", "Saving...");
-  
-    let updatePayload = {};
-  
-    if (activeOfficeType === "BO") {
-      const bpmName = document.getElementById("crud-bpm-name")?.value.trim();
-      const bpmContact = document
-        .getElementById("crud-bpm-contact")
+  container.appendChild(row);
+}
+
+async function saveOfficeStaffDetails() {
+  if (!(await ensureOnline("Connect to internet to save changes."))) return;
+  if (!activeOfficeRecord || !activeOfficeRecord.id) return;
+
+  const saveBtn = document.getElementById("save-office-staff-btn");
+  setButtonState(saveBtn, "loading", "Saving...");
+
+  let updatePayload = {};
+
+  if (activeOfficeType === "BO") {
+    const bpmName = document.getElementById("crud-bpm-name")?.value.trim();
+    const bpmContact = document
+      .getElementById("crud-bpm-contact")
+      ?.value.trim();
+    const abpmName = document.getElementById("crud-abpm-name")?.value.trim();
+    const abpmContact = document
+      .getElementById("crud-abpm-contact")
+      ?.value.trim();
+
+    updatePayload = {
+      bpm_name: bpmName || null,
+      bpm_contact: bpmContact || null,
+      abpm_name: abpmName || null,
+      abpm_contact: abpmContact || null,
+    };
+  } else if (activeOfficeType === "SO" || activeOfficeType === "HO") {
+    const paRows = document.querySelectorAll(".pa-crud-row");
+    const paList = [];
+    paRows.forEach((row) => {
+      const n = row.querySelector(".crud-pa-name")?.value.trim() || "";
+      const c = row.querySelector(".crud-pa-contact")?.value.trim() || "";
+      if (n || c) paList.push({ name: n, contact: c });
+    });
+
+    const mtsRows = document.querySelectorAll(".mts-crud-row");
+    const mtsList = [];
+    mtsRows.forEach((row) => {
+      const n = row.querySelector(".crud-mts-name")?.value.trim() || "";
+      const c = row.querySelector(".crud-mts-contact")?.value.trim() || "";
+      if (n || c) mtsList.push({ name: n, contact: c });
+    });
+
+    if (activeOfficeType === "SO") {
+      const spmName = document.getElementById("crud-spm-name")?.value.trim();
+      const spmContact = document
+        .getElementById("crud-spm-contact")
         ?.value.trim();
-      const abpmName = document.getElementById("crud-abpm-name")?.value.trim();
-      const abpmContact = document
-        .getElementById("crud-abpm-contact")
-        ?.value.trim();
-  
+
       updatePayload = {
-        bpm_name: bpmName || null,
-        bpm_contact: bpmContact || null,
-        abpm_name: abpmName || null,
-        abpm_contact: abpmContact || null,
+        spm_name: spmName || null,
+        spm_contact: spmContact || null,
+        pa_list: paList,
+        mts_list: mtsList,
       };
-    } else if (activeOfficeType === "SO" || activeOfficeType === "HO") {
-      const paRows = document.querySelectorAll(".pa-crud-row");
-      const paList = [];
-      paRows.forEach((row) => {
-        const n = row.querySelector(".crud-pa-name")?.value.trim() || "";
-        const c = row.querySelector(".crud-pa-contact")?.value.trim() || "";
-        if (n || c) paList.push({ name: n, contact: c });
-      });
-  
-      const mtsRows = document.querySelectorAll(".mts-crud-row");
-      const mtsList = [];
-      mtsRows.forEach((row) => {
-        const n = row.querySelector(".crud-mts-name")?.value.trim() || "";
-        const c = row.querySelector(".crud-mts-contact")?.value.trim() || "";
-        if (n || c) mtsList.push({ name: n, contact: c });
-      });
-  
-      if (activeOfficeType === "SO") {
-        const spmName = document.getElementById("crud-spm-name")?.value.trim();
-        const spmContact = document
-          .getElementById("crud-spm-contact")
-          ?.value.trim();
-  
-        updatePayload = {
-          spm_name: spmName || null,
-          spm_contact: spmContact || null,
-          pa_list: paList,
-          mts_list: mtsList,
-        };
-      } else {
-        const pmName = document.getElementById("crud-pm-name")?.value.trim();
-        const pmContact = document
-          .getElementById("crud-pm-contact")
-          ?.value.trim();
-  
-        updatePayload = {
-          pm_name: pmName || null,
-          pm_contact: pmContact || null,
-          pa_list: paList,
-          mts_list: mtsList,
-        };
-      }
+    } else {
+      const pmName = document.getElementById("crud-pm-name")?.value.trim();
+      const pmContact = document
+        .getElementById("crud-pm-contact")
+        ?.value.trim();
+
+      updatePayload = {
+        pm_name: pmName || null,
+        pm_contact: pmContact || null,
+        pa_list: paList,
+        mts_list: mtsList,
+      };
     }
-  
-    try {
-      const { error } = await supabaseClient
-        .from("post_offices")
-        .update(updatePayload)
-        .eq("id", activeOfficeRecord.id);
-  
-      if (error) throw error;
-  
-      Object.assign(activeOfficeRecord, updatePayload);
-      localStorage.setItem(
-        "dakmitra_offline_db",
-        JSON.stringify(cachedPostOffices)
-      );
-  
-      showToast("✅ Office details updated!");
-      setButtonState(saveBtn, "success", "Saved!");
-      setTimeout(() => {
-        setButtonState(saveBtn, "idle");
-        renderOfficeStaffViewMode();
-      }, 550);
-    } catch (err) {
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from("post_offices")
+      .update(updatePayload)
+      .eq("id", activeOfficeRecord.id);
+
+    if (error) throw error;
+
+    Object.assign(activeOfficeRecord, updatePayload);
+    localStorage.setItem(
+      "dakmitra_offline_db",
+      JSON.stringify(cachedPostOffices)
+    );
+
+    showToast("✅ Office details updated!");
+    setButtonState(saveBtn, "success", "Saved!");
+    setTimeout(() => {
       setButtonState(saveBtn, "idle");
-      alert("Failed to update office details: " + err.message);
-    }
+      renderOfficeStaffViewMode();
+    }, 550);
+  } catch (err) {
+    setButtonState(saveBtn, "idle");
+    alert("Failed to update office details: " + err.message);
   }
-  
-  function closeOfficeDetailsModal() {
-    document
-      .getElementById("office-details-modal-overlay")
-      .classList.remove("show");
-  }
-  
-  // --- DIRECTORY QUICK-ADD MULTIPLE ADDRESSES MODAL ---
-  let activeQuickAddOffice = { office: "", pin: "" };
-  
-  function getQuickAddBtnDefaultHTML(count = 0) {
-    const baseLabel = isCurrentUserAdmin ? "Add" : "Submit";
-    const label =
-      count > 0
-        ? `${baseLabel} ${count} ${count === 1 ? "Address" : "Addresses"}`
-        : `${baseLabel} Addresses`;
-    return `
+}
+
+function closeOfficeDetailsModal() {
+  document
+    .getElementById("office-details-modal-overlay")
+    .classList.remove("show");
+}
+
+// --- DIRECTORY QUICK-ADD MULTIPLE ADDRESSES MODAL ---
+let activeQuickAddOffice = { office: "", pin: "" };
+
+function getQuickAddBtnDefaultHTML(count = 0) {
+  const baseLabel = isCurrentUserAdmin ? "Add" : "Submit";
+  const label =
+    count > 0
+      ? `${baseLabel} ${count} ${count === 1 ? "Address" : "Addresses"}`
+      : `${baseLabel} Addresses`;
+  return `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
         <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -911,520 +915,526 @@ function renderDirectory() {
       </svg>
       <span>${label}</span>
     `;
+}
+
+function quickAddForOffice(officeName, pinNumber) {
+  closeAllDirectoryActionTrays();
+
+  const cleanPin =
+    pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
+  activeQuickAddOffice = {
+    office: officeName || "",
+    pin: cleanPin,
+  };
+
+  document.getElementById("quick-add-subtitle").textContent = `🏢 ${
+    activeQuickAddOffice.office
+  }${cleanPin ? ` • 📍 ${cleanPin}` : ""}`;
+
+  const textarea = document.getElementById("quick-add-addresses-input");
+  const saveBtn = document.getElementById("quick-add-save-btn");
+  const saveBtnContent = document.getElementById("quick-add-save-btn-content");
+
+  if (textarea) textarea.value = "";
+  saveBtn.classList.remove("is-loading", "is-success");
+  saveBtn.disabled = false;
+  saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(0);
+
+  updateQuickAddPreview();
+  document.getElementById("quick-add-modal-overlay").classList.add("show");
+  setTimeout(() => textarea?.focus(), 140);
+}
+
+function closeQuickAddModal() {
+  document.getElementById("quick-add-modal-overlay")?.classList.remove("show");
+}
+
+function parseQuickAddAddresses() {
+  const raw = document.getElementById("quick-add-addresses-input")?.value || "";
+  const seen = new Set();
+  const list = [];
+
+  raw
+    .split(/[\n,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .forEach((addr) => {
+      const key = addr.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(addr);
+      }
+    });
+
+  return list;
+}
+
+function updateQuickAddPreview() {
+  const addresses = parseQuickAddAddresses();
+  const box = document.getElementById("quick-add-preview-box");
+  const countEl = document.getElementById("quick-add-preview-count");
+  const chipsEl = document.getElementById("quick-add-preview-chips");
+  const saveBtn = document.getElementById("quick-add-save-btn");
+  const saveBtnContent = document.getElementById("quick-add-save-btn-content");
+
+  if (
+    saveBtn &&
+    !saveBtn.classList.contains("is-loading") &&
+    !saveBtn.classList.contains("is-success")
+  ) {
+    saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(addresses.length);
   }
-  
-  function quickAddForOffice(officeName, pinNumber) {
-    closeAllDirectoryActionTrays();
-  
-    const cleanPin =
-      pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
-    activeQuickAddOffice = {
-      office: officeName || "",
-      pin: cleanPin,
-    };
-  
-    document.getElementById("quick-add-subtitle").textContent = `🏢 ${
-      activeQuickAddOffice.office
-    }${cleanPin ? ` • 📍 ${cleanPin}` : ""}`;
-  
-    const textarea = document.getElementById("quick-add-addresses-input");
-    const saveBtn = document.getElementById("quick-add-save-btn");
-    const saveBtnContent = document.getElementById("quick-add-save-btn-content");
-  
-    if (textarea) textarea.value = "";
-    saveBtn.classList.remove("is-loading", "is-success");
-    saveBtn.disabled = false;
-    saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(0);
-  
-    updateQuickAddPreview();
-    document.getElementById("quick-add-modal-overlay").classList.add("show");
-    setTimeout(() => textarea?.focus(), 140);
+
+  if (addresses.length === 0) {
+    box?.classList.add("hidden");
+    return;
   }
-  
-  function closeQuickAddModal() {
-    document
-      .getElementById("quick-add-modal-overlay")
-      ?.classList.remove("show");
-  }
-  
-  function parseQuickAddAddresses() {
-    const raw =
-      document.getElementById("quick-add-addresses-input")?.value || "";
-    const seen = new Set();
-    const list = [];
-  
-    raw
-      .split(/[\n,]+/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .forEach((addr) => {
-        const key = addr.toLowerCase();
-        if (!seen.has(key)) {
-          seen.add(key);
-          list.push(addr);
-        }
-      });
-  
-    return list;
-  }
-  
-  function updateQuickAddPreview() {
-    const addresses = parseQuickAddAddresses();
-    const box = document.getElementById("quick-add-preview-box");
-    const countEl = document.getElementById("quick-add-preview-count");
-    const chipsEl = document.getElementById("quick-add-preview-chips");
-    const saveBtn = document.getElementById("quick-add-save-btn");
-    const saveBtnContent = document.getElementById("quick-add-save-btn-content");
-  
-    if (
-      saveBtn &&
-      !saveBtn.classList.contains("is-loading") &&
-      !saveBtn.classList.contains("is-success")
-    ) {
-      saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(addresses.length);
-    }
-  
-    if (addresses.length === 0) {
-      box?.classList.add("hidden");
-      return;
-    }
-  
-    const officeLower = activeQuickAddOffice.office.trim().toLowerCase();
-    const existingSet = new Set();
-    if (officeLower && cachedPostOffices) {
-      cachedPostOffices.forEach((r) => {
-        if (
-          String(r.Office || "")
+
+  const officeLower = activeQuickAddOffice.office.trim().toLowerCase();
+  const existingSet = new Set();
+  if (officeLower && cachedPostOffices) {
+    cachedPostOffices.forEach((r) => {
+      if (
+        String(r.Office || "")
+          .trim()
+          .toLowerCase() === officeLower
+      ) {
+        existingSet.add(
+          String(r.Address || "")
             .trim()
-            .toLowerCase() === officeLower
-        ) {
-          existingSet.add(
-            String(r.Address || "")
-              .trim()
-              .toLowerCase()
-          );
-        }
-      });
-    }
-  
-    let dupCount = 0;
-    chipsEl.innerHTML = addresses
-      .map((addr, idx) => {
-        const isDup = existingSet.has(addr.toLowerCase());
-        if (isDup) dupCount++;
-        return `
+            .toLowerCase()
+        );
+      }
+    });
+  }
+
+  let dupCount = 0;
+  chipsEl.innerHTML = addresses
+    .map((addr, idx) => {
+      const isDup = existingSet.has(addr.toLowerCase());
+      if (isDup) dupCount++;
+      return `
           <span class="bulk-chip ${isDup ? "is-duplicate" : ""}" title="${
-          isDup ? "Already exists in this office" : ""
-        }">
+        isDup ? "Already exists in this office" : ""
+      }">
             ${isDup ? "⚠️ " : ""}${escapeHTML(addr)}
             <button type="button" onclick="removeQuickAddAddressAt(${idx})" title="Remove">✕</button>
           </span>`;
-      })
-      .join("");
-  
-    countEl.textContent = `${addresses.length} ${
-      addresses.length === 1 ? "address" : "addresses"
-    } ready${dupCount > 0 ? ` (${dupCount} already in DB)` : ""}`;
-    box?.classList.remove("hidden");
+    })
+    .join("");
+
+  countEl.textContent = `${addresses.length} ${
+    addresses.length === 1 ? "address" : "addresses"
+  } ready${dupCount > 0 ? ` (${dupCount} already in DB)` : ""}`;
+  box?.classList.remove("hidden");
+}
+
+function removeQuickAddAddressAt(indexToRemove) {
+  const addresses = parseQuickAddAddresses();
+  addresses.splice(indexToRemove, 1);
+  const textarea = document.getElementById("quick-add-addresses-input");
+  if (textarea) textarea.value = addresses.join("\n");
+  updateQuickAddPreview();
+}
+
+function clearQuickAddAddresses() {
+  const textarea = document.getElementById("quick-add-addresses-input");
+  if (textarea) textarea.value = "";
+  updateQuickAddPreview();
+}
+
+async function submitQuickAddModal() {
+  if (!(await ensureOnline("Connect to internet to save changes."))) return;
+
+  const addresses = parseQuickAddAddresses();
+  if (addresses.length === 0) {
+    return showToast("⚠️ Please enter at least one address.");
   }
-  
-  function removeQuickAddAddressAt(indexToRemove) {
-    const addresses = parseQuickAddAddresses();
-    addresses.splice(indexToRemove, 1);
-    const textarea = document.getElementById("quick-add-addresses-input");
-    if (textarea) textarea.value = addresses.join("\n");
-    updateQuickAddPreview();
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session || !session.user) {
+    closeQuickAddModal();
+    checkUserSession();
+    return alert("Your session has expired. Please sign in again.");
   }
-  
-  function clearQuickAddAddresses() {
-    const textarea = document.getElementById("quick-add-addresses-input");
-    if (textarea) textarea.value = "";
-    updateQuickAddPreview();
-  }
-  
-  async function submitQuickAddModal() {
-    if (!(await ensureOnline("Connect to internet to save changes."))) return;
-  
-    const addresses = parseQuickAddAddresses();
-    if (addresses.length === 0) {
-      return showToast("⚠️ Please enter at least one address.");
-    }
-  
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession();
-  
-    if (!session || !session.user) {
-      closeQuickAddModal();
-      checkUserSession();
-      return alert("Your session has expired. Please sign in again.");
-    }
-  
-    const saveBtn = document.getElementById("quick-add-save-btn");
-    const saveBtnContent = document.getElementById("quick-add-save-btn-content");
-  
-    saveBtn.classList.add("is-loading");
-    saveBtn.disabled = true;
-    saveBtnContent.innerHTML = `
+
+  const saveBtn = document.getElementById("quick-add-save-btn");
+  const saveBtnContent = document.getElementById("quick-add-save-btn-content");
+
+  saveBtn.classList.add("is-loading");
+  saveBtn.disabled = true;
+  saveBtnContent.innerHTML = `
       <div class="btn-spinner"></div>
       <span>Saving...</span>
     `;
-  
-    const payloads = addresses.map((addr) => ({
-      action_type: "ADD",
-      proposed_data: {
-        Address: addr,
-        Office: activeQuickAddOffice.office,
-        Pin: activeQuickAddOffice.pin || null,
-      },
-      requested_by: session.user.id,
-    }));
-  
-    try {
-      if (isCurrentUserAdmin) {
-        const { error } = await supabaseClient.rpc("admin_direct_submit", {
-          request_payloads: payloads,
-        });
-        if (error) throw error;
-  
-        await fetchAllPostOffices(true);
-        invalidateApprovalsCache();
-  
-        saveBtn.classList.remove("is-loading");
-        saveBtn.classList.add("is-success");
-        saveBtnContent.innerHTML = `
+
+  const payloads = addresses.map((addr) => ({
+    action_type: "ADD",
+    proposed_data: {
+      Address: addr,
+      Office: activeQuickAddOffice.office,
+      Pin: activeQuickAddOffice.pin || null,
+    },
+    requested_by: session.user.id,
+  }));
+
+  try {
+    if (isCurrentUserAdmin) {
+      const { error } = await supabaseClient.rpc("admin_direct_submit", {
+        request_payloads: payloads,
+      });
+      if (error) throw error;
+
+      await fetchAllPostOffices(true);
+      invalidateApprovalsCache();
+
+      saveBtn.classList.remove("is-loading");
+      saveBtn.classList.add("is-success");
+      saveBtnContent.innerHTML = `
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
           </svg>
           <span>Added!</span>
         `;
-        showToast(
-          `✨ Added ${addresses.length} ${
-            addresses.length === 1 ? "address" : "addresses"
-          } to ${activeQuickAddOffice.office}!`
-        );
-      } else {
-        const { error } = await supabaseClient
-          .from("edit_requests")
-          .insert(payloads);
-        if (error) throw error;
-  
-        invalidateApprovalsCache();
-  
-        saveBtn.classList.remove("is-loading");
-        saveBtn.classList.add("is-success");
-        saveBtnContent.innerHTML = `
+      showToast(
+        `✨ Added ${addresses.length} ${
+          addresses.length === 1 ? "address" : "addresses"
+        } to ${activeQuickAddOffice.office}!`
+      );
+    } else {
+      const { error } = await supabaseClient
+        .from("edit_requests")
+        .insert(payloads);
+      if (error) throw error;
+
+      invalidateApprovalsCache();
+
+      saveBtn.classList.remove("is-loading");
+      saveBtn.classList.add("is-success");
+      saveBtnContent.innerHTML = `
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
           </svg>
           <span>Submitted!</span>
         `;
-        showToast(
-          `✅ ${addresses.length} ${
-            addresses.length === 1 ? "address" : "addresses"
-          } submitted for approval!`
-        );
-      }
-  
-      setTimeout(() => {
-        closeQuickAddModal();
-      }, 650);
-    } catch (err) {
-      saveBtn.classList.remove("is-loading", "is-success");
-      saveBtn.disabled = false;
-      saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(addresses.length);
-      alert("Error adding addresses: " + err.message);
+      showToast(
+        `✅ ${addresses.length} ${
+          addresses.length === 1 ? "address" : "addresses"
+        } submitted for approval!`
+      );
     }
+
+    setTimeout(() => {
+      closeQuickAddModal();
+    }, 650);
+  } catch (err) {
+    saveBtn.classList.remove("is-loading", "is-success");
+    saveBtn.disabled = false;
+    saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(addresses.length);
+    alert("Error adding addresses: " + err.message);
   }
-  
-  // --- DIRECTORY QUICK-DELETE MULTIPLE ADDRESSES MODAL ---
-  let activeQuickDeleteOffice = { office: "", pin: "" };
-  let activeQuickDeleteItems = [];
-  let activeQuickDeleteSelectedIds = new Set();
-  
-  function getQuickDeleteBtnDefaultHTML(count = 0) {
-    const baseLabel = isCurrentUserAdmin ? "Delete" : "Request Delete";
-    const label = count > 0 ? `${baseLabel} (${count})` : `${baseLabel}`;
-    return `
+}
+
+// --- DIRECTORY QUICK-DELETE MULTIPLE ADDRESSES MODAL ---
+let activeQuickDeleteOffice = { office: "", pin: "" };
+let activeQuickDeleteItems = [];
+let activeQuickDeleteSelectedIds = new Set();
+
+function getQuickDeleteBtnDefaultHTML(count = 0) {
+  const baseLabel = isCurrentUserAdmin ? "Delete" : "Request Delete";
+  const label = count > 0 ? `${baseLabel} (${count})` : `${baseLabel}`;
+  return `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="3 6 5 6 21 6"></polyline>
         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
       </svg>
       <span>${label}</span>
     `;
-  }
-  
-  function quickDeleteForOffice(officeName, pinNumber) {
-    closeAllDirectoryActionTrays();
-  
-    const cleanPin =
-      pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
-    activeQuickDeleteOffice = {
-      office: officeName || "",
-      pin: cleanPin,
-    };
-    activeQuickDeleteSelectedIds = new Set();
-  
-    const targetLower = activeQuickDeleteOffice.office.trim().toLowerCase();
-    activeQuickDeleteItems = (cachedPostOffices || [])
-      .filter(
-        (r) =>
-          String(r.Office || "")
-            .trim()
-            .toLowerCase() === targetLower
-      )
-      .sort((a, b) =>
-        String(a.Address || "").localeCompare(String(b.Address || ""))
-      );
-  
-    document.getElementById("quick-delete-subtitle").textContent = `🏢 ${
-      activeQuickDeleteOffice.office
-    }${cleanPin ? ` • 📍 ${cleanPin}` : ""}`;
-  
-    const filterInput = document.getElementById("quick-delete-filter-input");
-    if (filterInput) filterInput.value = "";
-  
-    const submitBtn = document.getElementById("quick-delete-submit-btn");
-    submitBtn.classList.remove("is-loading", "is-success");
-  
-    renderQuickDeleteChips();
-    document.getElementById("quick-delete-modal-overlay").classList.add("show");
-  }
-  
-  function closeQuickDeleteModal() {
-    document
-      .getElementById("quick-delete-modal-overlay")
-      ?.classList.remove("show");
-  }
-  
-  function getFilteredQuickDeleteItems() {
-    const q = (
-      document.getElementById("quick-delete-filter-input")?.value || ""
+}
+
+function getFilteredQuickDeleteItems() {
+  const q = (document.getElementById("quick-delete-filter-input")?.value || "")
+    .trim()
+    .toLowerCase();
+  if (!q) return activeQuickDeleteItems;
+  return activeQuickDeleteItems.filter((item) =>
+    String(item.Address || "")
+      .toLowerCase()
+      .includes(q)
+  );
+}
+
+function quickDeleteForOffice(officeName, pinNumber) {
+  closeAllDirectoryActionTrays();
+
+  const cleanPin =
+    pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
+  activeQuickDeleteOffice = {
+    office: officeName || "",
+    pin: cleanPin,
+  };
+  activeQuickDeleteSelectedIds = new Set();
+
+  const targetLower = activeQuickDeleteOffice.office.trim().toLowerCase();
+  activeQuickDeleteItems = (cachedPostOffices || [])
+    .filter(
+      (r) =>
+        String(r.Office || "")
+          .trim()
+          .toLowerCase() === targetLower
     )
-      .trim()
-      .toLowerCase();
-    if (!q) return activeQuickDeleteItems;
-    return activeQuickDeleteItems.filter((item) =>
-      String(item.Address || "")
-        .toLowerCase()
-        .includes(q)
+    .sort((a, b) =>
+      String(a.Address || "").localeCompare(String(b.Address || ""))
     );
-  }
-  
-  function renderQuickDeleteChips() {
-    const container = document.getElementById("quick-delete-chips-container");
-    if (!container) return;
-  
-    const visibleItems = getFilteredQuickDeleteItems();
-  
-    if (visibleItems.length === 0) {
-      container.innerHTML = `<div style="width: 100%; text-align: center; padding: 18px 8px; font-size: 13px; color: var(--text-light);">No matching addresses found.</div>`;
-    } else {
-      container.innerHTML = visibleItems
-        .map((item) => {
-          const idStr = String(item.id);
-          const isSelected = activeQuickDeleteSelectedIds.has(idStr);
-          return `
+
+  document.getElementById("quick-delete-subtitle").textContent = `🏢 ${
+    activeQuickDeleteOffice.office
+  }${cleanPin ? ` • 📍 ${cleanPin}` : ""}`;
+
+  const filterInput = document.getElementById("quick-delete-filter-input");
+  if (filterInput) filterInput.value = "";
+
+  const submitBtn = document.getElementById("quick-delete-submit-btn");
+  submitBtn.classList.remove("is-loading", "is-success");
+
+  renderQuickDeleteChips();
+
+  const overlay = document.getElementById("quick-delete-modal-overlay");
+  const chipsContainer = document.getElementById(
+    "quick-delete-chips-container"
+  );
+  overlay.classList.add("show");
+  if (chipsContainer) chipsContainer.scrollTop = 0;
+  overlay.scrollTop = 0;
+}
+
+function closeQuickDeleteModal() {
+  const overlay = document.getElementById("quick-delete-modal-overlay");
+  const chipsContainer = document.getElementById(
+    "quick-delete-chips-container"
+  );
+  overlay?.classList.remove("show");
+  if (chipsContainer) chipsContainer.scrollTop = 0;
+  if (overlay) overlay.scrollTop = 0;
+}
+
+function renderQuickDeleteChips() {
+  const container = document.getElementById("quick-delete-chips-container");
+  if (!container) return;
+
+  const visibleItems = getFilteredQuickDeleteItems();
+
+  if (visibleItems.length === 0) {
+    container.innerHTML = `<div style="width: 100%; text-align: center; padding: 18px 8px; font-size: 13px; color: var(--text-light);">No matching addresses found.</div>`;
+  } else {
+    container.innerHTML = visibleItems
+      .map((item) => {
+        const idStr = String(item.id);
+        const isSelected = activeQuickDeleteSelectedIds.has(idStr);
+        return `
             <button
               type="button"
               class="delete-select-chip ${isSelected ? "selected" : ""}"
-              onclick="toggleQuickDeleteItem('${escapeForOnclick(idStr)}', this)"
+              onclick="toggleQuickDeleteItem('${escapeForOnclick(
+                idStr
+              )}', this)"
             >
               <span class="delete-chip-check">${isSelected ? "✓" : ""}</span>
               <span>${escapeHTML(item.Address)}</span>
             </button>`;
-        })
-        .join("");
-    }
-  
-    updateQuickDeleteUI();
+      })
+      .join("");
   }
-  
-  function toggleQuickDeleteItem(idStr, chipEl) {
-    if (activeQuickDeleteSelectedIds.has(idStr)) {
-      activeQuickDeleteSelectedIds.delete(idStr);
-      chipEl?.classList.remove("selected");
-      const chk = chipEl?.querySelector(".delete-chip-check");
-      if (chk) chk.textContent = "";
-    } else {
-      activeQuickDeleteSelectedIds.add(idStr);
-      chipEl?.classList.add("selected");
-      const chk = chipEl?.querySelector(".delete-chip-check");
-      if (chk) chk.textContent = "✓";
-    }
-  
-    if (navigator.vibrate) navigator.vibrate(20);
-    updateQuickDeleteUI();
+
+  updateQuickDeleteUI();
+}
+
+function toggleQuickDeleteItem(idStr, chipEl) {
+  if (activeQuickDeleteSelectedIds.has(idStr)) {
+    activeQuickDeleteSelectedIds.delete(idStr);
+    chipEl?.classList.remove("selected");
+    const chk = chipEl?.querySelector(".delete-chip-check");
+    if (chk) chk.textContent = "";
+  } else {
+    activeQuickDeleteSelectedIds.add(idStr);
+    chipEl?.classList.add("selected");
+    const chk = chipEl?.querySelector(".delete-chip-check");
+    if (chk) chk.textContent = "✓";
   }
-  
-  function toggleSelectAllQuickDelete() {
-    const visibleItems = getFilteredQuickDeleteItems();
-    if (visibleItems.length === 0) return;
-  
-    const allVisibleSelected = visibleItems.every((item) =>
+
+  if (navigator.vibrate) navigator.vibrate(20);
+  updateQuickDeleteUI();
+}
+
+function toggleSelectAllQuickDelete() {
+  const visibleItems = getFilteredQuickDeleteItems();
+  if (visibleItems.length === 0) return;
+
+  const allVisibleSelected = visibleItems.every((item) =>
+    activeQuickDeleteSelectedIds.has(String(item.id))
+  );
+
+  visibleItems.forEach((item) => {
+    const idStr = String(item.id);
+    if (allVisibleSelected) activeQuickDeleteSelectedIds.delete(idStr);
+    else activeQuickDeleteSelectedIds.add(idStr);
+  });
+
+  renderQuickDeleteChips();
+}
+
+function updateQuickDeleteUI() {
+  const count = activeQuickDeleteSelectedIds.size;
+  const countEl = document.getElementById("quick-delete-count");
+  const selectAllBtn = document.getElementById("quick-delete-select-all-btn");
+  const submitBtn = document.getElementById("quick-delete-submit-btn");
+  const submitBtnContent = document.getElementById(
+    "quick-delete-submit-btn-content"
+  );
+
+  if (countEl) {
+    countEl.textContent = `${count} of ${activeQuickDeleteItems.length} selected`;
+    countEl.style.color = count > 0 ? "#ef4444" : "var(--text-light)";
+  }
+
+  const visibleItems = getFilteredQuickDeleteItems();
+  const allVisibleSelected =
+    visibleItems.length > 0 &&
+    visibleItems.every((item) =>
       activeQuickDeleteSelectedIds.has(String(item.id))
     );
-  
-    visibleItems.forEach((item) => {
-      const idStr = String(item.id);
-      if (allVisibleSelected) activeQuickDeleteSelectedIds.delete(idStr);
-      else activeQuickDeleteSelectedIds.add(idStr);
-    });
-  
-    renderQuickDeleteChips();
+  if (selectAllBtn) {
+    selectAllBtn.textContent = allVisibleSelected
+      ? "Deselect All"
+      : "Select All";
   }
-  
-  function updateQuickDeleteUI() {
-    const count = activeQuickDeleteSelectedIds.size;
-    const countEl = document.getElementById("quick-delete-count");
-    const selectAllBtn = document.getElementById("quick-delete-select-all-btn");
-    const submitBtn = document.getElementById("quick-delete-submit-btn");
-    const submitBtnContent = document.getElementById(
-      "quick-delete-submit-btn-content"
-    );
-  
-    if (countEl) {
-      countEl.textContent = `${count} of ${activeQuickDeleteItems.length} selected`;
-      countEl.style.color = count > 0 ? "#ef4444" : "var(--text-light)";
-    }
-  
-    const visibleItems = getFilteredQuickDeleteItems();
-    const allVisibleSelected =
-      visibleItems.length > 0 &&
-      visibleItems.every((item) =>
-        activeQuickDeleteSelectedIds.has(String(item.id))
-      );
-    if (selectAllBtn) {
-      selectAllBtn.textContent = allVisibleSelected
-        ? "Deselect All"
-        : "Select All";
-    }
-  
-    if (
-      submitBtn &&
-      !submitBtn.classList.contains("is-loading") &&
-      !submitBtn.classList.contains("is-success")
-    ) {
-      submitBtn.disabled = count === 0;
-      submitBtnContent.innerHTML = getQuickDeleteBtnDefaultHTML(count);
-    }
+
+  if (
+    submitBtn &&
+    !submitBtn.classList.contains("is-loading") &&
+    !submitBtn.classList.contains("is-success")
+  ) {
+    submitBtn.disabled = count === 0;
+    submitBtnContent.innerHTML = getQuickDeleteBtnDefaultHTML(count);
   }
-  
-  function confirmQuickDeleteModal() {
-    const count = activeQuickDeleteSelectedIds.size;
-    if (count === 0) return;
-  
-    const title = isCurrentUserAdmin
-      ? `Admin: Delete ${count} ${count === 1 ? "Address" : "Addresses"}?`
-      : `Request Deletion of ${count} ${count === 1 ? "Address" : "Addresses"}?`;
-  
-    const message = isCurrentUserAdmin
-      ? `This will immediately delete ${count} selected ${
-          count === 1 ? "address" : "addresses"
-        } from ${activeQuickDeleteOffice.office}. Continue?`
-      : `This will submit ${count} deletion ${
-          count === 1 ? "request" : "requests"
-        } for ${
-          activeQuickDeleteOffice.office
-        } to the community for approval.`;
-  
-    const btnText = isCurrentUserAdmin ? "Delete Instantly" : "Submit Requests";
-  
-    showCustomConfirm(title, message, btnText, () => {
-      executeQuickDeleteModal();
-    });
+}
+
+function confirmQuickDeleteModal() {
+  const count = activeQuickDeleteSelectedIds.size;
+  if (count === 0) return;
+
+  const title = isCurrentUserAdmin
+    ? `Admin: Delete ${count} ${count === 1 ? "Address" : "Addresses"}?`
+    : `Request Deletion of ${count} ${count === 1 ? "Address" : "Addresses"}?`;
+
+  const message = isCurrentUserAdmin
+    ? `This will immediately delete ${count} selected ${
+        count === 1 ? "address" : "addresses"
+      } from ${activeQuickDeleteOffice.office}. Continue?`
+    : `This will submit ${count} deletion ${
+        count === 1 ? "request" : "requests"
+      } for ${activeQuickDeleteOffice.office} to the community for approval.`;
+
+  const btnText = isCurrentUserAdmin ? "Delete Instantly" : "Submit Requests";
+
+  showCustomConfirm(title, message, btnText, () => {
+    executeQuickDeleteModal();
+  });
+}
+
+async function executeQuickDeleteModal() {
+  if (!(await ensureOnline("Connect to internet to save changes."))) return;
+
+  const idsToDelete = Array.from(activeQuickDeleteSelectedIds);
+  if (idsToDelete.length === 0) return;
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session || !session.user) {
+    closeQuickDeleteModal();
+    checkUserSession();
+    return alert("Your session has expired. Please sign in again.");
   }
-  
-  async function executeQuickDeleteModal() {
-    if (!(await ensureOnline("Connect to internet to save changes."))) return;
-  
-    const idsToDelete = Array.from(activeQuickDeleteSelectedIds);
-    if (idsToDelete.length === 0) return;
-  
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession();
-  
-    if (!session || !session.user) {
-      closeQuickDeleteModal();
-      checkUserSession();
-      return alert("Your session has expired. Please sign in again.");
-    }
-  
-    const submitBtn = document.getElementById("quick-delete-submit-btn");
-    const submitBtnContent = document.getElementById(
-      "quick-delete-submit-btn-content"
-    );
-  
-    submitBtn.classList.add("is-loading");
-    submitBtn.disabled = true;
-    submitBtnContent.innerHTML = `
+
+  const submitBtn = document.getElementById("quick-delete-submit-btn");
+  const submitBtnContent = document.getElementById(
+    "quick-delete-submit-btn-content"
+  );
+
+  submitBtn.classList.add("is-loading");
+  submitBtn.disabled = true;
+  submitBtnContent.innerHTML = `
       <div class="btn-spinner"></div>
       <span>Deleting...</span>
     `;
-  
-    const payloads = idsToDelete.map((id) => ({
-      post_office_id: id,
-      action_type: "DELETE",
-      proposed_data: {},
-      requested_by: session.user.id,
-    }));
-  
-    try {
-      if (isCurrentUserAdmin) {
-        const { error } = await supabaseClient.rpc("admin_direct_submit", {
-          request_payloads: payloads,
-        });
-        if (error) throw error;
-  
-        idsToDelete.forEach((id) => removeLocalPostOffice(id));
-        invalidateApprovalsCache();
-  
-        submitBtn.classList.remove("is-loading");
-        submitBtn.classList.add("is-success");
-        submitBtnContent.innerHTML = `
+
+  const payloads = idsToDelete.map((id) => ({
+    post_office_id: id,
+    action_type: "DELETE",
+    proposed_data: {},
+    requested_by: session.user.id,
+  }));
+
+  try {
+    if (isCurrentUserAdmin) {
+      const { error } = await supabaseClient.rpc("admin_direct_submit", {
+        request_payloads: payloads,
+      });
+      if (error) throw error;
+
+      idsToDelete.forEach((id) => removeLocalPostOffice(id));
+      invalidateApprovalsCache();
+
+      submitBtn.classList.remove("is-loading");
+      submitBtn.classList.add("is-success");
+      submitBtnContent.innerHTML = `
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
           </svg>
           <span>Deleted!</span>
         `;
-        showToast(
-          `🗑️ Admin: Deleted ${idsToDelete.length} ${
-            idsToDelete.length === 1 ? "address" : "addresses"
-          } from ${activeQuickDeleteOffice.office}.`
-        );
-      } else {
-        const { error } = await supabaseClient
-          .from("edit_requests")
-          .insert(payloads);
-        if (error) throw error;
-  
-        invalidateApprovalsCache();
-  
-        submitBtn.classList.remove("is-loading");
-        submitBtn.classList.add("is-success");
-        submitBtnContent.innerHTML = `
+      showToast(
+        `🗑️ Admin: Deleted ${idsToDelete.length} ${
+          idsToDelete.length === 1 ? "address" : "addresses"
+        } from ${activeQuickDeleteOffice.office}.`
+      );
+    } else {
+      const { error } = await supabaseClient
+        .from("edit_requests")
+        .insert(payloads);
+      if (error) throw error;
+
+      invalidateApprovalsCache();
+
+      submitBtn.classList.remove("is-loading");
+      submitBtn.classList.add("is-success");
+      submitBtnContent.innerHTML = `
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
           </svg>
           <span>Submitted!</span>
         `;
-        showToast(
-          `📝 ${idsToDelete.length} deletion ${
-            idsToDelete.length === 1 ? "request" : "requests"
-          } submitted for approval!`
-        );
-      }
-  
-      setTimeout(() => {
-        closeQuickDeleteModal();
-      }, 650);
-    } catch (err) {
-      submitBtn.classList.remove("is-loading", "is-success");
-      submitBtn.disabled = false;
-      submitBtnContent.innerHTML = getQuickDeleteBtnDefaultHTML(
-        idsToDelete.length
+      showToast(
+        `📝 ${idsToDelete.length} deletion ${
+          idsToDelete.length === 1 ? "request" : "requests"
+        } submitted for approval!`
       );
-      alert("Error deleting addresses: " + err.message);
     }
+
+    setTimeout(() => {
+      closeQuickDeleteModal();
+    }, 650);
+  } catch (err) {
+    submitBtn.classList.remove("is-loading", "is-success");
+    submitBtn.disabled = false;
+    submitBtnContent.innerHTML = getQuickDeleteBtnDefaultHTML(
+      idsToDelete.length
+    );
+    alert("Error deleting addresses: " + err.message);
   }
+}
