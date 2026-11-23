@@ -395,7 +395,7 @@ function switchTab(mode) {
   }
   
   // =========================================================
-  // MODERN PINCH-TO-ZOOM PROFILE PHOTO CROPPER
+  // MODERN PINCH-TO-ZOOM PROFILE PHOTO CROPPER (WITH LIVE DUAL PREVIEW)
   // =========================================================
   const cropState = {
     img: null,
@@ -407,58 +407,115 @@ function switchTab(mode) {
     tx: 0,
     ty: 0,
     rotation: 0,
+    guideShape: "round",
+    cropSize: 300,
+    previewSquareSize: 50,
+    previewRoundSize: 48,
     pointers: new Map(),
     lastPinchDist: 0,
     lastPinchMid: null,
     lastTapTime: 0,
     objectUrl: null,
   };
-  
+
   function getCropSize() {
     const cutout = document.getElementById("crop-cutout");
     return cutout ? cutout.getBoundingClientRect().width || 300 : 300;
   }
-  
+
+  function syncCropMetrics() {
+    cropState.cropSize = getCropSize();
+    const sqFrame = document.getElementById("crop-preview-square-frame");
+    const rdFrame = document.getElementById("crop-preview-round-frame");
+    if (sqFrame && sqFrame.clientWidth > 0) {
+      cropState.previewSquareSize = sqFrame.clientWidth;
+    }
+    if (rdFrame && rdFrame.clientWidth > 0) {
+      cropState.previewRoundSize = rdFrame.clientWidth;
+    }
+  }
+
+  function setCropGuideShape(shape) {
+    cropState.guideShape = shape === "square" ? "square" : "round";
+    const cutout = document.getElementById("crop-cutout");
+    const sqBtn = document.getElementById("crop-preview-square-btn");
+    const rdBtn = document.getElementById("crop-preview-round-btn");
+
+    cutout?.classList.toggle("is-square", cropState.guideShape === "square");
+    sqBtn?.classList.toggle("active", cropState.guideShape === "square");
+    rdBtn?.classList.toggle("active", cropState.guideShape === "round");
+
+    if (navigator.vibrate) navigator.vibrate(20);
+  }
+
   function computeCropBounds() {
-    const cropSize = getCropSize();
+    const cropSize = cropState.cropSize || getCropSize();
     const swapped = cropState.rotation % 180 !== 0;
     const baseW = swapped ? cropState.natH : cropState.natW;
     const baseH = swapped ? cropState.natW : cropState.natH;
-  
+
     cropState.minScale = Math.max(cropSize / baseW, cropSize / baseH);
     cropState.maxScale = cropState.minScale * 4.5;
     cropState.scale = Math.min(
       Math.max(cropState.scale, cropState.minScale),
       cropState.maxScale
     );
-  
+
     const effW = baseW * cropState.scale;
     const effH = baseH * cropState.scale;
     const maxTx = Math.max(0, (effW - cropSize) / 2);
     const maxTy = Math.max(0, (effH - cropSize) / 2);
-  
+
     cropState.tx = Math.min(Math.max(cropState.tx, -maxTx), maxTx);
     cropState.ty = Math.min(Math.max(cropState.ty, -maxTy), maxTy);
   }
-  
+
   function applyCropTransform(animate = false) {
     const imgEl = document.getElementById("crop-source-img");
     if (!imgEl) return;
+
     imgEl.classList.toggle("is-animating", animate);
     imgEl.style.transform = `translate3d(calc(-50% + ${cropState.tx}px), calc(-50% + ${cropState.ty}px), 0) scale(${cropState.scale}) rotate(${cropState.rotation}deg)`;
+
+    // Sync both live previews at 60fps using exact scaled GPU transforms
+    const cropSize = cropState.cropSize || getCropSize() || 300;
+    const previews = [
+      {
+        el: document.getElementById("crop-preview-square-img"),
+        size: cropState.previewSquareSize,
+      },
+      {
+        el: document.getElementById("crop-preview-round-img"),
+        size: cropState.previewRoundSize,
+      },
+    ];
+
+    previews.forEach(({ el, size }) => {
+      if (!el || !size) return;
+      const ratio = size / cropSize;
+      el.classList.toggle("is-animating", animate);
+      el.style.transform = `translate3d(calc(-50% + ${
+        cropState.tx * ratio
+      }px), calc(-50% + ${cropState.ty * ratio}px), 0) scale(${
+        cropState.scale * ratio
+      }) rotate(${cropState.rotation}deg)`;
+    });
   }
-  
+
   function handleProfilePicUpload(event) {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       return showToast("⚠️ Please select a valid image file.");
     }
-  
+
     if (cropState.objectUrl) URL.revokeObjectURL(cropState.objectUrl);
     cropState.objectUrl = URL.createObjectURL(file);
-  
+
     const imgEl = document.getElementById("crop-source-img");
+    const sqPrevImg = document.getElementById("crop-preview-square-img");
+    const rdPrevImg = document.getElementById("crop-preview-round-img");
+
     const loader = new Image();
     loader.onload = () => {
       cropState.img = loader;
@@ -467,14 +524,19 @@ function switchTab(mode) {
       cropState.rotation = 0;
       cropState.tx = 0;
       cropState.ty = 0;
-  
-      imgEl.src = cropState.objectUrl;
-      imgEl.style.width = `${cropState.natW}px`;
-      imgEl.style.height = `${cropState.natH}px`;
-  
+
+      [imgEl, sqPrevImg, rdPrevImg].forEach((el) => {
+        if (!el) return;
+        el.src = cropState.objectUrl;
+        el.style.width = `${cropState.natW}px`;
+        el.style.height = `${cropState.natH}px`;
+      });
+
+      setCropGuideShape("round");
       document.getElementById("crop-modal-overlay").classList.add("show");
-  
+
       requestAnimationFrame(() => {
+        syncCropMetrics();
         cropState.scale = 0;
         computeCropBounds();
         applyCropTransform(false);
@@ -482,28 +544,28 @@ function switchTab(mode) {
     };
     loader.src = cropState.objectUrl;
   }
-  
+
   function rotateCropImage() {
     cropState.rotation = (cropState.rotation + 90) % 360;
     computeCropBounds();
     applyCropTransform(true);
   }
-  
+
   function closeCropModal() {
     document.getElementById("crop-modal-overlay").classList.remove("show");
     const input = document.getElementById("profile-pic-input");
     if (input) input.value = "";
     cropState.pointers.clear();
   }
-  
+
   function renderCropToCanvas() {
     const canvas = document.getElementById("crop-canvas");
     if (!canvas || !cropState.img) return null;
-  
+
     const outSize = canvas.width;
     const ratio = outSize / getCropSize();
     const ctx = canvas.getContext("2d");
-  
+
     ctx.clearRect(0, 0, outSize, outSize);
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
@@ -522,27 +584,27 @@ function switchTab(mode) {
     ctx.restore();
     return canvas;
   }
-  
+
   async function applyCropAndUpload() {
     const canvas = renderCropToCanvas();
     if (!canvas) return;
     const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
-  
+
     const btn = document.getElementById("apply-crop-btn");
     btn.textContent = "Saving...";
     btn.disabled = true;
-  
+
     await updateAvatarInDatabase(compressedDataUrl);
-  
+
     btn.textContent = "Save Photo";
     btn.disabled = false;
     closeCropModal();
   }
-  
+
   (function initCropGestures() {
     const stage = document.getElementById("crop-stage");
     if (!stage) return;
-  
+
     function getPinchMetrics() {
       const pts = Array.from(cropState.pointers.values());
       const dx = pts[0].x - pts[1].x;
@@ -552,12 +614,12 @@ function switchTab(mode) {
         mid: { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 },
       };
     }
-  
+
     stage.addEventListener("pointerdown", (e) => {
       stage.setPointerCapture(e.pointerId);
       cropState.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       stage.classList.add("is-interacting");
-  
+
       if (cropState.pointers.size === 1) {
         const now = Date.now();
         if (now - cropState.lastTapTime < 280) {
@@ -582,13 +644,13 @@ function switchTab(mode) {
         cropState.lastPinchMid = mid;
       }
     });
-  
+
     stage.addEventListener("pointermove", (e) => {
       if (!cropState.pointers.has(e.pointerId)) return;
       const prev = cropState.pointers.get(e.pointerId);
       const curr = { x: e.clientX, y: e.clientY };
       cropState.pointers.set(e.pointerId, curr);
-  
+
       if (cropState.pointers.size === 1) {
         cropState.tx += curr.x - prev.x;
         cropState.ty += curr.y - prev.y;
@@ -600,7 +662,7 @@ function switchTab(mode) {
           const rect = stage.getBoundingClientRect();
           const cx = rect.left + rect.width / 2;
           const cy = rect.top + rect.height / 2;
-  
+
           const oldScale = cropState.scale;
           const newScale = Math.min(
             Math.max(
@@ -610,15 +672,19 @@ function switchTab(mode) {
             cropState.maxScale
           );
           const factor = newScale / oldScale;
-  
+
           const mx = mid.x - cx;
           const my = mid.y - cy;
           cropState.tx =
-            mx - (mx - cropState.tx) * factor + (mid.x - cropState.lastPinchMid.x);
+            mx -
+            (mx - cropState.tx) * factor +
+            (mid.x - cropState.lastPinchMid.x);
           cropState.ty =
-            my - (my - cropState.ty) * factor + (mid.y - cropState.lastPinchMid.y);
+            my -
+            (my - cropState.ty) * factor +
+            (mid.y - cropState.lastPinchMid.y);
           cropState.scale = newScale;
-  
+
           computeCropBounds();
           applyCropTransform(false);
         }
@@ -626,7 +692,7 @@ function switchTab(mode) {
         cropState.lastPinchMid = mid;
       }
     });
-  
+
     function handlePointerEnd(e) {
       cropState.pointers.delete(e.pointerId);
       if (cropState.pointers.size < 2) {
@@ -637,10 +703,10 @@ function switchTab(mode) {
         stage.classList.remove("is-interacting");
       }
     }
-  
+
     stage.addEventListener("pointerup", handlePointerEnd);
     stage.addEventListener("pointercancel", handlePointerEnd);
-  
+
     stage.addEventListener(
       "wheel",
       (e) => {
@@ -652,6 +718,19 @@ function switchTab(mode) {
       },
       { passive: false }
     );
+
+    window.addEventListener("resize", () => {
+      if (
+        cropState.img &&
+        document
+          .getElementById("crop-modal-overlay")
+          ?.classList.contains("show")
+      ) {
+        syncCropMetrics();
+        computeCropBounds();
+        applyCropTransform(false);
+      }
+    });
   })();
   
   // =========================================================

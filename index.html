@@ -2994,76 +2994,129 @@
       </div>
     </div>
 
-    <!-- MODERN FULL-SCREEN PROFILE PICTURE CROPPER -->
-    <div id="crop-modal-overlay" class="modal-overlay">
-      <div class="crop-studio">
-        <div class="crop-topbar">
-          <div>
-            <div class="crop-topbar-title">Move and Scale</div>
-            <div class="crop-topbar-hint">
-              Pinch to zoom • Drag to reposition
-            </div>
+   <!-- MODERN FULL-SCREEN PROFILE PICTURE CROPPER -->
+   <div id="crop-modal-overlay" class="modal-overlay">
+    <div class="crop-studio">
+      <div class="crop-topbar">
+        <div>
+          <div class="crop-topbar-title">Move and Scale</div>
+          <div class="crop-topbar-hint">
+            Pinch to zoom • Drag to reposition
           </div>
         </div>
+      </div>
 
-        <div class="crop-stage" id="crop-stage">
-          <img id="crop-source-img" src="" alt="Crop preview" />
-          <div class="crop-cutout" id="crop-cutout"></div>
+      <div class="crop-stage" id="crop-stage">
+        <img id="crop-source-img" src="" alt="Crop preview" />
+        <div class="crop-cutout" id="crop-cutout"></div>
+      </div>
+
+      <!-- LIVE DUAL PREVIEW DOCK (Rounded-Square Profile + Round App Bar) -->
+      <div class="crop-preview-dock" aria-label="Live profile photo previews">
+        <div class="crop-preview-header">
+          <span>Live Preview</span>
+          <span class="crop-preview-tip">Tap a shape to switch guide</span>
         </div>
 
-        <!-- Offscreen 512x512 canvas used for crisp export -->
-        <canvas
-          id="crop-canvas"
-          width="800"
-          height="800"
-          class="hidden"
-        ></canvas>
-
-        <div class="crop-bottombar">
+        <div class="crop-preview-row">
           <button
             type="button"
-            class="crop-action-text"
-            onclick="closeCropModal()"
+            class="crop-preview-item"
+            id="crop-preview-square-btn"
+            onclick="setCropGuideShape('square')"
+            title="Preview square profile card guide"
           >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            class="crop-rotate-btn"
-            onclick="rotateCropImage()"
-            title="Rotate 90°"
-            aria-label="Rotate 90 degrees"
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+            <div
+              class="crop-preview-frame is-square"
+              id="crop-preview-square-frame"
             >
-              <path
-                d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"
-              ></path>
-              <polyline points="21 3 21 8 16 8"></polyline>
-            </svg>
+              <img
+                id="crop-preview-square-img"
+                class="crop-preview-img"
+                src=""
+                alt="Square profile preview"
+              />
+            </div>
+            <span class="crop-preview-label">Profile Card</span>
           </button>
+
+          <div class="crop-preview-divider" aria-hidden="true"></div>
 
           <button
             type="button"
-            class="crop-save-pill"
-            id="apply-crop-btn"
-            onclick="applyCropAndUpload()"
+            class="crop-preview-item active"
+            id="crop-preview-round-btn"
+            onclick="setCropGuideShape('round')"
+            title="Preview round avatar guide"
           >
-            Save Photo
+            <div
+              class="crop-preview-frame is-round"
+              id="crop-preview-round-frame"
+            >
+              <img
+                id="crop-preview-round-img"
+                class="crop-preview-img"
+                src=""
+                alt="Round profile preview"
+              />
+            </div>
+            <span class="crop-preview-label">Round Icon</span>
           </button>
         </div>
       </div>
-    </div>
 
+      <!-- Offscreen 800x800 canvas used for crisp export -->
+      <canvas
+        id="crop-canvas"
+        width="800"
+        height="800"
+        class="hidden"
+      ></canvas>
+
+      <div class="crop-bottombar">
+        <button
+          type="button"
+          class="crop-action-text"
+          onclick="closeCropModal()"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          class="crop-rotate-btn"
+          onclick="rotateCropImage()"
+          title="Rotate 90°"
+          aria-label="Rotate 90 degrees"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"
+            ></path>
+            <polyline points="21 3 21 8 16 8"></polyline>
+          </svg>
+        </button>
+
+        <button
+          type="button"
+          class="crop-save-pill"
+          id="apply-crop-btn"
+          onclick="applyCropAndUpload()"
+        >
+          Save Photo
+        </button>
+      </div>
+    </div>
+  </div>
     <!-- MODERN FULL-SCREEN PROFILE PHOTO LIGHTBOX -->
     <div id="avatar-lightbox-overlay" class="modal-overlay">
       <div class="lightbox-shell" id="lightbox-shell">
