@@ -1192,7 +1192,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     if (currentInput.id === "directory-filter-input") {
       currentInput.blur();
       if (typeof filterDirectory === "function")
-  filterDirectory(true, { saveHistory: true });
+        filterDirectory(true, { saveHistory: true });
       return;
     }
 

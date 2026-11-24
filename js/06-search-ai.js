@@ -148,6 +148,7 @@ function removeSingleFilter(type) {
     const searchEl = document.getElementById("search-input");
     if (searchEl && window.activeCleanSearchQuery !== undefined) {
       searchEl.value = window.activeCleanSearchQuery;
+      toggleClearBtn("search-input", "clear-search-btn");
     }
     window.activeSmartOfficeFilter = null;
   }
@@ -168,6 +169,15 @@ function clearAllSearchFilters() {
 
   document.getElementById("clear-office-btn")?.classList.add("hidden");
   document.getElementById("clear-pin-btn")?.classList.add("hidden");
+
+  if (window.activeSmartOfficeFilter) {
+    const searchEl = document.getElementById("search-input");
+    if (searchEl) {
+      searchEl.value = window.activeCleanSearchQuery || "";
+      toggleClearBtn("search-input", "clear-search-btn");
+    }
+    window.activeSmartOfficeFilter = null;
+  }
 
   triggerSearch();
   showToast("🧹 All search filters cleared");
@@ -783,13 +793,17 @@ function runPostalSearchEngine({
       ) {
         return false;
       }
-      if (
-        pinFilterLower &&
-        !String(row.Pin || "")
-          .toLowerCase()
-          .includes(pinFilterLower)
-      ) {
-        return false;
+      if (pinFilterLower) {
+        const rowPin = String(row.Pin || "")
+          .trim()
+          .toLowerCase();
+        const isUniqueSuffix =
+          /^\d{3}$/.test(pinFilterLower) &&
+          pinSuffixToOfficeMap.has(pinFilterLower);
+        const pinMatched = isUniqueSuffix
+          ? rowPin.endsWith(pinFilterLower)
+          : rowPin.includes(pinFilterLower);
+        if (!pinMatched) return false;
       }
       return true;
     });

@@ -694,10 +694,15 @@ function renderDirectoryBatch() {
         ? highlightText(data.office, data.officeMatches, "Office", activeQuery)
         : escapeHTML(data.office);
 
+    const smartSuffix = directoryActiveSmartOfficeFilter?.suffix || "";
     const pinDisplayHtml =
       activeQuery && data.pinMatches?.length
         ? highlightText(data.pin, data.pinMatches, "Pin", activeQuery)
-        : escapeHTML(data.pin);
+        : smartSuffix && String(data.pin || "").endsWith(smartSuffix)
+          ? `${escapeHTML(
+              String(data.pin).slice(0, -smartSuffix.length),
+            )}<span class="highlight-text">${escapeHTML(smartSuffix)}</span>`
+          : escapeHTML(data.pin);
 
     html += `
         <div class="directory-card" id="${safeId}">

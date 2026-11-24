@@ -183,14 +183,31 @@ function parseSmartSearchQuery(
 ) {
   let text = String(rawInput || "").trim();
 
-  if (!text || searchMode === "pin" || manualOfficeFilter || manualPinFilter) {
+  if (!text || manualOfficeFilter || manualPinFilter) {
     return { cleanQuery: text, detectedSuffix: null, targetOffice: null };
+  }
+
+  if (pinSuffixToOfficeMap.size === 0 && cachedPostOffices?.length > 0) {
+    buildPinSuffixIndex();
   }
 
   text = text
     .replace(/(?:^|\s)(\d)\s+(\d)\s+(\d)$/, " $1$2$3")
     .replace(/^(\d)\s+(\d)\s+(\d)(?:\s|$)/, "$1$2$3 ")
     .trim();
+
+  // Standalone 3-digit unique PIN suffix (e.g. "501" or voice "5 0 1" -> Kachhwa SO / 231501)
+  if (/^\d{3}$/.test(text) && pinSuffixToOfficeMap.has(text)) {
+    return {
+      cleanQuery: "",
+      detectedSuffix: text,
+      targetOffice: pinSuffixToOfficeMap.get(text),
+    };
+  }
+
+  if (searchMode === "pin") {
+    return { cleanQuery: text, detectedSuffix: null, targetOffice: null };
+  }
 
   const patterns = [
     { regex: /^(.*?)\s*[@\-/]\s*(\d{3})\s*$/, queryIdx: 1, suffixIdx: 2 },
