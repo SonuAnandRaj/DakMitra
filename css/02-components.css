@@ -638,11 +638,7 @@
   border: 1px solid transparent !important;
 }
 
-.card-actions .info-i-btn svg,
-.directory-floating-bar .info-i-btn svg {
-  width: 18px;
-  height: 18px;
-}
+
 
 .list-container.always-show-actions .card-actions {
   max-height: 100px !important;

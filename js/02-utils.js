@@ -49,12 +49,12 @@ function escapeForOnclick(str) {
     .replace(/"/g, "&quot;");
 }
 
-// --- ULTRA-FAST "LIE-FI" INTERNET DETECTOR ---
-async function checkActualInternet() {
+// --- BACKGROUND "LIE-FI" DETECTOR (Use ONLY for silent reconnect / wake-up) ---
+async function checkActualInternet(timeoutMs = 2500) {
   if (!navigator.onLine) return false;
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     await fetch("https://clients3.google.com/generate_204", {
       method: "HEAD",
@@ -68,6 +68,20 @@ async function checkActualInternet() {
   } catch (e) {
     return false;
   }
+}
+
+function isNetworkError(err) {
+  if (!navigator.onLine) return true;
+  const msg = String(err?.message || err || "").toLowerCase();
+  return (
+    msg.includes("failed to fetch") ||
+    msg.includes("networkerror") ||
+    msg.includes("network request failed") ||
+    msg.includes("load failed") ||
+    msg.includes("err_internet") ||
+    msg.includes("err_name_not_resolved") ||
+    msg.includes("aborted")
+  );
 }
 
 // --- UNIFIED OFFLINE TOAST & CHECK HELPER ---
@@ -92,12 +106,12 @@ function showOfflineToast(
   showToast(`📴 No internet connection. ${extraMsg}`);
 }
 
+// For DB writes/actions: only block if the OS reports offline; let slow networks connect to Supabase
 async function ensureOnline(
   offlineMsg = "Using cached version.",
   isActiveAction = true,
 ) {
-  const online = await checkActualInternet();
-  if (!online) {
+  if (!navigator.onLine) {
     showOfflineToast(offlineMsg, isActiveAction);
     return false;
   }

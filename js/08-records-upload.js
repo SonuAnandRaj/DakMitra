@@ -283,17 +283,20 @@ async function viewHistory(postOfficeId) {
   contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty">Fetching records...</li></ul>`;
   document.getElementById("history-modal-overlay").classList.add("show");
 
-  const online = await checkActualInternet();
-  if (!online) {
-    showOfflineToast("Showing cached history.");
-    const savedHistory = localStorage.getItem(
-      "dakmitra_history_" + postOfficeId,
-    );
-    contentDiv.innerHTML =
-      savedHistory ||
-      `<ul class="list-container"><li class="list-empty">📴 No internet connection. No cached history for this record.</li></ul>`;
-    return;
-  }
+  const showCachedHistoryFallback = () => {
+  showOfflineToast("Showing cached history.");
+  const savedHistory = localStorage.getItem(
+    "dakmitra_history_" + postOfficeId,
+  );
+  contentDiv.innerHTML =
+    savedHistory ||
+    `<ul class="list-container"><li class="list-empty">📴 No internet connection. No cached history for this record.</li></ul>`;
+};
+
+if (!navigator.onLine) {
+  showCachedHistoryFallback();
+  return;
+}
 
   try {
     const { data, error } = await supabaseClient
@@ -550,10 +553,14 @@ async function viewHistory(postOfficeId) {
     contentDiv.innerHTML = html;
     localStorage.setItem("dakmitra_history_" + postOfficeId, html);
   } catch (err) {
-    contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error: ${escapeHTML(
-      err.message,
-    )}</li></ul>`;
+  if (isNetworkError(err)) {
+    showCachedHistoryFallback();
+    return;
   }
+  contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error: ${escapeHTML(
+    err.message,
+  )}</li></ul>`;
+}
 }
 
 // --- MANUAL ENTRY ROWS ---

@@ -1053,15 +1053,18 @@ async function renderMembersDirectory(forceRefresh = false) {
   if (membersDirectoryLoaded && !forceRefresh) return;
 
   // 2. Refresh fresh list from Supabase RPC
-  const online = await checkActualInternet();
-  if (!online) {
-    if (membersDirectoryData.length === 0) {
-      contentEl.innerHTML = `<div class="list-empty">📡 No internet connection and no cached employees saved yet.</div>`;
-    } else {
-      showOfflineToast("Showing cached employees.");
-    }
-    return;
+  const handleOfflineEmployees = () => {
+  if (membersDirectoryData.length === 0) {
+    contentEl.innerHTML = `<div class="list-empty">📡 No internet connection and no cached employees saved yet.</div>`;
+  } else {
+    showOfflineToast("Showing cached employees.");
   }
+};
+
+if (!navigator.onLine) {
+  handleOfflineEmployees();
+  return;
+}
 
   try {
     await ensureSupabaseReady();
@@ -1079,12 +1082,16 @@ async function renderMembersDirectory(forceRefresh = false) {
 
     renderMembersListUI();
   } catch (err) {
-    if (membersDirectoryData.length === 0) {
-      contentEl.innerHTML = `<div class="list-empty" style="color: #ef4444;">Failed to load employees: ${escapeHTML(
-        err.message,
-      )}</div>`;
-    }
+  if (isNetworkError(err)) {
+    handleOfflineEmployees();
+    return;
   }
+  if (membersDirectoryData.length === 0) {
+    contentEl.innerHTML = `<div class="list-empty" style="color: #ef4444;">Failed to load employees: ${escapeHTML(
+      err.message,
+    )}</div>`;
+  }
+}
 }
 
 function setMemberRoleFilter(roleKey) {
@@ -1387,19 +1394,22 @@ async function openUserProfileModal(userId, fallbackName = "") {
   }
   overlay.classList.add("show");
 
-  const online = await checkActualInternet();
-  if (!online) {
-    const basicMember = membersDirectoryData.find(
-      (m) => String(m.id) === cacheKey,
-    );
-    if (basicMember) {
-      renderUserProfileModalContent(basicMember, true);
-      showOfflineToast("Showing cached basic profile.");
-    } else {
-      bodyEl.innerHTML = `<div style="padding: 40px 20px; color: var(--text-light); font-size: 14px;">📡 Connect to the internet to load this user's profile.</div>`;
-    }
-    return;
+  const handleOfflineProfile = () => {
+  const basicMember = membersDirectoryData.find(
+    (m) => String(m.id) === cacheKey,
+  );
+  if (basicMember) {
+    renderUserProfileModalContent(basicMember, true);
+    showOfflineToast("Showing cached basic profile.");
+  } else {
+    bodyEl.innerHTML = `<div style="padding: 40px 20px; color: var(--text-light); font-size: 14px;">📡 Connect to the internet to load this user's profile.</div>`;
   }
+};
+
+if (!navigator.onLine) {
+  handleOfflineProfile();
+  return;
+}
 
   try {
     await ensureSupabaseReady();
@@ -1418,8 +1428,12 @@ async function openUserProfileModal(userId, fallbackName = "") {
     userProfileCache.set(cacheKey, { data: profile, ts: Date.now() });
     renderUserProfileModalContent(profile);
   } catch (err) {
-    bodyEl.innerHTML = `<div style="padding: 40px 20px; color: #ef4444; font-size: 14px;">Error loading profile: ${escapeHTML(
-      err.message,
-    )}</div>`;
+  if (isNetworkError(err)) {
+    handleOfflineProfile();
+    return;
   }
+  bodyEl.innerHTML = `<div style="padding: 40px 20px; color: #ef4444; font-size: 14px;">Error loading profile: ${escapeHTML(
+    err.message,
+  )}</div>`;
+}
 }

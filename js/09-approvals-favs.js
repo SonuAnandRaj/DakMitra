@@ -183,27 +183,30 @@ async function loadApprovalsBatch() {
   if (isApprovalsLoading || !cache.hasMore) return;
   isApprovalsLoading = true;
 
-  const online = await checkActualInternet();
-  if (!online) {
-    showOfflineToast("Showing cached approvals.", false);
-    const savedHtml = localStorage.getItem(
-      "dakmitra_approvals_cache_" + activeTab,
-    );
-    const contentEl = document.getElementById("approvals-content");
-    const sentinelEl = document.getElementById("approvals-sentinel");
+  const renderCachedApprovalsFallback = () => {
+  showOfflineToast("Showing cached approvals.", false);
+  const savedHtml = localStorage.getItem(
+    "dakmitra_approvals_cache_" + activeTab,
+  );
+  const contentEl = document.getElementById("approvals-content");
+  const sentinelEl = document.getElementById("approvals-sentinel");
 
-    if (contentEl) {
-      contentEl.innerHTML =
-        savedHtml ||
-        `<div class="list-empty">📴 No internet connection and no cached ${activeTab} approvals saved yet.</div>`;
-    }
-    if (sentinelEl) {
-      sentinelEl.innerHTML = `<span style="color: var(--text-light); font-size: 13px;">📴 Offline cached view</span>`;
-    }
-    cache.hasMore = false;
-    isApprovalsLoading = false;
-    return;
+  if (contentEl) {
+    contentEl.innerHTML =
+      savedHtml ||
+      `<div class="list-empty">📴 No internet connection and no cached ${activeTab} approvals saved yet.</div>`;
   }
+  if (sentinelEl) {
+    sentinelEl.innerHTML = `<span style="color: var(--text-light); font-size: 13px;">📴 Offline cached view</span>`;
+  }
+  cache.hasMore = false;
+  isApprovalsLoading = false;
+};
+
+if (!navigator.onLine) {
+  renderCachedApprovalsFallback();
+  return;
+}
 
   const displayArea = document.getElementById("approvals-display-area");
   let contentDiv = document.getElementById("approvals-content");
@@ -500,7 +503,6 @@ async function loadApprovalsBatch() {
           }">
             <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
             <div class="approval-meta-box">
-            <div class="approval-meta-box">
               <div>👤 Requested by: ${renderUserProfileLink(
                 req.requested_by,
                 requesterName,
@@ -538,11 +540,15 @@ async function loadApprovalsBatch() {
 
     isApprovalsLoading = false;
   } catch (err) {
-    isApprovalsLoading = false;
-    if (contentDiv) {
-      contentDiv.innerHTML = `<div class="list-empty" style="color: red;">Error loading requests: ${err.message}</div>`;
-    }
+  if (isNetworkError(err)) {
+    renderCachedApprovalsFallback();
+    return;
   }
+  isApprovalsLoading = false;
+  if (contentDiv) {
+    contentDiv.innerHTML = `<div class="list-empty" style="color: red;">Error loading requests: ${escapeHTML(err.message)}</div>`;
+  }
+}
 }
 
 function setupApprovalsObserver() {

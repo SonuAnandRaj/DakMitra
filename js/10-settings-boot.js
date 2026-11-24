@@ -91,24 +91,27 @@ async function exportFullTableToExcel(includeDeleted = true) {
     return showToast("⚠️ Exporter still loading. Try again in a moment.");
   }
 
-  const hasInternet = await checkActualInternet();
-  if (!hasInternet) {
-    if (!cachedPostOffices || cachedPostOffices.length === 0) {
-      return showOfflineToast("No cached data available to export.");
-    }
-    const formattedRows = cachedPostOffices.map((row) => ({
-      Address: row.Address,
-      Office: row.Office,
-      Pin: row.Pin ?? "",
-      Priority: Number(row.priority) >= 1 ? 1 : 0,
-      Status: "Active (Cached)",
-    }));
-    const ws = XLSX.utils.json_to_sheet(formattedRows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Post Offices");
-    XLSX.writeFile(wb, "DakMitra_Cached_Database.xlsx");
-    return showOfflineToast("Exported cached database instead.");
+  const exportCachedFallback = () => {
+  if (!cachedPostOffices || cachedPostOffices.length === 0) {
+    return showOfflineToast("No cached data available to export.");
   }
+  const formattedRows = cachedPostOffices.map((row) => ({
+    Address: row.Address,
+    Office: row.Office,
+    Pin: row.Pin ?? "",
+    Priority: Number(row.priority) >= 1 ? 1 : 0,
+    Status: "Active (Cached)",
+  }));
+  const ws = XLSX.utils.json_to_sheet(formattedRows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Post Offices");
+  XLSX.writeFile(wb, "DakMitra_Cached_Database.xlsx");
+  return showOfflineToast("Exported cached database instead.");
+};
+
+if (!navigator.onLine) {
+  return exportCachedFallback();
+}
 
   const originalText = btn ? btn.textContent : "Export";
   if (btn) {
@@ -170,7 +173,11 @@ async function exportFullTableToExcel(includeDeleted = true) {
 
     showToast(`📥 Exported ${formattedRows.length} rows to Excel!`);
   } catch (err) {
+  if (isNetworkError(err)) {
+    exportCachedFallback();
+  } else {
     alert("Excel export failed: " + err.message);
+  }
   } finally {
     if (btn) {
       btn.textContent = originalText;
