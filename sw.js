@@ -1,4 +1,4 @@
-const CACHE_NAME = "po-directory-v24";
+const CACHE_NAME = "po-directory-v25";
 
 const LOCAL_ASSETS = [
   "./",

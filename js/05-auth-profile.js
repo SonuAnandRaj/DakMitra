@@ -1056,9 +1056,9 @@ async function renderMembersDirectory(forceRefresh = false) {
   const online = await checkActualInternet();
   if (!online) {
     if (membersDirectoryData.length === 0) {
-      contentEl.innerHTML = `<div class="list-empty">📡 No internet connection and no cached members saved yet.</div>`;
+      contentEl.innerHTML = `<div class="list-empty">📡 No internet connection and no cached employees saved yet.</div>`;
     } else {
-      showOfflineToast("Showing cached members.");
+      showOfflineToast("Showing cached employees.");
     }
     return;
   }
@@ -1080,7 +1080,7 @@ async function renderMembersDirectory(forceRefresh = false) {
     renderMembersListUI();
   } catch (err) {
     if (membersDirectoryData.length === 0) {
-      contentEl.innerHTML = `<div class="list-empty" style="color: #ef4444;">Failed to load members: ${escapeHTML(
+      contentEl.innerHTML = `<div class="list-empty" style="color: #ef4444;">Failed to load employees: ${escapeHTML(
         err.message,
       )}</div>`;
     }
@@ -1141,7 +1141,11 @@ function renderMembersListUI() {
         ).length;
       }
 
-      if (chip.key !== "all" && count === 0 && activeMemberRoleFilter !== chip.key) {
+      if (
+        chip.key !== "all" &&
+        count === 0 &&
+        activeMemberRoleFilter !== chip.key
+      ) {
         return "";
       }
 
@@ -1167,7 +1171,7 @@ function renderMembersListUI() {
   });
 
   if (filtered.length === 0) {
-    contentEl.innerHTML = `<div class="list-empty">No matching members found.</div>`;
+    contentEl.innerHTML = `<div class="list-empty">No matching employees found.</div>`;
     return;
   }
 
@@ -1275,7 +1279,7 @@ function renderUserProfileModalContent(profile, isOfflineBasic = false) {
 
   const memberSinceHtml = profile.created_at
     ? `<div class="profile-detail-box" style="grid-column: 1 / -1">
-         <span>Member Since</span>
+         <span>Joined</span>
          <strong>${escapeHTML(
            new Date(profile.created_at).toLocaleDateString("en-IN", {
              month: "long",
@@ -1357,10 +1361,7 @@ async function openUserProfileModal(userId, fallbackName = "") {
 
   const cacheKey = String(userId);
   const cachedEntry = userProfileCache.get(cacheKey);
-  if (
-    cachedEntry &&
-    Date.now() - cachedEntry.ts < USER_PROFILE_CACHE_TTL_MS
-  ) {
+  if (cachedEntry && Date.now() - cachedEntry.ts < USER_PROFILE_CACHE_TTL_MS) {
     renderUserProfileModalContent(cachedEntry.data);
     overlay.classList.add("show");
     return;
