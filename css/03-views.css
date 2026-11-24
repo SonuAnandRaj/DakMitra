@@ -5094,3 +5094,9 @@ body.keyboard-open .feedback-submit-panel {
   object-fit: contain;
   border-radius: 12px;
 }
+
+#view-feedback #feedback-display-area,
+#view-feedback .feedback-submit-panel {
+  position: relative;
+  z-index: 1;
+}

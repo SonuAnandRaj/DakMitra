@@ -3,12 +3,16 @@ npx prettier --write . // to format whole document with prettier
 $env:NODE_SKIP_PLATFORM_CHECK = "1"
 setx NODE_SKIP_PLATFORM_CHECK 1
 
+-------------------
 VS code to generate four small files
 
 New-Item -ItemType Directory -Force -Path ai_upload | Out-Null
 
-# 1. HTML + Config + Edge Functions
-Get-ChildItem -File -Recurse -Include *.html,*.json,*.ts | Where-Object { $_.FullName -notmatch '\\(node_modules|\.git|ai_upload)\\' } | ForEach-Object { "`n// ===== FILE: $($_.Name) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-1-html-config.txt -Encoding UTF8
+-------------
+if (-not (Test-Path ai_upload)) { New-Item -ItemType Directory -Path ai_upload | Out-Null }
+
+# 1. HTML + Config + Edge Functions + Service Worker
+Get-ChildItem -File -Recurse -Include *.html,*.json,*.ts,sw.js | Where-Object { $_.FullName -notmatch '\\(node_modules|\.git|ai_upload)\\' } | Sort-Object Name | ForEach-Object { "`n// ===== FILE: $($_.Name) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-1-html-config.txt -Encoding UTF8
 
 # 2. All CSS
 Get-ChildItem css -File -Recurse -Include *.css | Sort-Object Name | ForEach-Object { "`n/* ===== FILE: $($_.Name) ===== */`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-2-css.txt -Encoding UTF8
@@ -16,9 +20,11 @@ Get-ChildItem css -File -Recurse -Include *.css | Sort-Object Name | ForEach-Obj
 # 3. JS Core (01 to 05)
 Get-ChildItem js -File -Recurse -Include 01-*.js,02-*.js,03-*.js,04-*.js,05-*.js | Sort-Object Name | ForEach-Object { "`n// ===== FILE: $($_.Name) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-3-js-core.txt -Encoding UTF8
 
-# 4. JS Features (06 to 10)
-Get-ChildItem js -File -Recurse -Include 06-*.js,07-*.js,08-*.js,09-*.js,10-*.js | Sort-Object Name | ForEach-Object { "`n// ===== FILE: $($_.Name) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-4-js-features.txt -Encoding UTF8
+# 4. JS Features (06 to 11)
+Get-ChildItem js -File -Recurse -Include 06-*.js,07-*.js,08-*.js,09-*.js,10-*.js,11-*.js | Sort-Object Name | ForEach-Object { "`n// ===== FILE: $($_.Name) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-4-js-features.txt -Encoding UTF8
 
+--------------
 VS code to generate one big file
 
 Get-ChildItem -Recurse -Include *.html,*.css,*.js,*.json | Where-Object { $_.FullName -notmatch '\\(node_modules|\.git)\\' } | ForEach-Object { "`n// ===== FILE: $($_.FullName.Replace((Get-Location).Path + '\', '')) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content dakmitra_bundle.txt -Encoding UTF8 
+-----------------

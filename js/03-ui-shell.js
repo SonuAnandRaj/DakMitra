@@ -748,17 +748,36 @@ function switchDashboardView(viewId) {
   );
 })();
 
-// --- ULTRA-SMOOTH COLLAPSIBLE HERO CONTROLLER (Search, Approvals, Directory) ---
-function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
-  const scrollEl = document.getElementById(scrollElId);
+// --- ULTRA-SMOOTH COLLAPSIBLE HERO CONTROLLER (Search, Approvals, Directory, Feedback) ---
+function createCollapsibleHero(
+  scrollElIds,
+  wrapElId,
+  onCollapse = null,
+  options = {},
+) {
+  const ids = Array.isArray(scrollElIds) ? scrollElIds : [scrollElIds];
+  const scrollEls = ids
+    .map((id) => document.getElementById(id))
+    .filter(Boolean);
   const wrapEl = document.getElementById(wrapElId);
+
+  const collapseAccum = options.collapseAccum ?? 240;
+  const minScrollTop = options.minScrollTop ?? 180;
+  const expandAccum = options.expandAccum ?? 40;
 
   let isCollapsed = false;
   let isTransitioning = false;
   let transitionTimer = null;
-  let lastScrollTop = 0;
   let scrollAccum = 0;
-  let scrollRafId = null;
+  let activeScrollEl = scrollEls[0] || null;
+  const lastScrollMap = new WeakMap();
+  scrollEls.forEach((el) => lastScrollMap.set(el, 0));
+
+  function syncAllScrollTops() {
+    scrollEls.forEach((el) => {
+      lastScrollMap.set(el, Math.max(0, el.scrollTop));
+    });
+  }
 
   function finishTransition() {
     clearTimeout(transitionTimer);
@@ -766,9 +785,10 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
     isTransitioning = false;
     scrollAccum = 0;
 
-    if (scrollEl) {
-      lastScrollTop = Math.max(0, scrollEl.scrollTop);
-      const remainingScroll = scrollEl.scrollHeight - scrollEl.clientHeight;
+    if (activeScrollEl && activeScrollEl.offsetParent !== null) {
+      lastScrollMap.set(activeScrollEl, Math.max(0, activeScrollEl.scrollTop));
+      const remainingScroll =
+        activeScrollEl.scrollHeight - activeScrollEl.clientHeight;
       if (isCollapsed && remainingScroll <= 20) {
         setCollapsed(false);
       }
@@ -776,7 +796,15 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
   }
 
   function setCollapsed(shouldCollapse, instant = false) {
-    if (!wrapEl || isCollapsed === shouldCollapse) return;
+    if (!wrapEl) return;
+
+    if (isCollapsed === shouldCollapse) {
+      if (instant) {
+        scrollAccum = 0;
+        syncAllScrollTops();
+      }
+      return;
+    }
 
     isCollapsed = shouldCollapse;
     clearTimeout(transitionTimer);
@@ -786,7 +814,7 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
       wrapEl.classList.toggle("collapsed", shouldCollapse);
       isTransitioning = false;
       scrollAccum = 0;
-      lastScrollTop = scrollEl ? Math.max(0, scrollEl.scrollTop) : 0;
+      syncAllScrollTops();
       return;
     }
 
@@ -811,12 +839,15 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
     });
   }
 
-  if (scrollEl) {
+  scrollEls.forEach((scrollEl) => {
     let pullStartY = 0;
+    let scrollRafId = null;
 
     scrollEl.addEventListener(
       "touchstart",
       (e) => {
+        if (scrollEl.offsetParent === null) return;
+        activeScrollEl = scrollEl;
         pullStartY = e.touches[0].clientY;
       },
       { passive: true },
@@ -825,11 +856,13 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
     scrollEl.addEventListener(
       "touchmove",
       (e) => {
+        if (scrollEl.offsetParent === null) return;
         if (
           isCollapsed &&
           scrollEl.scrollTop <= 5 &&
           e.touches[0].clientY - pullStartY > 25
         ) {
+          activeScrollEl = scrollEl;
           setCollapsed(false);
         }
       },
@@ -839,7 +872,9 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
     scrollEl.addEventListener(
       "wheel",
       (e) => {
+        if (scrollEl.offsetParent === null) return;
         if (isCollapsed && scrollEl.scrollTop <= 5 && e.deltaY < 0) {
+          activeScrollEl = scrollEl;
           setCollapsed(false);
         }
       },
@@ -849,25 +884,33 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
     scrollEl.addEventListener(
       "scroll",
       () => {
-        if (scrollRafId) return;
+        if (scrollEl.offsetParent === null || scrollRafId) return;
         scrollRafId = requestAnimationFrame(() => {
           scrollRafId = null;
+          if (scrollEl.offsetParent === null) return;
+
+          if (activeScrollEl !== scrollEl) {
+            activeScrollEl = scrollEl;
+            scrollAccum = 0;
+          }
+
           const currentScroll = Math.max(0, scrollEl.scrollTop);
+          const prevScroll = lastScrollMap.get(scrollEl) || 0;
 
           if (isTransitioning) {
-            lastScrollTop = currentScroll;
+            lastScrollMap.set(scrollEl, currentScroll);
             return;
           }
 
           if (currentScroll <= 6) {
             if (isCollapsed) setCollapsed(false);
-            lastScrollTop = currentScroll;
+            lastScrollMap.set(scrollEl, currentScroll);
             scrollAccum = 0;
             return;
           }
 
-          const delta = currentScroll - lastScrollTop;
-          lastScrollTop = currentScroll;
+          const delta = currentScroll - prevScroll;
+          lastScrollMap.set(scrollEl, currentScroll);
           if (Math.abs(delta) < 1) return;
 
           if (
@@ -879,23 +922,23 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
           scrollAccum += delta;
 
           const scrollableRange = scrollEl.scrollHeight - scrollEl.clientHeight;
-          const minNeededScroll = wrapEl?.offsetHeight || 160;
+          const minNeededScroll = (wrapEl?.offsetHeight || 160) + 24;
 
           if (
             !isCollapsed &&
-            scrollAccum > 240 &&
-            currentScroll > 180 &&
+            scrollAccum > collapseAccum &&
+            currentScroll > minScrollTop &&
             scrollableRange > minNeededScroll
           ) {
             setCollapsed(true);
-          } else if (isCollapsed && scrollAccum < -40) {
+          } else if (isCollapsed && scrollAccum < -expandAccum) {
             setCollapsed(false);
           }
         });
       },
       { passive: true },
     );
-  }
+  });
 
   return { setCollapsed };
 }
@@ -945,11 +988,12 @@ const membersHeroController = createCollapsibleHero(
 );
 
 const feedbackHeroController = createCollapsibleHero(
-  "feedback-display-area",
+  ["feedback-display-area", "feedback-submit-panel"],
   "feedback-hero-collapse-wrap",
   () => {
     document.getElementById("feedback-search-input")?.blur();
   },
+  { collapseAccum: 140, minScrollTop: 100 },
 );
 
 function setSearchHeroCollapsed(shouldCollapse, instant = false) {

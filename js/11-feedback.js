@@ -135,6 +135,8 @@ function switchFeedbackTab(tab) {
   }
 
   if (feedbackCurrentTab === "submit") {
+    const submitPanel = document.getElementById("feedback-submit-panel");
+    if (submitPanel) submitPanel.scrollTop = 0;
     updateFeedbackDiagPreview();
     setTimeout(() => document.getElementById("fb-title")?.focus(), 80);
   } else {
@@ -1041,6 +1043,14 @@ async function loadFeedbackBatch(forceStart = false) {
     const rows = Array.isArray(data) ? data : [];
     const totalCount = rows.length > 0 ? Number(rows[0].total_count || 0) : 0;
     updateFeedbackSummaryStrip(totalCount);
+    
+    if (
+        pageToFetch === 0 &&
+        totalCount <= 2 &&
+        typeof feedbackHeroController !== "undefined"
+      ) {
+        feedbackHeroController.setCollapsed(false);
+      }
 
     rows.forEach((r) => feedbackItemsById.set(String(r.id), r));
 
