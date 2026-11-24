@@ -2012,7 +2012,7 @@ function renderQuickPriorityChips() {
 
         if (isAutoTop) {
           return `
-            <button type="button" class="priority-select-chip is-auto-top" disabled title="${ot} always ranks on top automatically">
+            <button type="button" class="priority-select-chip is-auto-top" disabled title="Offices always rank on top automatically">
               <span>📮 ${escapeHTML(item.Address)}</span>
               <span class="priority-chip-tag">Auto-Top</span>
             </button>`;
@@ -2027,7 +2027,7 @@ function renderQuickPriorityChips() {
   >
     <span>${isSelected ? "⚡" : ot === "BO" ? "📮" : "•"}</span>
     <span>${escapeHTML(item.Address)}</span>
-    ${ot === "BO" ? `<span class="priority-chip-tag">Auto-BO</span>` : ""}
+    ${ot === "BO" ? `<span class="priority-chip-tag">Office</span>` : ""}
   </button>`;
       })
       .join("");
@@ -2075,7 +2075,7 @@ function updateQuickPriorityUI() {
   if (hideBoBtn) {
     hideBoBtn.textContent = quickPriorityNonBoOnly
       ? "Show All"
-      : "Hide BO/SO/HO";
+      : "Hide Offices";
   }
 
   if (
