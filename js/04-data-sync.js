@@ -31,9 +31,8 @@ async function fetchFromServerBackground() {
   if (!navigator.onLine) {
     console.log("Offline mode: Skipping background sync.");
     if (!cachedPostOffices || cachedPostOffices.length === 0) {
-      document.getElementById(
-        "results-display-area"
-      ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
+      document.getElementById("results-display-area").innerHTML =
+        `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
     }
     return false;
   }
@@ -180,7 +179,7 @@ function parseSmartSearchQuery(
   rawInput,
   searchMode,
   manualOfficeFilter,
-  manualPinFilter
+  manualPinFilter,
 ) {
   let text = String(rawInput || "").trim();
 
@@ -299,7 +298,7 @@ function persistPostOfficeCache() {
   try {
     localStorage.setItem(
       "dakmitra_offline_db",
-      JSON.stringify(cachedPostOffices)
+      JSON.stringify(cachedPostOffices),
     );
   } catch (e) {
     console.warn("Failed to persist offline DB:", e);
@@ -378,7 +377,7 @@ function upsertLocalPostOffice(row) {
   }
 
   const idx = cachedPostOffices.findIndex(
-    (r) => String(r.id) === String(row.id)
+    (r) => String(r.id) === String(row.id),
   );
   if (idx > -1) {
     if (isRowDataUnchanged(cachedPostOffices[idx], row)) {
@@ -422,7 +421,7 @@ function removeLocalPostOffice(id) {
 
   const beforeLen = cachedPostOffices.length;
   cachedPostOffices = cachedPostOffices.filter(
-    (r) => String(r.id) !== String(id)
+    (r) => String(r.id) !== String(id),
   );
   if (cachedPostOffices.length === beforeLen) return;
 
@@ -450,7 +449,7 @@ function scheduleLocalUiRefresh() {
     if (statAddrEl) statAddrEl.textContent = cachedPostOffices.length;
     if (statOffEl) {
       statOffEl.textContent = new Set(
-        cachedPostOffices.map((o) => o.Office)
+        cachedPostOffices.map((o) => o.Office),
       ).size;
     }
 
@@ -514,21 +513,21 @@ function initRealtimeSync() {
       { event: "INSERT", schema: "public", table: "post_offices" },
       (payload) => {
         upsertLocalPostOffice(payload.new);
-      }
+      },
     )
     .on(
       "postgres_changes",
       { event: "UPDATE", schema: "public", table: "post_offices" },
       (payload) => {
         upsertLocalPostOffice(payload.new);
-      }
+      },
     )
     .on(
       "postgres_changes",
       { event: "DELETE", schema: "public", table: "post_offices" },
       (payload) => {
         if (payload.old?.id) removeLocalPostOffice(payload.old.id);
-      }
+      },
     )
     .on(
       "postgres_changes",
@@ -597,7 +596,7 @@ async function hydrateOnlineState(attempt = 1) {
       const delays = [1500, 3000, 5000, 8000];
       onlineRetryTimer = setTimeout(
         () => hydrateOnlineState(attempt + 1),
-        delays[attempt - 1]
+        delays[attempt - 1],
       );
     }
     return;
@@ -673,7 +672,7 @@ async function hydrateOnlineState(attempt = 1) {
     if (attempt <= 3 && navigator.onLine) {
       onlineRetryTimer = setTimeout(
         () => hydrateOnlineState(attempt + 1),
-        3000
+        3000,
       );
     }
   } finally {

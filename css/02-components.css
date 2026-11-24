@@ -638,8 +638,6 @@
   border: 1px solid transparent !important;
 }
 
-
-
 .list-container.always-show-actions .card-actions {
   max-height: 100px !important;
   opacity: 1 !important;

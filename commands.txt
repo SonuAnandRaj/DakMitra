@@ -1,5 +1,8 @@
 npx prettier --write . // to format whole document with prettier
 
+$env:NODE_SKIP_PLATFORM_CHECK = "1"
+setx NODE_SKIP_PLATFORM_CHECK 1
+
 VS code to generate four small files
 
 New-Item -ItemType Directory -Force -Path ai_upload | Out-Null

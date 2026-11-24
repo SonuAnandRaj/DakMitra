@@ -318,10 +318,16 @@ function syncApprovalsFilterUI() {
   // Sync Resolved contextual chips
   document
     .getElementById("appr-chip-approved")
-    ?.classList.toggle("active", approvalsFilters.resolvedStatus === "APPROVED");
+    ?.classList.toggle(
+      "active",
+      approvalsFilters.resolvedStatus === "APPROVED",
+    );
   document
     .getElementById("appr-chip-rejected")
-    ?.classList.toggle("active", approvalsFilters.resolvedStatus === "REJECTED");
+    ?.classList.toggle(
+      "active",
+      approvalsFilters.resolvedStatus === "REJECTED",
+    );
   document
     .getElementById("appr-chip-my-resolved")
     ?.classList.toggle("active", approvalsFilters.resolvedOnlyMine);
@@ -860,9 +866,7 @@ function handleApprovalsOfficeInput(inputEl) {
                 <span class="ac-item-name">${escapeHTML(office)}</span>
               </div>
               ${
-                pin
-                  ? `<span class="ac-item-pin">${escapeHTML(pin)}</span>`
-                  : ""
+                pin ? `<span class="ac-item-pin">${escapeHTML(pin)}</span>` : ""
               }
             </div>`;
         })
@@ -1227,6 +1231,7 @@ function buildApprovalCardHTML(req, searchQuery) {
     newVal,
     prefix = "",
     fallback = "N/A",
+    linkTargets = null,
   ) => {
     const rawOld =
       oldVal === undefined || oldVal === null ? "" : String(oldVal).trim();
@@ -1235,16 +1240,33 @@ function buildApprovalCardHTML(req, searchQuery) {
     const sOld = rawOld === "" ? fallback : rawOld;
     const sNew = rawNew === "" ? fallback : rawNew;
 
+    const oldHighlighted = highlightApprovalText(sOld, searchQuery);
+    const newHighlighted = highlightApprovalText(sNew, searchQuery);
+
+    const oldHtml = linkTargets
+      ? renderDirectoryLink(
+          sOld,
+          linkTargets.oldOffice,
+          linkTargets.oldPin,
+          "is-muted",
+          oldHighlighted,
+        )
+      : oldHighlighted;
+
+    const newHtml = linkTargets
+      ? renderDirectoryLink(
+          sNew,
+          linkTargets.newOffice,
+          linkTargets.newPin,
+          "",
+          newHighlighted,
+        )
+      : newHighlighted;
+
     if (sOld !== sNew) {
-      return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${highlightApprovalText(
-        sOld,
-        searchQuery,
-      )}</span> ➡️ <b>${highlightApprovalText(sNew, searchQuery)}</b></div>`;
+      return `<div style="margin-bottom: 4px;">${prefix} <span style="text-decoration:line-through; color:var(--text-light);">${oldHtml}</span> ➡️ <b>${newHtml}</b></div>`;
     }
-    return `<div style="margin-bottom: 4px;">${prefix} ${highlightApprovalText(
-      sNew,
-      searchQuery,
-    )}</div>`;
+    return `<div style="margin-bottom: 4px;">${prefix} ${newHtml}</div>`;
   };
 
   let changesHtml = "";
@@ -1252,19 +1274,30 @@ function buildApprovalCardHTML(req, searchQuery) {
   if (req.action_type === "ADD") {
     const badge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">➕ ADD</span>`;
     const prop = req.proposed_data || {};
+    const addOff = prop.Office || prop.office || "";
+    const addPin = prop.Pin ?? prop.pin ?? "";
+    const addOffLabel = String(addOff).trim() || "Unknown";
+    const addPinLabel = String(addPin).trim() || "N/A";
+
     changesHtml = `
       ${badge}
       <div style="margin-bottom: 4px;"><b>${highlightApprovalText(
         prop.Address || prop.address || "Unknown",
         searchQuery,
       )}</b></div>
-      <div style="margin-bottom: 4px;">🏢 ${highlightApprovalText(
-        prop.Office || prop.office || "Unknown",
-        searchQuery,
+      <div style="margin-bottom: 4px;">🏢 ${renderDirectoryLink(
+        addOffLabel,
+        addOff,
+        addPin,
+        "",
+        highlightApprovalText(addOffLabel, searchQuery),
       )}</div>
-      <div>📍 ${highlightApprovalText(
-        prop.Pin ?? prop.pin ?? "N/A",
-        searchQuery,
+      <div>📍 ${renderDirectoryLink(
+        addPinLabel,
+        addOff,
+        addPin,
+        "",
+        highlightApprovalText(addPinLabel, searchQuery),
       )}</div>
     `;
   } else if (req.action_type === "EDIT") {
@@ -1275,6 +1308,17 @@ function buildApprovalCardHTML(req, searchQuery) {
       Pin: req.po_pin,
     };
     const newD = req.proposed_data || {};
+    const oldOff = oldD.Office || oldD.office || "";
+    const newOff = newD.Office || newD.office || "";
+    const oldPin = oldD.Pin ?? oldD.pin ?? "";
+    const newPin = newD.Pin ?? newD.pin ?? "";
+
+    const linkTargets = {
+      oldOffice: oldOff,
+      newOffice: newOff,
+      oldPin: oldPin,
+      newPin: newPin,
+    };
 
     changesHtml =
       badge +
@@ -1284,37 +1328,36 @@ function buildApprovalCardHTML(req, searchQuery) {
         "📮",
         "Unknown Address",
       ) +
-      formatApprovalField(
-        oldD.Office || oldD.office,
-        newD.Office || newD.office,
-        "🏢",
-        "Unknown Office",
-      ) +
-      formatApprovalField(
-        oldD.Pin ?? oldD.pin,
-        newD.Pin ?? newD.pin,
-        "📍",
-        "N/A",
-      );
+      formatApprovalField(oldOff, newOff, "🏢", "Unknown Office", linkTargets) +
+      formatApprovalField(oldPin, newPin, "📍", "N/A", linkTargets);
   } else if (req.action_type === "DELETE") {
     const badge = `<span class="badge" style="background:#fee2e2;color:#991b1b; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">🗑️ DELETE</span>`;
     const fallbackOld = req.original_data || {};
     const delAddr = req.po_address || fallbackOld.Address || "Unknown";
-    const delOff = req.po_office || fallbackOld.Office || "Unknown";
-    const delPin = req.po_pin ?? fallbackOld.Pin ?? "N/A";
+    const delOff = req.po_office || fallbackOld.Office || "";
+    const delPin = req.po_pin ?? fallbackOld.Pin ?? "";
+    const delOffLabel = String(delOff).trim() || "Unknown";
+    const delPinLabel = String(delPin).trim() || "N/A";
+
     changesHtml = `
       ${badge}
       <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${highlightApprovalText(
         delAddr,
         searchQuery,
       )}</b></div>
-      <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${highlightApprovalText(
+      <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${renderDirectoryLink(
+        delOffLabel,
         delOff,
-        searchQuery,
-      )}</div>
-      <div style="text-decoration: line-through; color: var(--text-light);">📍 ${highlightApprovalText(
         delPin,
-        searchQuery,
+        "is-muted",
+        highlightApprovalText(delOffLabel, searchQuery),
+      )}</div>
+      <div style="text-decoration: line-through; color: var(--text-light);">📍 ${renderDirectoryLink(
+        delPinLabel,
+        delOff,
+        delPin,
+        "is-muted",
+        highlightApprovalText(delPinLabel, searchQuery),
       )}</div>
     `;
   }
@@ -1649,7 +1692,11 @@ function setupApprovalsObserver() {
 
   approvalsObserver = new IntersectionObserver(
     (entries) => {
-      if (entries[0].isIntersecting && approvalsHasMore && !isApprovalsLoading) {
+      if (
+        entries[0].isIntersecting &&
+        approvalsHasMore &&
+        !isApprovalsLoading
+      ) {
         loadApprovalsBatch(false);
       }
     },

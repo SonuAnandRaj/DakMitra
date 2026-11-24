@@ -1054,17 +1054,17 @@ async function renderMembersDirectory(forceRefresh = false) {
 
   // 2. Refresh fresh list from Supabase RPC
   const handleOfflineEmployees = () => {
-  if (membersDirectoryData.length === 0) {
-    contentEl.innerHTML = `<div class="list-empty">📡 No internet connection and no cached employees saved yet.</div>`;
-  } else {
-    showOfflineToast("Showing cached employees.");
-  }
-};
+    if (membersDirectoryData.length === 0) {
+      contentEl.innerHTML = `<div class="list-empty">📡 No internet connection and no cached employees saved yet.</div>`;
+    } else {
+      showOfflineToast("Showing cached employees.");
+    }
+  };
 
-if (!navigator.onLine) {
-  handleOfflineEmployees();
-  return;
-}
+  if (!navigator.onLine) {
+    handleOfflineEmployees();
+    return;
+  }
 
   try {
     await ensureSupabaseReady();
@@ -1082,16 +1082,16 @@ if (!navigator.onLine) {
 
     renderMembersListUI();
   } catch (err) {
-  if (isNetworkError(err)) {
-    handleOfflineEmployees();
-    return;
+    if (isNetworkError(err)) {
+      handleOfflineEmployees();
+      return;
+    }
+    if (membersDirectoryData.length === 0) {
+      contentEl.innerHTML = `<div class="list-empty" style="color: #ef4444;">Failed to load employees: ${escapeHTML(
+        err.message,
+      )}</div>`;
+    }
   }
-  if (membersDirectoryData.length === 0) {
-    contentEl.innerHTML = `<div class="list-empty" style="color: #ef4444;">Failed to load employees: ${escapeHTML(
-      err.message,
-    )}</div>`;
-  }
-}
 }
 
 function setMemberRoleFilter(roleKey) {
@@ -1296,13 +1296,13 @@ function renderUserProfileModalContent(profile, isOfflineBasic = false) {
        </div>`
     : "";
 
-    const safeUid = escapeForOnclick(profile.id || "");
-    const safeNameArg = escapeForOnclick(name);
-    const safeEmpArg = escapeForOnclick(profile.employee_id || "");
-  
-    const statsHtml = isOfflineBasic
-      ? ""
-      : `<div class="member-stats-grid">
+  const safeUid = escapeForOnclick(profile.id || "");
+  const safeNameArg = escapeForOnclick(name);
+  const safeEmpArg = escapeForOnclick(profile.employee_id || "");
+
+  const statsHtml = isOfflineBasic
+    ? ""
+    : `<div class="member-stats-grid">
            <button
              type="button"
              class="member-stat-pill is-clickable"
@@ -1410,21 +1410,21 @@ async function openUserProfileModal(userId, fallbackName = "") {
   overlay.classList.add("show");
 
   const handleOfflineProfile = () => {
-  const basicMember = membersDirectoryData.find(
-    (m) => String(m.id) === cacheKey,
-  );
-  if (basicMember) {
-    renderUserProfileModalContent(basicMember, true);
-    showOfflineToast("Showing cached basic profile.");
-  } else {
-    bodyEl.innerHTML = `<div style="padding: 40px 20px; color: var(--text-light); font-size: 14px;">📡 Connect to the internet to load this user's profile.</div>`;
-  }
-};
+    const basicMember = membersDirectoryData.find(
+      (m) => String(m.id) === cacheKey,
+    );
+    if (basicMember) {
+      renderUserProfileModalContent(basicMember, true);
+      showOfflineToast("Showing cached basic profile.");
+    } else {
+      bodyEl.innerHTML = `<div style="padding: 40px 20px; color: var(--text-light); font-size: 14px;">📡 Connect to the internet to load this user's profile.</div>`;
+    }
+  };
 
-if (!navigator.onLine) {
-  handleOfflineProfile();
-  return;
-}
+  if (!navigator.onLine) {
+    handleOfflineProfile();
+    return;
+  }
 
   try {
     await ensureSupabaseReady();
@@ -1443,12 +1443,12 @@ if (!navigator.onLine) {
     userProfileCache.set(cacheKey, { data: profile, ts: Date.now() });
     renderUserProfileModalContent(profile);
   } catch (err) {
-  if (isNetworkError(err)) {
-    handleOfflineProfile();
-    return;
+    if (isNetworkError(err)) {
+      handleOfflineProfile();
+      return;
+    }
+    bodyEl.innerHTML = `<div style="padding: 40px 20px; color: #ef4444; font-size: 14px;">Error loading profile: ${escapeHTML(
+      err.message,
+    )}</div>`;
   }
-  bodyEl.innerHTML = `<div style="padding: 40px 20px; color: #ef4444; font-size: 14px;">Error loading profile: ${escapeHTML(
-    err.message,
-  )}</div>`;
-}
 }

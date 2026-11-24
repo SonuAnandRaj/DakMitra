@@ -4525,194 +4525,194 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
    APPROVALS SEARCH & FULL FILTER SUITE
    ========================================================= */
 
-   .approvals-hero {
-    padding: 20px 18px 18px;
-  }
-  
-  .approvals-search-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-  }
-  
-  .approvals-search-row .search-input-wrapper {
-    padding: 3px 8px;
-    border-radius: 16px;
-  }
-  
-  .approvals-search-row .search-input-wrapper input {
-    padding: 9px 6px;
-    font-size: 14.5px;
-  }
-  
-  .approvals-filter-toggle-btn {
-    margin-top: 0 !important;
-    height: 46px;
-    padding: 0 13px !important;
-    border-radius: 16px !important;
-    background: var(--input-bg) !important;
-    border: 1.5px solid var(--border);
-    white-space: nowrap;
-    flex-shrink: 0;
-    font-size: 13px !important;
-  }
-  
-  .approvals-filter-toggle-btn.has-active-filters {
-    background: linear-gradient(
-      135deg,
-      rgba(79, 70, 229, 0.14) 0%,
-      rgba(245, 158, 11, 0.16) 100%
-    ) !important;
-    border-color: rgba(79, 70, 229, 0.35);
-  }
-  
-  .approvals-filters-panel {
-    text-align: left;
-    padding: 14px;
-    gap: 12px;
-  }
-  
-  .appr-filter-section {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    position: relative;
-    z-index: 1;
-  }
-  
-  .appr-filter-section:focus-within,
-  .appr-filter-section:has(.autocomplete-dropdown.show) {
-    z-index: 40;
-  }
-  
-  .appr-filter-label {
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--text-light);
-  }
-  
-  .appr-pill-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  
-  .appr-mini-pill {
-    padding: 6px 11px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    background: var(--card-bg);
-    color: var(--text-light);
-    border: 1px solid var(--border);
-    cursor: pointer;
-    transition:
-      background 0.18s ease,
-      color 0.18s ease,
-      border-color 0.18s ease,
-      transform 0.15s ease;
-  }
-  
-  .appr-mini-pill:active {
-    transform: scale(0.94);
-  }
-  
-  .appr-mini-pill.active {
-    background: var(--primary);
-    color: #ffffff;
-    border-color: var(--primary);
-    box-shadow: 0 4px 10px -3px rgba(79, 70, 229, 0.4);
-  }
-  
-  .appr-date-inputs {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-  }
-  
-  .appr-date-field {
-    flex: 1 1 130px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  
-  .appr-date-field label {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-light);
-  }
-  
-  .appr-date-field input[type="date"] {
-    width: 100%;
-    height: 42px;
-    padding: 0 12px;
-    border-radius: 12px;
-    border: 1px solid var(--input-border);
-    background: var(--card-bg);
-    color: var(--text);
-    font-size: 13.5px;
-    font-weight: 600;
-    outline: none;
-  }
-  
-  .appr-date-field input[type="date"]:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.14);
-  }
-  
-  .appr-quick-bar {
-    position: relative;
-    z-index: 10;
-    margin-bottom: 10px;
-  }
-  
-  #view-approvals #approvals-display-area {
-    position: relative;
-    z-index: 1;
-  }
-  
-  .appr-chip-divider {
-    width: 1px;
-    height: 22px;
-    background: var(--border);
-    flex-shrink: 0;
-    margin: 0 2px;
-  }
-  
-  /* Danger variant for Delete & Rejected quick chips */
-  .dir-filter-chip.is-danger.active {
-    background: rgba(239, 68, 68, 0.14);
-    color: #dc2626;
-    border-color: #ef4444;
-    box-shadow: 0 4px 12px -4px rgba(239, 68, 68, 0.32);
-  }
-  
-  [data-theme="dark"] .dir-filter-chip.is-danger.active {
-    background: rgba(239, 68, 68, 0.22);
-    color: #fca5a5;
-    border-color: #f87171;
-  }
-  
-  /* Clickable stats inside User Profile Modal */
-  .member-stat-pill.is-clickable {
-    cursor: pointer;
-    transition:
-      transform 0.18s var(--dm-ease-spring),
-      border-color 0.2s ease,
-      box-shadow 0.2s ease;
-  }
-  
-  .member-stat-pill.is-clickable:hover {
-    border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 14px -6px rgba(79, 70, 229, 0.25);
-  }
-  
-  .member-stat-pill.is-clickable:active {
-    transform: scale(0.95);
-  }
+.approvals-hero {
+  padding: 20px 18px 18px;
+}
+
+.approvals-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.approvals-search-row .search-input-wrapper {
+  padding: 3px 8px;
+  border-radius: 16px;
+}
+
+.approvals-search-row .search-input-wrapper input {
+  padding: 9px 6px;
+  font-size: 14.5px;
+}
+
+.approvals-filter-toggle-btn {
+  margin-top: 0 !important;
+  height: 46px;
+  padding: 0 13px !important;
+  border-radius: 16px !important;
+  background: var(--input-bg) !important;
+  border: 1.5px solid var(--border);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 13px !important;
+}
+
+.approvals-filter-toggle-btn.has-active-filters {
+  background: linear-gradient(
+    135deg,
+    rgba(79, 70, 229, 0.14) 0%,
+    rgba(245, 158, 11, 0.16) 100%
+  ) !important;
+  border-color: rgba(79, 70, 229, 0.35);
+}
+
+.approvals-filters-panel {
+  text-align: left;
+  padding: 14px;
+  gap: 12px;
+}
+
+.appr-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  position: relative;
+  z-index: 1;
+}
+
+.appr-filter-section:focus-within,
+.appr-filter-section:has(.autocomplete-dropdown.show) {
+  z-index: 40;
+}
+
+.appr-filter-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-light);
+}
+
+.appr-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.appr-mini-pill {
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--card-bg);
+  color: var(--text-light);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.15s ease;
+}
+
+.appr-mini-pill:active {
+  transform: scale(0.94);
+}
+
+.appr-mini-pill.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 4px 10px -3px rgba(79, 70, 229, 0.4);
+}
+
+.appr-date-inputs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.appr-date-field {
+  flex: 1 1 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.appr-date-field label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-light);
+}
+
+.appr-date-field input[type="date"] {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--input-border);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  outline: none;
+}
+
+.appr-date-field input[type="date"]:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.14);
+}
+
+.appr-quick-bar {
+  position: relative;
+  z-index: 10;
+  margin-bottom: 10px;
+}
+
+#view-approvals #approvals-display-area {
+  position: relative;
+  z-index: 1;
+}
+
+.appr-chip-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* Danger variant for Delete & Rejected quick chips */
+.dir-filter-chip.is-danger.active {
+  background: rgba(239, 68, 68, 0.14);
+  color: #dc2626;
+  border-color: #ef4444;
+  box-shadow: 0 4px 12px -4px rgba(239, 68, 68, 0.32);
+}
+
+[data-theme="dark"] .dir-filter-chip.is-danger.active {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+  border-color: #f87171;
+}
+
+/* Clickable stats inside User Profile Modal */
+.member-stat-pill.is-clickable {
+  cursor: pointer;
+  transition:
+    transform 0.18s var(--dm-ease-spring),
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.member-stat-pill.is-clickable:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px -6px rgba(79, 70, 229, 0.25);
+}
+
+.member-stat-pill.is-clickable:active {
+  transform: scale(0.95);
+}

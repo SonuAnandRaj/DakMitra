@@ -442,18 +442,27 @@ function setupDirectoryObserver() {
 }
 
 function goToDirectoryOffice(officeName) {
-  if (!officeName) return;
+  const target = String(officeName || "").trim();
+  if (
+    !target ||
+    target === "N/A" ||
+    target === "Unknown" ||
+    target === "Unknown Office"
+  ) {
+    return;
+  }
 
+  if (typeof closeHistoryModal === "function") closeHistoryModal();
   switchDashboardView("directory");
 
   const filterInput = document.getElementById("directory-filter-input");
   if (filterInput) {
-    filterInput.value = officeName;
+    filterInput.value = target;
     toggleDirClearBtn();
     filterDirectory();
   }
 
-  const cardId = "dir-office-" + officeName.replace(/\W/g, "-");
+  const cardId = "dir-office-" + target.replace(/\W/g, "-");
 
   setTimeout(() => {
     const card = document.getElementById(cardId);
@@ -470,6 +479,39 @@ function goToDirectoryOffice(officeName) {
       }, 1200);
     }
   }, 50);
+}
+
+// Shared inline clickable Office / PIN link (used by Record History & Approvals)
+function renderDirectoryLink(
+  displayText,
+  targetOffice,
+  fallbackPin = "",
+  extraClass = "",
+  displayHtml = null,
+) {
+  const label = String(displayText ?? "").trim();
+  if (!label) return "";
+
+  const isPlaceholder = (val) =>
+    !val || val === "N/A" || val === "Unknown" || val === "Unknown Office";
+
+  const cleanOffice = String(targetOffice ?? "").trim();
+  const cleanPin = String(fallbackPin ?? "").trim();
+  const target = !isPlaceholder(cleanOffice)
+    ? cleanOffice
+    : !isPlaceholder(cleanPin)
+      ? cleanPin
+      : "";
+
+  const innerHtml = displayHtml !== null ? displayHtml : escapeHTML(label);
+
+  if (!target || isPlaceholder(label)) {
+    return innerHtml;
+  }
+
+  return `<button type="button" class="history-dir-link ${extraClass}" onclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
+    target,
+  )}')" title="Open ${escapeHTML(target)} in Directory">${innerHtml}</button>`;
 }
 
 function filterDirectory() {
@@ -556,9 +598,9 @@ function openDirectoryChipActions(chipEl) {
   const officeType = detectOfficeType(address);
   const infoBtnHtml = officeType
     ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
-        address
+        address,
       )}', '${escapeForOnclick(
-        office
+        office,
       )}')" class="toolbar-btn info-i-btn" title="View ${officeType} Staff Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10.2" stroke-width="2"></circle><line x1="12" y1="11.2" x2="12" y2="17.6" stroke-width="2.8"></line><circle cx="12" cy="7" r="1.45" fill="currentColor" stroke="none"></circle></svg></button>`
     : "";
 

@@ -268,15 +268,6 @@ function closeHistoryModal() {
   document.getElementById("history-modal-overlay").classList.remove("show");
 }
 
-function openOfficeFromHistory(officeOrPin) {
-  const target = String(officeOrPin || "").trim();
-  if (!target || target === "N/A" || target === "Unknown Office") return;
-  closeHistoryModal();
-  if (typeof goToDirectoryOffice === "function") {
-    goToDirectoryOffice(target);
-  }
-}
-
 async function viewHistory(postOfficeId) {
   closeAllDirectoryActionTrays();
   const contentDiv = document.getElementById("history-modal-content");
@@ -284,19 +275,19 @@ async function viewHistory(postOfficeId) {
   document.getElementById("history-modal-overlay").classList.add("show");
 
   const showCachedHistoryFallback = () => {
-  showOfflineToast("Showing cached history.");
-  const savedHistory = localStorage.getItem(
-    "dakmitra_history_" + postOfficeId,
-  );
-  contentDiv.innerHTML =
-    savedHistory ||
-    `<ul class="list-container"><li class="list-empty">📴 No internet connection. No cached history for this record.</li></ul>`;
-};
+    showOfflineToast("Showing cached history.");
+    const savedHistory = localStorage.getItem(
+      "dakmitra_history_" + postOfficeId,
+    );
+    contentDiv.innerHTML =
+      savedHistory ||
+      `<ul class="list-container"><li class="list-empty">📴 No internet connection. No cached history for this record.</li></ul>`;
+  };
 
-if (!navigator.onLine) {
-  showCachedHistoryFallback();
-  return;
-}
+  if (!navigator.onLine) {
+    showCachedHistoryFallback();
+    return;
+  }
 
   try {
     const { data, error } = await supabaseClient
@@ -321,10 +312,12 @@ if (!navigator.onLine) {
 
     const profilesMap = {};
     if (userIdsToFetch.size > 0) {
-      const { data: profileData, error: profileErr } =
-        await supabaseClient.rpc("get_public_profiles_by_ids", {
+      const { data: profileData, error: profileErr } = await supabaseClient.rpc(
+        "get_public_profiles_by_ids",
+        {
           user_ids: Array.from(userIdsToFetch),
-        });
+        },
+      );
       if (profileErr) throw profileErr;
       if (Array.isArray(profileData)) {
         profileData.forEach((p) => {
@@ -332,36 +325,6 @@ if (!navigator.onLine) {
         });
       }
     }
-
-    const buildHistoryDirLink = (
-      displayText,
-      targetOffice,
-      fallbackPin = "",
-      extraClass = "",
-    ) => {
-      const label = String(displayText ?? "").trim();
-      if (!label) return "";
-      const cleanOffice = String(targetOffice ?? "").trim();
-      const cleanPin = String(fallbackPin ?? "").trim();
-      const target =
-        cleanOffice &&
-        cleanOffice !== "Unknown Office" &&
-        cleanOffice !== "N/A"
-          ? cleanOffice
-          : cleanPin && cleanPin !== "N/A"
-            ? cleanPin
-            : "";
-
-      if (!target || label === "N/A" || label === "Unknown Office") {
-        return escapeHTML(label);
-      }
-
-      return `<button type="button" class="history-dir-link ${extraClass}" onclick="openOfficeFromHistory('${escapeForOnclick(
-        target,
-      )}')" title="Open ${escapeHTML(target)} in Directory">${escapeHTML(
-        label,
-      )}</button>`;
-    };
 
     let html = `<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">`;
 
@@ -423,7 +386,7 @@ if (!navigator.onLine) {
         const sNew = rawNew === "" ? fallback : rawNew;
 
         const oldHtml = linkTargets
-          ? buildHistoryDirLink(
+          ? renderDirectoryLink(
               sOld,
               linkTargets.oldOffice,
               linkTargets.oldPin,
@@ -432,11 +395,7 @@ if (!navigator.onLine) {
           : escapeHTML(sOld);
 
         const newHtml = linkTargets
-          ? buildHistoryDirLink(
-              sNew,
-              linkTargets.newOffice,
-              linkTargets.newPin,
-            )
+          ? renderDirectoryLink(sNew, linkTargets.newOffice, linkTargets.newPin)
           : escapeHTML(sNew);
 
         if (sOld !== sNew) {
@@ -453,16 +412,12 @@ if (!navigator.onLine) {
           <div style="margin-bottom: 4px;"><b>${escapeHTML(
             log.new_data?.Address,
           )}</b></div>
-          <div style="margin-bottom: 4px;">🏢 ${buildHistoryDirLink(
+          <div style="margin-bottom: 4px;">🏢 ${renderDirectoryLink(
             newOff || "Unknown Office",
             newOff,
             newPin,
           )}</div>
-          <div>📍 ${buildHistoryDirLink(
-            newPin || "N/A",
-            newOff,
-            newPin,
-          )}</div>
+          <div>📍 ${renderDirectoryLink(newPin || "N/A", newOff, newPin)}</div>
         `;
       } else if (log.action === "UPDATE") {
         actionBadge = `<span class="badge" style="background:#fef9c3;color:#854d0e; padding: 4px 8px; font-size: 12px;">✏️ EDITED</span>`;
@@ -503,13 +458,13 @@ if (!navigator.onLine) {
           <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
             log.old_data?.Address,
           )}</b></div>
-          <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${buildHistoryDirLink(
+          <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${renderDirectoryLink(
             oldOff || "Unknown Office",
             oldOff,
             oldPin,
             "is-muted",
           )}</div>
-          <div style="text-decoration: line-through; color: var(--text-light);">📍 ${buildHistoryDirLink(
+          <div style="text-decoration: line-through; color: var(--text-light);">📍 ${renderDirectoryLink(
             oldPin || "N/A",
             oldOff,
             oldPin,
@@ -553,14 +508,14 @@ if (!navigator.onLine) {
     contentDiv.innerHTML = html;
     localStorage.setItem("dakmitra_history_" + postOfficeId, html);
   } catch (err) {
-  if (isNetworkError(err)) {
-    showCachedHistoryFallback();
-    return;
+    if (isNetworkError(err)) {
+      showCachedHistoryFallback();
+      return;
+    }
+    contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error: ${escapeHTML(
+      err.message,
+    )}</li></ul>`;
   }
-  contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error: ${escapeHTML(
-    err.message,
-  )}</li></ul>`;
-}
 }
 
 // --- MANUAL ENTRY ROWS ---

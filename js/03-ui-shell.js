@@ -913,9 +913,7 @@ const approvalsHeroController = createCollapsibleHero(
   "approvals-hero-collapse-wrap",
   () => {
     document.getElementById("approvals-search-input")?.blur();
-    document
-      .getElementById("approvals-filters-panel")
-      ?.classList.add("hidden");
+    document.getElementById("approvals-filters-panel")?.classList.add("hidden");
     closeAllDropdowns();
   },
 );
@@ -1160,15 +1158,15 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
   const TEXT_INPUT_SELECTOR =
     'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="button"]):not([type="submit"])';
 
-    const GROUP_CONTAINERS = [
-      ".form-body",
-      ".profile-edit-card",
-      ".advanced-filters-inputs",
-      "#approvals-filters-panel",
-      "#manual-entries-container",
-      ".edit-modal-card",
-      "#office-modal-body",
-    ].join(", ");
+  const GROUP_CONTAINERS = [
+    ".form-body",
+    ".profile-edit-card",
+    ".advanced-filters-inputs",
+    "#approvals-filters-panel",
+    "#manual-entries-container",
+    ".edit-modal-card",
+    "#office-modal-body",
+  ].join(", ");
 
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Enter" && e.keyCode !== 13) return;
