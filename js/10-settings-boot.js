@@ -33,6 +33,7 @@ function clearAppCache() {
       localStorage.removeItem("dakmitra_offline_db");
       localStorage.removeItem("dakmitra_members_cache");
       localStorage.removeItem("dakmitra_feedback_cache");
+      localStorage.removeItem("dakmitra_learning_leaderboard_cache");
       if (typeof invalidateFeedbackCache === "function") {
         invalidateFeedbackCache();
       }
@@ -238,6 +239,7 @@ function bootAppInstantly() {
     } catch (e) {}
 
     renderUserProfileUI(profileData, userEmail);
+
     switchDashboardView("search");
 
     const cachedDataString = localStorage.getItem("dakmitra_offline_db");
@@ -257,6 +259,9 @@ function bootAppInstantly() {
           }))
           .sort((a, b) => compareByPriorityOnly(a.item, b.item));
         renderResults(false);
+        if (typeof updateSidebarLearnBadge === "function") {
+          updateSidebarLearnBadge();
+        }
       } catch (e) {}
     }
   } else {
@@ -355,6 +360,9 @@ async function checkUserSession() {
       initRealtimeSync();
       if (typeof refreshFeedbackOpenCount === "function") {
         refreshFeedbackOpenCount();
+      }
+      if (typeof syncLearningProgressInBackground === "function") {
+        syncLearningProgressInBackground();
       }
     }
 

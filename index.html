@@ -68,6 +68,7 @@
     <link rel="stylesheet" href="css/01-base-layout.css" />
     <link rel="stylesheet" href="css/02-components.css" />
     <link rel="stylesheet" href="css/03-views.css" />
+    <link rel="stylesheet" href="css/04-learn.css" />
   </head>
   <body>
     <!-- Seamless top notch backdrop -->
@@ -668,6 +669,32 @@
               ></path>
             </svg>
             <span>Directory</span>
+          </button>
+
+          <!-- LEARN & QUIZ BUTTON -->
+          <button
+            class="sidebar-menu-item"
+            id="nav-learn"
+            onclick="switchDashboardView('learn')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+              <path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"></path>
+            </svg>
+            <span>Learn &amp; Quiz</span>
+            <span
+              id="sidebar-learn-badge"
+              class="sidebar-count-pill hidden"
+              title="Division Mastery"
+              >0%</span
+            >
           </button>
 
           <!-- HELP & GUIDE BUTTON -->
@@ -3542,6 +3569,646 @@
           </div>
         </section>
 
+        <!-- LEARN & QUIZ VIEW -->
+        <section id="view-learn" class="view-section">
+          <!-- Top Segmented Switcher (Hidden during active quiz for focus) -->
+          <div id="learn-top-controls" class="learn-top-controls">
+            <div
+              class="auth-segmented-tabs learn-segmented-tabs"
+              id="learn-segmented-tabs"
+              role="tablist"
+              aria-label="Learn and Quiz sections"
+            >
+              <div class="auth-tab-slider" aria-hidden="true"></div>
+              <button
+                type="button"
+                class="tab-btn active"
+                id="tab-learn-cards"
+                role="tab"
+                aria-selected="true"
+                onclick="switchLearnTab('learn')"
+              >
+                Learn
+              </button>
+              <button
+                type="button"
+                class="tab-btn"
+                id="tab-learn-quiz"
+                role="tab"
+                aria-selected="false"
+                onclick="switchLearnTab('quiz')"
+              >
+                Quiz
+              </button>
+              <button
+                type="button"
+                class="tab-btn"
+                id="tab-learn-mastery"
+                role="tab"
+                aria-selected="false"
+                onclick="switchLearnTab('mastery')"
+              >
+                Mastery
+              </button>
+            </div>
+          </div>
+
+          <!-- ==================== TAB 1: LEARN (FLASHCARDS) ==================== -->
+          <div id="learn-panel-cards" class="learn-tab-panel">
+            <!-- Mastery Overview Card -->
+            <div class="dm-surface learn-overview-card">
+              <div class="learn-overview-top">
+                <div class="learn-ring-wrap">
+                  <svg class="learn-ring-svg" viewBox="0 0 100 100">
+                    <defs>
+                      <linearGradient
+                        id="learnRingGrad"
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="100%"
+                      >
+                        <stop offset="0%" stop-color="var(--primary)" />
+                        <stop offset="100%" stop-color="var(--accent)" />
+                      </linearGradient>
+                    </defs>
+                    <circle
+                      class="learn-ring-track"
+                      cx="50"
+                      cy="50"
+                      r="42"
+                    ></circle>
+                    <circle
+                      class="learn-ring-fill"
+                      id="learn-ring-progress"
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      stroke="url(#learnRingGrad)"
+                      stroke-dasharray="263.89"
+                      stroke-dashoffset="263.89"
+                    ></circle>
+                  </svg>
+                  <div class="learn-ring-center">
+                    <strong id="learn-ring-pct">0%</strong>
+                    <span>Mastered</span>
+                  </div>
+                </div>
+
+                <div class="learn-overview-stats">
+                  <div class="learn-streak-row">
+                    <span class="learn-streak-icon" aria-hidden="true">🔥</span>
+                    <div>
+                      <strong id="learn-streak-num">0-Day</strong>
+                      <span>Streak</span>
+                    </div>
+                  </div>
+
+                  <div class="learn-daily-box">
+                    <div class="learn-daily-head">
+                      <span>Daily Goal</span>
+                      <strong id="learn-daily-label">0 / 15</strong>
+                    </div>
+                    <div class="learn-mini-bar">
+                      <div
+                        class="learn-mini-bar-fill"
+                        id="learn-daily-fill"
+                        style="width: 0%"
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div class="learn-studied-meta" id="learn-cards-studied">
+                    0 / 0 studied • 0 due
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Horizontal Office & Category Filter Chips -->
+            <div class="dir-filter-bar learn-filter-bar">
+              <div
+                id="learn-filter-chips"
+                class="dir-filter-chips"
+                role="group"
+                aria-label="Filter study deck"
+              ></div>
+              <div id="learn-scope-summary" class="dir-filter-summary hidden">
+                <span id="learn-scope-summary-text"></span>
+                <button
+                  type="button"
+                  class="dir-filter-reset-btn"
+                  onclick="setLearnScope('all')"
+                >
+                  All Offices
+                </button>
+              </div>
+            </div>
+
+            <!-- 3D Flip Flashcard Stage -->
+            <div id="learn-flashcard-stage" class="learn-flashcard-stage"></div>
+
+            <!-- Spaced-Repetition Rating Bar -->
+            <div id="learn-rating-bar" class="learn-rating-bar hidden">
+              <button
+                type="button"
+                class="learn-rate-btn is-again"
+                onclick="rateLearnCard('again')"
+              >
+                <strong>Again</strong>
+                <span id="fc-int-again">2 min</span>
+              </button>
+              <button
+                type="button"
+                class="learn-rate-btn is-good"
+                onclick="rateLearnCard('good')"
+              >
+                <strong>Good</strong>
+                <span id="fc-int-good">1 day</span>
+              </button>
+              <button
+                type="button"
+                class="learn-rate-btn is-easy"
+                onclick="rateLearnCard('easy')"
+              >
+                <strong>Easy</strong>
+                <span id="fc-int-easy">3 days</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ==================== TAB 2: QUIZ ==================== -->
+          <div id="learn-panel-quiz" class="learn-tab-panel hidden">
+            <!-- Sub-view 2A: Quiz Setup -->
+            <div id="quiz-setup-view">
+              <div class="dm-surface quiz-setup-card">
+                <div class="dm-header" style="margin-bottom: 16px">
+                  <div class="dm-header-left">
+                    <div class="dm-icon-badge">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polygon
+                          points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                        ></polygon>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 class="learn-card-heading">Postal Sorting Quiz</h3>
+                      <span class="learn-card-sub"
+                        >Train speed &amp; routing accuracy</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 3 Drill Modes -->
+                <div class="quiz-setup-section">
+                  <span class="appr-filter-label">Drill Mode</span>
+                  <div class="quiz-mode-grid" id="quiz-mode-grid">
+                    <button
+                      type="button"
+                      class="quiz-mode-tile active"
+                      data-quiz-mode="standard"
+                      onclick="selectQuizMode('standard')"
+                    >
+                      <span class="quiz-mode-emoji">📮</span>
+                      <strong>Standard Sort</strong>
+                      <span>Address → Office MCQ</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="quiz-mode-tile"
+                      data-quiz-mode="pin"
+                      onclick="selectQuizMode('pin')"
+                    >
+                      <span class="quiz-mode-emoji">🎯</span>
+                      <strong>PIN Sniper</strong>
+                      <span>Type last 3 PIN digits</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="quiz-mode-tile"
+                      data-quiz-mode="intruder"
+                      onclick="selectQuizMode('intruder')"
+                    >
+                      <span class="quiz-mode-emoji">🕵️</span>
+                      <strong>Spot Intruder</strong>
+                      <span>Find odd address out</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Deck Scope Chips (Synced with Learn) -->
+                <div class="quiz-setup-section">
+                  <span class="appr-filter-label">Study Scope</span>
+                  <div
+                    id="quiz-filter-chips"
+                    class="dir-filter-chips"
+                    role="group"
+                    aria-label="Quiz scope"
+                  ></div>
+                </div>
+
+                <!-- Question Count -->
+                <div class="quiz-setup-section">
+                  <span class="appr-filter-label">Questions</span>
+                  <div class="appr-pill-row" id="quiz-count-pills">
+                    <button
+                      type="button"
+                      class="appr-mini-pill"
+                      data-quiz-count="10"
+                      onclick="selectQuizCount(10)"
+                    >
+                      10 Questions
+                    </button>
+                    <button
+                      type="button"
+                      class="appr-mini-pill active"
+                      data-quiz-count="15"
+                      onclick="selectQuizCount(15)"
+                    >
+                      15 Questions
+                    </button>
+                    <button
+                      type="button"
+                      class="appr-mini-pill"
+                      data-quiz-count="25"
+                      onclick="selectQuizCount(25)"
+                    >
+                      25 Questions
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Quiz Options -->
+                <div class="quiz-toggles-wrap">
+                  <div class="dm-toggle-row" style="margin-bottom: 10px">
+                    <div>
+                      <strong class="learn-toggle-title"
+                        >Rapid-Fire Timer (10s)</strong
+                      >
+                      <span class="learn-toggle-sub"
+                        >Simulate live sorting table pace</span
+                      >
+                    </div>
+                    <label class="dm-toggle-switch">
+                      <input type="checkbox" id="quiz-opt-timer" />
+                      <span class="dm-toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div
+                    class="dm-toggle-row"
+                    id="quiz-opt-hide-pin-row"
+                    style="margin-bottom: 10px"
+                  >
+                    <div>
+                      <strong class="learn-toggle-title"
+                        >Hard Mode (Hide PINs)</strong
+                      >
+                      <span class="learn-toggle-sub"
+                        >Hide PIN hints on MCQ office options</span
+                      >
+                    </div>
+                    <label class="dm-toggle-switch">
+                      <input type="checkbox" id="quiz-opt-hide-pin" />
+                      <span class="dm-toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="dm-toggle-row" style="margin-bottom: 0">
+                    <div>
+                      <strong class="learn-toggle-title"
+                        >Auto-Advance on Correct</strong
+                      >
+                      <span class="learn-toggle-sub"
+                        >Jump to next parcel automatically</span
+                      >
+                    </div>
+                    <label class="dm-toggle-switch">
+                      <input type="checkbox" id="quiz-opt-auto-next" checked />
+                      <span class="dm-toggle-slider"></span>
+                    </label>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  id="quiz-start-btn"
+                  class="dm-btn dm-btn-primary dm-btn-full"
+                  style="margin-top: 16px"
+                  onclick="startLearnQuiz()"
+                >
+                  ⚡ Start Quiz
+                </button>
+              </div>
+            </div>
+
+            <!-- Sub-view 2B: Active Quiz Screen -->
+            <div id="quiz-active-view" class="hidden">
+              <!-- HUD Bar -->
+              <div class="quiz-hud">
+                <button
+                  type="button"
+                  class="dm-close-btn"
+                  onclick="confirmExitQuiz()"
+                  title="Exit Quiz"
+                  aria-label="Exit Quiz"
+                >
+                  ✕
+                </button>
+                <div class="quiz-hud-center">
+                  <div class="quiz-hud-label" id="quiz-hud-progress-text">
+                    Question 1 of 15
+                  </div>
+                  <div class="quiz-progress-track">
+                    <div
+                      class="quiz-progress-fill"
+                      id="quiz-progress-fill"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Timer & Streak Pills -->
+              <div class="quiz-hud-pills">
+                <span id="quiz-timer-pill" class="quiz-hud-pill hidden">
+                  ⏱ 10s
+                </span>
+                <span id="quiz-streak-pill" class="quiz-hud-pill is-streak">
+                  🔥 0x Streak
+                </span>
+                <span id="quiz-mode-pill" class="quiz-hud-pill">
+                  📮 Standard Sort
+                </span>
+              </div>
+
+              <!-- Parcel Tag Focal Card -->
+              <div class="dm-surface quiz-parcel-card">
+                <div class="quiz-parcel-top">
+                  <span class="quiz-parcel-kicker" id="quiz-parcel-kicker">
+                    POSTAL ADDRESS TAG
+                  </span>
+                  <button
+                    type="button"
+                    class="learn-speak-btn"
+                    onclick="speakCurrentQuizPrompt()"
+                    title="Pronounce address"
+                    aria-label="Pronounce address"
+                  >
+                    🔊
+                  </button>
+                </div>
+
+                <div class="quiz-parcel-title" id="quiz-parcel-title">
+                  Loading...
+                </div>
+                <div class="quiz-parcel-sub" id="quiz-parcel-subtitle">
+                  Sort to which Delivery Office?
+                </div>
+
+                <div class="quiz-parcel-tear" aria-hidden="true"></div>
+                <div class="quiz-parcel-barcode" aria-hidden="true"></div>
+              </div>
+
+              <!-- Dynamic Options / PIN Input Area -->
+              <div id="quiz-answer-area" class="quiz-answer-area"></div>
+
+              <!-- Feedback Note + Next CTA -->
+              <div id="quiz-next-wrap" class="quiz-next-wrap hidden">
+                <div id="quiz-feedback-note" class="quiz-feedback-note"></div>
+                <button
+                  type="button"
+                  id="quiz-next-btn"
+                  class="dm-btn dm-btn-primary dm-btn-full"
+                  onclick="advanceQuizQuestion()"
+                >
+                  Next Address →
+                </button>
+              </div>
+            </div>
+
+            <!-- Sub-view 2C: Quiz Summary Screen -->
+            <div id="quiz-summary-view" class="hidden">
+              <div class="dm-surface quiz-summary-card">
+                <div class="quiz-sum-badge" id="quiz-sum-grade">
+                  🎉 Great Sorting!
+                </div>
+                <div class="quiz-sum-score" id="quiz-sum-score">0 / 15</div>
+                <p class="quiz-sum-sub" id="quiz-sum-sub">
+                  Session progress saved &amp; synced
+                </p>
+
+                <div class="mastery-kpi-grid" style="margin: 18px 0">
+                  <div class="mastery-kpi-tile">
+                    <strong id="quiz-sum-acc">0%</strong>
+                    <span>Accuracy</span>
+                  </div>
+                  <div class="mastery-kpi-tile">
+                    <strong id="quiz-sum-speed">0.0s</strong>
+                    <span>Avg Speed</span>
+                  </div>
+                  <div class="mastery-kpi-tile">
+                    <strong id="quiz-sum-xp">+0</strong>
+                    <span>XP Earned</span>
+                  </div>
+                </div>
+
+                <div
+                  id="quiz-sum-missed-wrap"
+                  class="quiz-sum-missed-wrap hidden"
+                >
+                  <div class="appr-filter-label" style="margin-bottom: 8px">
+                    Missed Addresses to Review
+                  </div>
+                  <div
+                    id="quiz-sum-missed-list"
+                    class="quiz-sum-missed-list"
+                  ></div>
+                </div>
+
+                <div class="quiz-sum-actions">
+                  <button
+                    type="button"
+                    id="quiz-retry-missed-btn"
+                    class="dm-btn dm-btn-primary dm-btn-full hidden"
+                    onclick="drillMissedFromSummary()"
+                  >
+                    🎯 Drill Missed Addresses
+                  </button>
+                  <div class="quiz-sum-btn-row">
+                    <button
+                      type="button"
+                      class="dm-btn dm-btn-secondary"
+                      style="flex: 1"
+                      onclick="showQuizSetup()"
+                    >
+                      🔄 New Quiz
+                    </button>
+                    <button
+                      type="button"
+                      class="dm-btn dm-btn-primary"
+                      style="flex: 1"
+                      onclick="switchLearnTab('mastery')"
+                    >
+                      📊 Mastery
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==================== TAB 3: MASTERY & LEADERBOARD ==================== -->
+          <div id="learn-panel-mastery" class="learn-tab-panel hidden">
+            <!-- 3-Tile KPI Strip -->
+            <div class="mastery-kpi-grid">
+              <div class="mastery-kpi-tile">
+                <strong id="mastery-kpi-mastered">0</strong>
+                <span>Mastered</span>
+              </div>
+              <div class="mastery-kpi-tile">
+                <strong id="mastery-kpi-reviewing">0</strong>
+                <span>Reviewing</span>
+              </div>
+              <div class="mastery-kpi-tile">
+                <strong id="mastery-kpi-accuracy">0%</strong>
+                <span>Accuracy</span>
+              </div>
+            </div>
+
+            <!-- Office Mastery Breakdown -->
+            <div class="dm-surface mastery-card">
+              <div class="mastery-card-head">
+                <div>
+                  <h3 class="learn-card-heading">Office Mastery</h3>
+                  <span class="learn-card-sub"
+                    >Tap any office to practice it</span
+                  >
+                </div>
+                <button
+                  type="button"
+                  id="mastery-sort-btn"
+                  class="toolbar-btn"
+                  style="
+                    background: var(--input-bg);
+                    border: 1px solid var(--border);
+                  "
+                  onclick="toggleMasteryOfficeSort()"
+                >
+                  ↕ Lowest
+                </button>
+              </div>
+              <div id="mastery-office-list" class="mastery-office-list"></div>
+              <button
+                type="button"
+                id="mastery-office-expand-btn"
+                class="toolbar-btn hidden"
+                style="
+                  width: 100%;
+                  justify-content: center;
+                  margin-top: 10px;
+                  background: var(--input-bg);
+                "
+                onclick="toggleMasteryShowAllOffices()"
+              >
+                Show All Offices
+              </button>
+            </div>
+
+            <!-- Tricky Addresses (Weak Spots) -->
+            <div class="dm-surface mastery-card">
+              <div class="mastery-card-head">
+                <div>
+                  <h3 class="learn-card-heading">Tricky Addresses</h3>
+                  <span class="learn-card-sub">Frequently mis-routed</span>
+                </div>
+              </div>
+              <div id="mastery-weak-list" class="mastery-weak-list"></div>
+              <button
+                type="button"
+                id="mastery-drill-weak-btn"
+                class="dm-btn dm-btn-primary dm-btn-full hidden"
+                style="margin-top: 14px"
+                onclick="drillWeakSpotsNow()"
+              >
+                ⚡ Drill Weak Spots
+              </button>
+            </div>
+
+            <!-- Opt-In Division Leaderboard -->
+            <div class="dm-surface mastery-card">
+              <div class="mastery-card-head">
+                <div>
+                  <h3 class="learn-card-heading">Division Leaderboard</h3>
+                  <span class="learn-card-sub"
+                    >Opt-in ranking across colleagues</span
+                  >
+                </div>
+                <button
+                  type="button"
+                  class="toolbar-btn"
+                  style="
+                    background: var(--input-bg);
+                    border: 1px solid var(--border);
+                  "
+                  onclick="loadLearningLeaderboard(true)"
+                  title="Refresh Leaderboard"
+                >
+                  🔄
+                </button>
+              </div>
+
+              <div class="dm-toggle-row" style="margin-bottom: 14px">
+                <div>
+                  <strong class="learn-toggle-title"
+                    >Appear on Leaderboard</strong
+                  >
+                  <span class="learn-toggle-sub"
+                    >Share your mastery count, accuracy &amp; streak</span
+                  >
+                </div>
+                <label class="dm-toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="learn-leaderboard-optin"
+                    onchange="toggleLeaderboardOptIn(this.checked)"
+                  />
+                  <span class="dm-toggle-slider"></span>
+                </label>
+              </div>
+
+              <div
+                id="learn-leaderboard-list"
+                class="learn-leaderboard-list"
+              ></div>
+            </div>
+
+            <!-- Cloud Sync Status & Reset -->
+            <div class="learn-footer-controls">
+              <span id="learn-sync-status" class="learn-sync-status">
+                ☁️ Synced locally
+              </span>
+              <button
+                type="button"
+                class="dm-btn dm-btn-danger-soft dm-btn-sm"
+                onclick="confirmResetLearnProgress()"
+              >
+                🗑️ Reset Progress
+              </button>
+            </div>
+          </div>
+        </section>
+
         <!-- BOTTOM NAVIGATION BAR -->
         <nav class="bottom-nav">
           <!--<button
@@ -4947,6 +5614,7 @@
     <script defer src="js/08-records-upload.js"></script>
     <script defer src="js/09-approvals-favs.js"></script>
     <script defer src="js/11-feedback.js"></script>
+    <script defer src="js/12-learn-quiz.js"></script>
     <script defer src="js/10-settings-boot.js"></script>
   </body>
 </html>

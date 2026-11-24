@@ -492,6 +492,9 @@ function scheduleLocalUiRefresh() {
     syncFavoritesWithCache();
     refreshSearchInPlace();
     refreshDirectoryInPlace();
+    if (typeof onLearnDatabaseUpdated === "function") {
+      onLearnDatabaseUpdated();
+    }
   }, 80);
 }
 
@@ -703,6 +706,9 @@ async function hydrateOnlineState(attempt = 1) {
     }
     if (typeof refreshFeedbackOpenCount === "function") {
       refreshFeedbackOpenCount();
+    }
+    if (typeof syncLearningProgressInBackground === "function") {
+      syncLearningProgressInBackground();
     }
     if (
       document.getElementById("view-feedback")?.classList.contains("active") &&

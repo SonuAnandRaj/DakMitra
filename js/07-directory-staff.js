@@ -720,7 +720,21 @@ function renderDirectoryBatch() {
             </div>
 
             <div class="directory-header-actions">
-              <button
+            <button
+                type="button"
+                class="dir-quick-practice-btn"
+                onclick="practiceOfficeFromDirectory('${escapeForOnclick(
+                  data.office,
+                )}')"
+                title="Practice ${escapeHTML(data.office)} in Learn &amp; Quiz"
+                aria-label="Practice this office"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                  <path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"></path>
+                </svg>
+              </button>  
+            <button
                 type="button"
                 class="dir-quick-priority-btn"
                 onclick="quickPriorityForOffice('${escapeForOnclick(

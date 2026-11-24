@@ -180,6 +180,8 @@ async function signOutApp() {
   if (typeof updateSidebarFeedbackBadge === "function") {
     updateSidebarFeedbackBadge(0);
   }
+  localStorage.removeItem("dakmitra_learning_leaderboard_cache");
+  if (typeof resetLearnMemoryState === "function") resetLearnMemoryState();
   if (typeof userProfileCache !== "undefined") userProfileCache.clear();
   closeSidebar();
   checkUserSession();

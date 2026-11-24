@@ -188,6 +188,10 @@ function switchDashboardView(viewId) {
     closeAllDirectoryActionTrays();
   }
 
+  if (viewId !== "learn" && typeof pauseOrLeaveLearnView === "function") {
+    pauseOrLeaveLearnView();
+  }
+
   const prevActiveSection = document.querySelector(".view-section.active");
   const prevViewId = prevActiveSection?.id?.replace(/^view-/, "");
   if (prevViewId && prevViewId !== viewId && prevViewId !== "feedback") {
@@ -263,6 +267,8 @@ function switchDashboardView(viewId) {
   } else if (viewId === "feedback") {
     feedbackHeroController.setCollapsed(false, true);
     if (typeof renderFeedbackView === "function") renderFeedbackView();
+  } else if (viewId === "learn") {
+    if (typeof renderLearnView === "function") renderLearnView();
   }
 
   closeSidebar();
@@ -298,6 +304,8 @@ function switchDashboardView(viewId) {
       rootGuardPushed = true;
     } catch (_) {}
   }
+
+  window.pushPwaNavStep = pushNavStep;
 
   function ensureBaseHistoryState() {
     try {
@@ -454,6 +462,13 @@ function switchDashboardView(viewId) {
         return;
       }
 
+      if (
+        typeof handleLearnBackNavigation === "function" &&
+        handleLearnBackNavigation()
+      ) {
+        return;
+      }
+
       const targetView =
         event.state && typeof event.state.viewId === "string"
           ? event.state.viewId
@@ -535,7 +550,7 @@ function switchDashboardView(viewId) {
     const insideModal = el.closest(".modal-overlay.show");
     const scrollParent =
       el.closest(
-        ".feedback-submit-panel, .staff-detail-list, .results-container-scroll, #view-upload, #view-profile, #view-settings",
+        ".feedback-submit-panel, .staff-detail-list, .results-container-scroll, #view-upload, #view-profile, #view-settings, #view-learn",
       ) ||
       insideModal ||
       null;
@@ -1039,7 +1054,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
 
     if (
       target.closest(
-        ".dir-filter-bar, .dir-filter-chips, .quick-delete-selected-chips, #top-profile-btn, input, textarea, select",
+        ".dir-filter-bar, .dir-filter-chips, .quick-delete-selected-chips, .learn-flashcard-stage, #top-profile-btn, input, textarea, select",
       )
     ) {
       return true;
@@ -1272,6 +1287,11 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
         descEl.focus();
         return;
       }
+    }
+
+    if (currentInput.id === "learn-pin-input") {
+      if (typeof submitPinSniperAnswer === "function") submitPinSniperAnswer();
+      return;
     }
 
     if (currentInput.id === "directory-filter-input") {
