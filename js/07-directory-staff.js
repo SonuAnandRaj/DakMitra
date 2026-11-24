@@ -556,10 +556,10 @@ function openDirectoryChipActions(chipEl) {
   const officeType = detectOfficeType(address);
   const infoBtnHtml = officeType
     ? `<button onclick="event.stopPropagation(); showOfficeDetailsModal('${escapeForOnclick(
-        address,
+        address
       )}', '${escapeForOnclick(
-        office,
-      )}')" class="toolbar-btn info-i-btn" title="View ${officeType} Staff Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"></circle><line x1="12" y1="16" x2="12" y2="11.5"></line><circle cx="12" cy="8.2" r="0.6" fill="currentColor"></circle></svg></button>`
+        office
+      )}')" class="toolbar-btn info-i-btn" title="View ${officeType} Staff Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10.2" stroke-width="2"></circle><line x1="12" y1="11.2" x2="12" y2="17.6" stroke-width="2.8"></line><circle cx="12" cy="7" r="1.45" fill="currentColor" stroke="none"></circle></svg></button>`
     : "";
 
   const liveRecord = cachedPostOffices.find(
