@@ -1435,7 +1435,6 @@ table.data-table .card-actions {
   background: rgba(79, 70, 229, 0.08);
   color: var(--primary);
   font-weight: 700;
-  display: inline-flex;
   align-items: center;
   gap: 6px;
 }
@@ -3850,7 +3849,6 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   background: rgba(245, 158, 11, 0.1);
   color: #92400e;
   font-weight: 700;
-  display: inline-flex;
   align-items: center;
   gap: 5px;
 }
@@ -4715,4 +4713,13 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
 
 .member-stat-pill.is-clickable:active {
   transform: scale(0.95);
+}
+
+/* Keep highlighted match readable on hovered office chips in Directory */
+.directory-address-chip.clickable-office-chip:hover .highlight-text {
+  color: #fde68a !important;
+}
+
+.directory-address-chip.clickable-office-chip:hover .highlight-text::after {
+  background: rgba(253, 230, 138, 0.35);
 }

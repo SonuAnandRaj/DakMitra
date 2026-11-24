@@ -2,12 +2,43 @@
 // 07-DIRECTORY-STAFF.JS — Directory, Action Bar, Staff CRUD & Quick Modals
 // =========================================================
 
-// --- DIRECTORY RENDERING & UNIVERSAL FILTERING ---
+// --- DIRECTORY RENDERING, FULL SEARCH & UNIVERSAL FILTERING ---
 const DIRECTORY_FILTER_TYPES = ["office", "priority", "regular"];
 let directoryActiveFilters = new Set();
+let directoryActiveCleanQuery = "";
+let directoryActiveSmartOfficeFilter = null;
+let directorySearchDebounceTimer = null;
+
+function getDirectorySearchState() {
+  const rawInput =
+    document.getElementById("directory-filter-input")?.value.trim() || "";
+  const filterVal =
+    document.querySelector('input[name="dirSearchFilter"]:checked')?.value ||
+    "all";
+  const filterOffice =
+    document.getElementById("dir-filter-office")?.value.trim() || "";
+  const filterPin =
+    document.getElementById("dir-filter-pin")?.value.trim() || "";
+
+  return { rawInput, filterVal, filterOffice, filterPin };
+}
+
+function hasActiveDirectorySearch() {
+  const { rawInput, filterVal, filterOffice, filterPin } =
+    getDirectorySearchState();
+  return Boolean(
+    rawInput ||
+    filterVal !== "all" ||
+    filterOffice ||
+    filterPin ||
+    directoryActiveSmartOfficeFilter,
+  );
+}
 
 function getDirectoryBatchSize() {
-  return directoryActiveFilters.size > 0 ? 10 : DIRECTORY_PAGE_SIZE;
+  return directoryActiveFilters.size > 0 || hasActiveDirectorySearch()
+    ? 10
+    : DIRECTORY_PAGE_SIZE;
 }
 
 function getDirectoryItemFlags(item) {
@@ -30,13 +61,320 @@ function matchesDirectoryUniversalFilter(item) {
   return false;
 }
 
-function updateDirectoryFilterUI(textMatchedOffices, filteredOffices) {
+// --- DIRECTORY SEARCH OPTIONS, HISTORY & VOICE CONTROLS ---
+function toggleDirectoryAdvancedFilters() {
+  document
+    .getElementById("dir-advanced-filters-panel")
+    ?.classList.toggle("hidden");
+}
+
+function toggleDirectorySearchHistory() {
+  document
+    .getElementById("dir-search-history-panel")
+    ?.classList.toggle("hidden");
+}
+
+function applyDirectoryHistorySearch(term) {
+  const input = document.getElementById("directory-filter-input");
+  if (input) input.value = term;
+  toggleDirClearBtn();
+  document.getElementById("dir-search-history-panel")?.classList.add("hidden");
+  filterDirectory(true);
+}
+
+function handleDirectorySearchFocus() {
+  document
+    .getElementById("dir-advanced-filters-panel")
+    ?.classList.add("hidden");
+  document.getElementById("dir-search-history-panel")?.classList.add("hidden");
+  closeAllDropdowns();
+}
+
+function handleDirectorySearchInput(inputEl) {
+  toggleDirClearBtn();
+  if (inputEl && inputEl.value.length > 0) {
+    document
+      .getElementById("dir-advanced-filters-panel")
+      ?.classList.add("hidden");
+    document
+      .getElementById("dir-search-history-panel")
+      ?.classList.add("hidden");
+    closeAllDropdowns();
+  }
+
+  clearTimeout(directorySearchDebounceTimer);
+  directorySearchDebounceTimer = setTimeout(() => {
+    filterDirectory(false, { saveHistory: true });
+  }, 200);
+}
+
+function clearDirectoryFilterInput(inputId, btnId) {
+  const input = document.getElementById(inputId);
+  if (input) input.value = "";
+  document.getElementById(btnId)?.classList.add("hidden");
+  filterDirectory();
+
+  if (inputId === "dir-filter-office" && input) {
+    input.focus();
+    if (typeof handleDirectoryOfficeFilterInput === "function") {
+      handleDirectoryOfficeFilterInput(input);
+    }
+  }
+}
+
+function startDirectoryVoiceSearch() {
+  if (typeof toggleVoiceInput !== "function") return;
+  toggleVoiceInput({
+    micBtnId: "dir-mic-btn",
+    inputId: "directory-filter-input",
+    clearBtnId: "clear-dir-filter-btn",
+    defaultPlaceholder: "Search address, office, or Pin...",
+    onTranscript: () => {
+      filterDirectory(true, { saveHistory: true });
+    },
+  });
+}
+
+function updateDirectoryActiveFilterIndicators() {
+  const { filterVal, filterOffice, filterPin } = getDirectorySearchState();
+  const activeFilters = [];
+
+  if (filterVal !== "all") {
+    const labels = {
+      address: "Address Only",
+      office: "Office Only",
+      pin: "PIN Only",
+    };
+    activeFilters.push({
+      type: "mode",
+      label: `🔍 ${labels[filterVal] || filterVal}`,
+    });
+  }
+  if (filterOffice) {
+    activeFilters.push({ type: "office", label: `🏢 ${filterOffice}` });
+  }
+  if (filterPin) {
+    activeFilters.push({ type: "pin", label: `📍 ${filterPin}` });
+  }
+  if (directoryActiveSmartOfficeFilter) {
+    activeFilters.push({
+      type: "smart-office",
+      label: `🏢 ${directoryActiveSmartOfficeFilter.office} (${directoryActiveSmartOfficeFilter.suffix})`,
+    });
+  }
+
+  const toggleBtn = document.getElementById("dir-advanced-filter-toggle-btn");
+  const bar = document.getElementById("dir-active-filters-bar");
+  const searchWrapper = document.getElementById("directory-search-wrapper");
+
+  const count = activeFilters.length;
+
+  if (count === 0) {
+    if (toggleBtn) {
+      toggleBtn.classList.remove("has-active-filters");
+      toggleBtn.innerHTML = "⚙️ Search Options";
+    }
+    if (bar) {
+      bar.classList.add("hidden");
+      bar.innerHTML = "";
+    }
+    if (searchWrapper) searchWrapper.classList.remove("has-active-filters");
+    return;
+  }
+
+  if (toggleBtn) {
+    toggleBtn.classList.add("has-active-filters");
+    toggleBtn.innerHTML = `
+      <span class="filter-pulse-dot"></span>
+      <span>⚙️ Filtered</span>
+      <span class="filter-count-badge">${count}</span>
+    `;
+  }
+
+  if (searchWrapper) searchWrapper.classList.add("has-active-filters");
+
+  if (bar) {
+    let html = activeFilters
+      .map(
+        (f) => `
+          <span class="active-filter-pill">
+            <span>${escapeHTML(f.label)}</span>
+            <button type="button" onclick="removeDirectorySingleFilter('${f.type}')" title="Remove filter">✕</button>
+          </span>`,
+      )
+      .join("");
+
+    if (count > 1) {
+      html += `<button type="button" class="clear-all-filters-pill" onclick="clearAllDirectorySearchFilters()">Clear all</button>`;
+    }
+
+    bar.innerHTML = html;
+    bar.classList.remove("hidden");
+  }
+}
+
+function removeDirectorySingleFilter(type) {
+  if (type === "mode") {
+    const defaultRadio = document.querySelector(
+      'input[name="dirSearchFilter"][value="all"]',
+    );
+    if (defaultRadio) defaultRadio.checked = true;
+  } else if (type === "office") {
+    const el = document.getElementById("dir-filter-office");
+    if (el) el.value = "";
+    document.getElementById("clear-dir-office-btn")?.classList.add("hidden");
+  } else if (type === "pin") {
+    const el = document.getElementById("dir-filter-pin");
+    if (el) el.value = "";
+    document.getElementById("clear-dir-pin-btn")?.classList.add("hidden");
+  } else if (type === "smart-office") {
+    const searchEl = document.getElementById("directory-filter-input");
+    if (searchEl) {
+      searchEl.value = directoryActiveCleanQuery || "";
+      toggleDirClearBtn();
+    }
+    directoryActiveSmartOfficeFilter = null;
+  }
+
+  filterDirectory();
+}
+
+function clearAllDirectorySearchFilters(shouldRefresh = true) {
+  const defaultRadio = document.querySelector(
+    'input[name="dirSearchFilter"][value="all"]',
+  );
+  if (defaultRadio) defaultRadio.checked = true;
+
+  const offEl = document.getElementById("dir-filter-office");
+  const pinEl = document.getElementById("dir-filter-pin");
+  if (offEl) offEl.value = "";
+  if (pinEl) pinEl.value = "";
+
+  document.getElementById("clear-dir-office-btn")?.classList.add("hidden");
+  document.getElementById("clear-dir-pin-btn")?.classList.add("hidden");
+  if (directoryActiveSmartOfficeFilter) {
+    const searchEl = document.getElementById("directory-filter-input");
+    if (searchEl) {
+      searchEl.value = directoryActiveCleanQuery || "";
+      toggleDirClearBtn();
+    }
+  }
+  directoryActiveSmartOfficeFilter = null;
+
+  if (shouldRefresh) {
+    filterDirectory();
+    showToast("🧹 Directory search filters cleared");
+  }
+}
+
+function resetAllDirectorySearchAndFilters() {
+  closeAllDirectoryActionTrays();
+  clearTimeout(directorySearchDebounceTimer);
+  directoryActiveFilters.clear();
+  directoryActiveCleanQuery = "";
+  directoryActiveSmartOfficeFilter = null;
+
+  const input = document.getElementById("directory-filter-input");
+  if (input) input.value = "";
+  toggleDirClearBtn();
+
+  clearAllDirectorySearchFilters(false);
+  document
+    .getElementById("dir-advanced-filters-panel")
+    ?.classList.add("hidden");
+  document.getElementById("dir-search-history-panel")?.classList.add("hidden");
+  closeAllDropdowns();
+
+  if (navigator.vibrate) navigator.vibrate(18);
+  applyDirectoryFilters({ preserveScroll: false, minPages: 1 });
+}
+
+// Groups ranked results from runPostalSearchEngine() into Directory office cards
+function groupSearchResultsForDirectory(outcome) {
+  const { results, cleanQuery, isNumericSearch } = outcome;
+  if (!results || results.length === 0) return [];
+
+  const groupMap = new Map();
+  const orderedGroups = [];
+
+  for (let i = 0; i < results.length; i++) {
+    const res = results[i];
+    const row = res.item;
+    const rawOffice = String(row.Office || "Unknown Office")
+      .trim()
+      .replace(/\s+/g, " ");
+    const officeKey = rawOffice.toLowerCase();
+
+    let group = groupMap.get(officeKey);
+    if (!group) {
+      const canonical =
+        typeof directoryGroupByKeyMap !== "undefined"
+          ? directoryGroupByKeyMap.get(officeKey)
+          : null;
+
+      group = {
+        office: canonical ? canonical.office : rawOffice,
+        pin: canonical ? canonical.pin : row.Pin || "N/A",
+        addresses: [],
+        totalAddresses: canonical ? canonical.addresses.length : 0,
+        officeMatches: [],
+        pinMatches: [],
+      };
+      groupMap.set(officeKey, group);
+      orderedGroups.push(group);
+    }
+
+    const rowMatches = Array.isArray(res.matches) ? res.matches : [];
+    if (group.officeMatches.length === 0) {
+      const offMatch = rowMatches.find((m) => m.key === "Office");
+      if (offMatch) group.officeMatches.push(offMatch);
+    }
+    if (group.pinMatches.length === 0) {
+      const pinMatch = rowMatches.find((m) => m.key === "Pin");
+      if (pinMatch) group.pinMatches.push(pinMatch);
+    }
+
+    group.addresses.push({
+      id: row.id,
+      Address: row.Address || "",
+      Office: group.office,
+      Pin: row.Pin || "",
+      officeType: detectOfficeType(row.Address),
+      priority: Number(row.priority) >= 1 ? 1 : 0,
+      effectivePriority: getEffectivePriority(row),
+      matches: rowMatches,
+    });
+  }
+
+  // Fallback totalAddresses if directoryGroupByKeyMap wasn't populated yet
+  for (let i = 0; i < orderedGroups.length; i++) {
+    if (orderedGroups[i].totalAddresses < orderedGroups[i].addresses.length) {
+      orderedGroups[i].totalAddresses = orderedGroups[i].addresses.length;
+    }
+  }
+
+  // Keep relevance order for text queries; sort exact PIN first then A-Z for PIN/filter-only queries
+  if (!cleanQuery || isNumericSearch) {
+    orderedGroups.sort((a, b) => {
+      if (cleanQuery && isNumericSearch) {
+        const aExact = String(a.pin).trim() === cleanQuery ? 0 : 1;
+        const bExact = String(b.pin).trim() === cleanQuery ? 0 : 1;
+        if (aExact !== bExact) return aExact - bExact;
+      }
+      return a.office.localeCompare(b.office);
+    });
+  }
+
+  return orderedGroups;
+}
+
+function updateDirectoryFilterUI(searchMatchedOffices, filteredOffices) {
   let allCount = 0;
   let officeCount = 0;
   let priorityCount = 0;
   let regularCount = 0;
 
-  textMatchedOffices.forEach((group) => {
+  searchMatchedOffices.forEach((group) => {
     const list = Array.isArray(group.addresses) ? group.addresses : [];
     for (let i = 0; i < list.length; i++) {
       allCount++;
@@ -73,8 +411,11 @@ function updateDirectoryFilterUI(textMatchedOffices, filteredOffices) {
 
   const summaryEl = document.getElementById("dir-filter-summary");
   const summaryTextEl = document.getElementById("dir-filter-summary-text");
+  const resetBtn = summaryEl?.querySelector(".dir-filter-reset-btn");
+  const hasSearch = hasActiveDirectorySearch();
+
   if (summaryEl && summaryTextEl) {
-    if (isAll) {
+    if (isAll && !hasSearch) {
       summaryEl.classList.add("hidden");
       summaryTextEl.textContent = "";
     } else {
@@ -88,6 +429,15 @@ function updateDirectoryFilterUI(textMatchedOffices, filteredOffices) {
       } • ${matchedAddresses} ${
         matchedAddresses === 1 ? "address" : "addresses"
       }`;
+      if (resetBtn) {
+        if (!isAll) {
+          resetBtn.textContent = "Reset";
+          resetBtn.onclick = resetDirectoryUniversalFilters;
+        } else {
+          resetBtn.textContent = "Clear";
+          resetBtn.onclick = resetAllDirectorySearchAndFilters;
+        }
+      }
       summaryEl.classList.remove("hidden");
     }
   }
@@ -112,29 +462,61 @@ function fillDirectoryViewportIfNeeded() {
 function applyDirectoryFilters(options = {}) {
   const preserveScroll = Boolean(options?.preserveScroll);
   const minPages = Math.max(1, Number(options?.minPages) || 1);
+  const shouldSaveHistory = Boolean(options?.saveHistory);
 
   const displayArea = document.getElementById("directory-display-area");
   const prevScroll = preserveScroll && displayArea ? displayArea.scrollTop : 0;
 
-  const filterInput = document.getElementById("directory-filter-input");
-  const filterValue = filterInput ? filterInput.value.toLowerCase().trim() : "";
+  const { rawInput, filterVal, filterOffice, filterPin } =
+    getDirectorySearchState();
 
-  const textMatchedOffices = filterValue
-    ? directoryGroupedData.filter((item) =>
-        item.searchString.includes(filterValue),
-      )
-    : directoryGroupedData;
+  const searchBox = document.getElementById("directory-filter-input");
+  if (searchBox) searchBox.inputMode = filterVal === "pin" ? "numeric" : "text";
 
-  const isFiltered = directoryActiveFilters.size > 0;
+  let searchMatchedOffices = [];
 
-  if (!isFiltered) {
-    directoryFilteredData = textMatchedOffices.map((group) => ({
+  if (!rawInput && !filterOffice && !filterPin) {
+    directoryActiveCleanQuery = "";
+    directoryActiveSmartOfficeFilter = null;
+    searchMatchedOffices = directoryGroupedData.map((group) => ({
       ...group,
       totalAddresses: group.addresses.length,
+      officeMatches: [],
+      pinMatches: [],
     }));
   } else {
+    if (
+      shouldSaveHistory &&
+      rawInput.length > 2 &&
+      typeof saveSearchTerm === "function"
+    ) {
+      saveSearchTerm(rawInput);
+    }
+
+    const outcome = runPostalSearchEngine({
+      rawInput,
+      filterVal,
+      filterOffice,
+      filterPin,
+    });
+
+    directoryActiveCleanQuery = outcome.cleanQuery;
+    directoryActiveSmartOfficeFilter = outcome.targetOffice
+      ? { suffix: outcome.detectedSuffix, office: outcome.targetOffice }
+      : null;
+
+    searchMatchedOffices = groupSearchResultsForDirectory(outcome);
+  }
+
+  updateDirectoryActiveFilterIndicators();
+
+  const isUniversalFiltered = directoryActiveFilters.size > 0;
+
+  if (!isUniversalFiltered) {
+    directoryFilteredData = searchMatchedOffices;
+  } else {
     directoryFilteredData = [];
-    textMatchedOffices.forEach((group) => {
+    searchMatchedOffices.forEach((group) => {
       const matchedAddresses = group.addresses.filter((addr) =>
         matchesDirectoryUniversalFilter(addr),
       );
@@ -142,13 +524,12 @@ function applyDirectoryFilters(options = {}) {
         directoryFilteredData.push({
           ...group,
           addresses: matchedAddresses,
-          totalAddresses: group.addresses.length,
         });
       }
     });
   }
 
-  updateDirectoryFilterUI(textMatchedOffices, directoryFilteredData);
+  updateDirectoryFilterUI(searchMatchedOffices, directoryFilteredData);
 
   directoryCurrentPage = 0;
   const contentDiv = document.getElementById("directory-content");
@@ -191,7 +572,6 @@ function toggleDirectoryFilterChip(type) {
       directoryActiveFilters.add(type);
     }
 
-    // If all 3 categories are selected together, snap cleanly back to All
     if (directoryActiveFilters.size === DIRECTORY_FILTER_TYPES.length) {
       directoryActiveFilters.clear();
     }
@@ -211,15 +591,33 @@ function resetDirectoryUniversalFilters() {
 function renderDirectory() {
   const displayArea = document.getElementById("directory-display-area");
 
-  // Auto-reset universal filter chips & office search whenever Directory is opened
+  // Auto-reset universal chips, search query & search options on view open
+  clearTimeout(directorySearchDebounceTimer);
+  if (
+    typeof stopActiveVoiceSearch === "function" &&
+    document.getElementById("dir-mic-btn")?.classList.contains("listening")
+  ) {
+    stopActiveVoiceSearch();
+  }
+
   directoryActiveFilters.clear();
+  directoryActiveCleanQuery = "";
+  directoryActiveSmartOfficeFilter = null;
 
   const filterInput = document.getElementById("directory-filter-input");
   const clearBtn = document.getElementById("clear-dir-filter-btn");
   if (filterInput) filterInput.value = "";
   if (clearBtn) clearBtn.classList.add("hidden");
 
+  clearAllDirectorySearchFilters(false);
+  document
+    .getElementById("dir-advanced-filters-panel")
+    ?.classList.add("hidden");
+  document.getElementById("dir-search-history-panel")?.classList.add("hidden");
+  closeAllDropdowns();
+
   if (!cachedPostOffices || cachedPostOffices.length === 0) {
+    updateDirectoryActiveFilterIndicators();
     updateDirectoryFilterUI([], []);
     displayArea.innerHTML = `<div class="list-empty">No data available.</div>`;
     return;
@@ -251,16 +649,21 @@ function renderDirectoryBatch() {
 
   if (batch.length === 0 && directoryCurrentPage === 0) {
     const isUniversalFiltered = directoryActiveFilters.size > 0;
+    const isSearchFiltered = hasActiveDirectorySearch();
+    const emptyMsg = isUniversalFiltered
+      ? "No addresses match your active filters."
+      : "No matching offices or addresses found.";
+    const resetAction = isUniversalFiltered
+      ? "resetDirectoryUniversalFilters()"
+      : "resetAllDirectorySearchAndFilters()";
+    const resetLabel = isUniversalFiltered ? "Reset Filters" : "Clear Search";
+
     contentDiv.innerHTML = `
       <div class="list-empty" style="gap: 10px;">
-        <span>${
-          isUniversalFiltered
-            ? "No addresses match your active filter."
-            : "No offices match your filter."
-        }</span>
+        <span>${emptyMsg}</span>
         ${
-          isUniversalFiltered
-            ? `<button type="button" class="dm-btn dm-btn-secondary dm-btn-sm" onclick="resetDirectoryUniversalFilters()">Reset Filters</button>`
+          isUniversalFiltered || isSearchFiltered
+            ? `<button type="button" class="dm-btn dm-btn-secondary dm-btn-sm" onclick="${resetAction}">${resetLabel}</button>`
             : ""
         }
       </div>`;
@@ -268,7 +671,7 @@ function renderDirectoryBatch() {
     return;
   }
 
-  const isUniversalFiltered = directoryActiveFilters.size > 0;
+  const activeQuery = directoryActiveCleanQuery;
   let html = "";
   batch.forEach((data) => {
     const safeId = "dir-office-" + data.office.replace(/\W/g, "-");
@@ -279,11 +682,22 @@ function renderDirectoryBatch() {
         ? data.totalAddresses
         : shownCount;
 
-    const countLabel = isUniversalFiltered
-      ? `${shownCount} / ${totalCount} ${
-          totalCount === 1 ? "Address" : "Addresses"
-        }`
-      : `${shownCount} ${shownCount === 1 ? "Address" : "Addresses"}`;
+    const countLabel =
+      shownCount < totalCount
+        ? `${shownCount} / ${totalCount} ${
+            totalCount === 1 ? "Address" : "Addresses"
+          }`
+        : `${shownCount} ${shownCount === 1 ? "Address" : "Addresses"}`;
+
+    const officeTitleHtml =
+      activeQuery && data.officeMatches?.length
+        ? highlightText(data.office, data.officeMatches, "Office", activeQuery)
+        : escapeHTML(data.office);
+
+    const pinDisplayHtml =
+      activeQuery && data.pinMatches?.length
+        ? highlightText(data.pin, data.pinMatches, "Pin", activeQuery)
+        : escapeHTML(data.pin);
 
     html += `
         <div class="directory-card" id="${safeId}">
@@ -291,15 +705,15 @@ function renderDirectoryBatch() {
             <div class="directory-office-info">
               <div class="directory-office-title">
                 <span>🏢</span>
-                <span>${escapeHTML(data.office)}</span>
+                <span>${officeTitleHtml}</span>
               </div>
               <div class="directory-office-meta">
-                <span>📍 ${escapeHTML(data.pin)}</span>
+                <span>📍 ${pinDisplayHtml}</span>
                 <span class="meta-dot">•</span>
                 <span class="meta-count">${countLabel}</span>
               </div>
             </div>
-  
+
             <div class="directory-header-actions">
               <button
                 type="button"
@@ -329,7 +743,7 @@ function renderDirectoryBatch() {
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
               </button>
-  
+
               <button
                 type="button"
                 class="dir-quick-delete-btn"
@@ -365,6 +779,11 @@ function renderDirectoryBatch() {
           ? item.officeType
           : detectOfficeType(addressText);
 
+      const addressDisplayHtml =
+        activeQuery && item?.matches?.length
+          ? highlightText(addressText, item.matches, "Address", activeQuery)
+          : escapeHTML(addressText);
+
       if (officeType) {
         html += `<span class="directory-address-chip clickable-office-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
           recordId,
@@ -372,7 +791,7 @@ function renderDirectoryBatch() {
           officeName,
         )}" data-pin="${escapeHTML(
           pinVal || "",
-        )}" title="Tap for options">📮 ${escapeHTML(addressText)}${
+        )}" title="Tap for options">📮 ${addressDisplayHtml}${
           isPriority ? " ⚡" : ""
         }</span>`;
       } else if (isPriority) {
@@ -382,9 +801,7 @@ function renderDirectoryBatch() {
           officeName,
         )}" data-pin="${escapeHTML(
           pinVal || "",
-        )}" title="Priority Address (Shared) • Tap for options">⚡ ${escapeHTML(
-          addressText,
-        )}</span>`;
+        )}" title="Priority Address (Shared) • Tap for options">⚡ ${addressDisplayHtml}</span>`;
       } else {
         html += `<span class="directory-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
           recordId,
@@ -392,7 +809,7 @@ function renderDirectoryBatch() {
           officeName,
         )}" data-pin="${escapeHTML(
           pinVal || "",
-        )}" title="Tap for options">${escapeHTML(addressText)}</span>`;
+        )}" title="Tap for options">${addressDisplayHtml}</span>`;
       }
     });
 
@@ -459,7 +876,7 @@ function goToDirectoryOffice(officeName) {
   if (filterInput) {
     filterInput.value = target;
     toggleDirClearBtn();
-    filterDirectory();
+    filterDirectory(true, { saveHistory: false });
   }
 
   const cardId = "dir-office-" + target.replace(/\W/g, "-");
@@ -514,13 +931,28 @@ function renderDirectoryLink(
   )}')" title="Open ${escapeHTML(target)} in Directory">${innerHtml}</button>`;
 }
 
-function filterDirectory() {
-  applyDirectoryFilters({ preserveScroll: false, minPages: 1 });
+function filterDirectory(hidePanels = false, options = {}) {
+  clearTimeout(directorySearchDebounceTimer);
+  if (hidePanels) {
+    document
+      .getElementById("dir-advanced-filters-panel")
+      ?.classList.add("hidden");
+    document
+      .getElementById("dir-search-history-panel")
+      ?.classList.add("hidden");
+    closeAllDropdowns();
+  }
+  applyDirectoryFilters({
+    preserveScroll: false,
+    minPages: 1,
+    saveHistory: Boolean(options?.saveHistory),
+  });
 }
 
 function toggleDirClearBtn() {
   const input = document.getElementById("directory-filter-input");
   const clearBtn = document.getElementById("clear-dir-filter-btn");
+  if (!input || !clearBtn) return;
   if (input.value.length > 0) {
     clearBtn.classList.remove("hidden");
   } else {
@@ -529,11 +961,19 @@ function toggleDirClearBtn() {
 }
 
 function clearDirectoryFilter() {
+  clearTimeout(directorySearchDebounceTimer);
+  if (
+    typeof stopActiveVoiceSearch === "function" &&
+    document.getElementById("dir-mic-btn")?.classList.contains("listening")
+  ) {
+    stopActiveVoiceSearch();
+  }
+
   const input = document.getElementById("directory-filter-input");
-  input.value = "";
+  if (input) input.value = "";
   toggleDirClearBtn();
   filterDirectory();
-  input.focus();
+  input?.focus();
 }
 
 // --- FLOATING ACTION BAR (DIRECTORY CHIPS & SEARCH ITEMS) ---

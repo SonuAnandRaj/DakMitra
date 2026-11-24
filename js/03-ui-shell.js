@@ -923,6 +923,13 @@ const directoryHeroController = createCollapsibleHero(
   "directory-hero-collapse-wrap",
   () => {
     document.getElementById("directory-filter-input")?.blur();
+    document
+      .getElementById("dir-advanced-filters-panel")
+      ?.classList.add("hidden");
+    document
+      .getElementById("dir-search-history-panel")
+      ?.classList.add("hidden");
+    closeAllDropdowns();
   },
 );
 
@@ -1182,8 +1189,14 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       return;
     }
 
+    if (currentInput.id === "directory-filter-input") {
+      currentInput.blur();
+      if (typeof filterDirectory === "function")
+  filterDirectory(true, { saveHistory: true });
+      return;
+    }
+
     if (
-      currentInput.id === "directory-filter-input" ||
       currentInput.id === "members-filter-input" ||
       currentInput.id === "approvals-search-input"
     ) {

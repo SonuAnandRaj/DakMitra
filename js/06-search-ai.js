@@ -176,25 +176,38 @@ function clearAllSearchFilters() {
 // --- RECENT SEARCH HISTORY ---
 function loadSearchHistory() {
   const history = getSafeStorage(HISTORY_KEY);
-  const toggleBtn = document.getElementById("history-toggle-btn");
-  const chipsDiv = document.getElementById("search-history-chips");
+  const targets = [
+    {
+      toggleBtn: document.getElementById("history-toggle-btn"),
+      chipsDiv: document.getElementById("search-history-chips"),
+      handler: "applyHistorySearch",
+    },
+    {
+      toggleBtn: document.getElementById("dir-history-toggle-btn"),
+      chipsDiv: document.getElementById("dir-search-history-chips"),
+      handler: "applyDirectoryHistorySearch",
+    },
+  ];
 
-  if (history.length === 0) {
-    toggleBtn?.classList.add("hidden");
-    return;
-  }
+  targets.forEach(({ toggleBtn, chipsDiv, handler }) => {
+    if (history.length === 0) {
+      toggleBtn?.classList.add("hidden");
+      if (chipsDiv) chipsDiv.innerHTML = "";
+      return;
+    }
 
-  toggleBtn?.classList.remove("hidden");
-  if (chipsDiv) {
-    chipsDiv.innerHTML = history
-      .map(
-        (term) =>
-          `<button class="badge" style="cursor: pointer;" onclick="applyHistorySearch('${escapeForOnclick(
-            term,
-          )}')">${escapeHTML(term)}</button>`,
-      )
-      .join("");
-  }
+    toggleBtn?.classList.remove("hidden");
+    if (chipsDiv) {
+      chipsDiv.innerHTML = history
+        .map(
+          (term) =>
+            `<button type="button" class="badge" style="cursor: pointer;" onclick="${handler}('${escapeForOnclick(
+              term,
+            )}')">${escapeHTML(term)}</button>`,
+        )
+        .join("");
+    }
+  });
 }
 
 function toggleSearchHistory() {
@@ -301,24 +314,54 @@ function convertToHindiWords(numStr) {
   return numStr;
 }
 
-function startVoiceSearch() {
-  const micBtn = document.getElementById("mic-btn");
-  const searchInput = document.getElementById("search-input");
+let activeVoiceMeta = null;
+
+function stopActiveVoiceSearch() {
+  window.speechSynthesis.cancel();
+  if (window.activeRecognition) {
+    try {
+      window.activeRecognition.abort();
+    } catch (_) {}
+    window.activeRecognition = null;
+  }
+  if (activeVoiceMeta) {
+    const btn = document.getElementById(activeVoiceMeta.micBtnId);
+    const input = document.getElementById(activeVoiceMeta.inputId);
+    if (btn) {
+      btn.classList.remove("listening");
+      btn.style.color = "";
+    }
+    if (input && activeVoiceMeta.defaultPlaceholder) {
+      input.placeholder = activeVoiceMeta.defaultPlaceholder;
+    }
+    activeVoiceMeta = null;
+  }
+}
+
+function toggleVoiceInput({
+  micBtnId,
+  inputId,
+  clearBtnId,
+  defaultPlaceholder,
+  onTranscript,
+}) {
+  const micBtn = document.getElementById(micBtnId);
+  const inputEl = document.getElementById(inputId);
+  if (!micBtn || !inputEl) return;
 
   const isSpeaking =
     window.speechSynthesis.speaking || window.speechSynthesis.pending;
-  const isListening = !!window.activeRecognition;
+  const isListeningSame =
+    Boolean(window.activeRecognition) && activeVoiceMeta?.micBtnId === micBtnId;
 
-  if (isSpeaking || isListening) {
-    window.speechSynthesis.cancel();
-    if (isListening) {
-      window.activeRecognition.abort();
-      window.activeRecognition = null;
-    }
-    micBtn.classList.remove("listening");
-    micBtn.style.color = "";
-    searchInput.placeholder = "Type address, office, or Pin...";
+  if (isSpeaking || isListeningSame) {
+    stopActiveVoiceSearch();
     return;
+  }
+
+  // Stop any other mic instance before starting this one
+  if (window.activeRecognition) {
+    stopActiveVoiceSearch();
   }
 
   const SpeechRecognition =
@@ -330,27 +373,44 @@ function startVoiceSearch() {
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
   window.activeRecognition = recognition;
+  activeVoiceMeta = { micBtnId, inputId, defaultPlaceholder };
 
   recognition.onstart = () => {
     micBtn.classList.add("listening");
-    searchInput.placeholder = "Listening...";
-    searchInput.value = "";
+    inputEl.placeholder = "Listening...";
+    inputEl.value = "";
   };
   recognition.onresult = (event) => {
     if (event.results?.[0]?.[0]) {
-      searchInput.value = event.results[0][0].transcript.replace(/\.$/, "");
-      document.getElementById("clear-search-btn").classList.remove("hidden");
-      window.isVoiceSearch = true;
-      triggerSearch();
+      const transcript = event.results[0][0].transcript.replace(/\.$/, "");
+      inputEl.value = transcript;
+      document.getElementById(clearBtnId)?.classList.remove("hidden");
+      if (typeof onTranscript === "function") onTranscript(transcript);
     }
   };
   recognition.onend = () => {
     micBtn.classList.remove("listening");
     micBtn.style.color = "";
-    searchInput.placeholder = "Type address, office, or Pin...";
-    window.activeRecognition = null;
+    inputEl.placeholder = defaultPlaceholder;
+    if (window.activeRecognition === recognition) {
+      window.activeRecognition = null;
+      activeVoiceMeta = null;
+    }
   };
   recognition.start();
+}
+
+function startVoiceSearch() {
+  toggleVoiceInput({
+    micBtnId: "mic-btn",
+    inputId: "search-input",
+    clearBtnId: "clear-search-btn",
+    defaultPlaceholder: "Type address, office, or Pin...",
+    onTranscript: () => {
+      window.isVoiceSearch = true;
+      triggerSearch();
+    },
+  });
 }
 
 // --- CORE SEARCH EXECUTION & RENDERING ---
@@ -599,6 +659,153 @@ function mergeAndRankSearchResults(
 }
 
 // --- CORE SEARCH EXECUTION & RENDERING ---
+// Shared core search engine used by BOTH Search Page & Directory Page
+function runPostalSearchEngine({
+  rawInput = "",
+  filterVal = "all",
+  filterOffice = "",
+  filterPin = "",
+}) {
+  const trimmedInput = String(rawInput || "").trim();
+  const officeFilterLower = String(filterOffice || "")
+    .trim()
+    .toLowerCase();
+  const pinFilterLower = String(filterPin || "")
+    .trim()
+    .toLowerCase();
+
+  const { cleanQuery, detectedSuffix, targetOffice } = parseSmartSearchQuery(
+    trimmedInput,
+    filterVal,
+    officeFilterLower,
+    pinFilterLower,
+  );
+
+  const hasAnyCriteria = Boolean(
+    trimmedInput || officeFilterLower || pinFilterLower,
+  );
+
+  if (!hasAnyCriteria) {
+    const allSorted = (cachedPostOffices || [])
+      .map((item) => ({ item, matches: [] }))
+      .sort((a, b) => compareByPriorityOnly(a.item, b.item));
+    return {
+      results: allSorted,
+      cleanQuery: "",
+      detectedSuffix: null,
+      targetOffice: null,
+      isNumericSearch: false,
+      keysToSearch: ["Address", "Office", "Pin"],
+      hasAnyCriteria: false,
+    };
+  }
+
+  const searchDataset = targetOffice
+    ? (cachedPostOffices || []).filter(
+        (row) =>
+          String(row.Office || "")
+            .trim()
+            .toLowerCase() === targetOffice.toLowerCase(),
+      )
+    : cachedPostOffices || [];
+
+  let keysToSearch = ["Address", "Office", "Pin"];
+  if (filterVal === "address") keysToSearch = ["Address"];
+  if (filterVal === "office") keysToSearch = ["Office"];
+  if (filterVal === "pin") keysToSearch = ["Pin"];
+
+  let isNumericSearch = false;
+  let baseData = [];
+
+  if (!cleanQuery) {
+    baseData = searchDataset
+      .map((item) => ({ item, matches: [] }))
+      .sort((a, b) => compareByPriorityOnly(a.item, b.item));
+  } else {
+    isNumericSearch = /^\d+$/.test(cleanQuery);
+
+    if (window.Fuse) {
+      const localFuse = new Fuse(searchDataset, {
+        keys: keysToSearch,
+        threshold: isNumericSearch ? 0.0 : 0.3,
+        ignoreLocation: isNumericSearch ? true : false,
+        location: 0,
+        distance: 100,
+        includeMatches: true,
+        includeScore: true,
+        getFn: (obj, path) => {
+          const value = obj[path];
+          return value === null || value === undefined ? "" : String(value);
+        },
+      });
+      baseData = localFuse.search(cleanQuery);
+    } else {
+      // Safe fallback if Fuse CDN hasn't finished loading yet
+      const qLower = cleanQuery.toLowerCase();
+      baseData = [];
+      for (let i = 0; i < searchDataset.length; i++) {
+        const row = searchDataset[i];
+        const matches = [];
+        for (let k = 0; k < keysToSearch.length; k++) {
+          const key = keysToSearch[k];
+          const valStr = String(row[key] ?? "");
+          const idx = valStr.toLowerCase().indexOf(qLower);
+          if (idx !== -1) {
+            matches.push({ key, indices: [[idx, idx + qLower.length - 1]] });
+          }
+        }
+        if (matches.length > 0) {
+          baseData.push({ item: row, matches, score: 0.1 });
+        }
+      }
+    }
+
+    if (!isNumericSearch && filterVal !== "pin") {
+      baseData = mergeAndRankSearchResults(
+        baseData,
+        searchDataset,
+        cleanQuery,
+        keysToSearch,
+      );
+    } else {
+      baseData.sort((a, b) => compareByPriorityOnly(a.item, b.item));
+    }
+  }
+
+  if (officeFilterLower || pinFilterLower) {
+    baseData = baseData.filter((result) => {
+      const row = result.item;
+      if (
+        officeFilterLower &&
+        !String(row.Office || "")
+          .toLowerCase()
+          .includes(officeFilterLower)
+      ) {
+        return false;
+      }
+      if (
+        pinFilterLower &&
+        !String(row.Pin || "")
+          .toLowerCase()
+          .includes(pinFilterLower)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }
+
+  return {
+    results: baseData,
+    cleanQuery,
+    detectedSuffix,
+    targetOffice,
+    isNumericSearch,
+    keysToSearch,
+    hasAnyCriteria: true,
+  };
+}
+
 function triggerSearch(hidePanels = false, options = {}) {
   const silent = Boolean(options?.silent);
   const preserveLimit =
@@ -617,120 +824,26 @@ function triggerSearch(hidePanels = false, options = {}) {
   ).value;
   const searchBox = document.getElementById("search-input");
   if (searchBox) searchBox.inputMode = filterVal === "pin" ? "numeric" : "text";
-  const filterOffice = document
-    .getElementById("filter-office")
-    .value.trim()
-    .toLowerCase();
-  const filterPin = document
-    .getElementById("filter-pin")
-    .value.trim()
-    .toLowerCase();
+  const filterOffice = document.getElementById("filter-office").value.trim();
+  const filterPin = document.getElementById("filter-pin").value.trim();
 
-  const { cleanQuery, detectedSuffix, targetOffice } = parseSmartSearchQuery(
-    searchInput,
+  const outcome = runPostalSearchEngine({
+    rawInput: searchInput,
     filterVal,
     filterOffice,
     filterPin,
-  );
+  });
 
-  window.activeCleanSearchQuery = cleanQuery;
-  window.activeSmartOfficeFilter = targetOffice
-    ? { suffix: detectedSuffix, office: targetOffice }
+  window.activeCleanSearchQuery = outcome.cleanQuery;
+  window.activeSmartOfficeFilter = outcome.targetOffice
+    ? { suffix: outcome.detectedSuffix, office: outcome.targetOffice }
     : null;
 
   updateActiveFilterIndicators();
 
-  if (!searchInput && !filterOffice && !filterPin) {
-    currentFilteredData = cachedPostOffices
-      .map((item) => ({ item, matches: [] }))
-      .sort((a, b) => compareByPriorityOnly(a.item, b.item));
-    if (preserveLimit !== null) {
-      window.searchDisplayLimit = Math.max(
-        10,
-        Math.min(preserveLimit, currentFilteredData.length || 10),
-      );
-    }
-    renderResults(preserveLimit !== null, silent);
-    return;
-  }
-
   if (searchInput.length > 2) saveSearchTerm(searchInput);
 
-  const searchDataset = targetOffice
-    ? cachedPostOffices.filter(
-        (row) =>
-          String(row.Office || "")
-            .trim()
-            .toLowerCase() === targetOffice.toLowerCase(),
-      )
-    : cachedPostOffices;
-
-  let baseData = [];
-  if (!cleanQuery) {
-    baseData = searchDataset
-      .map((item) => ({ item, matches: [] }))
-      .sort((a, b) => compareByPriorityOnly(a.item, b.item));
-  } else {
-    let keysToSearch = ["Address", "Office", "Pin"];
-    if (filterVal === "address") keysToSearch = ["Address"];
-    if (filterVal === "office") keysToSearch = ["Office"];
-    if (filterVal === "pin") keysToSearch = ["Pin"];
-
-    let isNumericSearch = /^\d+$/.test(cleanQuery);
-    let activeThreshold = isNumericSearch ? 0.0 : 0.3;
-    let activeIgnoreLocation = isNumericSearch ? true : false;
-
-    fuse = new Fuse(searchDataset, {
-      keys: keysToSearch,
-      threshold: activeThreshold,
-      ignoreLocation: activeIgnoreLocation,
-      location: 0,
-      distance: 100,
-      includeMatches: true,
-      includeScore: true,
-      getFn: (obj, path) => {
-        const value = obj[path];
-        return value === null || value === undefined ? "" : String(value);
-      },
-    });
-
-    baseData = fuse.search(cleanQuery);
-
-    if (!isNumericSearch && filterVal !== "pin") {
-      baseData = mergeAndRankSearchResults(
-        baseData,
-        searchDataset,
-        cleanQuery,
-        keysToSearch,
-      );
-    } else {
-      baseData.sort((a, b) => compareByPriorityOnly(a.item, b.item));
-    }
-  }
-
-  if (filterOffice || filterPin) {
-    baseData = baseData.filter((result) => {
-      const row = result.item;
-      let keep = true;
-      if (
-        filterOffice &&
-        !String(row.Office || "")
-          .toLowerCase()
-          .includes(filterOffice)
-      )
-        keep = false;
-      if (
-        filterPin &&
-        !String(row.Pin || "")
-          .toLowerCase()
-          .includes(filterPin)
-      )
-        keep = false;
-      return keep;
-    });
-  }
-
-  currentFilteredData = baseData;
+  currentFilteredData = outcome.results;
   if (preserveLimit !== null) {
     window.searchDisplayLimit = Math.max(
       10,
@@ -910,7 +1023,7 @@ function computeSmartHighlightRanges(text, query) {
   return kept.length > 0 ? kept : ranges;
 }
 
-function highlightText(text, matches, key) {
+function highlightText(text, matches, key, queryOverride = null) {
   if (text === null || text === undefined) return "";
   text = String(text);
   const safeText = escapeHTML(text);
@@ -920,8 +1033,10 @@ function highlightText(text, matches, key) {
   if (!match) return safeText;
 
   const searchInput = (
-    window.activeCleanSearchQuery ||
-    document.getElementById("search-input").value
+    queryOverride !== null
+      ? String(queryOverride)
+      : window.activeCleanSearchQuery ||
+        document.getElementById("search-input").value
   ).trim();
 
   if (searchInput.length > 0) {

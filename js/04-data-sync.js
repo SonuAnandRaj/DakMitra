@@ -246,7 +246,10 @@ function initializeSearchAndRender(dataChanged = false) {
   }
 }
 
+let directoryGroupByKeyMap = new Map();
+
 function buildDirectoryGroupedData() {
+  directoryGroupByKeyMap.clear();
   if (!cachedPostOffices || cachedPostOffices.length === 0) {
     directoryGroupedData = [];
     return;
@@ -279,16 +282,20 @@ function buildDirectoryGroupedData() {
 
   directoryGroupedData = Object.values(grouped)
     .sort((a, b) => a.office.localeCompare(b.office))
-    .map((group) => ({
-      office: group.office,
-      pin: group.pin,
-      addresses: group.addresses.sort(
-        (a, b) =>
-          b.effectivePriority - a.effectivePriority ||
-          String(a.Address).localeCompare(String(b.Address)),
-      ),
-      searchString: (group.office + " " + group.pin).toLowerCase(),
-    }));
+    .map((group) => {
+      const built = {
+        office: group.office,
+        pin: group.pin,
+        addresses: group.addresses.sort(
+          (a, b) =>
+            b.effectivePriority - a.effectivePriority ||
+            String(a.Address).localeCompare(String(b.Address)),
+        ),
+        searchString: (group.office + " " + group.pin).toLowerCase(),
+      };
+      directoryGroupByKeyMap.set(group.office.toLowerCase(), built);
+      return built;
+    });
 }
 
 // --- UNIFIED REALTIME & LOCAL CACHE STORE ---

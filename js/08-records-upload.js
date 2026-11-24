@@ -910,6 +910,9 @@ function pickOfficeOption(itemEl, office, pin, mode) {
   } else if (mode === "search-filter") {
     selectSearchOfficeFilter(office);
     return;
+  } else if (mode === "dir-filter") {
+    selectDirectoryOfficeFilter(office);
+    return;
   }
   closeAllDropdowns();
 }
@@ -1121,6 +1124,54 @@ function selectSearchOfficeFilter(officeName) {
   triggerSearch();
 
   const searchInput = document.getElementById("search-input");
+  if (searchInput) searchInput.focus();
+}
+
+function handleDirectoryOfficeFilterInput(inputElement) {
+  cancelCloseDropdowns();
+  const val = inputElement.value;
+  const dropdown = document.getElementById("dir-filter-office-dropdown");
+  if (!dropdown) return;
+
+  toggleClearBtn("dir-filter-office", "clear-dir-office-btn");
+  filterDirectory();
+
+  const officeMap = getOfficePinMap();
+  let matchedOffices = Array.from(officeMap.keys());
+  if (val) {
+    const lowerVal = val.toLowerCase();
+    matchedOffices = matchedOffices.filter((o) =>
+      o.toLowerCase().includes(lowerVal),
+    );
+  }
+  matchedOffices.sort();
+
+  if (matchedOffices.length === 0) {
+    dropdown.classList.remove("show");
+  } else {
+    dropdown.innerHTML = matchedOffices
+      .slice(0, 10)
+      .map((office) =>
+        buildOfficeOptionHTML(office, officeMap.get(office), "dir-filter"),
+      )
+      .join("");
+    dropdown.classList.add("show");
+  }
+}
+
+function selectDirectoryOfficeFilter(officeName) {
+  const input = document.getElementById("dir-filter-office");
+  if (input) input.value = officeName;
+
+  toggleClearBtn("dir-filter-office", "clear-dir-office-btn");
+  closeAllDropdowns();
+  document
+    .getElementById("dir-advanced-filters-panel")
+    ?.classList.add("hidden");
+
+  filterDirectory();
+
+  const searchInput = document.getElementById("directory-filter-input");
   if (searchInput) searchInput.focus();
 }
 
