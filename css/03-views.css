@@ -3673,7 +3673,17 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
 }
 
-/* Update existing keyboard-open rule (also fixes duplicate #view-settings.active) */
+/* Lock dashboard outer scroll & remove bottom-nav padding while keyboard is open */
+body.keyboard-open:has(#dashboard-view:not(.hidden)) {
+  height: var(--vvh, 100dvh);
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.keyboard-open #dashboard-view main.container {
+  padding-bottom: 0;
+}
+
 body.keyboard-open #view-search.active,
 body.keyboard-open #view-approvals.active,
 body.keyboard-open #view-directory.active,
@@ -3682,7 +3692,7 @@ body.keyboard-open #view-feedback.active,
 body.keyboard-open #view-upload.active,
 body.keyboard-open #view-profile.active,
 body.keyboard-open #view-settings.active {
-  height: calc(var(--vvh, 100dvh) - 96px - env(safe-area-inset-top, 0px));
+  height: calc(var(--vvh, 100dvh) - 88px - env(safe-area-inset-top, 0px));
   min-height: 0;
 }
 

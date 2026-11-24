@@ -533,22 +533,36 @@ function switchDashboardView(viewId) {
     const rect = el.getBoundingClientRect();
 
     const insideModal = el.closest(".modal-overlay.show");
-    const safeTop = insideModal ? vvTop + 20 : vvTop + 76;
-    const safeBottom = vvTop + vvHeight - 72;
-
-    if (rect.top >= safeTop && rect.bottom <= safeBottom) return;
-
     const scrollParent =
-      el.closest(".staff-detail-list") || insideModal || null;
+      el.closest(
+        ".feedback-submit-panel, .staff-detail-list, .results-container-scroll, #view-upload, #view-profile, #view-settings",
+      ) ||
+      insideModal ||
+      null;
 
     if (scrollParent) {
       const parentRect = scrollParent.getBoundingClientRect();
-      const targetTop = rect.top - parentRect.top + scrollParent.scrollTop - 24;
+      const safeTop = Math.max(
+        insideModal ? vvTop + 20 : vvTop + 76,
+        parentRect.top + 8,
+      );
+      const safeBottom = Math.min(
+        vvTop + vvHeight - 20,
+        parentRect.bottom - 12,
+      );
+
+      if (rect.top >= safeTop && rect.bottom <= safeBottom) return;
+
+      const targetTop = rect.top - parentRect.top + scrollParent.scrollTop - 16;
       scrollParent.scrollTo({
         top: Math.max(0, targetTop),
         behavior: "smooth",
       });
     } else {
+      const safeTop = vvTop + 76;
+      const safeBottom = vvTop + vvHeight - 72;
+      if (rect.top >= safeTop && rect.bottom <= safeBottom) return;
+
       const desiredTop = vvTop + Math.min(110, vvHeight * 0.25);
       window.scrollBy({
         top: rect.top - desiredTop,
@@ -590,6 +604,14 @@ function switchDashboardView(viewId) {
     );
 
     document.body.classList.toggle("keyboard-open", isKeyboardOpen);
+
+    // Prevent Chrome from shifting the outer page up above the keyboard on dashboard views
+    const isDashboardVisible = !document
+      .getElementById("dashboard-view")
+      ?.classList.contains("hidden");
+    if (isDashboardVisible && window.scrollY > 0) {
+      window.scrollTo(0, 0);
+    }
 
     if (isKeyboardOpen) {
       requestAnimationFrame(() => ensureFocusedInputVisible(activeEl));
@@ -1244,6 +1266,14 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       return;
     }
 
+    if (currentInput.id === "fb-title") {
+      const descEl = document.getElementById("fb-description");
+      if (descEl) {
+        descEl.focus();
+        return;
+      }
+    }
+
     if (currentInput.id === "directory-filter-input") {
       currentInput.blur();
       if (typeof filterDirectory === "function")
@@ -1308,6 +1338,11 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       input.id === "approvals-search-input"
     ) {
       input.setAttribute("enterkeyhint", "search");
+      return;
+    }
+
+    if (input.id === "fb-title") {
+      input.setAttribute("enterkeyhint", "next");
       return;
     }
 
