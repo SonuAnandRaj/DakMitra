@@ -112,7 +112,8 @@
 .search-input-wrapper:focus-within {
   border-color: var(--primary);
   background: var(--card-bg);
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12),
+  box-shadow:
+    0 0 0 4px rgba(79, 70, 229, 0.12),
     0 8px 16px -4px rgba(79, 70, 229, 0.1);
   transform: translateY(-2px);
 }
@@ -416,7 +417,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease, background 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease;
 }
 
 .active-filter-pill button:hover {
@@ -435,7 +438,9 @@
   font-weight: 700;
   cursor: pointer;
   margin-left: auto;
-  transition: transform 0.15s ease, background 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease;
 }
 
 .clear-all-filters-pill:hover {
@@ -979,7 +984,8 @@ table.data-table .card-actions {
   left: 0;
   right: 0;
   height: 320px;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at 18% 12%,
       rgba(79, 70, 229, 0.13) 0%,
       transparent 55%
@@ -996,7 +1002,8 @@ table.data-table .card-actions {
 }
 
 [data-theme="dark"] #view-search::before {
-  background: radial-gradient(
+  background:
+    radial-gradient(
       circle at 18% 12%,
       rgba(129, 140, 248, 0.16) 0%,
       transparent 55%
@@ -1044,7 +1051,9 @@ table.data-table .card-actions {
   width: 4px;
   background: var(--dm-gradient-brand);
   opacity: 0.78;
-  transition: opacity 0.2s ease, width 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    width 0.2s ease;
 }
 
 #view-search li.list-item:hover::before,
@@ -1332,7 +1341,9 @@ table.data-table .card-actions {
   margin-bottom: 16px;
   padding: 16px;
   box-shadow: var(--shadow-sm);
-  transition: transform 0.25s var(--dm-ease-smooth), box-shadow 0.25s ease,
+  transition:
+    transform 0.25s var(--dm-ease-smooth),
+    box-shadow 0.25s ease,
     border-color 0.25s ease;
 }
 
@@ -1455,7 +1466,8 @@ table.data-table .card-actions {
   padding: 11px 10px 9px;
   z-index: 950;
   overflow: hidden;
-  box-shadow: 0 18px 36px -8px rgba(15, 23, 42, 0.18),
+  box-shadow:
+    0 18px 36px -8px rgba(15, 23, 42, 0.18),
     0 6px 14px -4px rgba(79, 70, 229, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(18px) saturate(160%);
@@ -1464,15 +1476,18 @@ table.data-table .card-actions {
   pointer-events: none;
   transform: scale(0.84) translateY(-8px);
   transform-origin: top center;
-  transition: opacity 0.2s ease,
+  transition:
+    opacity 0.2s ease,
     transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 [data-theme="dark"] .directory-floating-bar {
   background: rgba(17, 24, 39, 0.86);
   border-color: rgba(129, 140, 248, 0.28);
-  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.65),
-    0 0 0 1px rgba(129, 140, 248, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 20px 40px -8px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(129, 140, 248, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .directory-floating-bar.open {
@@ -1505,7 +1520,10 @@ table.data-table .card-actions {
   border-radius: 12px !important;
   padding: 7px 10px !important;
   font-weight: 700 !important;
-  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .directory-floating-bar.open .toolbar-btn {
@@ -1582,7 +1600,10 @@ table.data-table .card-actions {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease,
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease,
+    color 0.2s ease,
     border-color 0.2s ease;
 }
 
@@ -1777,7 +1798,10 @@ table.data-table .card-actions {
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.15s ease;
 }
 
 [data-theme="dark"] .quick-delete-tray-btn {
@@ -1869,7 +1893,10 @@ table.data-table .card-actions {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.15s ease;
 }
 
 [data-theme="dark"] .delete-selected-pill button {
@@ -2059,7 +2086,8 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
 
 [data-theme="dark"] .edit-modal-card {
   border-color: rgba(129, 140, 248, 0.24);
-  box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.7),
+  box-shadow:
+    0 24px 50px -12px rgba(0, 0, 0, 0.7),
     0 0 0 1px rgba(129, 140, 248, 0.12);
 }
 
@@ -2117,7 +2145,10 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.25s ease, background 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.25s ease,
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .edit-modal-close-btn:hover {
@@ -2203,7 +2234,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   animation: fadeIn 0.3s var(--dm-ease-smooth);
-  transition: transform 0.25s var(--dm-ease-smooth), box-shadow 0.25s ease;
+  transition:
+    transform 0.25s var(--dm-ease-smooth),
+    box-shadow 0.25s ease;
 }
 
 .approval-card::before {
@@ -2432,7 +2465,8 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.25s ease;
 }
 
@@ -2466,7 +2500,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   justify-content: center;
   cursor: pointer;
   box-shadow: var(--shadow-md);
-  transition: transform 0.2s, background 0.2s;
+  transition:
+    transform 0.2s,
+    background 0.2s;
 }
 
 .avatar-Upload-fab:hover {
@@ -2560,7 +2596,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   color: var(--text-light);
   pointer-events: none;
   z-index: 2;
-  transition: color 0.25s ease, transform 0.25s ease;
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease;
 }
 
 .profile-input-wrapper input,
@@ -2655,7 +2693,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: transform 0.3s ease, opacity 0.25s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.25s ease;
 }
 
 .btn-save-profile svg {
@@ -2789,7 +2829,8 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   align-items: center;
   justify-content: center;
   box-shadow: 0 14px 30px -8px rgba(79, 70, 229, 0.45);
-  animation: authBadgePop 0.55s var(--dm-ease-spring) both,
+  animation:
+    authBadgePop 0.55s var(--dm-ease-spring) both,
     authBadgeFloat 4.5s ease-in-out 0.6s infinite;
 }
 
@@ -3034,7 +3075,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   overflow: hidden;
   opacity: 0;
   transform: scale(0.98);
-  transition: opacity 0.24s ease, transform 0.28s var(--dm-ease-smooth);
+  transition:
+    opacity 0.24s ease,
+    transform 0.28s var(--dm-ease-smooth);
 }
 
 #crop-modal-overlay.show .crop-studio {
@@ -3126,11 +3169,8 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background-image: linear-gradient(
-      to right,
-      rgba(255, 255, 255, 0.28) 1px,
-      transparent 1px
-    ),
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.28) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.28) 1px, transparent 1px);
   background-size: 33.33% 33.33%;
   opacity: 0;
@@ -3153,14 +3193,17 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   border-radius: 22px;
   background: rgba(17, 24, 39, 0.84);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 18px 38px -12px rgba(0, 0, 0, 0.75),
+  box-shadow:
+    0 18px 38px -12px rgba(0, 0, 0, 0.75),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   overflow: hidden;
   opacity: 0;
   transform: translateY(14px) scale(0.96);
-  transition: transform 0.36s var(--dm-ease-spring), opacity 0.26s ease;
+  transition:
+    transform 0.36s var(--dm-ease-spring),
+    opacity 0.26s ease;
 }
 
 .crop-preview-dock::before {
@@ -3225,8 +3268,11 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   border: 1px solid transparent;
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  transition: background 0.22s ease, border-color 0.22s ease,
-    transform 0.2s var(--dm-ease-spring), color 0.2s ease;
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.2s var(--dm-ease-spring),
+    color 0.2s ease;
 }
 
 .crop-preview-item:active {
@@ -3246,7 +3292,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   border: 2px solid rgba(255, 255, 255, 0.22);
   box-shadow: 0 8px 18px -6px rgba(0, 0, 0, 0.65);
   flex-shrink: 0;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease,
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
     transform 0.25s var(--dm-ease-spring);
 }
 
@@ -3264,7 +3312,8 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
 
 .crop-preview-item.active .crop-preview-frame {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25),
+  box-shadow:
+    0 0 0 3px rgba(129, 140, 248, 0.25),
     0 8px 18px -6px rgba(79, 70, 229, 0.5);
   transform: scale(1.04);
 }
@@ -3315,7 +3364,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   padding: 10px 14px;
   border-radius: 12px;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 
 .crop-action-text:active {
@@ -3334,7 +3385,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .crop-rotate-btn:active {
@@ -3356,7 +3409,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   align-items: center;
   gap: 8px;
   box-shadow: 0 6px 18px -4px rgba(79, 70, 229, 0.6);
-  transition: transform 0.15s ease, opacity 0.2s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.2s ease;
 }
 
 .crop-save-pill:active {
@@ -3375,7 +3430,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   -webkit-backdrop-filter: blur(12px);
   padding: 0;
   z-index: 3400;
-  transition: opacity 0.25s ease, visibility 0.25s ease,
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease,
     background-color 0.15s ease;
 }
 
@@ -3401,7 +3458,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   justify-content: space-between;
   gap: 12px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
-  transition: opacity 0.22s ease, transform 0.22s ease;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
 }
 
 .lightbox-shell.ui-hidden .lightbox-topbar {
@@ -3439,7 +3498,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.18s var(--dm-ease-spring);
+  transition:
+    background 0.2s ease,
+    transform 0.18s var(--dm-ease-spring);
 }
 
 .lightbox-icon-btn:active {
@@ -3458,7 +3519,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   justify-content: center;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0));
   pointer-events: none;
-  transition: opacity 0.24s ease, transform 0.28s var(--dm-ease-smooth);
+  transition:
+    opacity 0.24s ease,
+    transform 0.28s var(--dm-ease-smooth);
 }
 
 .lightbox-shell.ui-hidden .lightbox-bottombar {
@@ -3475,13 +3538,16 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   border-radius: 999px;
   background: rgba(17, 24, 39, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.75),
+  box-shadow:
+    0 18px 40px -10px rgba(0, 0, 0, 0.75),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   transform: translateY(14px) scale(0.95);
   opacity: 0;
-  transition: transform 0.34s var(--dm-ease-spring), opacity 0.25s ease;
+  transition:
+    transform 0.34s var(--dm-ease-spring),
+    opacity 0.25s ease;
 }
 
 #avatar-lightbox-overlay.show .lightbox-action-dock {
@@ -3503,8 +3569,11 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   gap: 8px;
   white-space: nowrap;
   cursor: pointer;
-  transition: transform 0.18s var(--dm-ease-spring), background 0.2s ease,
-    box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.18s var(--dm-ease-spring),
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .lightbox-pill-btn svg {
@@ -3521,7 +3590,8 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   background: var(--dm-gradient-btn);
   background-size: 200% 200%;
   color: #ffffff;
-  box-shadow: 0 6px 18px -4px rgba(79, 70, 229, 0.65),
+  box-shadow:
+    0 6px 18px -4px rgba(79, 70, 229, 0.65),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
@@ -3560,7 +3630,9 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   justify-content: center;
   will-change: transform, opacity;
   transform: scale(0.88);
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
+  transition:
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.25s ease;
 }
 
 #avatar-lightbox-overlay.show .lightbox-media-wrap {
@@ -3623,7 +3695,6 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   max-height: calc(var(--vvh, 100dvh) - 210px);
 }
 
-
 /* =========================================================
    SHARED PRIORITY STYLES
    ========================================================= */
@@ -3659,8 +3730,12 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   justify-content: center;
   flex-shrink: 0;
   margin-top: -2px;
-  transition: transform 0.18s var(--dm-ease-spring), background 0.2s ease,
-    color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.18s var(--dm-ease-spring),
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .card-priority-btn:hover {
@@ -3706,7 +3781,10 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform 0.16s ease, background 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.16s ease,
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .table-priority-btn:active {
@@ -3740,7 +3818,10 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   background: rgba(245, 158, 11, 0.14);
   color: #d97706;
   border: 1px solid rgba(245, 158, 11, 0.32);
-  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease,
+  transition:
+    transform 0.15s ease,
+    background 0.2s ease,
+    color 0.2s ease,
     border-color 0.2s ease;
 }
 
@@ -3820,6 +3901,7 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   border: 1.5px solid var(--border);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  touch-action: manipulation;
 }
 
 .priority-select-chip:hover:not(:disabled) {
@@ -3922,183 +4004,183 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
    UNIVERSAL DIRECTORY FILTER BAR
    ========================================================= */
 
-   .dir-filter-bar {
-    flex-shrink: 0;
-    margin-bottom: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .dir-filter-chips {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 2px 2px 4px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  
-  .dir-filter-chips::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .dir-filter-chip {
-    flex-shrink: 0;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    padding: 7px 10px 7px 12px;
-    border-radius: 999px;
-    background: var(--card-bg);
-    color: var(--text-light);
-    border: 1.5px solid var(--border);
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: var(--shadow-sm);
-    transition:
-      transform 0.18s var(--dm-ease-spring),
-      background 0.2s ease,
-      color 0.2s ease,
-      border-color 0.2s ease,
-      box-shadow 0.2s ease;
-  }
-  
-  .dir-filter-chip:active {
-    transform: scale(0.94);
-  }
-  
-  .dir-chip-count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 22px;
-    height: 20px;
-    padding: 0 6px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 800;
-    background: var(--input-bg);
-    color: var(--text-light);
-    transition:
-      background 0.2s ease,
-      color 0.2s ease;
-  }
-  
-  /* Active: All */
-  .dir-filter-chip.active {
-    background: var(--primary);
-    color: #ffffff;
-    border-color: var(--primary);
-    box-shadow: 0 6px 14px -4px rgba(79, 70, 229, 0.45);
-  }
-  
-  .dir-filter-chip.active .dir-chip-count {
-    background: rgba(255, 255, 255, 0.22);
-    color: #ffffff;
-  }
-  
-  /* Active: Offices (BO / SO / HO) */
-  .dir-filter-chip.is-office.active {
-    background: rgba(79, 70, 229, 0.14);
-    color: var(--primary);
-    border-color: var(--primary);
-    box-shadow: 0 4px 12px -4px rgba(79, 70, 229, 0.35);
-  }
-  
-  [data-theme="dark"] .dir-filter-chip.is-office.active {
-    background: rgba(129, 140, 248, 0.2);
-  }
-  
-  .dir-filter-chip.is-office.active .dir-chip-count {
-    background: var(--primary);
-    color: #ffffff;
-  }
-  
-  /* Active: Priority */
-  .dir-filter-chip.is-priority.active {
-    background: rgba(245, 158, 11, 0.16);
-    color: #b45309;
-    border-color: #f59e0b;
-    box-shadow: 0 4px 12px -4px rgba(245, 158, 11, 0.35);
-  }
-  
-  [data-theme="dark"] .dir-filter-chip.is-priority.active {
-    background: rgba(251, 191, 36, 0.2);
-    color: #fbbf24;
-    border-color: #fbbf24;
-  }
-  
-  .dir-filter-chip.is-priority.active .dir-chip-count {
-    background: #f59e0b;
-    color: #ffffff;
-  }
-  
-  /* Active: Regular Villages */
-  .dir-filter-chip.is-regular.active {
-    background: rgba(16, 185, 129, 0.14);
-    color: #047857;
-    border-color: #10b981;
-    box-shadow: 0 4px 12px -4px rgba(16, 185, 129, 0.3);
-  }
-  
-  [data-theme="dark"] .dir-filter-chip.is-regular.active {
-    background: rgba(52, 211, 153, 0.18);
-    color: #34d399;
-    border-color: #34d399;
-  }
-  
-  .dir-filter-chip.is-regular.active .dir-chip-count {
-    background: #10b981;
-    color: #ffffff;
-  }
-  
-  /* Compact Active-Filter Summary Strip */
-  .dir-filter-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 6px 12px;
-    border-radius: 12px;
-    background: var(--card-bg);
-    border: 1px dashed var(--dm-border-tint);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-light);
-    animation: fadeInDown 0.22s ease;
-  }
-  
-  .dir-filter-reset-btn {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.25);
-    border-radius: 999px;
-    padding: 3px 10px;
-    font-size: 11.5px;
-    font-weight: 700;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition:
-      background 0.2s ease,
-      color 0.2s ease,
-      transform 0.15s ease;
-  }
-  
-  .dir-filter-reset-btn:hover {
-    background: #ef4444;
-    color: #ffffff;
-  }
-  
-  .dir-filter-reset-btn:active {
-    transform: scale(0.93);
-  }
+.dir-filter-bar {
+  flex-shrink: 0;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-  /* Clickable Office / PIN links inside Record History Modal */
+.dir-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.dir-filter-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.dir-filter-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px 7px 12px;
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--text-light);
+  border: 1.5px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 0.18s var(--dm-ease-spring),
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dir-filter-chip:active {
+  transform: scale(0.94);
+}
+
+.dir-chip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--input-bg);
+  color: var(--text-light);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+/* Active: All */
+.dir-filter-chip.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 6px 14px -4px rgba(79, 70, 229, 0.45);
+}
+
+.dir-filter-chip.active .dir-chip-count {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+/* Active: Offices (BO / SO / HO) */
+.dir-filter-chip.is-office.active {
+  background: rgba(79, 70, 229, 0.14);
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px -4px rgba(79, 70, 229, 0.35);
+}
+
+[data-theme="dark"] .dir-filter-chip.is-office.active {
+  background: rgba(129, 140, 248, 0.2);
+}
+
+.dir-filter-chip.is-office.active .dir-chip-count {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* Active: Priority */
+.dir-filter-chip.is-priority.active {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+  border-color: #f59e0b;
+  box-shadow: 0 4px 12px -4px rgba(245, 158, 11, 0.35);
+}
+
+[data-theme="dark"] .dir-filter-chip.is-priority.active {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border-color: #fbbf24;
+}
+
+.dir-filter-chip.is-priority.active .dir-chip-count {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+/* Active: Regular Villages */
+.dir-filter-chip.is-regular.active {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border-color: #10b981;
+  box-shadow: 0 4px 12px -4px rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="dark"] .dir-filter-chip.is-regular.active {
+  background: rgba(52, 211, 153, 0.18);
+  color: #34d399;
+  border-color: #34d399;
+}
+
+.dir-filter-chip.is-regular.active .dir-chip-count {
+  background: #10b981;
+  color: #ffffff;
+}
+
+/* Compact Active-Filter Summary Strip */
+.dir-filter-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px dashed var(--dm-border-tint);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  animation: fadeInDown 0.22s ease;
+}
+
+.dir-filter-reset-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.dir-filter-reset-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.dir-filter-reset-btn:active {
+  transform: scale(0.93);
+}
+
+/* Clickable Office / PIN links inside Record History Modal */
 .history-dir-link {
   display: inline;
   background: transparent;
@@ -4112,7 +4194,9 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   text-decoration-style: dotted;
   text-underline-offset: 3px;
   cursor: pointer;
-  transition: opacity 0.18s ease, color 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    color 0.18s ease;
 }
 
 .history-dir-link:hover,

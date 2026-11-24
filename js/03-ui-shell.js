@@ -79,7 +79,7 @@ function applyTheme(theme) {
     isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     document.documentElement.setAttribute(
       "data-theme",
-      isDark ? "dark" : "light"
+      isDark ? "dark" : "light",
     );
   } else {
     isDark = theme === "dark";
@@ -146,6 +146,11 @@ installBtn?.addEventListener("click", async () => {
   }
 });
 
+window.addEventListener("appinstalled", () => {
+  installBtn?.classList.add("hidden");
+  deferredPrompt = null;
+});
+
 // --- SIDEBAR & VIEW SWITCHING ---
 function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("open");
@@ -169,7 +174,7 @@ function resetOuterPageScroll(activeViewEl) {
     }
 
     const mainContainer = document.querySelector(
-      "#dashboard-view main.container"
+      "#dashboard-view main.container",
     );
     if (mainContainer) mainContainer.scrollTop = 0;
   };
@@ -350,7 +355,7 @@ function switchDashboardView(viewId) {
 
     try {
       const openModals = Array.from(
-        document.querySelectorAll(".modal-overlay.show")
+        document.querySelectorAll(".modal-overlay.show"),
       );
       if (openModals.length > 0) {
         const topModal = openModals[openModals.length - 1];
@@ -442,19 +447,19 @@ function switchDashboardView(viewId) {
 
       const currentViewId =
         viewOrder.find((v) =>
-          document.getElementById("view-" + v)?.classList.contains("active")
+          document.getElementById("view-" + v)?.classList.contains("active"),
         ) ||
         (document.getElementById("view-members")?.classList.contains("active")
           ? "members"
           : document
-              .getElementById("view-profile")
-              ?.classList.contains("active")
-          ? "profile"
-          : document
-              .getElementById("view-favorites")
-              ?.classList.contains("active")
-          ? "favorites"
-          : "search");
+                .getElementById("view-profile")
+                ?.classList.contains("active")
+            ? "profile"
+            : document
+                  .getElementById("view-favorites")
+                  ?.classList.contains("active")
+              ? "favorites"
+              : "search");
 
       if (
         currentViewId !== targetView &&
@@ -569,7 +574,7 @@ function switchDashboardView(viewId) {
     const kbHeight = Math.max(0, Math.round(baselineHeight - vvHeight));
     const fixedOffset = Math.max(
       0,
-      Math.round(window.innerHeight - vvHeight - vvTop)
+      Math.round(window.innerHeight - vvHeight - vvTop),
     );
     const isKeyboardOpen = activeIsEditable && kbHeight > 110;
 
@@ -578,7 +583,7 @@ function switchDashboardView(viewId) {
     root.style.setProperty("--kb-height", `${isKeyboardOpen ? kbHeight : 0}px`);
     root.style.setProperty(
       "--kb-fixed-offset",
-      `${isKeyboardOpen ? fixedOffset : 0}px`
+      `${isKeyboardOpen ? fixedOffset : 0}px`,
     );
 
     document.body.classList.toggle("keyboard-open", isKeyboardOpen);
@@ -617,7 +622,7 @@ function switchDashboardView(viewId) {
 
   function getTopActiveOverlay() {
     const active = Array.from(
-      document.querySelectorAll(".modal-overlay.show, .sidebar.open")
+      document.querySelectorAll(".modal-overlay.show, .sidebar.open"),
     );
     if (active.length === 0) return null;
 
@@ -632,7 +637,7 @@ function switchDashboardView(viewId) {
     const hasActiveOverlay = !!getTopActiveOverlay();
     document.documentElement.classList.toggle(
       "dm-scroll-locked",
-      hasActiveOverlay
+      hasActiveOverlay,
     );
     document.body.classList.toggle("dm-scroll-locked", hasActiveOverlay);
   }
@@ -670,7 +675,7 @@ function switchDashboardView(viewId) {
         touchStartY = e.touches[0].clientY;
       }
     },
-    { passive: true }
+    { passive: true },
   );
 
   document.addEventListener(
@@ -687,14 +692,17 @@ function switchDashboardView(viewId) {
         return;
       }
 
+      if (!e.touches || e.touches.length === 0) return;
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - touchStartY;
+      if (Math.abs(deltaY) < 8) return; // Allow normal taps without cancelling
+
       const scrollable = findScrollableAncestor(e.target, activeOverlay);
       if (!scrollable) {
         e.preventDefault();
         return;
       }
 
-      const currentY = e.touches[0].clientY;
-      const deltaY = currentY - touchStartY;
       const atTop = scrollable.scrollTop <= 0 && deltaY > 0;
       const atBottom =
         scrollable.scrollTop + scrollable.clientHeight >=
@@ -704,7 +712,7 @@ function switchDashboardView(viewId) {
         e.preventDefault();
       }
     },
-    { passive: false }
+    { passive: false },
   );
 
   document.addEventListener(
@@ -733,7 +741,7 @@ function switchDashboardView(viewId) {
         e.preventDefault();
       }
     },
-    { passive: false }
+    { passive: false },
   );
 })();
 
@@ -808,7 +816,7 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
       (e) => {
         pullStartY = e.touches[0].clientY;
       },
-      { passive: true }
+      { passive: true },
     );
 
     scrollEl.addEventListener(
@@ -822,7 +830,7 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
           setCollapsed(false);
         }
       },
-      { passive: true }
+      { passive: true },
     );
 
     scrollEl.addEventListener(
@@ -832,7 +840,7 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
           setCollapsed(false);
         }
       },
-      { passive: true }
+      { passive: true },
     );
 
     scrollEl.addEventListener(
@@ -882,7 +890,7 @@ function createCollapsibleHero(scrollElId, wrapElId, onCollapse = null) {
           }
         });
       },
-      { passive: true }
+      { passive: true },
     );
   }
 
@@ -897,12 +905,12 @@ const searchHeroController = createCollapsibleHero(
     document.getElementById("advanced-filters-panel")?.classList.add("hidden");
     document.getElementById("search-history-panel")?.classList.add("hidden");
     closeAllDropdowns();
-  }
+  },
 );
 
 const approvalsHeroController = createCollapsibleHero(
   "approvals-display-area",
-  "approvals-hero-collapse-wrap"
+  "approvals-hero-collapse-wrap",
 );
 
 const directoryHeroController = createCollapsibleHero(
@@ -910,7 +918,7 @@ const directoryHeroController = createCollapsibleHero(
   "directory-hero-collapse-wrap",
   () => {
     document.getElementById("directory-filter-input")?.blur();
-  }
+  },
 );
 
 const membersHeroController = createCollapsibleHero(
@@ -918,7 +926,7 @@ const membersHeroController = createCollapsibleHero(
   "members-hero-collapse-wrap",
   () => {
     document.getElementById("members-filter-input")?.blur();
-  }
+  },
 );
 
 function setSearchHeroCollapsed(shouldCollapse, instant = false) {
@@ -942,7 +950,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
 
     if (
       target.closest(
-        ".dir-filter-bar, .dir-filter-chips, .quick-delete-selected-chips, #top-profile-btn, input, textarea, select"
+        ".dir-filter-bar, .dir-filter-chips, .quick-delete-selected-chips, #top-profile-btn, input, textarea, select",
       )
     ) {
       return true;
@@ -975,7 +983,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       touchStartY = e.changedTouches[0].screenY;
       touchStartTime = performance.now();
     },
-    { passive: true }
+    { passive: true },
   );
 
   swipeArea.addEventListener(
@@ -983,7 +991,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     () => {
       ignoreSwipe = true;
     },
-    { passive: true }
+    { passive: true },
   );
 
   swipeArea.addEventListener(
@@ -1017,7 +1025,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       // Hard-swipe thresholds: long distance + brisk flick + straight horizontal line
       const MIN_SWIPE_DISTANCE = Math.max(
         135,
-        Math.round(window.innerWidth * 0.36)
+        Math.round(window.innerWidth * 0.36),
       );
       const MAX_SWIPE_DURATION = 420;
       const MIN_SWIPE_VELOCITY = 0.45;
@@ -1032,7 +1040,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
         absX > absY * HORIZONTAL_RATIO
       ) {
         const currentActiveId = viewOrder.find((view) =>
-          document.getElementById("view-" + view)?.classList.contains("active")
+          document.getElementById("view-" + view)?.classList.contains("active"),
         );
 
         let currentIndex = viewOrder.indexOf(currentActiveId);
@@ -1045,7 +1053,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
         }
       }
     },
-    { passive: true }
+    { passive: true },
   );
 })();
 
@@ -1065,7 +1073,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       startY = e.touches[0].clientY;
       dragTriggered = false;
     },
-    { passive: true }
+    { passive: true },
   );
 
   profileBtn.addEventListener(
@@ -1085,7 +1093,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
         startX = null;
       }
     },
-    { passive: true }
+    { passive: true },
   );
 
   profileBtn.addEventListener(
@@ -1105,7 +1113,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       }
       startX = null;
     },
-    { passive: true }
+    { passive: true },
   );
 
   let mouseDownX = null;
@@ -1183,9 +1191,9 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     const container = currentInput.closest(GROUP_CONTAINERS);
     if (container) {
       const visibleInputs = Array.from(
-        container.querySelectorAll(TEXT_INPUT_SELECTOR)
+        container.querySelectorAll(TEXT_INPUT_SELECTOR),
       ).filter(
-        (el) => el.offsetParent !== null && !el.disabled && !el.readOnly
+        (el) => el.offsetParent !== null && !el.disabled && !el.readOnly,
       );
 
       const currentIndex = visibleInputs.indexOf(currentInput);
@@ -1221,7 +1229,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     }
 
     const visibleInputs = Array.from(
-      container.querySelectorAll(TEXT_INPUT_SELECTOR)
+      container.querySelectorAll(TEXT_INPUT_SELECTOR),
     ).filter((el) => el.offsetParent !== null && !el.disabled && !el.readOnly);
 
     const isLast = visibleInputs.indexOf(input) === visibleInputs.length - 1;
