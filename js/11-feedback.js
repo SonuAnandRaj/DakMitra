@@ -135,10 +135,20 @@ function switchFeedbackTab(tab) {
   }
 
   if (feedbackCurrentTab === "submit") {
-    const submitPanel = document.getElementById("feedback-submit-panel");
-    if (submitPanel) submitPanel.scrollTop = 0;
+    if (
+      document.activeElement &&
+      typeof document.activeElement.blur === "function"
+    ) {
+      document.activeElement.blur();
+    }
     updateFeedbackDiagPreview();
-    setTimeout(() => document.getElementById("fb-title")?.focus(), 80);
+    const submitPanel = document.getElementById("feedback-submit-panel");
+    if (submitPanel) {
+      submitPanel.scrollTop = 0;
+      requestAnimationFrame(() => {
+        submitPanel.scrollTop = 0;
+      });
+    }
   } else {
     loadFeedbackBoardOrCache(false);
   }
