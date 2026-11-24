@@ -1108,16 +1108,18 @@
             id="approvals-hero-collapse-wrap"
           >
             <div class="search-hero-collapse-inner">
-              <div class="search-hero" style="text-align: center">
-                <h2 style="margin-bottom: 8px">Approvals</h2>
-                <p style="color: var(--text-light); font-size: 14px">
-                  Review proposed changes or check request history.
+              <div class="search-hero approvals-hero" style="text-align: center">
+                <h2 style="margin-bottom: 4px">Approvals</h2>
+                <p style="color: var(--text-light); font-size: 13.5px">
+                  Review proposed changes or search request history.
                 </p>
 
+                <!-- Pending / Resolved Tabs -->
                 <div
                   class="tabs"
                   style="
-                    margin-top: 20px;
+                    margin-top: 14px;
+                    margin-bottom: 14px;
                     border-bottom: 1px solid var(--border);
                     background: transparent;
                   "
@@ -1139,7 +1141,503 @@
                     Resolved
                   </button>
                 </div>
+
+                <!-- Approvals Search Bar + Filter Toggle -->
+                <div class="approvals-search-row">
+                  <div
+                    class="search-input-wrapper"
+                    id="approvals-search-wrapper"
+                  >
+                    <span style="margin-left: 8px; font-size: 15px">🔍</span>
+                    <input
+                      type="search"
+                      id="approvals-search-input"
+                      placeholder="Search address, office, PIN, or user..."
+                      oninput="handleApprovalsSearchInput(this)"
+                      autocomplete="off"
+                    />
+                    <button
+                      type="button"
+                      id="clear-approvals-search-btn"
+                      class="clear-btn hidden"
+                      onclick="clearApprovalsSearchInput()"
+                      title="Clear Search"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    id="approvals-filter-toggle-btn"
+                    class="advanced-filter-toggle approvals-filter-toggle-btn"
+                    onclick="toggleApprovalsFiltersPanel()"
+                  >
+                    ⚙️ Filters
+                  </button>
+                </div>
+
+                <!-- Active Removable Filter Pills -->
+                <div
+                  id="approvals-active-filters-bar"
+                  class="active-filters-bar hidden"
+                ></div>
+
+                <!-- Collapsible Advanced Filters Drawer -->
+                <div
+                  id="approvals-filters-panel"
+                  class="advanced-filters-panel approvals-filters-panel hidden"
+                >
+                  <!-- 1. Specific User + Role Scope -->
+                  <div class="appr-filter-section">
+                    <span class="appr-filter-label">User</span>
+                    <div class="autocomplete-wrapper">
+                      <div class="search-input-wrapper filter-wrapper">
+                        <span class="filter-icon">👤</span>
+                        <input
+                          type="search"
+                          id="appr-filter-user"
+                          placeholder="Filter by colleague name or Emp ID..."
+                          oninput="handleApprovalsUserInput(this)"
+                          onfocus="handleApprovalsUserInput(this)"
+                          onblur="scheduleCloseDropdowns(220)"
+                          autocomplete="off"
+                        />
+                        <button
+                          type="button"
+                          id="clear-appr-user-btn"
+                          class="clear-btn hidden"
+                          onpointerdown="event.preventDefault()"
+                          onclick="clearApprovalsUserFilter()"
+                          title="Clear User Filter"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div
+                        id="appr-filter-user-dropdown"
+                        class="autocomplete-dropdown"
+                      ></div>
+                    </div>
+
+                    <!-- Shown only when a specific user is selected -->
+                    <div
+                      id="appr-user-role-row"
+                      class="appr-pill-row hidden"
+                      style="margin-top: 8px"
+                    >
+                      <button
+                        type="button"
+                        class="appr-mini-pill active"
+                        data-user-role="requested"
+                        onclick="setApprovalsUserRole('requested')"
+                      >
+                        Requested By
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        id="appr-role-reviewed-btn"
+                        data-user-role="reviewed"
+                        onclick="setApprovalsUserRole('reviewed')"
+                      >
+                        Reviewed By
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-user-role="voted"
+                        onclick="setApprovalsUserRole('voted')"
+                      >
+                        Voted By
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-user-role="any"
+                        onclick="setApprovalsUserRole('any')"
+                      >
+                        Any Role
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 2. Date Filter -->
+                  <div class="appr-filter-section">
+                    <span class="appr-filter-label">Date</span>
+                    <div class="appr-pill-row" id="appr-date-presets">
+                      <button
+                        type="button"
+                        class="appr-mini-pill active"
+                        data-date-preset="any"
+                        onclick="setApprovalsDatePreset('any')"
+                      >
+                        Any Time
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-date-preset="today"
+                        onclick="setApprovalsDatePreset('today')"
+                      >
+                        Today
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-date-preset="yesterday"
+                        onclick="setApprovalsDatePreset('yesterday')"
+                      >
+                        Yesterday
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-date-preset="7d"
+                        onclick="setApprovalsDatePreset('7d')"
+                      >
+                        Last 7 Days
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-date-preset="month"
+                        onclick="setApprovalsDatePreset('month')"
+                      >
+                        This Month
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-date-preset="specific"
+                        onclick="setApprovalsDatePreset('specific')"
+                      >
+                        Specific Date
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-date-preset="range"
+                        onclick="setApprovalsDatePreset('range')"
+                      >
+                        Date Range
+                      </button>
+                    </div>
+
+                    <div
+                      id="appr-specific-date-wrap"
+                      class="appr-date-inputs hidden"
+                    >
+                      <div class="appr-date-field">
+                        <label for="appr-date-single">Select Date</label>
+                        <input
+                          type="date"
+                          id="appr-date-single"
+                          onchange="handleApprovalsDateInputChange()"
+                        />
+                      </div>
+                    </div>
+
+                    <div
+                      id="appr-range-date-wrap"
+                      class="appr-date-inputs hidden"
+                    >
+                      <div class="appr-date-field">
+                        <label for="appr-date-from">From</label>
+                        <input
+                          type="date"
+                          id="appr-date-from"
+                          onchange="handleApprovalsDateInputChange()"
+                        />
+                      </div>
+                      <div class="appr-date-field">
+                        <label for="appr-date-to">To</label>
+                        <input
+                          type="date"
+                          id="appr-date-to"
+                          onchange="handleApprovalsDateInputChange()"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 3. Office & PIN Filters -->
+                  <div class="appr-filter-section">
+                    <span class="appr-filter-label">Location</span>
+                    <div class="advanced-filters-inputs">
+                      <div
+                        class="autocomplete-wrapper"
+                        style="flex: 1; min-width: 0"
+                      >
+                        <div class="search-input-wrapper filter-wrapper">
+                          <span class="filter-icon">🏢</span>
+                          <input
+                            type="search"
+                            id="appr-filter-office"
+                            placeholder="Filter by Office..."
+                            oninput="handleApprovalsOfficeInput(this)"
+                            onfocus="handleApprovalsOfficeInput(this)"
+                            onblur="scheduleCloseDropdowns(220)"
+                            autocomplete="off"
+                          />
+                          <button
+                            type="button"
+                            id="clear-appr-office-btn"
+                            class="clear-btn hidden"
+                            onpointerdown="event.preventDefault()"
+                            onclick="clearApprovalsOfficeFilter()"
+                            title="Clear Office Filter"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <div
+                          id="appr-filter-office-dropdown"
+                          class="autocomplete-dropdown"
+                        ></div>
+                      </div>
+
+                      <div class="search-input-wrapper filter-wrapper">
+                        <span class="filter-icon">📍</span>
+                        <input
+                          type="search"
+                          id="appr-filter-pin"
+                          inputmode="numeric"
+                          placeholder="Filter by PIN..."
+                          oninput="handleApprovalsPinInput(this)"
+                          autocomplete="off"
+                        />
+                        <button
+                          type="button"
+                          id="clear-appr-pin-btn"
+                          class="clear-btn hidden"
+                          onclick="clearApprovalsPinFilter()"
+                          title="Clear PIN Filter"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 4a. Pending-Only: Vote Progress -->
+                  <div
+                    class="appr-filter-section"
+                    id="appr-vote-progress-section"
+                  >
+                    <span class="appr-filter-label">Vote Progress</span>
+                    <div class="appr-pill-row">
+                      <button
+                        type="button"
+                        class="appr-mini-pill active"
+                        data-vote-progress="all"
+                        onclick="setApprovalsVoteProgress('all')"
+                      >
+                        Any Votes
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-vote-progress="near_approval"
+                        onclick="setApprovalsVoteProgress('near_approval')"
+                      >
+                        🔥 Near Approval (3–4)
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-vote-progress="zero"
+                        onclick="setApprovalsVoteProgress('zero')"
+                      >
+                        0 Votes
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 4b. Resolved-Only: Resolution Source -->
+                  <div
+                    class="appr-filter-section hidden"
+                    id="appr-approval-source-section"
+                  >
+                    <span class="appr-filter-label">Approval Source</span>
+                    <div class="appr-pill-row">
+                      <button
+                        type="button"
+                        class="appr-mini-pill active"
+                        data-approval-source="all"
+                        onclick="setApprovalsApprovalSource('all')"
+                      >
+                        All Sources
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-approval-source="admin_approved"
+                        onclick="setApprovalsApprovalSource('admin_approved')"
+                      >
+                        🛡️ Admin Approved
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-approval-source="admin_direct"
+                        onclick="setApprovalsApprovalSource('admin_direct')"
+                      >
+                        ⚡ Admin Direct
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-approval-source="community"
+                        onclick="setApprovalsApprovalSource('community')"
+                      >
+                        👥 Community
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 5. Sort Order -->
+                  <div class="appr-filter-section" style="margin-bottom: 0">
+                    <span class="appr-filter-label">Sort By</span>
+                    <div class="appr-pill-row">
+                      <button
+                        type="button"
+                        class="appr-mini-pill active"
+                        data-appr-sort="newest"
+                        onclick="setApprovalsSort('newest')"
+                      >
+                        Newest First
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        data-appr-sort="oldest"
+                        onclick="setApprovalsSort('oldest')"
+                      >
+                        Oldest First
+                      </button>
+                      <button
+                        type="button"
+                        class="appr-mini-pill"
+                        id="appr-sort-votes-btn"
+                        data-appr-sort="most_votes"
+                        onclick="setApprovalsSort('most_votes')"
+                      >
+                        Most Votes
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Pinned Quick Filter Chips (Stays visible when hero collapses) -->
+          <div id="approvals-quick-filters" class="dir-filter-bar appr-quick-bar">
+            <div
+              class="dir-filter-chips"
+              role="group"
+              aria-label="Quick filter approvals"
+            >
+              <!-- Change Type Chips (Multi-Select) -->
+              <button
+                type="button"
+                id="appr-chip-all"
+                class="dir-filter-chip active"
+                onclick="toggleApprovalsActionChip('ALL')"
+              >
+                <span>All</span>
+              </button>
+              <button
+                type="button"
+                id="appr-chip-ADD"
+                class="dir-filter-chip is-regular"
+                onclick="toggleApprovalsActionChip('ADD')"
+              >
+                <span>➕ Add</span>
+              </button>
+              <button
+                type="button"
+                id="appr-chip-EDIT"
+                class="dir-filter-chip is-priority"
+                onclick="toggleApprovalsActionChip('EDIT')"
+              >
+                <span>✏️ Edit</span>
+              </button>
+              <button
+                type="button"
+                id="appr-chip-DELETE"
+                class="dir-filter-chip is-danger"
+                onclick="toggleApprovalsActionChip('DELETE')"
+              >
+                <span>🗑️ Delete</span>
+              </button>
+
+              <span class="appr-chip-divider" aria-hidden="true"></span>
+
+              <!-- Pending Contextual Chips -->
+              <button
+                type="button"
+                id="appr-chip-needs-vote"
+                class="dir-filter-chip is-office"
+                onclick="setApprovalsPendingScope('needs_my_vote')"
+              >
+                <span>🗳️ Needs My Vote</span>
+              </button>
+              <button
+                type="button"
+                id="appr-chip-my-pending"
+                class="dir-filter-chip is-office"
+                onclick="setApprovalsPendingScope('my_requests')"
+              >
+                <span>⏳ My Requests</span>
+              </button>
+              <button
+                type="button"
+                id="appr-chip-i-voted"
+                class="dir-filter-chip is-regular"
+                onclick="setApprovalsPendingScope('i_voted')"
+              >
+                <span>✓ I Voted</span>
+              </button>
+
+              <!-- Resolved Contextual Chips -->
+              <button
+                type="button"
+                id="appr-chip-approved"
+                class="dir-filter-chip is-regular hidden"
+                onclick="setApprovalsResolvedStatus('APPROVED')"
+              >
+                <span>✅ Approved</span>
+              </button>
+              <button
+                type="button"
+                id="appr-chip-rejected"
+                class="dir-filter-chip is-danger hidden"
+                onclick="setApprovalsResolvedStatus('REJECTED')"
+              >
+                <span>❌ Rejected</span>
+              </button>
+              <button
+                type="button"
+                id="appr-chip-my-resolved"
+                class="dir-filter-chip is-office hidden"
+                onclick="toggleApprovalsResolvedMine()"
+              >
+                <span>⏳ My Requests</span>
+              </button>
+            </div>
+
+            <!-- Live Match Count Summary Strip -->
+            <div id="approvals-filter-summary" class="dir-filter-summary hidden">
+              <span id="approvals-filter-summary-text"></span>
+              <button
+                type="button"
+                class="dir-filter-reset-btn"
+                onclick="resetApprovalsFilters()"
+              >
+                Reset
+              </button>
             </div>
           </div>
 

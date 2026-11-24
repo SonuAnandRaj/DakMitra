@@ -1296,18 +1296,32 @@ function renderUserProfileModalContent(profile, isOfflineBasic = false) {
        </div>`
     : "";
 
-  const statsHtml = isOfflineBasic
-    ? ""
-    : `<div class="member-stats-grid">
-         <div class="member-stat-pill">
-           <strong>${Number(profile.approved_requests_count || 0)}</strong>
-           <span>Approved Edits</span>
-         </div>
-         <div class="member-stat-pill">
-           <strong>${Number(profile.votes_cast_count || 0)}</strong>
-           <span>Votes Cast</span>
-         </div>
-       </div>`;
+    const safeUid = escapeForOnclick(profile.id || "");
+    const safeNameArg = escapeForOnclick(name);
+    const safeEmpArg = escapeForOnclick(profile.employee_id || "");
+  
+    const statsHtml = isOfflineBasic
+      ? ""
+      : `<div class="member-stats-grid">
+           <button
+             type="button"
+             class="member-stat-pill is-clickable"
+             onclick="openApprovalsForUser('${safeUid}', '${safeNameArg}', '${safeEmpArg}', 'resolved', 'requested')"
+             title="View ${escapeHTML(name)}'s resolved requests"
+           >
+             <strong>${Number(profile.approved_requests_count || 0)}</strong>
+             <span>Approved Edits</span>
+           </button>
+           <button
+             type="button"
+             class="member-stat-pill is-clickable"
+             onclick="openApprovalsForUser('${safeUid}', '${safeNameArg}', '${safeEmpArg}', 'resolved', 'voted')"
+             title="View requests ${escapeHTML(name)} voted on"
+           >
+             <strong>${Number(profile.votes_cast_count || 0)}</strong>
+             <span>Votes Cast</span>
+           </button>
+         </div>`;
 
   bodyEl.innerHTML = `
     <div class="user-modal-banner"></div>
@@ -1352,9 +1366,10 @@ function renderUserProfileModalContent(profile, isOfflineBasic = false) {
 
   if (actionsEl) {
     actionsEl.innerHTML = isSelf
-      ? `<button type="button" class="dm-btn dm-btn-secondary" style="flex: 0.45" onclick="closeUserProfileModal()">Close</button>
-         <button type="button" class="dm-btn dm-btn-primary" style="flex: 1" onclick="closeUserProfileModal(); switchDashboardView('profile');">Edit My Profile</button>`
-      : `<button type="button" class="dm-btn dm-btn-secondary dm-btn-full" onclick="closeUserProfileModal()">Close</button>`;
+      ? `<button type="button" class="dm-btn dm-btn-secondary" style="flex: 1" onclick="openApprovalsForUser('${safeUid}', '${safeNameArg}', '${safeEmpArg}', 'resolved', 'requested')">📋 My Approvals</button>
+         <button type="button" class="dm-btn dm-btn-primary" style="flex: 1" onclick="closeUserProfileModal(); switchDashboardView('profile');">Edit Profile</button>`
+      : `<button type="button" class="dm-btn dm-btn-secondary" style="flex: 0.42" onclick="closeUserProfileModal()">Close</button>
+         <button type="button" class="dm-btn dm-btn-primary" style="flex: 1" onclick="openApprovalsForUser('${safeUid}', '${safeNameArg}', '${safeEmpArg}', 'resolved', 'requested')">📋 View Approvals</button>`;
   }
 }
 

@@ -534,15 +534,28 @@ function initRealtimeSync() {
       "postgres_changes",
       { event: "*", schema: "public", table: "edit_requests" },
       () => {
-        invalidateApprovalsCache();
-        if (
-          document
-            .getElementById("view-approvals")
-            ?.classList.contains("active")
-        ) {
-          switchApprovalTab(currentApprovalTab, true);
+        if (typeof scheduleApprovalsRealtimeRefresh === "function") {
+          scheduleApprovalsRealtimeRefresh();
+        } else {
+          invalidateApprovalsCache();
+          if (
+            document
+              .getElementById("view-approvals")
+              ?.classList.contains("active")
+          ) {
+            switchApprovalTab(currentApprovalTab, true);
+          }
         }
-      }
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "request_approvals" },
+      () => {
+        if (typeof scheduleApprovalsRealtimeRefresh === "function") {
+          scheduleApprovalsRealtimeRefresh();
+        }
+      },
     )
     .subscribe((status) => {
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
