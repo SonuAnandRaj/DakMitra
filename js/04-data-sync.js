@@ -580,6 +580,24 @@ function initRealtimeSync() {
         }
       },
     )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "feedback_items" },
+      () => {
+        if (typeof scheduleFeedbackRealtimeRefresh === "function") {
+          scheduleFeedbackRealtimeRefresh();
+        }
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "feedback_votes" },
+      () => {
+        if (typeof scheduleFeedbackRealtimeRefresh === "function") {
+          scheduleFeedbackRealtimeRefresh();
+        }
+      },
+    )
     .subscribe((status) => {
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
         teardownRealtimeSync();
@@ -679,6 +697,20 @@ async function hydrateOnlineState(attempt = 1) {
     initRealtimeSync();
 
     invalidateApprovalsCache();
+
+    if (typeof invalidateFeedbackCache === "function") {
+      invalidateFeedbackCache();
+    }
+    if (typeof refreshFeedbackOpenCount === "function") {
+      refreshFeedbackOpenCount();
+    }
+    if (
+      document.getElementById("view-feedback")?.classList.contains("active") &&
+      typeof loadFeedbackBoardOrCache === "function"
+    ) {
+      loadFeedbackBoardOrCache(true);
+    }
+
     if (
       document.getElementById("view-approvals")?.classList.contains("active")
     ) {

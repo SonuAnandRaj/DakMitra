@@ -1,4 +1,4 @@
-const CACHE_NAME = "po-directory-v28";
+const CACHE_NAME = "po-directory-v29";
 
 const LOCAL_ASSETS = [
   "./",
@@ -20,6 +20,7 @@ const LOCAL_ASSETS = [
   "./js/07-directory-staff.js",
   "./js/08-records-upload.js",
   "./js/09-approvals-favs.js",
+  "./js/11-feedback.js",
   "./js/10-settings-boot.js",
 ];
 

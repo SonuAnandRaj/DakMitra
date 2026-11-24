@@ -188,6 +188,12 @@ function switchDashboardView(viewId) {
     closeAllDirectoryActionTrays();
   }
 
+  const prevActiveSection = document.querySelector(".view-section.active");
+  const prevViewId = prevActiveSection?.id?.replace(/^view-/, "");
+  if (prevViewId && prevViewId !== viewId && prevViewId !== "feedback") {
+    window.lastDashboardView = prevViewId;
+  }
+
   document
     .querySelectorAll(".view-section, .sidebar-menu-item, .bottom-nav-item")
     .forEach((el) => {
@@ -254,6 +260,9 @@ function switchDashboardView(viewId) {
   } else if (viewId === "members") {
     membersHeroController.setCollapsed(false, true);
     if (typeof renderMembersDirectory === "function") renderMembersDirectory();
+  } else if (viewId === "feedback") {
+    feedbackHeroController.setCollapsed(false, true);
+    if (typeof renderFeedbackView === "function") renderFeedbackView();
   }
 
   closeSidebar();
@@ -380,6 +389,11 @@ function switchDashboardView(viewId) {
         ) {
           closeQuickPriorityModal();
         } else if (
+          topModal.id === "feedback-admin-modal-overlay" &&
+          window.closeFeedbackAdminModal
+        ) {
+          closeFeedbackAdminModal();
+        } else if (
           topModal.id === "office-details-modal-overlay" &&
           window.closeOfficeDetailsModal
         ) {
@@ -446,20 +460,9 @@ function switchDashboardView(viewId) {
           : "search";
 
       const currentViewId =
-        viewOrder.find((v) =>
-          document.getElementById("view-" + v)?.classList.contains("active"),
-        ) ||
-        (document.getElementById("view-members")?.classList.contains("active")
-          ? "members"
-          : document
-                .getElementById("view-profile")
-                ?.classList.contains("active")
-            ? "profile"
-            : document
-                  .getElementById("view-favorites")
-                  ?.classList.contains("active")
-              ? "favorites"
-              : "search");
+        document
+          .querySelector(".view-section.active")
+          ?.id?.replace(/^view-/, "") || "search";
 
       if (
         currentViewId !== targetView &&
@@ -941,6 +944,14 @@ const membersHeroController = createCollapsibleHero(
   },
 );
 
+const feedbackHeroController = createCollapsibleHero(
+  "feedback-display-area",
+  "feedback-hero-collapse-wrap",
+  () => {
+    document.getElementById("feedback-search-input")?.blur();
+  },
+);
+
 function setSearchHeroCollapsed(shouldCollapse, instant = false) {
   searchHeroController.setCollapsed(shouldCollapse, instant);
 }
@@ -1198,7 +1209,8 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
 
     if (
       currentInput.id === "members-filter-input" ||
-      currentInput.id === "approvals-search-input"
+      currentInput.id === "approvals-search-input" ||
+      currentInput.id === "feedback-search-input"
     ) {
       currentInput.blur();
       if (
@@ -1206,6 +1218,11 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
         typeof applyApprovalsFilters === "function"
       ) {
         applyApprovalsFilters(true);
+      } else if (
+        currentInput.id === "feedback-search-input" &&
+        typeof applyFeedbackFilters === "function"
+      ) {
+        applyFeedbackFilters();
       }
       return;
     }
@@ -1243,6 +1260,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       input.id === "search-input" ||
       input.id === "directory-filter-input" ||
       input.id === "members-filter-input" ||
+      input.id === "feedback-search-input" ||
       input.id === "approvals-search-input"
     ) {
       input.setAttribute("enterkeyhint", "search");

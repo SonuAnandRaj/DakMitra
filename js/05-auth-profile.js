@@ -174,6 +174,12 @@ async function signOutApp() {
   await supabaseClient.auth.signOut();
   localStorage.removeItem("dakmitra_cached_profile");
   localStorage.removeItem("dakmitra_members_cache");
+  localStorage.removeItem("dakmitra_feedback_cache");
+  localStorage.removeItem("dakmitra_feedback_draft");
+  if (typeof invalidateFeedbackCache === "function") invalidateFeedbackCache();
+  if (typeof updateSidebarFeedbackBadge === "function") {
+    updateSidebarFeedbackBadge(0);
+  }
   if (typeof userProfileCache !== "undefined") userProfileCache.clear();
   closeSidebar();
   checkUserSession();
@@ -838,6 +844,10 @@ function openProfilePhotoModal(customOptions = null) {
 
   overlay.style.backgroundColor = "";
   frame.style.transform = "";
+  frame?.classList.toggle(
+    "is-screenshot",
+    Boolean(customOptions && customOptions.isScreenshot),
+  );
   overlay.classList.add("show");
 }
 
@@ -848,6 +858,7 @@ function closeProfilePhotoModal() {
   setTimeout(() => {
     if (overlay) overlay.style.backgroundColor = "";
     if (frame) frame.style.transform = "";
+    frame?.classList.remove("is-screenshot");
     lbState.scale = 1;
     lbState.tx = 0;
     lbState.ty = 0;

@@ -32,6 +32,10 @@ function clearAppCache() {
       localStorage.removeItem("dakmitra_default_view");
       localStorage.removeItem("dakmitra_offline_db");
       localStorage.removeItem("dakmitra_members_cache");
+      localStorage.removeItem("dakmitra_feedback_cache");
+      if (typeof invalidateFeedbackCache === "function") {
+        invalidateFeedbackCache();
+      }
       showToast("🧹 Cache cleared successfully!");
       loadSearchHistory();
       invalidateApprovalsCache();
@@ -349,6 +353,9 @@ async function checkUserSession() {
       });
 
       initRealtimeSync();
+      if (typeof refreshFeedbackOpenCount === "function") {
+        refreshFeedbackOpenCount();
+      }
     }
 
     fetchAllPostOffices();

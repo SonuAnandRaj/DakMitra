@@ -691,6 +691,35 @@
             <span>Help & Guide</span>
           </button>
 
+          <!-- REPORT & SUGGEST BUTTON -->
+          <button
+            class="sidebar-menu-item"
+            id="nav-feedback"
+            onclick="switchDashboardView('feedback')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+              ></path>
+              <line x1="9" y1="10" x2="15" y2="10"></line>
+              <line x1="12" y1="7" x2="12" y2="13"></line>
+            </svg>
+            <span>Report & Suggest</span>
+            <span
+              id="sidebar-feedback-badge"
+              class="sidebar-count-pill hidden"
+              title="Open tickets"
+              >0</span
+            >
+          </button>
+
           <hr style="border-top: 1px solid var(--border); margin: 8px 0" />
 
           <button
@@ -3036,6 +3065,483 @@
             </div>
           </div>
         </section>
+
+        <!-- REPORT & SUGGEST VIEW -->
+        <section id="view-feedback" class="view-section">
+          <div
+            class="search-hero-collapse-wrap"
+            id="feedback-hero-collapse-wrap"
+          >
+            <div class="search-hero-collapse-inner">
+              <div
+                class="search-hero approvals-hero"
+                style="text-align: center"
+              >
+                <h2 style="margin-bottom: 4px">Report & Suggest</h2>
+                <p style="color: var(--text-light); font-size: 13.5px">
+                  Report a bug, suggest a feature, or vote on colleagues' ideas.
+                </p>
+
+                <!-- Board / New Submission Tabs -->
+                <div
+                  class="tabs"
+                  style="
+                    margin-top: 14px;
+                    margin-bottom: 12px;
+                    border-bottom: 1px solid var(--border);
+                    background: transparent;
+                  "
+                >
+                  <button
+                    type="button"
+                    class="tab-btn active"
+                    id="tab-fb-board"
+                    onclick="switchFeedbackTab('board')"
+                  >
+                    Community Board
+                  </button>
+                  <button
+                    type="button"
+                    class="tab-btn"
+                    id="tab-fb-submit"
+                    onclick="switchFeedbackTab('submit')"
+                  >
+                    ➕ New Submission
+                  </button>
+                </div>
+
+                <!-- Search & Sort Row (Visible only on Board tab) -->
+                <div id="feedback-board-hero-controls">
+                  <div class="approvals-search-row">
+                    <div
+                      class="search-input-wrapper"
+                      id="feedback-search-wrapper"
+                    >
+                      <span style="margin-left: 8px; font-size: 15px">🔍</span>
+                      <input
+                        type="search"
+                        id="feedback-search-input"
+                        placeholder="Search bugs, ideas, or user..."
+                        oninput="handleFeedbackSearchInput(this)"
+                        autocomplete="off"
+                      />
+                      <button
+                        type="button"
+                        id="clear-feedback-search-btn"
+                        class="clear-btn hidden"
+                        onclick="clearFeedbackSearchInput()"
+                        title="Clear Search"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      id="feedback-sort-toggle-btn"
+                      class="advanced-filter-toggle approvals-filter-toggle-btn"
+                      onclick="cycleFeedbackSort()"
+                      title="Change sort order"
+                    >
+                      🕒 Newest
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 1: COMMUNITY BOARD -->
+          <div id="feedback-board-panel" class="feedback-board-panel">
+            <!-- Pinned Quick Filter Chips -->
+            <div class="dir-filter-bar appr-quick-bar">
+              <div
+                class="dir-filter-chips"
+                role="group"
+                aria-label="Filter feedback submissions"
+              >
+                <button
+                  type="button"
+                  id="fb-chip-all"
+                  class="dir-filter-chip active"
+                  onclick="setFeedbackTypeFilter('ALL')"
+                >
+                  <span>All</span>
+                </button>
+                <button
+                  type="button"
+                  id="fb-chip-BUG"
+                  class="dir-filter-chip is-danger"
+                  onclick="setFeedbackTypeFilter('BUG')"
+                >
+                  <span>🐛 Bugs</span>
+                </button>
+                <button
+                  type="button"
+                  id="fb-chip-FEATURE"
+                  class="dir-filter-chip is-priority"
+                  onclick="setFeedbackTypeFilter('FEATURE')"
+                >
+                  <span>💡 Features</span>
+                </button>
+
+                <span class="appr-chip-divider" aria-hidden="true"></span>
+
+                <button
+                  type="button"
+                  id="fb-chip-status-ACTIVE"
+                  class="dir-filter-chip is-office"
+                  onclick="setFeedbackStatusFilter('ACTIVE')"
+                >
+                  <span>⏳ Open</span>
+                </button>
+                <button
+                  type="button"
+                  id="fb-chip-status-DONE"
+                  class="dir-filter-chip is-regular"
+                  onclick="setFeedbackStatusFilter('DONE')"
+                >
+                  <span>✅ Resolved</span>
+                </button>
+                <button
+                  type="button"
+                  id="fb-chip-mine"
+                  class="dir-filter-chip is-office"
+                  onclick="toggleFeedbackOnlyMine()"
+                >
+                  <span>👤 Mine</span>
+                </button>
+              </div>
+
+              <div
+                id="feedback-filter-summary"
+                class="dir-filter-summary hidden"
+              >
+                <span id="feedback-filter-summary-text"></span>
+                <button
+                  type="button"
+                  class="dir-filter-reset-btn"
+                  onclick="resetFeedbackFilters()"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            <div
+              class="results-container-scroll expanded"
+              id="feedback-display-area"
+            >
+              <div id="feedback-content" style="padding: 6px"></div>
+              <div
+                id="feedback-sentinel"
+                style="
+                  min-height: 54px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  padding: 10px;
+                "
+              ></div>
+            </div>
+          </div>
+
+          <!-- TAB 2: NEW SUBMISSION FORM -->
+          <div id="feedback-submit-panel" class="feedback-submit-panel hidden">
+            <!-- Data-Correction Deflection Banner -->
+            <div class="feedback-tip-banner">
+              <div style="flex: 1; min-width: 0">
+                <strong>Need to fix a wrong PIN or add a village?</strong>
+                <span
+                  >Use Edit or Upload Data so it goes to Approvals
+                  directly.</span
+                >
+              </div>
+              <button
+                type="button"
+                class="dm-btn dm-btn-secondary dm-btn-sm"
+                onclick="switchDashboardView('upload')"
+              >
+                Upload Data
+              </button>
+            </div>
+
+            <div
+              class="upload-card dm-surface"
+              style="text-align: left; padding: 22px 20px"
+            >
+              <!-- Bug vs Feature Segmented Switch -->
+              <div
+                class="auth-segmented-tabs"
+                id="fb-type-segmented"
+                style="margin-bottom: 18px"
+              >
+                <div class="auth-tab-slider" aria-hidden="true"></div>
+                <button
+                  type="button"
+                  class="tab-btn active"
+                  id="fb-type-bug"
+                  onclick="setFeedbackFormType('BUG')"
+                >
+                  🐛 Report Bug
+                </button>
+                <button
+                  type="button"
+                  class="tab-btn"
+                  id="fb-type-feature"
+                  onclick="setFeedbackFormType('FEATURE')"
+                >
+                  💡 Suggest Feature
+                </button>
+              </div>
+
+              <!-- App Area -->
+              <div class="input-group" style="margin-bottom: 16px">
+                <label for="fb-category">App Area</label>
+                <div class="profile-input-wrapper">
+                  <svg
+                    class="field-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                  </svg>
+                  <select id="fb-category" onchange="saveFeedbackDraft()">
+                    <option value="Search & Filters">Search & Filters</option>
+                    <option value="Voice & AI Search">Voice & AI Search</option>
+                    <option value="Directory & Staff">Directory & Staff</option>
+                    <option value="Approvals">Approvals</option>
+                    <option value="Upload Data">Upload Data</option>
+                    <option value="Employees & Profile">
+                      Employees & Profile
+                    </option>
+                    <option value="Offline & Sync">Offline & Sync</option>
+                    <option value="UI / Theme">UI / Theme</option>
+                    <option value="General">General / Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Impact / Severity (Bugs Only) -->
+              <div
+                id="fb-severity-group"
+                class="input-group"
+                style="margin-bottom: 16px"
+              >
+                <label>Impact Level</label>
+                <div class="appr-pill-row">
+                  <button
+                    type="button"
+                    class="appr-mini-pill"
+                    data-fb-severity="LOW"
+                    onclick="setFeedbackSeverity('LOW')"
+                  >
+                    Minor
+                  </button>
+                  <button
+                    type="button"
+                    class="appr-mini-pill active"
+                    data-fb-severity="MEDIUM"
+                    onclick="setFeedbackSeverity('MEDIUM')"
+                  >
+                    Moderate
+                  </button>
+                  <button
+                    type="button"
+                    class="appr-mini-pill"
+                    data-fb-severity="HIGH"
+                    onclick="setFeedbackSeverity('HIGH')"
+                  >
+                    🔥 Blocks Work
+                  </button>
+                </div>
+              </div>
+
+              <!-- Title -->
+              <div class="input-group" style="margin-bottom: 16px">
+                <label for="fb-title">Short Title</label>
+                <input
+                  type="text"
+                  id="fb-title"
+                  maxlength="140"
+                  placeholder="e.g. Voice search cuts off on PIN codes"
+                  oninput="saveFeedbackDraft()"
+                  autocomplete="off"
+                />
+              </div>
+
+              <!-- Description -->
+              <div class="input-group" style="margin-bottom: 16px">
+                <div
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                  "
+                >
+                  <label for="fb-description">Details</label>
+                  <span
+                    id="fb-desc-count"
+                    style="font-size: 11px; color: var(--text-light)"
+                    >0 / 2000</span
+                  >
+                </div>
+                <textarea
+                  id="fb-description"
+                  class="bulk-textarea"
+                  maxlength="2000"
+                  style="min-height: 115px"
+                  placeholder="What happened vs. what you expected? Include steps to reproduce."
+                  oninput="handleFeedbackDescInput()"
+                ></textarea>
+              </div>
+
+              <!-- Optional Screenshot -->
+              <div class="input-group" style="margin-bottom: 16px">
+                <label>Screenshot (Optional)</label>
+                <input
+                  type="file"
+                  id="fb-screenshot-input"
+                  accept="image/*"
+                  class="hidden"
+                  onchange="handleFeedbackScreenshotPick(event)"
+                />
+
+                <button
+                  type="button"
+                  id="fb-screenshot-picker-btn"
+                  class="feedback-upload-dropzone"
+                  onclick="
+                    document.getElementById('fb-screenshot-input').click()
+                  "
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.1"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <rect
+                      x="3"
+                      y="3"
+                      width="18"
+                      height="18"
+                      rx="2"
+                      ry="2"
+                    ></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  <span>Attach a Screenshot (Auto-compressed)</span>
+                </button>
+
+                <div
+                  id="fb-screenshot-preview-wrap"
+                  class="feedback-preview-row hidden"
+                >
+                  <img
+                    id="fb-screenshot-preview-img"
+                    src=""
+                    alt="Screenshot preview"
+                    onclick="previewPendingFeedbackScreenshot()"
+                    title="Tap to view full screenshot"
+                  />
+                  <div style="flex: 1; min-width: 0">
+                    <strong
+                      id="fb-screenshot-name"
+                      style="
+                        display: block;
+                        font-size: 13px;
+                        color: var(--text);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                      "
+                      >screenshot.jpg</strong
+                    >
+                    <span
+                      id="fb-screenshot-meta"
+                      style="font-size: 11.5px; color: var(--text-light)"
+                      >Compressed</span
+                    >
+                  </div>
+                  <button
+                    type="button"
+                    class="dm-close-btn"
+                    onclick="clearFeedbackScreenshot()"
+                    title="Remove screenshot"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <!-- Auto Diagnostics Toggle (Bugs Only) -->
+              <div id="fb-diag-row" class="dm-toggle-row">
+                <div style="min-width: 0">
+                  <strong
+                    style="
+                      display: block;
+                      font-size: 13.5px;
+                      color: var(--text);
+                    "
+                  >
+                    Include App Diagnostics
+                  </strong>
+                  <span
+                    id="fb-diag-preview"
+                    style="font-size: 11.5px; color: var(--text-light)"
+                  >
+                    Version, theme, screen size & last page (visible to Admins
+                    only)
+                  </span>
+                </div>
+                <label
+                  class="dm-toggle-switch"
+                  title="Attach device diagnostics"
+                >
+                  <input type="checkbox" id="fb-include-diag" checked />
+                  <span class="dm-toggle-slider"></span>
+                </label>
+              </div>
+
+              <!-- Submit Button -->
+              <button
+                type="button"
+                id="fb-submit-btn"
+                class="btn-save-profile"
+                onclick="submitFeedbackForm()"
+              >
+                <span class="btn-content" id="fb-submit-btn-content">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                  <span>Submit Bug Report</span>
+                </span>
+              </button>
+            </div>
+          </div>
+        </section>
+
         <!-- BOTTOM NAVIGATION BAR -->
         <nav class="bottom-nav">
           <!--<button
@@ -4016,6 +4522,130 @@
       </div>
     </div>
 
+    <!-- ADMIN FEEDBACK TRIAGE & OFFICIAL RESPONSE MODAL -->
+    <div
+      id="feedback-admin-modal-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeFeedbackAdminModal();"
+    >
+      <div class="modal-card edit-modal-card">
+        <div class="edit-modal-header">
+          <div class="edit-modal-header-left">
+            <div class="edit-modal-icon">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+            <div style="min-width: 0">
+              <h3 class="modal-title" style="margin: 0; font-size: 19px">
+                Manage Submission
+              </h3>
+              <span
+                id="fb-admin-modal-subtitle"
+                style="
+                  font-size: 12px;
+                  color: var(--text-light);
+                  font-weight: 600;
+                "
+              >
+                Update status & official response
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="edit-modal-close-btn"
+            onclick="closeFeedbackAdminModal()"
+            title="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="input-group edit-modal-field" style="margin-bottom: 14px">
+          <label for="fb-admin-status">Status</label>
+          <select id="fb-admin-status">
+            <option value="OPEN">🟡 Open</option>
+            <option value="REVIEWING">🔍 Reviewing</option>
+            <option value="PLANNED">🗓️ Planned</option>
+            <option value="IN_PROGRESS">🛠️ In Progress</option>
+            <option value="RESOLVED">✅ Resolved</option>
+            <option value="DECLINED">⛔ Declined</option>
+          </select>
+        </div>
+
+        <div class="input-group edit-modal-field" style="margin-bottom: 14px">
+          <label for="fb-admin-version"
+            >Target / Fixed Version (Optional)</label
+          >
+          <input
+            type="text"
+            id="fb-admin-version"
+            placeholder="e.g. v1.0.6"
+            maxlength="24"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="input-group edit-modal-field" style="margin-bottom: 12px">
+          <label for="fb-admin-response"
+            >Official Admin / Developer Response</label
+          >
+          <textarea
+            id="fb-admin-response"
+            class="bulk-textarea"
+            style="min-height: 95px"
+            maxlength="1500"
+            placeholder="Share a clear status update or fix note for colleagues..."
+          ></textarea>
+        </div>
+
+        <div
+          id="fb-admin-diag-box"
+          class="feedback-diag-box edit-modal-field hidden"
+        ></div>
+
+        <div class="edit-modal-actions">
+          <button
+            type="button"
+            class="btn modal-btn-cancel"
+            onclick="closeFeedbackAdminModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="fb-admin-save-btn"
+            class="btn-save-profile"
+            onclick="saveFeedbackAdminUpdate()"
+          >
+            <span class="btn-content" id="fb-admin-save-btn-content">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Save Update</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- CUSTOM ALERT MODAL -->
     <div id="alert-modal-overlay" class="modal-overlay">
       <div class="modal-card" style="padding: 28px 24px 24px">
@@ -4316,6 +4946,7 @@
     <script defer src="js/07-directory-staff.js"></script>
     <script defer src="js/08-records-upload.js"></script>
     <script defer src="js/09-approvals-favs.js"></script>
+    <script defer src="js/11-feedback.js"></script>
     <script defer src="js/10-settings-boot.js"></script>
   </body>
 </html>
