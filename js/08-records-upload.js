@@ -44,7 +44,7 @@ function updateRecord(id, currentAddress, currentOffice, currentPin) {
   const clearOffBtn = document.getElementById("inline-edit-office-clear");
   const saveBtn = document.getElementById("inline-edit-save-btn");
   const saveBtnContent = document.getElementById(
-    "inline-edit-save-btn-content",
+    "inline-edit-save-btn-content"
   );
 
   addrInput.value = activeInlineEditRecord.oldAddress;
@@ -106,7 +106,7 @@ async function saveInlineEditRecord() {
 
   const saveBtn = document.getElementById("inline-edit-save-btn");
   const saveBtnContent = document.getElementById(
-    "inline-edit-save-btn-content",
+    "inline-edit-save-btn-content"
   );
   const editedId = activeInlineEditRecord.id;
 
@@ -277,7 +277,7 @@ async function viewHistory(postOfficeId) {
   const showCachedHistoryFallback = () => {
     showOfflineToast("Showing cached history.");
     const savedHistory = localStorage.getItem(
-      "dakmitra_history_" + postOfficeId,
+      "dakmitra_history_" + postOfficeId
     );
     contentDiv.innerHTML =
       savedHistory ||
@@ -316,7 +316,7 @@ async function viewHistory(postOfficeId) {
         "get_public_profiles_by_ids",
         {
           user_ids: Array.from(userIdsToFetch),
-        },
+        }
       );
       if (profileErr) throw profileErr;
       if (Array.isArray(profileData)) {
@@ -341,7 +341,7 @@ async function viewHistory(postOfficeId) {
       const requesterId = reqProfile?.employee_id || "No ID";
       const requesterLink = renderUserProfileLink(
         log.changed_by,
-        requesterName,
+        requesterName
       );
 
       let approverHtml = "";
@@ -349,21 +349,21 @@ async function viewHistory(postOfficeId) {
         const approverId = appProfile.employee_id || "No ID";
         const approverLink = renderUserProfileLink(
           log.approved_by,
-          appProfile.name,
+          appProfile.name
         );
         if (appProfile.is_admin) {
           approverHtml = `
             <div style="font-size: 12px; color: var(--success-text); margin-top: 4px;">
               ✅ <b>Admin Approved</b> (Approved by: ${approverLink} - ${escapeHTML(
-                approverId,
-              )})
+            approverId
+          )})
             </div>`;
         } else {
           approverHtml = `
             <div style="font-size: 12px; color: var(--primary); margin-top: 4px;">
               👥 <b>Community Approved</b> (Final vote by: ${approverLink} - ${escapeHTML(
-                approverId,
-              )})
+            approverId
+          )})
             </div>`;
         }
       }
@@ -376,7 +376,7 @@ async function viewHistory(postOfficeId) {
         newVal,
         prefix = "",
         fallback = "N/A",
-        linkTargets = null,
+        linkTargets = null
       ) => {
         const rawOld =
           oldVal === undefined || oldVal === null ? "" : String(oldVal).trim();
@@ -390,7 +390,7 @@ async function viewHistory(postOfficeId) {
               sOld,
               linkTargets.oldOffice,
               linkTargets.oldPin,
-              "is-muted",
+              "is-muted"
             )
           : escapeHTML(sOld);
 
@@ -410,12 +410,12 @@ async function viewHistory(postOfficeId) {
         const newPin = log.new_data?.Pin ?? log.new_data?.pin ?? "";
         changesHtml = `
           <div style="margin-bottom: 4px;"><b>${escapeHTML(
-            log.new_data?.Address,
+            log.new_data?.Address
           )}</b></div>
           <div style="margin-bottom: 4px;">🏢 ${renderDirectoryLink(
             newOff || "Unknown Office",
             newOff,
-            newPin,
+            newPin
           )}</div>
           <div>📍 ${renderDirectoryLink(newPin || "N/A", newOff, newPin)}</div>
         `;
@@ -440,7 +440,7 @@ async function viewHistory(postOfficeId) {
             oldD.Address || oldD.address,
             newD.Address || newD.address,
             "📮",
-            "Unknown Address",
+            "Unknown Address"
           ) +
           formatField(oldOff, newOff, "🏢", "Unknown Office", linkTargets) +
           formatField(oldPin, newPin, "📍", "N/A", linkTargets);
@@ -456,19 +456,19 @@ async function viewHistory(postOfficeId) {
         const oldPin = log.old_data?.Pin ?? log.old_data?.pin ?? "";
         changesHtml = `
           <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${escapeHTML(
-            log.old_data?.Address,
+            log.old_data?.Address
           )}</b></div>
           <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${renderDirectoryLink(
             oldOff || "Unknown Office",
             oldOff,
             oldPin,
-            "is-muted",
+            "is-muted"
           )}</div>
           <div style="text-decoration: line-through; color: var(--text-light);">📍 ${renderDirectoryLink(
             oldPin || "N/A",
             oldOff,
             oldPin,
-            "is-muted",
+            "is-muted"
           )}</div>
           <div style="margin-top: 8px; color: #991b1b; font-weight: 600;">Record was permanently deleted.</div>
         `;
@@ -480,13 +480,13 @@ async function viewHistory(postOfficeId) {
       const attributionHtml = isBulkExcelUpload
         ? `<div style="font-size: 12px; color: var(--success-text); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
              📊 <b>Added via Excel Bulk Upload</b> by Admin ${requesterLink} (${escapeHTML(
-               requesterId,
-             )})
+            requesterId
+          )})
            </div>`
         : `<div style="font-size: 12px; color: var(--text-light); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
              <div>👤 Requested by: ${requesterLink} (${escapeHTML(
-               requesterId,
-             )})</div>
+            requesterId
+          )})</div>
              ${approverHtml}
            </div>`;
 
@@ -513,7 +513,7 @@ async function viewHistory(postOfficeId) {
       return;
     }
     contentDiv.innerHTML = `<ul class="list-container"><li class="list-empty" style="color: red;">Error: ${escapeHTML(
-      err.message,
+      err.message
     )}</li></ul>`;
   }
 }
@@ -651,6 +651,20 @@ async function submitMultipleRecords() {
 
 // --- BULK SAME OFFICE UPLOAD TAB ---
 let bulkReturnToDirectory = false;
+let bulkAddPriority = 0;
+
+function setBulkPriority(val, silent = false) {
+  bulkAddPriority = Number(val) === 1 ? 1 : 0;
+  document
+    .getElementById("bulk-prio-regular")
+    ?.classList.toggle("active", bulkAddPriority === 0);
+  document
+    .getElementById("bulk-prio-priority")
+    ?.classList.toggle("active", bulkAddPriority === 1);
+
+  if (!silent && navigator.vibrate) navigator.vibrate(15);
+  updateBulkAddressPreview();
+}
 
 function switchManualUploadTab(tab) {
   const rowsTab = document.getElementById("tab-manual-rows");
@@ -726,7 +740,12 @@ function updateBulkAddressPreview() {
 
   if (addresses.length === 0) {
     box?.classList.add("hidden");
-    if (submitBtn) submitBtn.textContent = "Submit All Addresses";
+    if (submitBtn) {
+      submitBtn.textContent =
+        bulkAddPriority === 1
+          ? "⚡ Submit All as Priority"
+          : "Submit All Addresses";
+    }
     return;
   }
 
@@ -759,11 +778,12 @@ function updateBulkAddressPreview() {
         null;
       const isDup = Boolean(matchedName);
       if (isDup) dupCount++;
+      const prefix = isDup ? "⚠️ " : bulkAddPriority === 1 ? "⚡ " : "";
       return `
         <span class="bulk-chip ${isDup ? "is-duplicate" : ""}" title="${
-          isDup ? `Similar to existing: ${escapeHTML(matchedName)}` : ""
-        }">
-          ${isDup ? "⚠️ " : ""}${escapeHTML(addr)}
+        isDup ? `Similar to existing: ${escapeHTML(matchedName)}` : ""
+      }">
+          ${prefix}${escapeHTML(addr)}
           <button type="button" onclick="removeBulkAddressAt(${idx})" title="Remove">✕</button>
         </span>`;
     })
@@ -771,10 +791,13 @@ function updateBulkAddressPreview() {
 
   countEl.textContent = `${addresses.length} ${
     addresses.length === 1 ? "address" : "addresses"
-  } ready${dupCount > 0 ? ` (${dupCount} already in DB)` : ""}`;
+  } ready${bulkAddPriority === 1 ? " (⚡ Priority)" : ""}${
+    dupCount > 0 ? ` • ${dupCount} already in DB` : ""
+  }`;
 
   if (submitBtn) {
-    submitBtn.textContent = `Submit ${addresses.length} ${
+    const prioPrefix = bulkAddPriority === 1 ? "⚡ " : "";
+    submitBtn.textContent = `${prioPrefix}Submit ${addresses.length} ${
       addresses.length === 1 ? "Address" : "Addresses"
     }`;
   }
@@ -822,10 +845,12 @@ async function submitBulkSameOffice() {
       Address: addr,
       Office: office,
       Pin: pin || null,
+      priority: bulkAddPriority,
     },
     requested_by: session.user.id,
   }));
 
+  const prioText = bulkAddPriority === 1 ? "Priority " : "";
   const btn = document.getElementById("submit-bulk-btn");
   setButtonState(btn, "loading", `Submitting ${addresses.length}...`);
 
@@ -835,17 +860,22 @@ async function submitBulkSameOffice() {
         request_payloads: payloads,
       });
       if (error) throw error;
-      showToast(`✅ Admin: Added ${addresses.length} addresses to ${office}!`);
+      showToast(
+        `✅ Admin: Added ${addresses.length} ${prioText}addresses to ${office}!`
+      );
       await fetchAllPostOffices(true);
     } else {
       const { error } = await supabaseClient
         .from("edit_requests")
         .insert(payloads);
       if (error) throw error;
-      showToast(`✅ ${addresses.length} addresses submitted for approval!`);
+      showToast(
+        `✅ ${addresses.length} ${prioText}addresses submitted for approval!`
+      );
     }
 
     invalidateApprovalsCache();
+    setBulkPriority(0, true);
     clearBulkAddresses();
 
     if (bulkReturnToDirectory) {
@@ -865,7 +895,7 @@ async function submitBulkSameOffice() {
 // --- OFFICE AUTOCOMPLETE DROPDOWNS (INLINE EDIT, MANUAL, BULK & SEARCH FILTER) ---
 function buildOfficeOptionHTML(office, pin, mode) {
   return `<div class="autocomplete-item" onmousedown="pickOfficeOption(this, '${escapeForOnclick(
-    office,
+    office
   )}', '${escapeForOnclick(pin)}', '${mode}')">
     <div class="ac-item-main">
       <span class="ac-item-icon">
@@ -944,7 +974,7 @@ function handleInlineEditOfficeInput(inputElement) {
   if (val) {
     const lowerVal = val.toLowerCase();
     matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal),
+      o.toLowerCase().includes(lowerVal)
     );
   }
   matchedOffices.sort();
@@ -955,7 +985,7 @@ function handleInlineEditOfficeInput(inputElement) {
     dropdown.innerHTML = matchedOffices
       .slice(0, 10)
       .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "inline"),
+        buildOfficeOptionHTML(office, officeMap.get(office), "inline")
       )
       .join("");
     dropdown.classList.add("show");
@@ -966,7 +996,7 @@ function handleInlineEditOfficeInput(inputElement) {
       pinInput.value = "";
     } else {
       const exactMatch = Array.from(officeMap.keys()).find(
-        (k) => k.toLowerCase() === val.toLowerCase(),
+        (k) => k.toLowerCase() === val.toLowerCase()
       );
       if (exactMatch) pinInput.value = officeMap.get(exactMatch);
     }
@@ -998,7 +1028,7 @@ function handleOfficeInput(inputElement) {
   if (val) {
     const lowerVal = val.toLowerCase();
     matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal),
+      o.toLowerCase().includes(lowerVal)
     );
   }
   matchedOffices.sort();
@@ -1009,7 +1039,7 @@ function handleOfficeInput(inputElement) {
     dropdown.innerHTML = matchedOffices
       .slice(0, 10)
       .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "manual"),
+        buildOfficeOptionHTML(office, officeMap.get(office), "manual")
       )
       .join("");
     dropdown.classList.add("show");
@@ -1020,7 +1050,7 @@ function handleOfficeInput(inputElement) {
       pinInput.value = "";
     } else {
       const exactMatch = Array.from(officeMap.keys()).find(
-        (k) => k.toLowerCase() === val.toLowerCase(),
+        (k) => k.toLowerCase() === val.toLowerCase()
       );
       if (exactMatch) pinInput.value = officeMap.get(exactMatch);
     }
@@ -1050,7 +1080,7 @@ function handleBulkOfficeInput(inputElement) {
   if (val) {
     const lowerVal = val.toLowerCase();
     matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal),
+      o.toLowerCase().includes(lowerVal)
     );
   }
   matchedOffices.sort();
@@ -1061,7 +1091,7 @@ function handleBulkOfficeInput(inputElement) {
     dropdown.innerHTML = matchedOffices
       .slice(0, 10)
       .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "bulk"),
+        buildOfficeOptionHTML(office, officeMap.get(office), "bulk")
       )
       .join("");
     dropdown.classList.add("show");
@@ -1072,7 +1102,7 @@ function handleBulkOfficeInput(inputElement) {
       pinInput.value = "";
     } else {
       const exactMatch = Array.from(officeMap.keys()).find(
-        (k) => k.toLowerCase() === val.toLowerCase(),
+        (k) => k.toLowerCase() === val.toLowerCase()
       );
       if (exactMatch) pinInput.value = officeMap.get(exactMatch);
     }
@@ -1095,7 +1125,7 @@ function handleSearchOfficeFilterInput(inputElement) {
   if (val) {
     const lowerVal = val.toLowerCase();
     matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal),
+      o.toLowerCase().includes(lowerVal)
     );
   }
   matchedOffices.sort();
@@ -1106,7 +1136,7 @@ function handleSearchOfficeFilterInput(inputElement) {
     dropdown.innerHTML = matchedOffices
       .slice(0, 10)
       .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "search-filter"),
+        buildOfficeOptionHTML(office, officeMap.get(office), "search-filter")
       )
       .join("");
     dropdown.classList.add("show");
@@ -1141,7 +1171,7 @@ function handleDirectoryOfficeFilterInput(inputElement) {
   if (val) {
     const lowerVal = val.toLowerCase();
     matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal),
+      o.toLowerCase().includes(lowerVal)
     );
   }
   matchedOffices.sort();
@@ -1152,7 +1182,7 @@ function handleDirectoryOfficeFilterInput(inputElement) {
     dropdown.innerHTML = matchedOffices
       .slice(0, 10)
       .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "dir-filter"),
+        buildOfficeOptionHTML(office, officeMap.get(office), "dir-filter")
       )
       .join("");
     dropdown.classList.add("show");
@@ -1192,7 +1222,7 @@ async function uploadExcel() {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: "array" });
       const jsonData = XLSX.utils.sheet_to_json(
-        workbook.Sheets[workbook.SheetNames[0]],
+        workbook.Sheets[workbook.SheetNames[0]]
       );
       if (jsonData.length === 0) {
         alert("The Excel file is empty.");

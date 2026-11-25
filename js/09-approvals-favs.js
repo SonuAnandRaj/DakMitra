@@ -62,21 +62,19 @@ function renderFavorites() {
             <div class="office-title">${escapeHTML(row.address)}</div>
             <div class="sub-office">
               <span class="badge badge-primary">🏢 ${escapeHTML(
-                row.office,
+                row.office
               )}</span>
               <span class="badge">📍 ${escapeHTML(row.pin) || "N/A"}</span>
             </div>
           </div>
           <div style="display: flex; justify-content: flex-end;">
-            <button onclick="toggleFavorite('${
-              row.id
-            }', '${escapeForOnclick(row.address)}', '${escapeForOnclick(
-              row.office,
-            )}', '${escapeForOnclick(
-              row.pin,
-            )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
-              favStyle.style
-            }">
+            <button onclick="toggleFavorite('${row.id}', '${escapeForOnclick(
+      row.address
+    )}', '${escapeForOnclick(row.office)}', '${escapeForOnclick(
+      row.pin
+    )}', null)" class="toolbar-btn" style="padding: 6px 12px; font-size: 13px; font-weight: 600; border: 1px solid transparent; border-radius: 8px; cursor: pointer; transition: 0.2s; ${
+      favStyle.style
+    }">
               ${favStyle.icon}
             </button>
           </div>
@@ -229,7 +227,7 @@ function highlightApprovalText(text, query) {
   while (idx !== -1) {
     out += escapeHTML(str.slice(pos, idx));
     out += `<span class="highlight-text">${escapeHTML(
-      str.slice(idx, idx + q.length),
+      str.slice(idx, idx + q.length)
     )}</span>`;
     pos = idx + q.length;
     idx = lowerStr.indexOf(lowerQ, pos);
@@ -303,13 +301,13 @@ function syncApprovalsFilterUI() {
     .getElementById("appr-chip-needs-vote")
     ?.classList.toggle(
       "active",
-      approvalsFilters.pendingScope === "needs_my_vote",
+      approvalsFilters.pendingScope === "needs_my_vote"
     );
   document
     .getElementById("appr-chip-my-pending")
     ?.classList.toggle(
       "active",
-      approvalsFilters.pendingScope === "my_requests",
+      approvalsFilters.pendingScope === "my_requests"
     );
   document
     .getElementById("appr-chip-i-voted")
@@ -320,13 +318,13 @@ function syncApprovalsFilterUI() {
     .getElementById("appr-chip-approved")
     ?.classList.toggle(
       "active",
-      approvalsFilters.resolvedStatus === "APPROVED",
+      approvalsFilters.resolvedStatus === "APPROVED"
     );
   document
     .getElementById("appr-chip-rejected")
     ?.classList.toggle(
       "active",
-      approvalsFilters.resolvedStatus === "REJECTED",
+      approvalsFilters.resolvedStatus === "REJECTED"
     );
   document
     .getElementById("appr-chip-my-resolved")
@@ -339,7 +337,7 @@ function syncApprovalsFilterUI() {
     roleRow.querySelectorAll("[data-user-role]").forEach((btn) => {
       btn.classList.toggle(
         "active",
-        btn.getAttribute("data-user-role") === approvalsFilters.userRole,
+        btn.getAttribute("data-user-role") === approvalsFilters.userRole
       );
     });
   }
@@ -348,7 +346,7 @@ function syncApprovalsFilterUI() {
   document.querySelectorAll("[data-date-preset]").forEach((btn) => {
     btn.classList.toggle(
       "active",
-      btn.getAttribute("data-date-preset") === approvalsFilters.datePreset,
+      btn.getAttribute("data-date-preset") === approvalsFilters.datePreset
     );
   });
   document
@@ -362,20 +360,20 @@ function syncApprovalsFilterUI() {
   document.querySelectorAll("[data-vote-progress]").forEach((btn) => {
     btn.classList.toggle(
       "active",
-      btn.getAttribute("data-vote-progress") === approvalsFilters.voteProgress,
+      btn.getAttribute("data-vote-progress") === approvalsFilters.voteProgress
     );
   });
   document.querySelectorAll("[data-approval-source]").forEach((btn) => {
     btn.classList.toggle(
       "active",
       btn.getAttribute("data-approval-source") ===
-        approvalsFilters.approvalSource,
+        approvalsFilters.approvalSource
     );
   });
   document.querySelectorAll("[data-appr-sort]").forEach((btn) => {
     btn.classList.toggle(
       "active",
-      btn.getAttribute("data-appr-sort") === approvalsFilters.sort,
+      btn.getAttribute("data-appr-sort") === approvalsFilters.sort
     );
   });
 
@@ -503,8 +501,10 @@ function renderApprovalsActiveFilterPills() {
       (p) => `
       <span class="active-filter-pill">
         <span>${escapeHTML(p.label)}</span>
-        <button type="button" onclick="removeSingleApprovalFilter('${p.key}')" title="Remove filter">✕</button>
-      </span>`,
+        <button type="button" onclick="removeSingleApprovalFilter('${
+          p.key
+        }')" title="Remove filter">✕</button>
+      </span>`
     )
     .join("");
 
@@ -653,7 +653,7 @@ async function ensureApprovalsUsersLoaded() {
       try {
         await ensureSupabaseReady();
         const { data, error } = await supabaseClient.rpc(
-          "get_members_directory",
+          "get_members_directory"
         );
         if (!error && Array.isArray(data)) {
           membersDirectoryData = data;
@@ -679,7 +679,7 @@ async function handleApprovalsUserInput(inputEl) {
 
   clearBtn?.classList.toggle(
     "hidden",
-    val.length === 0 && !approvalsFilters.userId,
+    val.length === 0 && !approvalsFilters.userId
   );
 
   // If user edits text away from selected user, clear selected ID until they pick
@@ -722,16 +722,16 @@ async function handleApprovalsUserInput(inputEl) {
           class="autocomplete-item"
           onpointerdown="event.preventDefault()"
           onclick="selectApprovalsUser('${escapeForOnclick(
-            m.id,
+            m.id
           )}', '${escapeForOnclick(mName)}', '${escapeForOnclick(empId)}')"
         >
           <div class="ac-item-main">
             <span class="ac-item-icon" style="font-weight: 800; font-size: 12px;">${escapeHTML(
-              initial,
+              initial
             )}</span>
             <span class="ac-item-name">${escapeHTML(mName)}${
-              m.is_admin ? " 🛡️" : ""
-            }</span>
+        m.is_admin ? " 🛡️" : ""
+      }</span>
           </div>
           <span class="ac-item-pin">${escapeHTML(empId)}</span>
         </div>`;
@@ -1068,7 +1068,7 @@ function openApprovalsForUser(
   userName = "",
   userEmpId = "",
   targetTab = "resolved",
-  userRole = "requested",
+  userRole = "requested"
 ) {
   if (!userId) return;
 
@@ -1098,8 +1098,8 @@ function openApprovalsForUser(
     userRole === "voted"
       ? "voted on by"
       : userRole === "reviewed"
-        ? "reviewed by"
-        : "by";
+      ? "reviewed by"
+      : "by";
   showToast(`📋 Showing approvals ${roleText} ${approvalsFilters.userName}`);
 }
 
@@ -1231,7 +1231,7 @@ function buildApprovalCardHTML(req, searchQuery) {
     newVal,
     prefix = "",
     fallback = "N/A",
-    linkTargets = null,
+    linkTargets = null
   ) => {
     const rawOld =
       oldVal === undefined || oldVal === null ? "" : String(oldVal).trim();
@@ -1249,7 +1249,7 @@ function buildApprovalCardHTML(req, searchQuery) {
           linkTargets.oldOffice,
           linkTargets.oldPin,
           "is-muted",
-          oldHighlighted,
+          oldHighlighted
         )
       : oldHighlighted;
 
@@ -1259,7 +1259,7 @@ function buildApprovalCardHTML(req, searchQuery) {
           linkTargets.newOffice,
           linkTargets.newPin,
           "",
-          newHighlighted,
+          newHighlighted
         )
       : newHighlighted;
 
@@ -1272,32 +1272,36 @@ function buildApprovalCardHTML(req, searchQuery) {
   let changesHtml = "";
 
   if (req.action_type === "ADD") {
-    const badge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">➕ ADD</span>`;
     const prop = req.proposed_data || {};
+    const badge = `<span class="badge" style="background:#dcfce7;color:#166534; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">➕ ADD</span>`;
+    const prioBadge =
+      Number(prop.priority) >= 1
+        ? `<span class="badge fb-pill-feature" style="padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">⚡ Priority</span>`
+        : "";
     const addOff = prop.Office || prop.office || "";
     const addPin = prop.Pin ?? prop.pin ?? "";
     const addOffLabel = String(addOff).trim() || "Unknown";
     const addPinLabel = String(addPin).trim() || "N/A";
 
     changesHtml = `
-      ${badge}
+      <div>${badge}${prioBadge}</div>
       <div style="margin-bottom: 4px;"><b>${highlightApprovalText(
         prop.Address || prop.address || "Unknown",
-        searchQuery,
+        searchQuery
       )}</b></div>
       <div style="margin-bottom: 4px;">🏢 ${renderDirectoryLink(
         addOffLabel,
         addOff,
         addPin,
         "",
-        highlightApprovalText(addOffLabel, searchQuery),
+        highlightApprovalText(addOffLabel, searchQuery)
       )}</div>
       <div>📍 ${renderDirectoryLink(
         addPinLabel,
         addOff,
         addPin,
         "",
-        highlightApprovalText(addPinLabel, searchQuery),
+        highlightApprovalText(addPinLabel, searchQuery)
       )}</div>
     `;
   } else if (req.action_type === "EDIT") {
@@ -1326,7 +1330,7 @@ function buildApprovalCardHTML(req, searchQuery) {
         oldD.Address || oldD.address,
         newD.Address || newD.address,
         "📮",
-        "Unknown Address",
+        "Unknown Address"
       ) +
       formatApprovalField(oldOff, newOff, "🏢", "Unknown Office", linkTargets) +
       formatApprovalField(oldPin, newPin, "📍", "N/A", linkTargets);
@@ -1343,21 +1347,21 @@ function buildApprovalCardHTML(req, searchQuery) {
       ${badge}
       <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;"><b>${highlightApprovalText(
         delAddr,
-        searchQuery,
+        searchQuery
       )}</b></div>
       <div style="text-decoration: line-through; color: var(--text-light); margin-bottom: 4px;">🏢 ${renderDirectoryLink(
         delOffLabel,
         delOff,
         delPin,
         "is-muted",
-        highlightApprovalText(delOffLabel, searchQuery),
+        highlightApprovalText(delOffLabel, searchQuery)
       )}</div>
       <div style="text-decoration: line-through; color: var(--text-light);">📍 ${renderDirectoryLink(
         delPinLabel,
         delOff,
         delPin,
         "is-muted",
-        highlightApprovalText(delPinLabel, searchQuery),
+        highlightApprovalText(delPinLabel, searchQuery)
       )}</div>
     `;
   }
@@ -1375,7 +1379,7 @@ function buildApprovalCardHTML(req, searchQuery) {
   if (req.status === "APPROVED" && req.finalizer_id && req.finalizer_name) {
     const approverLink = renderUserProfileLink(
       req.finalizer_id,
-      req.finalizer_name,
+      req.finalizer_name
     );
     const finEmp = escapeHTML(req.finalizer_emp_id || "No ID");
     if (req.is_admin_direct) {
@@ -1424,10 +1428,10 @@ function buildApprovalCardHTML(req, searchQuery) {
     if (req.finalizer_id && req.finalizer_name) {
       const rejLink = renderUserProfileLink(
         req.finalizer_id,
-        req.finalizer_name,
+        req.finalizer_name
       );
       rejecterText = ` (Rejected by: ${rejLink} - ${escapeHTML(
-        req.finalizer_emp_id || "No ID",
+        req.finalizer_emp_id || "No ID"
       )})`;
     }
     actionBarHtml = `<div style="text-align: right; color: #b91c1c; font-weight: 600; font-size: 13px; margin-top: 12px;">❌ Request Rejected${rejecterText}</div>`;
@@ -1435,13 +1439,13 @@ function buildApprovalCardHTML(req, searchQuery) {
 
   return `
     <div id="approval-card-${req.id}" class="approval-card ${
-      req.action_type === "DELETE" ? "is-delete" : ""
-    }">
+    req.action_type === "DELETE" ? "is-delete" : ""
+  }">
       <div style="font-size: 14px; margin-bottom: 12px; color: var(--text); line-height: 1.4;">${changesHtml}</div>
       <div class="approval-meta-box">
         <div>👤 Requested by: ${renderUserProfileLink(
           req.requested_by,
-          requesterName,
+          requesterName
         )} (${escapeHTML(requesterId)})</div>
         <div>📅 ${dateStr}</div>
         ${
@@ -1473,7 +1477,7 @@ async function loadApprovalsBatch(forceStart = false) {
     if (isFiltered) {
       showOfflineToast(
         "Connect to internet to search & filter approvals.",
-        true,
+        true
       );
       if (contentEl) {
         contentEl.innerHTML = `
@@ -1486,7 +1490,7 @@ async function loadApprovalsBatch(forceStart = false) {
     } else {
       showOfflineToast("Showing cached approvals.", false);
       const savedHtml = localStorage.getItem(
-        "dakmitra_approvals_cache_" + activeTab,
+        "dakmitra_approvals_cache_" + activeTab
       );
       if (contentEl) {
         contentEl.innerHTML =
@@ -1585,7 +1589,7 @@ async function loadApprovalsBatch(forceStart = false) {
 
     const { data, error } = await supabaseClient.rpc(
       "search_edit_requests",
-      rpcParams,
+      rpcParams
     );
     if (error) throw error;
 
@@ -1678,7 +1682,7 @@ async function loadApprovalsBatch(forceStart = false) {
     isApprovalsLoading = false;
     if (contentDiv) {
       contentDiv.innerHTML = `<div class="list-empty" style="color: red;">Error loading requests: ${escapeHTML(
-        err.message,
+        err.message
       )}</div>`;
     }
   }
@@ -1700,7 +1704,7 @@ function setupApprovalsObserver() {
         loadApprovalsBatch(false);
       }
     },
-    { root: displayArea, rootMargin: "200px", threshold: 0.1 },
+    { root: displayArea, rootMargin: "200px", threshold: 0.1 }
   );
 
   if (sentinel) approvalsObserver.observe(sentinel);
@@ -1753,7 +1757,7 @@ async function rejectRequest(reqId) {
         if (card) card.style.display = "block";
         alert(err.message);
       }
-    },
+    }
   );
 }
 
@@ -1783,6 +1787,6 @@ async function deleteOwnRequest(reqId) {
         if (card) card.style.display = "block";
         alert("Error deleting request: " + err.message);
       }
-    },
+    }
   );
 }
