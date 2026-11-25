@@ -261,32 +261,32 @@ function computeLearnSummaryMetrics(prog = null) {
 }
 
 function pruneDeletedLearnCards() {
-    if (!Array.isArray(cachedPostOffices) || cachedPostOffices.length === 0)
-      return;
-    const prog = getLearnProgress();
-    const validIds = new Set(cachedPostOffices.map((r) => String(r.id)));
-    let changed = false;
-  
-    Object.keys(prog.cards).forEach((idKey) => {
-      if (!validIds.has(idKey)) {
-        delete prog.cards[idKey];
-        changed = true;
-      }
-    });
-  
-    if (Array.isArray(learnState.fcHistory) && learnState.fcHistory.length > 0) {
-      learnState.fcHistory = learnState.fcHistory.filter((entry) =>
-        validIds.has(String(entry.recordId)),
-      );
-      if (learnState.fcHistoryIndex >= learnState.fcHistory.length) {
-        learnState.fcHistoryIndex = learnState.fcHistory.length - 1;
-      }
+  if (!Array.isArray(cachedPostOffices) || cachedPostOffices.length === 0)
+    return;
+  const prog = getLearnProgress();
+  const validIds = new Set(cachedPostOffices.map((r) => String(r.id)));
+  let changed = false;
+
+  Object.keys(prog.cards).forEach((idKey) => {
+    if (!validIds.has(idKey)) {
+      delete prog.cards[idKey];
+      changed = true;
     }
-  
-    if (changed) {
-      saveLearnProgressLocal(prog, true);
+  });
+
+  if (Array.isArray(learnState.fcHistory) && learnState.fcHistory.length > 0) {
+    learnState.fcHistory = learnState.fcHistory.filter((entry) =>
+      validIds.has(String(entry.recordId)),
+    );
+    if (learnState.fcHistoryIndex >= learnState.fcHistory.length) {
+      learnState.fcHistoryIndex = learnState.fcHistory.length - 1;
     }
   }
+
+  if (changed) {
+    saveLearnProgressLocal(prog, true);
+  }
+}
 
 function updateSidebarLearnBadge() {
   const badge = document.getElementById("sidebar-learn-badge");
@@ -692,40 +692,40 @@ function renderLearnFilterChips() {
     })
     .join("");
 
-    containers.forEach((el) => {
-        const prevScrollLeft = el.scrollLeft;
-        el.innerHTML = html;
-        el.scrollLeft = prevScrollLeft;
-      });
-    
-      // Update compact scope summary strip on Learn tab
-      const summaryEl = document.getElementById("learn-scope-summary");
-      const summaryTxt = document.getElementById("learn-scope-summary-text");
-      if (summaryEl && summaryTxt) {
-        if (learnState.scope === "all") {
-          summaryEl.classList.add("hidden");
-        } else {
-          const scoped = getFilteredLearnRecords();
-          summaryTxt.textContent = `Studying: ${getLearnScopeLabel()} (${scoped.length} ${
-            scoped.length === 1 ? "address" : "addresses"
-          })`;
-          summaryEl.classList.remove("hidden");
-        }
-      }
+  containers.forEach((el) => {
+    const prevScrollLeft = el.scrollLeft;
+    el.innerHTML = html;
+    el.scrollLeft = prevScrollLeft;
+  });
+
+  // Update compact scope summary strip on Learn tab
+  const summaryEl = document.getElementById("learn-scope-summary");
+  const summaryTxt = document.getElementById("learn-scope-summary-text");
+  if (summaryEl && summaryTxt) {
+    if (learnState.scope === "all") {
+      summaryEl.classList.add("hidden");
+    } else {
+      const scoped = getFilteredLearnRecords();
+      summaryTxt.textContent = `Studying: ${getLearnScopeLabel()} (${scoped.length} ${
+        scoped.length === 1 ? "address" : "addresses"
+      })`;
+      summaryEl.classList.remove("hidden");
     }
-    
-    function setLearnScope(newScope) {
-      learnState.scope = newScope || "all";
-      learnState.fcRecentIds = [];
-      learnState.fcHistory = [];
-      learnState.fcHistoryIndex = -1;
-      learnState.fcCurrentRecord = null;
-      if (navigator.vibrate) navigator.vibrate(18);
-      renderLearnFilterChips();
-      if (learnState.activeTab === "learn") {
-        loadNextFlashcard("none");
-      }
-    }
+  }
+}
+
+function setLearnScope(newScope) {
+  learnState.scope = newScope || "all";
+  learnState.fcRecentIds = [];
+  learnState.fcHistory = [];
+  learnState.fcHistoryIndex = -1;
+  learnState.fcCurrentRecord = null;
+  if (navigator.vibrate) navigator.vibrate(18);
+  renderLearnFilterChips();
+  if (learnState.activeTab === "learn") {
+    loadNextFlashcard("none");
+  }
+}
 
 // --- OVERVIEW RING & STREAK RENDERER ---
 function renderLearnOverview() {
@@ -794,140 +794,140 @@ function speakLearnText(address, office = null, pin = null) {
 
 // --- 3D FLASHCARD PICKER, HISTORY NAVIGATION & INTERACTION ---
 function pickNextFlashcardRecord() {
-    const pool = getFilteredLearnRecords();
-    if (pool.length === 0) return null;
-    if (pool.length === 1) return pool[0];
-  
-    const prog = getLearnProgress();
-    const now = Date.now();
-    const windowSize = Math.min(pool.length - 1, 25);
-    const recentSet = new Set(learnState.fcRecentIds.slice(-windowSize));
-  
-    let candidates = pool.filter((r) => !recentSet.has(String(r.id)));
-    if (candidates.length === 0) {
-      candidates = pool.filter(
-        (r) => String(r.id) !== String(learnState.fcCurrentRecord?.id),
-      );
-    }
-    const list = candidates.length > 0 ? candidates : pool;
-  
-    const overdueWeak = [];
-    const overdueReview = [];
-    const unseen = [];
-    const upcoming = [];
-  
-    for (let i = 0; i < list.length; i++) {
-      const row = list[i];
-      const card = prog.cards[String(row.id)];
-      if (!card) {
-        unseen.push(row);
-      } else if (card.dueAt <= now) {
-        if (isWeakLearnCard(card)) overdueWeak.push(row);
-        else overdueReview.push(row);
-      } else {
-        upcoming.push({ row, dueAt: card.dueAt });
-      }
-    }
-  
-    if (overdueWeak.length > 0) {
-      return overdueWeak[Math.floor(Math.random() * overdueWeak.length)];
-    }
-    if (overdueReview.length > 0) {
-      return overdueReview[Math.floor(Math.random() * overdueReview.length)];
-    }
-    if (unseen.length > 0) {
-      unseen.sort((a, b) => getEffectivePriority(b) - getEffectivePriority(a));
-      const topSlice = Math.min(unseen.length, 6);
-      return unseen[Math.floor(Math.random() * topSlice)];
-    }
-  
-    upcoming.sort((a, b) => a.dueAt - b.dueAt);
-    return upcoming[0]?.row || list[0];
-  }
-  
-  function bounceFlashcardEdge(direction = "left") {
-    const wrap = document.getElementById("learn-card-swipe-wrap");
-    if (!wrap) return;
-    const offset = direction === "left" ? -26 : 26;
-    const tilt = direction === "left" ? -1.5 : 1.5;
-    wrap.classList.remove("is-dragging");
-    wrap.style.transform = `translate3d(${offset}px, 0, 0) rotate(${tilt}deg)`;
-    setTimeout(() => {
-      wrap.style.transform = "";
-    }, 150);
-  }
-  
-  function animateFlashcardExit(direction, callback) {
-    const wrap = document.getElementById("learn-card-swipe-wrap");
-    if (!wrap) {
-      callback();
-      return;
-    }
-    learnState.fcIsTransitioning = true;
-    wrap.classList.remove("is-dragging", "is-entering-left", "is-entering-right");
-    wrap.classList.add(
-      direction === "right" ? "is-exiting-right" : "is-exiting-left",
+  const pool = getFilteredLearnRecords();
+  if (pool.length === 0) return null;
+  if (pool.length === 1) return pool[0];
+
+  const prog = getLearnProgress();
+  const now = Date.now();
+  const windowSize = Math.min(pool.length - 1, 25);
+  const recentSet = new Set(learnState.fcRecentIds.slice(-windowSize));
+
+  let candidates = pool.filter((r) => !recentSet.has(String(r.id)));
+  if (candidates.length === 0) {
+    candidates = pool.filter(
+      (r) => String(r.id) !== String(learnState.fcCurrentRecord?.id),
     );
-    setTimeout(() => {
-      learnState.fcIsTransitioning = false;
-      callback();
-    }, 190);
   }
-  
-  function updateFlashcardActionBars() {
-    const ratingBar = document.getElementById("learn-rating-bar");
-    const navBar = document.getElementById("learn-nav-bar");
-    const prevBtn = document.getElementById("learn-prev-btn");
-    const nextBtn = document.getElementById("learn-next-btn");
-    const counterEl = document.getElementById("learn-nav-counter");
-  
-    if (!learnState.fcCurrentRecord) {
-      ratingBar?.classList.add("hidden");
-      navBar?.classList.add("hidden");
-      return;
-    }
-  
-    if (learnState.fcFlipped) {
-      navBar?.classList.add("hidden");
-      ratingBar?.classList.remove("hidden");
+  const list = candidates.length > 0 ? candidates : pool;
+
+  const overdueWeak = [];
+  const overdueReview = [];
+  const unseen = [];
+  const upcoming = [];
+
+  for (let i = 0; i < list.length; i++) {
+    const row = list[i];
+    const card = prog.cards[String(row.id)];
+    if (!card) {
+      unseen.push(row);
+    } else if (card.dueAt <= now) {
+      if (isWeakLearnCard(card)) overdueWeak.push(row);
+      else overdueReview.push(row);
     } else {
-      ratingBar?.classList.add("hidden");
-      navBar?.classList.remove("hidden");
-    }
-  
-    const pool = getFilteredLearnRecords();
-    const idx = learnState.fcHistoryIndex;
-    const totalHist = learnState.fcHistory.length;
-  
-    if (prevBtn) prevBtn.disabled = idx <= 0;
-    if (nextBtn) {
-      nextBtn.disabled = pool.length <= 1 && idx >= totalHist - 1;
-    }
-    if (counterEl) {
-      if (idx < totalHist - 1) {
-        counterEl.textContent = `Card ${idx + 1} of ${totalHist}`;
-      } else if (pool.length <= 30) {
-        counterEl.textContent = `Card ${idx + 1} (${pool.length} in deck)`;
-      } else {
-        counterEl.textContent = `Card ${idx + 1}`;
-      }
+      upcoming.push({ row, dueAt: card.dueAt });
     }
   }
-  
-  function renderFlashcardEntry(entry, animDir = "none") {
-    const stage = document.getElementById("learn-flashcard-stage");
-    if (!stage) return;
-  
-    if (!entry) {
-      learnState.fcCurrentRecord = null;
-      learnState.fcFlipped = false;
-      updateFlashcardActionBars();
-  
-      const msg =
-        learnState.scope === "weak"
-          ? "No weak spots right now! 🎉 Switch to All Offices or try a Quiz."
-          : "No addresses available in this filter.";
-      stage.innerHTML = `
+
+  if (overdueWeak.length > 0) {
+    return overdueWeak[Math.floor(Math.random() * overdueWeak.length)];
+  }
+  if (overdueReview.length > 0) {
+    return overdueReview[Math.floor(Math.random() * overdueReview.length)];
+  }
+  if (unseen.length > 0) {
+    unseen.sort((a, b) => getEffectivePriority(b) - getEffectivePriority(a));
+    const topSlice = Math.min(unseen.length, 6);
+    return unseen[Math.floor(Math.random() * topSlice)];
+  }
+
+  upcoming.sort((a, b) => a.dueAt - b.dueAt);
+  return upcoming[0]?.row || list[0];
+}
+
+function bounceFlashcardEdge(direction = "left") {
+  const wrap = document.getElementById("learn-card-swipe-wrap");
+  if (!wrap) return;
+  const offset = direction === "left" ? -26 : 26;
+  const tilt = direction === "left" ? -1.5 : 1.5;
+  wrap.classList.remove("is-dragging");
+  wrap.style.transform = `translate3d(${offset}px, 0, 0) rotate(${tilt}deg)`;
+  setTimeout(() => {
+    wrap.style.transform = "";
+  }, 150);
+}
+
+function animateFlashcardExit(direction, callback) {
+  const wrap = document.getElementById("learn-card-swipe-wrap");
+  if (!wrap) {
+    callback();
+    return;
+  }
+  learnState.fcIsTransitioning = true;
+  wrap.classList.remove("is-dragging", "is-entering-left", "is-entering-right");
+  wrap.classList.add(
+    direction === "right" ? "is-exiting-right" : "is-exiting-left",
+  );
+  setTimeout(() => {
+    learnState.fcIsTransitioning = false;
+    callback();
+  }, 190);
+}
+
+function updateFlashcardActionBars() {
+  const ratingBar = document.getElementById("learn-rating-bar");
+  const navBar = document.getElementById("learn-nav-bar");
+  const prevBtn = document.getElementById("learn-prev-btn");
+  const nextBtn = document.getElementById("learn-next-btn");
+  const counterEl = document.getElementById("learn-nav-counter");
+
+  if (!learnState.fcCurrentRecord) {
+    ratingBar?.classList.add("hidden");
+    navBar?.classList.add("hidden");
+    return;
+  }
+
+  if (learnState.fcFlipped) {
+    navBar?.classList.add("hidden");
+    ratingBar?.classList.remove("hidden");
+  } else {
+    ratingBar?.classList.add("hidden");
+    navBar?.classList.remove("hidden");
+  }
+
+  const pool = getFilteredLearnRecords();
+  const idx = learnState.fcHistoryIndex;
+  const totalHist = learnState.fcHistory.length;
+
+  if (prevBtn) prevBtn.disabled = idx <= 0;
+  if (nextBtn) {
+    nextBtn.disabled = pool.length <= 1 && idx >= totalHist - 1;
+  }
+  if (counterEl) {
+    if (idx < totalHist - 1) {
+      counterEl.textContent = `Card ${idx + 1} of ${totalHist}`;
+    } else if (pool.length <= 30) {
+      counterEl.textContent = `Card ${idx + 1} (${pool.length} in deck)`;
+    } else {
+      counterEl.textContent = `Card ${idx + 1}`;
+    }
+  }
+}
+
+function renderFlashcardEntry(entry, animDir = "none") {
+  const stage = document.getElementById("learn-flashcard-stage");
+  if (!stage) return;
+
+  if (!entry) {
+    learnState.fcCurrentRecord = null;
+    learnState.fcFlipped = false;
+    updateFlashcardActionBars();
+
+    const msg =
+      learnState.scope === "weak"
+        ? "No weak spots right now! 🎉 Switch to All Offices or try a Quiz."
+        : "No addresses available in this filter.";
+    stage.innerHTML = `
         <div class="list-empty" style="gap: 12px; margin: 0;">
           <span>${msg}</span>
           ${
@@ -936,95 +936,99 @@ function pickNextFlashcardRecord() {
               : ""
           }
         </div>`;
-      return;
-    }
-  
-    const liveRec =
-      (cachedPostOffices || []).find(
-        (r) => String(r.id) === String(entry.recordId),
-      ) || entry.record;
-  
-    if (!liveRec) {
-      learnState.fcHistory.splice(learnState.fcHistoryIndex, 1);
-      learnState.fcHistoryIndex = Math.min(
-        learnState.fcHistoryIndex,
-        learnState.fcHistory.length - 1,
+    return;
+  }
+
+  const liveRec =
+    (cachedPostOffices || []).find(
+      (r) => String(r.id) === String(entry.recordId),
+    ) || entry.record;
+
+  if (!liveRec) {
+    learnState.fcHistory.splice(learnState.fcHistoryIndex, 1);
+    learnState.fcHistoryIndex = Math.min(
+      learnState.fcHistoryIndex,
+      learnState.fcHistory.length - 1,
+    );
+    if (learnState.fcHistoryIndex >= 0) {
+      renderFlashcardEntry(
+        learnState.fcHistory[learnState.fcHistoryIndex],
+        animDir,
       );
-      if (learnState.fcHistoryIndex >= 0) {
-        renderFlashcardEntry(
-          learnState.fcHistory[learnState.fcHistoryIndex],
-          animDir,
-        );
-      } else {
-        loadNextFlashcard(animDir);
-      }
-      return;
+    } else {
+      loadNextFlashcard(animDir);
     }
-  
-    learnState.fcCurrentRecord = liveRec;
-    learnState.fcFlipped = false;
-  
-    const idKey = String(liveRec.id);
-    learnState.fcRecentIds = learnState.fcRecentIds.filter((id) => id !== idKey);
-    learnState.fcRecentIds.push(idKey);
-    const maxRecent = Math.max(25, getFilteredLearnRecords().length);
-    if (learnState.fcRecentIds.length > maxRecent) {
-      learnState.fcRecentIds.shift();
-    }
-  
-    const prog = getLearnProgress();
-    const card = prog.cards[idKey];
-    const currentBox = card ? card.box : 0;
-    const boxLabel = !card
-      ? "New"
+    return;
+  }
+
+  learnState.fcCurrentRecord = liveRec;
+  learnState.fcFlipped = false;
+
+  const idKey = String(liveRec.id);
+  learnState.fcRecentIds = learnState.fcRecentIds.filter((id) => id !== idKey);
+  learnState.fcRecentIds.push(idKey);
+  const maxRecent = Math.max(25, getFilteredLearnRecords().length);
+  if (learnState.fcRecentIds.length > maxRecent) {
+    learnState.fcRecentIds.shift();
+  }
+
+  const prog = getLearnProgress();
+  const card = prog.cards[idKey];
+  const currentBox = card ? card.box : 0;
+  const boxLabel = !card
+    ? "New"
+    : currentBox === 0
+      ? "🔁 Relearning"
       : currentBox >= 4
         ? "⭐ Mastered"
-        : `Box ${currentBox}`;
-  
-    const officeType = detectOfficeType(liveRec.Address);
-    const isPrio = Number(liveRec.priority) >= 1;
-    const typeBadgeHtml = officeType
-      ? `<span class="badge badge-primary" style="margin:0; padding:3px 9px; font-size:11px;">📮 ${escapeHTML(officeType)}</span>`
-      : isPrio
-        ? `<span class="badge learn-priority-badge">⚡ Priority</span>`
-        : `<span class="badge" style="margin:0; padding:3px 9px; font-size:11px;">📍 Locality</span>`;
-  
-    const ratedLabels = { again: "Again", good: "Good", easy: "Easy" };
-    const ratedBadgeHtml = entry.rating
-      ? `<span class="learn-rated-pill is-${escapeHTML(entry.rating)}">Rated: ${ratedLabels[entry.rating] || ""}</span>`
-      : "";
-  
-    const goodBox = Math.min(5, currentBox + 1);
-    const easyBox = Math.min(5, currentBox + 2);
-    const setInt = (id, txt) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = txt;
-    };
-    setInt("fc-int-again", LEARN_BOX_LABELS[0]);
-    setInt("fc-int-good", LEARN_BOX_LABELS[goodBox]);
-    setInt("fc-int-easy", LEARN_BOX_LABELS[easyBox]);
-  
-    document.querySelectorAll("#learn-rating-bar .learn-rate-btn").forEach((b) => {
+        : `Stage ${currentBox}/3`;
+
+  const officeType = detectOfficeType(liveRec.Address);
+  const isPrio = Number(liveRec.priority) >= 1;
+  const typeBadgeHtml = officeType
+    ? `<span class="badge badge-primary" style="margin:0; padding:3px 9px; font-size:11px;">📮 ${escapeHTML(officeType)}</span>`
+    : isPrio
+      ? `<span class="badge learn-priority-badge">⚡ Priority</span>`
+      : `<span class="badge" style="margin:0; padding:3px 9px; font-size:11px;">📍 Locality</span>`;
+
+  const ratedLabels = { again: "Again", good: "Good", easy: "Easy" };
+  const ratedBadgeHtml = entry.rating
+    ? `<span class="learn-rated-pill is-${escapeHTML(entry.rating)}">Rated: ${ratedLabels[entry.rating] || ""}</span>`
+    : "";
+
+  const goodBox = Math.min(5, currentBox + 1);
+  const easyBox = Math.min(5, currentBox + 2);
+  const setInt = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+  setInt("fc-int-again", LEARN_BOX_LABELS[0]);
+  setInt("fc-int-good", LEARN_BOX_LABELS[goodBox]);
+  setInt("fc-int-easy", LEARN_BOX_LABELS[easyBox]);
+
+  document
+    .querySelectorAll("#learn-rating-bar .learn-rate-btn")
+    .forEach((b) => {
       b.classList.toggle(
         "is-selected",
         Boolean(entry.rating && b.getAttribute("data-rate") === entry.rating),
       );
     });
-  
-    updateFlashcardActionBars();
-  
-    const enterCls =
-      animDir === "left"
-        ? "is-entering-right"
-        : animDir === "right"
-          ? "is-entering-left"
-          : "";
-  
-    const safeAddr = escapeHTML(liveRec.Address);
-    const safeOff = escapeHTML(liveRec.Office);
-    const safePin = escapeHTML(liveRec.Pin || "N/A");
-  
-    stage.innerHTML = `
+
+  updateFlashcardActionBars();
+
+  const enterCls =
+    animDir === "left"
+      ? "is-entering-right"
+      : animDir === "right"
+        ? "is-entering-left"
+        : "";
+
+  const safeAddr = escapeHTML(liveRec.Address);
+  const safeOff = escapeHTML(liveRec.Office);
+  const safePin = escapeHTML(liveRec.Pin || "N/A");
+
+  stage.innerHTML = `
       <div id="learn-card-swipe-wrap" class="learn-card-swipe-wrap ${enterCls}">
         <div
           id="learn-active-flashcard"
@@ -1095,161 +1099,161 @@ function pickNextFlashcardRecord() {
         </div>
       </div>
     `;
-  
-    if (typeof bindFlashcardSwipeGestures === "function") {
-      bindFlashcardSwipeGestures();
-    }
+
+  if (typeof bindFlashcardSwipeGestures === "function") {
+    bindFlashcardSwipeGestures();
   }
-  
-  function loadNextFlashcard(animDir = "none") {
-    if (learnState.fcHistoryIndex < learnState.fcHistory.length - 1) {
+}
+
+function loadNextFlashcard(animDir = "none") {
+  if (learnState.fcHistoryIndex < learnState.fcHistory.length - 1) {
+    learnState.fcHistoryIndex += 1;
+    renderFlashcardEntry(
+      learnState.fcHistory[learnState.fcHistoryIndex],
+      animDir,
+    );
+    return;
+  }
+
+  const nextRec = pickNextFlashcardRecord();
+  if (!nextRec) {
+    renderFlashcardEntry(null, "none");
+    return;
+  }
+
+  const entry = {
+    recordId: String(nextRec.id),
+    record: nextRec,
+    prevCardSnapshot: null,
+    prevStatsSnapshot: null,
+    rating: null,
+  };
+  learnState.fcHistory.push(entry);
+  learnState.fcHistoryIndex = learnState.fcHistory.length - 1;
+  renderFlashcardEntry(entry, animDir);
+}
+
+function goToNextFlashcard(fromSwipe = false) {
+  if (learnState.fcIsTransitioning || !learnState.fcCurrentRecord) return;
+
+  if (learnState.fcHistoryIndex < learnState.fcHistory.length - 1) {
+    if (navigator.vibrate) navigator.vibrate(15);
+    animateFlashcardExit("left", () => {
       learnState.fcHistoryIndex += 1;
       renderFlashcardEntry(
         learnState.fcHistory[learnState.fcHistoryIndex],
-        animDir,
-      );
-      return;
-    }
-  
-    const nextRec = pickNextFlashcardRecord();
-    if (!nextRec) {
-      renderFlashcardEntry(null, "none");
-      return;
-    }
-  
-    const entry = {
-      recordId: String(nextRec.id),
-      record: nextRec,
-      prevCardSnapshot: null,
-      prevStatsSnapshot: null,
-      rating: null,
-    };
-    learnState.fcHistory.push(entry);
-    learnState.fcHistoryIndex = learnState.fcHistory.length - 1;
-    renderFlashcardEntry(entry, animDir);
-  }
-  
-  function goToNextFlashcard(fromSwipe = false) {
-    if (learnState.fcIsTransitioning || !learnState.fcCurrentRecord) return;
-  
-    if (learnState.fcHistoryIndex < learnState.fcHistory.length - 1) {
-      if (navigator.vibrate) navigator.vibrate(15);
-      animateFlashcardExit("left", () => {
-        learnState.fcHistoryIndex += 1;
-        renderFlashcardEntry(
-          learnState.fcHistory[learnState.fcHistoryIndex],
-          "left",
-        );
-      });
-      return;
-    }
-  
-    const pool = getFilteredLearnRecords();
-    if (pool.length <= 1) {
-      bounceFlashcardEdge("left");
-      if (fromSwipe) showToast("Only 1 card in this deck", "info");
-      return;
-    }
-  
-    if (navigator.vibrate) navigator.vibrate(15);
-    animateFlashcardExit("left", () => {
-      loadNextFlashcard("left");
-    });
-  }
-  
-  function goToPrevFlashcard(fromSwipe = false) {
-    if (learnState.fcIsTransitioning || !learnState.fcCurrentRecord) return;
-  
-    if (learnState.fcHistoryIndex <= 0) {
-      bounceFlashcardEdge("right");
-      if (fromSwipe) showToast("Already at first card", "info");
-      return;
-    }
-  
-    if (navigator.vibrate) navigator.vibrate(15);
-    animateFlashcardExit("right", () => {
-      learnState.fcHistoryIndex -= 1;
-      renderFlashcardEntry(
-        learnState.fcHistory[learnState.fcHistoryIndex],
-        "right",
+        "left",
       );
     });
+    return;
   }
-  
-  function flipLearnCard() {
-    const cardEl = document.getElementById("learn-active-flashcard");
-    if (!cardEl || !learnState.fcCurrentRecord || learnState.fcIsTransitioning) {
-      return;
-    }
-  
-    learnState.fcFlipped = !learnState.fcFlipped;
-    cardEl.classList.toggle("is-flipped", learnState.fcFlipped);
-    updateFlashcardActionBars();
-    if (navigator.vibrate) navigator.vibrate(18);
+
+  const pool = getFilteredLearnRecords();
+  if (pool.length <= 1) {
+    bounceFlashcardEdge("left");
+    if (fromSwipe) showToast("Only 1 card in this deck", "info");
+    return;
   }
-  
-  function rateLearnCard(rating) {
-    const rec = learnState.fcCurrentRecord;
-    if (!rec || learnState.fcIsTransitioning) return;
-  
-    const prog = getLearnProgress();
-    const idKey = String(rec.id);
-    const entry = learnState.fcHistory[learnState.fcHistoryIndex];
-  
-    // Undo-safe re-rating if user swiped back to an already-rated card
-    if (entry && entry.recordId === idKey) {
-      if (
-        entry.rating !== null &&
-        entry.prevCardSnapshot &&
-        entry.prevStatsSnapshot
-      ) {
-        if (entry.prevCardSnapshot === "__NEW__") {
-          delete prog.cards[idKey];
-        } else {
-          prog.cards[idKey] = { ...entry.prevCardSnapshot };
-        }
-  
-        const today = getLearnLocalDateKey();
-        prog.stats.totalAnswered = entry.prevStatsSnapshot.totalAnswered;
-        prog.stats.totalCorrect = entry.prevStatsSnapshot.totalCorrect;
-        prog.stats.xp = entry.prevStatsSnapshot.xp;
-        prog.stats.streakDays = entry.prevStatsSnapshot.streakDays;
-        prog.stats.lastPracticeDate = entry.prevStatsSnapshot.lastPracticeDate;
-        if (entry.prevStatsSnapshot.dailyDate === today) {
-          prog.stats.dailyDate = today;
-          prog.stats.dailyCount = entry.prevStatsSnapshot.dailyCount;
-        }
-      } else {
-        entry.prevCardSnapshot = prog.cards[idKey]
-          ? { ...prog.cards[idKey] }
-          : "__NEW__";
-        entry.prevStatsSnapshot = { ...prog.stats };
-      }
-      entry.rating = rating;
-    }
-  
-    const { hitDailyGoal } = recordLearnCardOutcome(
-      rec.id,
-      rating,
-      null,
-      "flashcard",
+
+  if (navigator.vibrate) navigator.vibrate(15);
+  animateFlashcardExit("left", () => {
+    loadNextFlashcard("left");
+  });
+}
+
+function goToPrevFlashcard(fromSwipe = false) {
+  if (learnState.fcIsTransitioning || !learnState.fcCurrentRecord) return;
+
+  if (learnState.fcHistoryIndex <= 0) {
+    bounceFlashcardEdge("right");
+    if (fromSwipe) showToast("Already at first card", "info");
+    return;
+  }
+
+  if (navigator.vibrate) navigator.vibrate(15);
+  animateFlashcardExit("right", () => {
+    learnState.fcHistoryIndex -= 1;
+    renderFlashcardEntry(
+      learnState.fcHistory[learnState.fcHistoryIndex],
+      "right",
     );
-  
-    if (navigator.vibrate) {
-      navigator.vibrate(rating === "again" ? [35, 35, 35] : 25);
-    }
-  
-    if (hitDailyGoal) {
-      showToast("🎉 Daily learning goal reached!", "success");
-    }
-  
-    renderLearnOverview();
-    renderLearnFilterChips();
-  
-    animateFlashcardExit("left", () => {
-      loadNextFlashcard("left");
-    });
+  });
+}
+
+function flipLearnCard() {
+  const cardEl = document.getElementById("learn-active-flashcard");
+  if (!cardEl || !learnState.fcCurrentRecord || learnState.fcIsTransitioning) {
+    return;
   }
+
+  learnState.fcFlipped = !learnState.fcFlipped;
+  cardEl.classList.toggle("is-flipped", learnState.fcFlipped);
+  updateFlashcardActionBars();
+  if (navigator.vibrate) navigator.vibrate(18);
+}
+
+function rateLearnCard(rating) {
+  const rec = learnState.fcCurrentRecord;
+  if (!rec || learnState.fcIsTransitioning) return;
+
+  const prog = getLearnProgress();
+  const idKey = String(rec.id);
+  const entry = learnState.fcHistory[learnState.fcHistoryIndex];
+
+  // Undo-safe re-rating if user swiped back to an already-rated card
+  if (entry && entry.recordId === idKey) {
+    if (
+      entry.rating !== null &&
+      entry.prevCardSnapshot &&
+      entry.prevStatsSnapshot
+    ) {
+      if (entry.prevCardSnapshot === "__NEW__") {
+        delete prog.cards[idKey];
+      } else {
+        prog.cards[idKey] = { ...entry.prevCardSnapshot };
+      }
+
+      const today = getLearnLocalDateKey();
+      prog.stats.totalAnswered = entry.prevStatsSnapshot.totalAnswered;
+      prog.stats.totalCorrect = entry.prevStatsSnapshot.totalCorrect;
+      prog.stats.xp = entry.prevStatsSnapshot.xp;
+      prog.stats.streakDays = entry.prevStatsSnapshot.streakDays;
+      prog.stats.lastPracticeDate = entry.prevStatsSnapshot.lastPracticeDate;
+      if (entry.prevStatsSnapshot.dailyDate === today) {
+        prog.stats.dailyDate = today;
+        prog.stats.dailyCount = entry.prevStatsSnapshot.dailyCount;
+      }
+    } else {
+      entry.prevCardSnapshot = prog.cards[idKey]
+        ? { ...prog.cards[idKey] }
+        : "__NEW__";
+      entry.prevStatsSnapshot = { ...prog.stats };
+    }
+    entry.rating = rating;
+  }
+
+  const { hitDailyGoal } = recordLearnCardOutcome(
+    rec.id,
+    rating,
+    null,
+    "flashcard",
+  );
+
+  if (navigator.vibrate) {
+    navigator.vibrate(rating === "again" ? [35, 35, 35] : 25);
+  }
+
+  if (hitDailyGoal) {
+    showToast("🎉 Daily learning goal reached!", "success");
+  }
+
+  renderLearnOverview();
+  renderLearnFilterChips();
+
+  animateFlashcardExit("left", () => {
+    loadNextFlashcard("left");
+  });
+}
 
 // --- TAB SWITCHING & LIFECYCLE HOOKS ---
 function switchLearnTab(tab) {
@@ -2026,7 +2030,7 @@ function renderQuizQuestion() {
         )
         .join("");
     }
-} else if (item.type === "pin") {
+  } else if (item.type === "pin") {
     if (kickerEl) kickerEl.textContent = "PIN SNIPER";
     if (titleEl) titleEl.textContent = item.record.Address;
     if (subEl) subEl.textContent = "Enter last 3 PIN digits";
@@ -2168,34 +2172,34 @@ function handleStandardAnswer(selectedIdx) {
 }
 
 function submitPinSniperAnswer() {
-    const q = learnState.quiz;
-    if (!q.active || q.answered) return;
-  
-    const inputEl = document.getElementById("learn-pin-input");
-    const submitBtn = document.getElementById("learn-pin-submit-btn");
-    const typed = (inputEl?.value || "").replace(/\D/g, "");
-  
-    if (typed.length < 3) {
-      showToast("✏️ Enter all 3 last digits of the PIN");
-      inputEl?.focus();
-      return;
-    }
-  
-    const item = q.questions[q.index];
-    const isCorrect = typed === item.pinSuffix;
-  
-    if (inputEl) {
-      inputEl.disabled = true;
-      inputEl.blur();
-    }
-    if (submitBtn) submitBtn.disabled = true;
-  
-    const note = isCorrect
-      ? `✅ Bullseye! ${item.record.Office} PIN is ${item.fullPin}`
-      : `❌ You entered ${item.pinPrefix}${typed}. Correct PIN is ${item.fullPin} (${item.record.Office})`;
-  
-    finishQuizAnswer(isCorrect, item.record, note);
+  const q = learnState.quiz;
+  if (!q.active || q.answered) return;
+
+  const inputEl = document.getElementById("learn-pin-input");
+  const submitBtn = document.getElementById("learn-pin-submit-btn");
+  const typed = (inputEl?.value || "").replace(/\D/g, "");
+
+  if (typed.length < 3) {
+    showToast("✏️ Enter all 3 last digits of the PIN");
+    inputEl?.focus();
+    return;
   }
+
+  const item = q.questions[q.index];
+  const isCorrect = typed === item.pinSuffix;
+
+  if (inputEl) {
+    inputEl.disabled = true;
+    inputEl.blur();
+  }
+  if (submitBtn) submitBtn.disabled = true;
+
+  const note = isCorrect
+    ? `✅ Bullseye! ${item.record.Office} PIN is ${item.fullPin}`
+    : `❌ You entered ${item.pinPrefix}${typed}. Correct PIN is ${item.fullPin} (${item.record.Office})`;
+
+  finishQuizAnswer(isCorrect, item.record, note);
+}
 
 function handleIntruderAnswer(selectedIdx) {
   const q = learnState.quiz;
@@ -2914,209 +2918,209 @@ function practiceOfficeFromDirectory(officeName) {
 
 // --- FLASHCARD SWIPE PHYSICS (TOUCH & MOUSE) ---
 function bindFlashcardSwipeGestures() {
-    const wrap = document.getElementById("learn-card-swipe-wrap");
-    if (!wrap || wrap.dataset.swipeBound === "1") return;
-    wrap.dataset.swipeBound = "1";
-  
-    let activePointerId = null;
-    let startX = 0;
-    let startY = 0;
-    let startTime = 0;
-    let dx = 0;
-    let dy = 0;
-    let axis = null; // null | "x" | "y"
-    let captured = false;
-  
-    wrap.addEventListener("dragstart", (e) => e.preventDefault());
-  
-    wrap.addEventListener("pointerdown", (e) => {
-      if (learnState.fcIsTransitioning) return;
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-      if (e.target.closest("button, a, input")) return;
-  
-      activePointerId = e.pointerId;
-      startX = e.clientX;
-      startY = e.clientY;
-      startTime = performance.now();
-      dx = 0;
-      dy = 0;
-      axis = null;
-      captured = false;
-    });
-  
-    wrap.addEventListener("pointermove", (e) => {
-      if (e.pointerId !== activePointerId) return;
-  
-      dx = e.clientX - startX;
-      dy = e.clientY - startY;
-  
-      if (axis === null) {
-        if (Math.hypot(dx, dy) < 8) return;
-  
-        if (Math.abs(dx) > Math.abs(dy) * 1.15) {
-          axis = "x";
-          wrap.classList.remove("is-entering-left", "is-entering-right");
-          wrap.classList.add("is-dragging");
-          try {
-            wrap.setPointerCapture(e.pointerId);
-            captured = true;
-          } catch (_) {}
-        } else {
-          // Vertical drag -> yield immediately to page scroll
-          axis = "y";
-          activePointerId = null;
-          return;
-        }
-      }
-  
-      if (axis !== "x") return;
-  
-      const canPrev = learnState.fcHistoryIndex > 0;
-      const canNext =
-        learnState.fcHistoryIndex < learnState.fcHistory.length - 1 ||
-        getFilteredLearnRecords().length > 1;
-      const isBlockedEdge = (dx > 0 && !canPrev) || (dx < 0 && !canNext);
-  
-      if (isBlockedEdge) {
-        const damped = Math.max(-52, Math.min(52, dx * 0.24));
-        const tilt = damped * 0.04;
-        wrap.style.transform = `translate3d(${damped}px, 0, 0) rotate(${tilt}deg)`;
-        wrap.style.opacity = "";
-      } else {
-        const tilt = Math.max(-10, Math.min(10, dx * 0.045));
-        const opacity = Math.max(0.55, 1 - Math.abs(dx) / 420);
-        wrap.style.transform = `translate3d(${dx}px, 0, 0) rotate(${tilt}deg)`;
-        wrap.style.opacity = String(opacity);
-      }
-    });
-  
-    function finishPointerGesture(e, cancelled = false) {
-      if (e.pointerId !== activePointerId) return;
-  
-      const finalAxis = axis;
-      const finalDx = dx;
-      const finalDy = dy;
-      const elapsed = Math.max(1, performance.now() - startTime);
-  
-      activePointerId = null;
-      axis = null;
-  
-      if (captured) {
+  const wrap = document.getElementById("learn-card-swipe-wrap");
+  if (!wrap || wrap.dataset.swipeBound === "1") return;
+  wrap.dataset.swipeBound = "1";
+
+  let activePointerId = null;
+  let startX = 0;
+  let startY = 0;
+  let startTime = 0;
+  let dx = 0;
+  let dy = 0;
+  let axis = null; // null | "x" | "y"
+  let captured = false;
+
+  wrap.addEventListener("dragstart", (e) => e.preventDefault());
+
+  wrap.addEventListener("pointerdown", (e) => {
+    if (learnState.fcIsTransitioning) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (e.target.closest("button, a, input")) return;
+
+    activePointerId = e.pointerId;
+    startX = e.clientX;
+    startY = e.clientY;
+    startTime = performance.now();
+    dx = 0;
+    dy = 0;
+    axis = null;
+    captured = false;
+  });
+
+  wrap.addEventListener("pointermove", (e) => {
+    if (e.pointerId !== activePointerId) return;
+
+    dx = e.clientX - startX;
+    dy = e.clientY - startY;
+
+    if (axis === null) {
+      if (Math.hypot(dx, dy) < 8) return;
+
+      if (Math.abs(dx) > Math.abs(dy) * 1.15) {
+        axis = "x";
+        wrap.classList.remove("is-entering-left", "is-entering-right");
+        wrap.classList.add("is-dragging");
         try {
-          wrap.releasePointerCapture(e.pointerId);
+          wrap.setPointerCapture(e.pointerId);
+          captured = true;
         } catch (_) {}
-        captured = false;
-      }
-  
-      wrap.classList.remove("is-dragging");
-  
-      if (cancelled) {
-        wrap.style.transform = "";
-        wrap.style.opacity = "";
+      } else {
+        // Vertical drag -> yield immediately to page scroll
+        axis = "y";
+        activePointerId = null;
         return;
       }
-  
-      // Clean tap -> flip flashcard
-      if (finalAxis === null && Math.hypot(finalDx, finalDy) <= 10) {
-        flipLearnCard();
-        return;
-      }
-  
-      if (finalAxis !== "x") return;
-  
-      const cardWidth = wrap.offsetWidth || 320;
-      const distanceThreshold = Math.min(95, cardWidth * 0.26);
-      const velocity = Math.abs(finalDx) / elapsed;
-      const triggered =
-        Math.abs(finalDx) >= distanceThreshold ||
-        (Math.abs(finalDx) >= 42 && velocity >= 0.35);
-  
-      const canPrev = learnState.fcHistoryIndex > 0;
-      const canNext =
-        learnState.fcHistoryIndex < learnState.fcHistory.length - 1 ||
-        getFilteredLearnRecords().length > 1;
-  
-      if (triggered && finalDx < 0) {
-        if (canNext) {
-          wrap.style.transform = "";
-          wrap.style.opacity = "";
-          goToNextFlashcard(true);
-          return;
-        }
-        if (Math.abs(finalDx) > 32) showToast("Only 1 card in this deck", "info");
-      } else if (triggered && finalDx > 0) {
-        if (canPrev) {
-          wrap.style.transform = "";
-          wrap.style.opacity = "";
-          goToPrevFlashcard(true);
-          return;
-        }
-        if (finalDx > 32) showToast("Already at first card", "info");
-      }
-  
-      // Snap back smoothly
+    }
+
+    if (axis !== "x") return;
+
+    const canPrev = learnState.fcHistoryIndex > 0;
+    const canNext =
+      learnState.fcHistoryIndex < learnState.fcHistory.length - 1 ||
+      getFilteredLearnRecords().length > 1;
+    const isBlockedEdge = (dx > 0 && !canPrev) || (dx < 0 && !canNext);
+
+    if (isBlockedEdge) {
+      const damped = Math.max(-52, Math.min(52, dx * 0.24));
+      const tilt = damped * 0.04;
+      wrap.style.transform = `translate3d(${damped}px, 0, 0) rotate(${tilt}deg)`;
+      wrap.style.opacity = "";
+    } else {
+      const tilt = Math.max(-10, Math.min(10, dx * 0.045));
+      const opacity = Math.max(0.55, 1 - Math.abs(dx) / 420);
+      wrap.style.transform = `translate3d(${dx}px, 0, 0) rotate(${tilt}deg)`;
+      wrap.style.opacity = String(opacity);
+    }
+  });
+
+  function finishPointerGesture(e, cancelled = false) {
+    if (e.pointerId !== activePointerId) return;
+
+    const finalAxis = axis;
+    const finalDx = dx;
+    const finalDy = dy;
+    const elapsed = Math.max(1, performance.now() - startTime);
+
+    activePointerId = null;
+    axis = null;
+
+    if (captured) {
+      try {
+        wrap.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+      captured = false;
+    }
+
+    wrap.classList.remove("is-dragging");
+
+    if (cancelled) {
       wrap.style.transform = "";
       wrap.style.opacity = "";
+      return;
     }
-  
-    wrap.addEventListener("pointerup", (e) => finishPointerGesture(e, false));
-    wrap.addEventListener("pointercancel", (e) => finishPointerGesture(e, true));
+
+    // Clean tap -> flip flashcard
+    if (finalAxis === null && Math.hypot(finalDx, finalDy) <= 10) {
+      flipLearnCard();
+      return;
+    }
+
+    if (finalAxis !== "x") return;
+
+    const cardWidth = wrap.offsetWidth || 320;
+    const distanceThreshold = Math.min(95, cardWidth * 0.26);
+    const velocity = Math.abs(finalDx) / elapsed;
+    const triggered =
+      Math.abs(finalDx) >= distanceThreshold ||
+      (Math.abs(finalDx) >= 42 && velocity >= 0.35);
+
+    const canPrev = learnState.fcHistoryIndex > 0;
+    const canNext =
+      learnState.fcHistoryIndex < learnState.fcHistory.length - 1 ||
+      getFilteredLearnRecords().length > 1;
+
+    if (triggered && finalDx < 0) {
+      if (canNext) {
+        wrap.style.transform = "";
+        wrap.style.opacity = "";
+        goToNextFlashcard(true);
+        return;
+      }
+      if (Math.abs(finalDx) > 32) showToast("Only 1 card in this deck", "info");
+    } else if (triggered && finalDx > 0) {
+      if (canPrev) {
+        wrap.style.transform = "";
+        wrap.style.opacity = "";
+        goToPrevFlashcard(true);
+        return;
+      }
+      if (finalDx > 32) showToast("Already at first card", "info");
+    }
+
+    // Snap back smoothly
+    wrap.style.transform = "";
+    wrap.style.opacity = "";
   }
-  
-  // --- DESKTOP / TABLET KEYBOARD SHORTCUTS FOR FLASHCARDS ---
-  (function initLearnKeyboardShortcuts() {
-    document.addEventListener("keydown", (e) => {
-      const viewEl = document.getElementById("view-learn");
-      if (!viewEl || !viewEl.classList.contains("active")) return;
-      if (learnState.activeTab !== "learn" || learnState.quiz.active) return;
-      if (document.querySelector(".modal-overlay.show")) return;
-      if (document.getElementById("sidebar")?.classList.contains("open")) return;
-  
-      const activeEl = document.activeElement;
+
+  wrap.addEventListener("pointerup", (e) => finishPointerGesture(e, false));
+  wrap.addEventListener("pointercancel", (e) => finishPointerGesture(e, true));
+}
+
+// --- DESKTOP / TABLET KEYBOARD SHORTCUTS FOR FLASHCARDS ---
+(function initLearnKeyboardShortcuts() {
+  document.addEventListener("keydown", (e) => {
+    const viewEl = document.getElementById("view-learn");
+    if (!viewEl || !viewEl.classList.contains("active")) return;
+    if (learnState.activeTab !== "learn" || learnState.quiz.active) return;
+    if (document.querySelector(".modal-overlay.show")) return;
+    if (document.getElementById("sidebar")?.classList.contains("open")) return;
+
+    const activeEl = document.activeElement;
+    if (
+      activeEl &&
+      (activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        activeEl.tagName === "SELECT" ||
+        activeEl.isContentEditable)
+    ) {
+      return;
+    }
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      goToNextFlashcard(false);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      goToPrevFlashcard(false);
+    } else if (e.key === " ") {
       if (
         activeEl &&
-        (activeEl.tagName === "INPUT" ||
-          activeEl.tagName === "TEXTAREA" ||
-          activeEl.tagName === "SELECT" ||
-          activeEl.isContentEditable)
+        activeEl.tagName === "BUTTON" &&
+        activeEl.id !== "learn-active-flashcard"
       ) {
         return;
       }
-  
-      if (e.key === "ArrowRight") {
+      e.preventDefault();
+      flipLearnCard();
+    } else if (
+      e.key === "Enter" &&
+      activeEl &&
+      activeEl.id === "learn-active-flashcard"
+    ) {
+      e.preventDefault();
+      flipLearnCard();
+    } else if (learnState.fcFlipped) {
+      if (e.key === "1") {
         e.preventDefault();
-        goToNextFlashcard(false);
-      } else if (e.key === "ArrowLeft") {
+        rateLearnCard("again");
+      } else if (e.key === "2") {
         e.preventDefault();
-        goToPrevFlashcard(false);
-      } else if (e.key === " ") {
-        if (
-          activeEl &&
-          activeEl.tagName === "BUTTON" &&
-          activeEl.id !== "learn-active-flashcard"
-        ) {
-          return;
-        }
+        rateLearnCard("good");
+      } else if (e.key === "3") {
         e.preventDefault();
-        flipLearnCard();
-      } else if (
-        e.key === "Enter" &&
-        activeEl &&
-        activeEl.id === "learn-active-flashcard"
-      ) {
-        e.preventDefault();
-        flipLearnCard();
-      } else if (learnState.fcFlipped) {
-        if (e.key === "1") {
-          e.preventDefault();
-          rateLearnCard("again");
-        } else if (e.key === "2") {
-          e.preventDefault();
-          rateLearnCard("good");
-        } else if (e.key === "3") {
-          e.preventDefault();
-          rateLearnCard("easy");
-        }
+        rateLearnCard("easy");
       }
-    });
-  })();
+    }
+  });
+})();
