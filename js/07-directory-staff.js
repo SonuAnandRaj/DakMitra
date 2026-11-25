@@ -682,12 +682,8 @@ function renderDirectoryBatch() {
         ? data.totalAddresses
         : shownCount;
 
-    const countLabel =
-      shownCount < totalCount
-        ? `${shownCount} / ${totalCount} ${
-            totalCount === 1 ? "Address" : "Addresses"
-          }`
-        : `${shownCount} ${shownCount === 1 ? "Address" : "Addresses"}`;
+    const countBadgeText =
+      shownCount < totalCount ? `${shownCount}/${totalCount}` : `${shownCount}`;
 
     const officeTitleHtml =
       activeQuery && data.officeMatches?.length
@@ -705,51 +701,44 @@ function renderDirectoryBatch() {
           : escapeHTML(data.pin);
 
     const parentStaffCount = getOfficeStaffCount(data.office);
-    const staffPillLabel =
-      parentStaffCount > 0 ? `👥 ${parentStaffCount} Staff` : "👥 + Staff";
+    const staffBtnTitle =
+      parentStaffCount > 0
+        ? `Office Staff Details (${parentStaffCount} saved)`
+        : `Add Staff Details for ${escapeHTML(data.office)}`;
 
     html += `
         <div class="directory-card" id="${safeId}">
           <div class="directory-card-header">
-            <div class="directory-office-info">
-              <button
-                type="button"
-                class="directory-office-title directory-office-title-btn"
-                onclick="showParentOfficeDetailsModal('${escapeForOnclick(
-                  data.office,
-                )}', '${escapeForOnclick(data.pin)}')"
-                title="View or edit ${escapeHTML(data.office)} staff details"
-              >
+            <div class="directory-header-top">
+              <div class="directory-office-title">
                 <span>🏢</span>
-                <span>${officeTitleHtml}</span>
-                <span class="dir-office-info-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10.2" stroke-width="2"></circle>
-                    <line x1="12" y1="11.2" x2="12" y2="17.6" stroke-width="2.8"></line>
-                    <circle cx="12" cy="7" r="1.45" fill="currentColor" stroke="none"></circle>
-                  </svg>
-                </span>
-              </button>
-              <div class="directory-office-meta">
-                <span>📍 ${pinDisplayHtml}</span>
-                <span class="meta-dot">•</span>
-                <span class="meta-count">${countLabel}</span>
-                <span class="meta-dot">•</span>
-                <button
-                  type="button"
-                  class="dir-staff-pill ${parentStaffCount > 0 ? "has-staff" : ""}"
-                  onclick="showParentOfficeDetailsModal('${escapeForOnclick(
-                    data.office,
-                  )}', '${escapeForOnclick(data.pin)}')"
-                  title="View or edit ${escapeHTML(data.office)} staff details"
-                >
-                  ${staffPillLabel}
-                </button>
+                <span class="directory-office-name">${officeTitleHtml}</span>
+                <span class="dir-office-count-pill" title="${shownCount} ${
+                  shownCount === 1 ? "Address" : "Addresses"
+                }">${countBadgeText}</span>
               </div>
+              <span class="directory-office-pin">📍 ${pinDisplayHtml}</span>
             </div>
 
             <div class="directory-header-actions">
-            <button
+              <button
+                type="button"
+                class="dir-quick-staff-btn ${parentStaffCount > 0 ? "has-staff" : ""}"
+                onclick="showParentOfficeDetailsModal('${escapeForOnclick(
+                  data.office,
+                )}', '${escapeForOnclick(data.pin)}')"
+                title="${staffBtnTitle}"
+                aria-label="${staffBtnTitle}"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </button>
+
+              <button
                 type="button"
                 class="dir-quick-practice-btn"
                 onclick="practiceOfficeFromDirectory('${escapeForOnclick(
@@ -758,12 +747,13 @@ function renderDirectoryBatch() {
                 title="Practice ${escapeHTML(data.office)} in Learn &amp; Quiz"
                 aria-label="Practice this office"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
                   <path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"></path>
                 </svg>
-              </button>  
-            <button
+              </button>
+
+              <button
                 type="button"
                 class="dir-quick-priority-btn"
                 onclick="quickPriorityForOffice('${escapeForOnclick(
@@ -772,7 +762,7 @@ function renderDirectoryBatch() {
                 title="Mark priority addresses in ${escapeHTML(data.office)}"
                 aria-label="Manage priority addresses"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                 </svg>
               </button>

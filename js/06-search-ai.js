@@ -1174,6 +1174,7 @@ function findMatchingDeliveryOfficesForSearch() {
 
     // Respect explicit secondary Office / PIN filters
     if (filterOffice && !offLower.includes(filterOffice)) continue;
+    if (smartOffice && offLower !== smartOffice.toLowerCase()) continue;
     if (filterPin) {
       const isUniqueSuffix =
         /^\d{3}$/.test(filterPin) && pinSuffixToOfficeMap.has(filterPin);
