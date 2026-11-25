@@ -5110,3 +5110,22 @@ body.keyboard-open .feedback-submit-panel {
   position: relative;
   z-index: 1;
 }
+
+/* Make Directory Delete modal taller */
+#quick-delete-chips-container {
+  min-height: 165px;
+  max-height: 300px;
+}
+
+/* Keep mobile keyboard resizing working */
+body.keyboard-open #quick-delete-chips-container {
+  min-height: 0;
+  max-height: clamp(135px, calc(var(--vvh, 100dvh) - 310px), 340px);
+}
+
+body.keyboard-open
+  #quick-delete-modal-overlay:has(#quick-delete-selected-box:not(.hidden))
+  #quick-delete-chips-container {
+  min-height: 0;
+  max-height: clamp(115px, calc(var(--vvh, 100dvh) - 390px), 260px);
+}
