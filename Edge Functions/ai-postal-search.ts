@@ -47,6 +47,17 @@ Deno.serve(async (req) => {
       );
     }
 
+    const { data: isApproved } = await supabase.rpc("is_approved_user");
+    if (!isApproved) {
+      return new Response(
+        JSON.stringify({ error: "Account pending Superadmin approval." }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     // 2. Read your hidden Gemini API key from Supabase Secrets
     const apiKey = Deno.env.get("GEMINI_API_KEY")?.trim();
     if (!apiKey) {

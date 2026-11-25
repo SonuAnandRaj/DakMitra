@@ -31,7 +31,7 @@ function persistOfficeStaffCache() {
   try {
     localStorage.setItem(
       OFFICE_STAFF_CACHE_KEY,
-      JSON.stringify(cachedOfficeStaff),
+      JSON.stringify(cachedOfficeStaff)
     );
   } catch (e) {
     console.warn("Failed to persist office staff cache:", e);
@@ -93,7 +93,7 @@ function upsertLocalOfficeStaff(row) {
   const idx = cachedOfficeStaff.findIndex(
     (r) =>
       (row.id && String(r.id) === String(row.id)) ||
-      (r.office_key || normalizeOfficeKey(r.office_name)) === key,
+      (r.office_key || normalizeOfficeKey(r.office_name)) === key
   );
 
   if (idx > -1) {
@@ -187,8 +187,9 @@ async function fetchFromServerBackground() {
   if (!navigator.onLine) {
     console.log("Offline mode: Skipping background sync.");
     if (!cachedPostOffices || cachedPostOffices.length === 0) {
-      document.getElementById("results-display-area").innerHTML =
-        `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
+      document.getElementById(
+        "results-display-area"
+      ).innerHTML = `<ul class="list-container"><li class="list-empty" style="color: #ef4444;">Offline mode active. No cached data available.</li></ul>`;
     }
     return false;
   }
@@ -336,7 +337,7 @@ function parseSmartSearchQuery(
   rawInput,
   searchMode,
   manualOfficeFilter,
-  manualPinFilter,
+  manualPinFilter
 ) {
   let text = String(rawInput || "").trim();
 
@@ -463,7 +464,7 @@ function buildDirectoryGroupedData() {
         addresses: group.addresses.sort(
           (a, b) =>
             b.effectivePriority - a.effectivePriority ||
-            String(a.Address).localeCompare(String(b.Address)),
+            String(a.Address).localeCompare(String(b.Address))
         ),
         searchString: (group.office + " " + group.pin).toLowerCase(),
       };
@@ -479,7 +480,7 @@ function persistPostOfficeCache() {
   try {
     localStorage.setItem(
       "dakmitra_offline_db",
-      JSON.stringify(cachedPostOffices),
+      JSON.stringify(cachedPostOffices)
     );
   } catch (e) {
     console.warn("Failed to persist offline DB:", e);
@@ -558,7 +559,7 @@ function upsertLocalPostOffice(row) {
   }
 
   const idx = cachedPostOffices.findIndex(
-    (r) => String(r.id) === String(row.id),
+    (r) => String(r.id) === String(row.id)
   );
   if (idx > -1) {
     if (isRowDataUnchanged(cachedPostOffices[idx], row)) {
@@ -604,7 +605,7 @@ function removeLocalPostOffice(id) {
 
   const beforeLen = cachedPostOffices.length;
   cachedPostOffices = cachedPostOffices.filter(
-    (r) => String(r.id) !== String(id),
+    (r) => String(r.id) !== String(id)
   );
   if (cachedPostOffices.length === beforeLen) return;
 
@@ -634,7 +635,7 @@ function scheduleLocalUiRefresh() {
     if (statAddrEl) statAddrEl.textContent = cachedPostOffices.length;
     if (statOffEl) {
       statOffEl.textContent = new Set(
-        cachedPostOffices.map((o) => o.Office),
+        cachedPostOffices.map((o) => o.Office)
       ).size;
     }
 
@@ -701,42 +702,42 @@ function initRealtimeSync() {
       { event: "INSERT", schema: "public", table: "post_offices" },
       (payload) => {
         upsertLocalPostOffice(payload.new);
-      },
+      }
     )
     .on(
       "postgres_changes",
       { event: "UPDATE", schema: "public", table: "post_offices" },
       (payload) => {
         upsertLocalPostOffice(payload.new);
-      },
+      }
     )
     .on(
       "postgres_changes",
       { event: "DELETE", schema: "public", table: "post_offices" },
       (payload) => {
         if (payload.old?.id) removeLocalPostOffice(payload.old.id);
-      },
+      }
     )
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "office_staff" },
       (payload) => {
         upsertLocalOfficeStaff(payload.new);
-      },
+      }
     )
     .on(
       "postgres_changes",
       { event: "UPDATE", schema: "public", table: "office_staff" },
       (payload) => {
         upsertLocalOfficeStaff(payload.new);
-      },
+      }
     )
     .on(
       "postgres_changes",
       { event: "DELETE", schema: "public", table: "office_staff" },
       (payload) => {
         if (payload.old) removeLocalOfficeStaff(payload.old);
-      },
+      }
     )
     .on(
       "postgres_changes",
@@ -754,7 +755,7 @@ function initRealtimeSync() {
             switchApprovalTab(currentApprovalTab, true);
           }
         }
-      },
+      }
     )
     .on(
       "postgres_changes",
@@ -763,7 +764,7 @@ function initRealtimeSync() {
         if (typeof scheduleApprovalsRealtimeRefresh === "function") {
           scheduleApprovalsRealtimeRefresh();
         }
-      },
+      }
     )
     .on(
       "postgres_changes",
@@ -772,7 +773,7 @@ function initRealtimeSync() {
         if (typeof scheduleFeedbackRealtimeRefresh === "function") {
           scheduleFeedbackRealtimeRefresh();
         }
-      },
+      }
     )
     .on(
       "postgres_changes",
@@ -781,7 +782,57 @@ function initRealtimeSync() {
         if (typeof scheduleFeedbackRealtimeRefresh === "function") {
           scheduleFeedbackRealtimeRefresh();
         }
-      },
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "app_settings" },
+      () => {
+        if (typeof fetchAndApplyAppConfig === "function") {
+          fetchAndApplyAppConfig();
+        }
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "admins" },
+      async () => {
+        if (!currentUserId || typeof checkIfAdmin !== "function") return;
+        const isAdm = await checkIfAdmin(currentUserId);
+        isCurrentUserAdmin = isCurrentUserSuperadmin || isAdm;
+        if (typeof applyAdminUI === "function") applyAdminUI();
+        try {
+          const prof =
+            JSON.parse(localStorage.getItem("dakmitra_cached_profile")) || {};
+          prof.is_admin = isCurrentUserAdmin;
+          localStorage.setItem("dakmitra_cached_profile", JSON.stringify(prof));
+        } catch (_) {}
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "profiles" },
+      (payload) => {
+        if (
+          payload.new?.id &&
+          String(payload.new.id) === String(currentUserId) &&
+          typeof getAccountBlockReason === "function"
+        ) {
+          const blocked = getAccountBlockReason(
+            payload.new,
+            isCurrentUserSuperadmin
+          );
+          if (blocked && typeof forceLogoutBlockedUser === "function") {
+            forceLogoutBlockedUser(blocked);
+          }
+        }
+        if (
+          isCurrentUserSuperadmin &&
+          typeof refreshSuperadminPendingBadge === "function"
+        ) {
+          refreshSuperadminPendingBadge();
+        }
+      }
     )
     .subscribe((status) => {
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
@@ -823,7 +874,7 @@ async function hydrateOnlineState(attempt = 1) {
       const delays = [1500, 3000, 5000, 8000];
       onlineRetryTimer = setTimeout(
         () => hydrateOnlineState(attempt + 1),
-        delays[attempt - 1],
+        delays[attempt - 1]
       );
     }
     return;
@@ -856,20 +907,46 @@ async function hydrateOnlineState(attempt = 1) {
 
     currentUserId = session.user.id;
 
-    isCurrentUserAdmin = await checkIfAdmin(session.user.id);
-    applyAdminUI();
+    const [isSuper, isAdm, profRes] = await Promise.all([
+      typeof checkIfSuperadmin === "function"
+        ? checkIfSuperadmin(session.user.id)
+        : false,
+      checkIfAdmin(session.user.id),
+      client
+        .from("profiles")
+        .select(
+          "name, designation, employee_id, mobile, avatar_url, show_mobile, approval_status, status_note"
+        )
+        .eq("id", session.user.id)
+        .maybeSingle(),
+    ]);
 
-    const { data: profileData } = await client
-      .from("profiles")
-      .select("name, designation, employee_id, mobile, avatar_url, show_mobile")
-      .eq("id", session.user.id)
-      .maybeSingle();
+    isCurrentUserSuperadmin = Boolean(isSuper);
+    isCurrentUserAdmin = isCurrentUserSuperadmin || Boolean(isAdm);
+
+    const profileData = profRes?.data;
+    if (profileData && typeof getAccountBlockReason === "function") {
+      const blocked = getAccountBlockReason(
+        profileData,
+        isCurrentUserSuperadmin
+      );
+      if (blocked && typeof forceLogoutBlockedUser === "function") {
+        await forceLogoutBlockedUser(blocked);
+        return;
+      }
+    }
+
+    applyAdminUI();
+    if (typeof fetchAndApplyAppConfig === "function") {
+      fetchAndApplyAppConfig();
+    }
 
     if (profileData) {
       const merged = {
         ...profileData,
         email: session.user.email,
         is_admin: isCurrentUserAdmin,
+        is_superadmin: isCurrentUserSuperadmin,
       };
       localStorage.setItem("dakmitra_cached_profile", JSON.stringify(merged));
       renderUserProfileUI(merged, session.user.email);
@@ -916,7 +993,7 @@ async function hydrateOnlineState(attempt = 1) {
     if (attempt <= 3 && navigator.onLine) {
       onlineRetryTimer = setTimeout(
         () => hydrateOnlineState(attempt + 1),
-        3000,
+        3000
       );
     }
   } finally {

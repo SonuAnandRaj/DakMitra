@@ -1,0 +1,155 @@
+/* =========================================================
+   05-SUPERADMIN.CSS — Minimal Styles for Superadmin & CMS
+   Reuses DakMitra tokens, .dm-surface, .dm-btn, .dm-toggle-row
+   ========================================================= */
+
+#view-superadmin.active {
+  display: block;
+  height: calc(
+    100dvh - 105px - env(safe-area-inset-top, 0px) -
+      env(safe-area-inset-bottom, 0px)
+  );
+  min-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+.sa-announcement-banner {
+  padding: 10px 14px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  border: 1px solid var(--dm-border-tint);
+  background: rgba(79, 70, 229, 0.1);
+  color: var(--primary);
+}
+.sa-announcement-banner[data-type="warning"] {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.sa-announcement-banner[data-type="danger"] {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+[data-theme="dark"] .sa-announcement-banner[data-type="warning"] {
+  color: #fcd34d;
+}
+[data-theme="dark"] .sa-announcement-banner[data-type="danger"] {
+  color: #fca5a5;
+}
+
+.sa-card {
+  text-align: left;
+  padding: 20px 18px;
+  margin-bottom: 16px;
+}
+.sa-card-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 14px;
+}
+.sa-row-title {
+  display: block;
+  font-size: 13.5px;
+  color: var(--text);
+}
+.sa-row-sub {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-light);
+}
+.sa-mini-num-input,
+.sa-select-sm,
+.sa-text-sm {
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  outline: none;
+}
+.sa-mini-num-input {
+  width: 64px;
+  text-align: center;
+}
+
+.sa-user-card {
+  background: var(--card-bg);
+  border: 1px solid var(--dm-border-tint);
+  border-radius: 18px;
+  padding: 14px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+.sa-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.sa-db-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.sa-db-meta {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-light);
+  margin: 10px 0 8px;
+}
+.sa-db-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.sa-db-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  text-align: left;
+}
+.sa-db-table th,
+.sa-db-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sa-db-table th {
+  background: var(--input-bg);
+  color: var(--text-light);
+  font-size: 11px;
+  text-transform: uppercase;
+  font-weight: 800;
+  cursor: pointer;
+}
+.sa-db-table tbody tr {
+  cursor: pointer;
+}
+.sa-db-table tbody tr:hover td {
+  background: rgba(79, 70, 229, 0.08);
+}
+.sa-db-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}

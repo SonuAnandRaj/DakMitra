@@ -69,6 +69,7 @@
     <link rel="stylesheet" href="css/02-components.css" />
     <link rel="stylesheet" href="css/03-views.css" />
     <link rel="stylesheet" href="css/04-learn.css" />
+    <link rel="stylesheet" href="css/05-superadmin.css" />
   </head>
   <body>
     <!-- Seamless top notch backdrop -->
@@ -747,6 +748,32 @@
             >
           </button>
 
+          <!-- SUPERADMIN CONSOLE BUTTON (Superadmin Only) -->
+          <button
+            class="sidebar-menu-item hidden"
+            id="nav-superadmin"
+            onclick="switchDashboardView('superadmin')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <path d="M9 12l2 2 4-4"></path>
+            </svg>
+            <span>Superadmin</span>
+            <span
+              id="sidebar-superadmin-badge"
+              class="sidebar-count-pill hidden"
+              title="Pending user approvals"
+              >0</span
+            >
+          </button>
+
           <hr style="border-top: 1px solid var(--border); margin: 8px 0" />
 
           <button
@@ -827,6 +854,15 @@
 
       <!-- Main Dashboard Container -->
       <main class="container">
+        <!-- GLOBAL ANNOUNCEMENT BANNER (Managed by Superadmin CMS) -->
+        <div
+          id="global-announcement-banner"
+          class="sa-announcement-banner hidden"
+          data-type="info"
+        >
+          <span id="global-announcement-text"></span>
+        </div>
+
         <!-- PROFILE VIEW -->
         <section id="view-profile" class="view-section">
           <div class="profile-hero-card">
@@ -4345,6 +4381,394 @@
           </div>
         </section>
 
+        <!-- SUPERADMIN CONSOLE VIEW -->
+        <section id="view-superadmin" class="view-section">
+          <div
+            class="search-hero"
+            style="text-align: center; padding: 20px 18px"
+          >
+            <h2 style="margin-bottom: 4px">👑 Superadmin Console</h2>
+            <p
+              style="
+                color: var(--text-light);
+                font-size: 13px;
+                margin-bottom: 14px;
+              "
+            >
+              App controls, user approvals, roles &amp; full database access.
+            </p>
+
+            <div class="dir-filter-chips" style="justify-content: center">
+              <button
+                type="button"
+                id="sa-tab-controls"
+                class="dir-filter-chip active"
+                onclick="switchSuperadminTab('controls')"
+              >
+                ⚡ Controls &amp; CMS
+              </button>
+              <button
+                type="button"
+                id="sa-tab-users"
+                class="dir-filter-chip is-office"
+                onclick="switchSuperadminTab('users')"
+              >
+                <span>👥 Users</span>
+                <span class="dir-chip-count" id="sa-pending-count-pill">0</span>
+              </button>
+              <button
+                type="button"
+                id="sa-tab-database"
+                class="dir-filter-chip is-priority"
+                onclick="switchSuperadminTab('database')"
+              >
+                🗄️ Database
+              </button>
+              <button
+                type="button"
+                id="sa-tab-audit"
+                class="dir-filter-chip is-regular"
+                onclick="switchSuperadminTab('audit')"
+              >
+                📜 Audit
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 1: CONTROLS & SIMPLE CMS -->
+          <div id="sa-panel-controls" class="sa-panel">
+            <div class="upload-card dm-surface sa-card">
+              <h3 class="sa-card-title">🔐 Access &amp; Export Controls</h3>
+
+              <div class="dm-toggle-row">
+                <div>
+                  <strong class="sa-row-title">Require User Approval</strong>
+                  <span class="sa-row-sub"
+                    >New signups must be approved by Superadmin to login</span
+                  >
+                </div>
+                <label class="dm-toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="sa-toggle-user-approval"
+                    onchange="saveSuperadminSetting('require_user_approval', this.checked)"
+                  />
+                  <span class="dm-toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="dm-toggle-row">
+                <div>
+                  <strong class="sa-row-title">Allow Search CSV Export</strong>
+                  <span class="sa-row-sub"
+                    >Enable/disable CSV button for Staff &amp; Admins</span
+                  >
+                </div>
+                <label class="dm-toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="sa-toggle-csv-export"
+                    onchange="saveSuperadminSetting('export_csv_enabled', this.checked)"
+                  />
+                  <span class="dm-toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="dm-toggle-row">
+                <div>
+                  <strong class="sa-row-title"
+                    >Allow Full Database Excel Export</strong
+                  >
+                  <span class="sa-row-sub"
+                    >Enable/disable Settings Excel export for Staff &amp;
+                    Admins</span
+                  >
+                </div>
+                <label class="dm-toggle-switch">
+                  <input
+                    type="checkbox"
+                    id="sa-toggle-excel-export"
+                    onchange="saveSuperadminSetting('export_excel_enabled', this.checked)"
+                  />
+                  <span class="dm-toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="dm-toggle-row" style="margin-bottom: 0">
+                <div>
+                  <strong class="sa-row-title">Community Votes Needed</strong>
+                  <span class="sa-row-sub"
+                    >Votes required to auto-approve a user edit</span
+                  >
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center">
+                  <input
+                    type="number"
+                    id="sa-input-vote-threshold"
+                    min="1"
+                    max="20"
+                    value="5"
+                    class="sa-mini-num-input"
+                  />
+                  <button
+                    type="button"
+                    class="dm-btn dm-btn-primary dm-btn-sm"
+                    onclick="saveSuperadminVoteThreshold()"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="upload-card dm-surface sa-card">
+              <h3 class="sa-card-title">🎨 Simple Website CMS</h3>
+
+              <div class="input-group" style="margin-bottom: 12px">
+                <label for="sa-cms-title">App Name</label>
+                <input type="text" id="sa-cms-title" placeholder="DakMitra" />
+              </div>
+
+              <div class="input-group" style="margin-bottom: 14px">
+                <label for="sa-cms-tagline">Auth Screen Tagline</label>
+                <input
+                  type="text"
+                  id="sa-cms-tagline"
+                  placeholder="The Modern Postal Database"
+                />
+              </div>
+
+              <div class="dm-toggle-row" style="margin-bottom: 10px">
+                <div>
+                  <strong class="sa-row-title">Announcement Banner</strong>
+                  <span class="sa-row-sub">Show a top notice to all users</span>
+                </div>
+                <label class="dm-toggle-switch">
+                  <input type="checkbox" id="sa-cms-banner-enabled" />
+                  <span class="dm-toggle-slider"></span>
+                </label>
+              </div>
+
+              <div
+                style="
+                  display: flex;
+                  gap: 8px;
+                  margin-bottom: 14px;
+                  flex-wrap: wrap;
+                "
+              >
+                <select id="sa-cms-banner-type" class="sa-select-sm">
+                  <option value="info">ℹ️ Info</option>
+                  <option value="warning">⚠️ Warning</option>
+                  <option value="danger">🚨 Urgent</option>
+                </select>
+                <input
+                  type="text"
+                  id="sa-cms-banner-text"
+                  placeholder="Banner message..."
+                  style="flex: 1; min-width: 180px"
+                  class="sa-text-sm"
+                />
+              </div>
+
+              <div class="dm-toggle-row" style="margin-bottom: 10px">
+                <div>
+                  <strong class="sa-row-title">Maintenance Mode</strong>
+                  <span class="sa-row-sub"
+                    >Lock app for non-superadmins during big edits</span
+                  >
+                </div>
+                <label class="dm-toggle-switch">
+                  <input type="checkbox" id="sa-cms-maint-enabled" />
+                  <span class="dm-toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="input-group" style="margin-bottom: 14px">
+                <input
+                  type="text"
+                  id="sa-cms-maint-msg"
+                  placeholder="Maintenance message..."
+                />
+              </div>
+
+              <button
+                type="button"
+                id="sa-cms-save-btn"
+                class="dm-btn dm-btn-primary dm-btn-full"
+                onclick="saveSuperadminCmsChanges()"
+              >
+                💾 Save CMS Changes Live
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB 2: USERS, APPROVALS & ADMIN ROLES -->
+          <div id="sa-panel-users" class="sa-panel hidden">
+            <div class="approvals-search-row" style="margin-bottom: 10px">
+              <div class="search-input-wrapper">
+                <span style="margin-left: 8px">🔍</span>
+                <input
+                  type="search"
+                  id="sa-users-search"
+                  placeholder="Search name, email, Emp ID..."
+                  oninput="renderSuperadminUsersList()"
+                  autocomplete="off"
+                />
+              </div>
+              <button
+                type="button"
+                class="dm-btn dm-btn-secondary dm-btn-sm"
+                onclick="loadSuperadminUsers(true)"
+                title="Refresh Users"
+              >
+                🔄
+              </button>
+            </div>
+
+            <div class="dir-filter-chips" style="margin-bottom: 12px">
+              <button
+                type="button"
+                class="dir-filter-chip active"
+                data-sa-ufilter="all"
+                onclick="setSuperadminUserFilter('all')"
+              >
+                All
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip is-priority"
+                data-sa-ufilter="pending"
+                onclick="setSuperadminUserFilter('pending')"
+              >
+                ⏳ Pending
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip is-office"
+                data-sa-ufilter="admins"
+                onclick="setSuperadminUserFilter('admins')"
+              >
+                🛡️ Admins
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip is-danger"
+                data-sa-ufilter="blocked"
+                onclick="setSuperadminUserFilter('blocked')"
+              >
+                🚫 Blocked
+              </button>
+            </div>
+
+            <div id="sa-users-list"></div>
+          </div>
+
+          <!-- TAB 3: VISUAL DATABASE EXPLORER -->
+          <div id="sa-panel-database" class="sa-panel hidden">
+            <div class="upload-card dm-surface sa-card" style="padding: 16px">
+              <div class="sa-db-toolbar">
+                <select
+                  id="sa-db-table-select"
+                  class="sa-select-sm"
+                  style="flex: 1; min-width: 160px"
+                  onchange="onSuperadminTableChange(this.value)"
+                ></select>
+                <button
+                  type="button"
+                  id="sa-db-add-btn"
+                  class="dm-btn dm-btn-primary dm-btn-sm"
+                  onclick="openSuperadminDbRowModal('INSERT')"
+                >
+                  ➕ Row
+                </button>
+                <button
+                  type="button"
+                  class="dm-btn dm-btn-secondary dm-btn-sm"
+                  onclick="exportSuperadminTable('csv')"
+                  title="Export table to CSV"
+                >
+                  📥 CSV
+                </button>
+                <button
+                  type="button"
+                  class="dm-btn dm-btn-secondary dm-btn-sm"
+                  onclick="exportSuperadminTable('json')"
+                  title="Export table to JSON"
+                >
+                  { } JSON
+                </button>
+              </div>
+
+              <div class="approvals-search-row" style="margin-top: 10px">
+                <div class="search-input-wrapper">
+                  <span style="margin-left: 8px">🔍</span>
+                  <input
+                    type="search"
+                    id="sa-db-search"
+                    placeholder="Search any column in this table..."
+                    oninput="handleSuperadminDbSearch()"
+                    autocomplete="off"
+                  />
+                </div>
+                <button
+                  type="button"
+                  class="dm-btn dm-btn-secondary dm-btn-sm"
+                  onclick="loadSuperadminTableRows(true)"
+                >
+                  🔄
+                </button>
+              </div>
+
+              <div id="sa-db-meta" class="sa-db-meta"></div>
+              <div id="sa-db-table-wrap" class="sa-db-table-wrap"></div>
+
+              <div id="sa-db-pager" class="sa-db-pager hidden">
+                <button
+                  type="button"
+                  id="sa-db-prev-btn"
+                  class="dm-btn dm-btn-secondary dm-btn-sm"
+                  onclick="changeSuperadminDbPage(-1)"
+                >
+                  ‹ Prev
+                </button>
+                <span
+                  id="sa-db-page-info"
+                  style="font-size: 12.5px; font-weight: 700"
+                ></span>
+                <button
+                  type="button"
+                  id="sa-db-next-btn"
+                  class="dm-btn dm-btn-secondary dm-btn-sm"
+                  onclick="changeSuperadminDbPage(1)"
+                >
+                  Next ›
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: AUDIT LOG -->
+          <div id="sa-panel-audit" class="sa-panel hidden">
+            <div
+              style="
+                display: flex;
+                justify-content: flex-end;
+                margin-bottom: 10px;
+              "
+            >
+              <button
+                type="button"
+                class="dm-btn dm-btn-secondary dm-btn-sm"
+                onclick="loadSuperadminAuditLogs()"
+              >
+                🔄 Refresh Audit Log
+              </button>
+            </div>
+            <div id="sa-audit-list"></div>
+          </div>
+        </section>
+
         <!-- BOTTOM NAVIGATION BAR -->
         <nav class="bottom-nav">
           <!--<button
@@ -5851,6 +6275,162 @@
       </div>
     </div>
 
+    <!-- SUPERADMIN DB ROW EDITOR MODAL -->
+    <div
+      id="sa-db-modal-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeSuperadminDbModal();"
+    >
+      <div
+        class="modal-card edit-modal-card"
+        style="
+          max-width: 500px;
+          max-height: 85vh;
+          display: flex;
+          flex-direction: column;
+        "
+      >
+        <div class="edit-modal-header" style="margin-bottom: 12px">
+          <div>
+            <h3
+              id="sa-db-modal-title"
+              class="modal-title"
+              style="margin: 0; font-size: 18px"
+            >
+              Edit Row
+            </h3>
+            <span
+              id="sa-db-modal-sub"
+              style="font-size: 12px; color: var(--text-light)"
+            ></span>
+          </div>
+          <button
+            type="button"
+            class="dm-close-btn"
+            onclick="closeSuperadminDbModal()"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div
+          id="sa-db-modal-fields"
+          style="flex: 1; overflow-y: auto; padding-right: 4px"
+        ></div>
+
+        <div class="modal-actions" style="margin-top: 16px">
+          <button
+            type="button"
+            id="sa-db-delete-btn"
+            class="dm-btn dm-btn-danger-soft dm-btn-sm hidden"
+            onclick="deleteSuperadminDbRow()"
+          >
+            🗑️ Delete
+          </button>
+          <button
+            type="button"
+            class="dm-btn dm-btn-secondary dm-btn-sm"
+            onclick="closeSuperadminDbModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="sa-db-save-btn"
+            class="dm-btn dm-btn-primary dm-btn-sm"
+            style="flex: 1"
+            onclick="saveSuperadminDbRow()"
+          >
+            💾 Save Row
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUPERADMIN USER ACTION MODAL (Password Reset / Status Note) -->
+    <div
+      id="sa-user-modal-overlay"
+      class="modal-overlay"
+      onclick="if (event.target === this) closeSuperadminUserModal();"
+    >
+      <div class="modal-card edit-modal-card" style="max-width: 400px">
+        <div class="edit-modal-header" style="margin-bottom: 12px">
+          <h3
+            id="sa-user-modal-title"
+            class="modal-title"
+            style="margin: 0; font-size: 18px"
+          >
+            User Action
+          </h3>
+          <button
+            type="button"
+            class="dm-close-btn"
+            onclick="closeSuperadminUserModal()"
+          >
+            ✕
+          </button>
+        </div>
+        <p
+          id="sa-user-modal-desc"
+          style="font-size: 13px; color: var(--text-light); margin-bottom: 14px"
+        ></p>
+        <div class="input-group" style="margin-bottom: 14px">
+          <label id="sa-user-modal-label">Value</label>
+          <input type="text" id="sa-user-modal-input" autocomplete="off" />
+        </div>
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="dm-btn dm-btn-secondary"
+            style="flex: 0.45"
+            onclick="closeSuperadminUserModal()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="sa-user-modal-confirm"
+            class="dm-btn dm-btn-primary"
+            style="flex: 1"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAINTENANCE MODE OVERLAY -->
+    <div id="maintenance-overlay" class="modal-overlay" style="z-index: 4500">
+      <div class="modal-card" style="padding: 32px 24px">
+        <div
+          class="dm-icon-badge"
+          style="
+            margin: 0 auto 14px;
+            width: 54px;
+            height: 54px;
+            font-size: 26px;
+          "
+        >
+          🛠️
+        </div>
+        <h3 class="modal-title">Maintenance Mode</h3>
+        <p
+          id="maintenance-message"
+          class="modal-message"
+          style="margin-bottom: 18px"
+        >
+          DakMitra is undergoing maintenance. Please check back shortly.
+        </p>
+        <button
+          type="button"
+          class="dm-btn dm-btn-secondary dm-btn-full"
+          onclick="fetchAndApplyAppConfig()"
+        >
+          🔄 Check Again
+        </button>
+      </div>
+    </div>
+
     <!-- Modular Application Scripts (Ordered by Dependency) -->
     <script defer src="js/01-config.js"></script>
     <script defer src="js/02-utils.js"></script>
@@ -5863,6 +6443,7 @@
     <script defer src="js/09-approvals-favs.js"></script>
     <script defer src="js/11-feedback.js"></script>
     <script defer src="js/12-learn-quiz.js"></script>
+    <script defer src="js/13-superadmin.js"></script>
     <script defer src="js/10-settings-boot.js"></script>
   </body>
 </html>

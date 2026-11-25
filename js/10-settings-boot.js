@@ -43,7 +43,7 @@ function clearAppCache() {
       showToast("🧹 Cache cleared successfully!");
       loadSearchHistory();
       invalidateApprovalsCache();
-    },
+    }
   );
 }
 
@@ -66,7 +66,21 @@ async function syncDatabase() {
   }
 }
 
-// --- ADMIN ROLE CHECK & UI ---
+// --- ADMIN & SUPERADMIN ROLE CHECK + LIVE CMS CONFIG ---
+async function checkIfSuperadmin(userId) {
+  try {
+    const { data } = await supabaseClient
+      .from("superadmins")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    return !!data;
+  } catch (err) {
+    return false;
+  }
+}
+
 async function checkIfAdmin(userId) {
   try {
     const { data } = await supabaseClient
@@ -81,14 +95,138 @@ async function checkIfAdmin(userId) {
   }
 }
 
-async function applyAdminUI() {
+function applyAdminUI() {
   const adminOnlyExcelCard = document.getElementById("admin-excel-upload");
-  if (!adminOnlyExcelCard) return;
-  adminOnlyExcelCard.style.display = isCurrentUserAdmin ? "block" : "none";
+  if (adminOnlyExcelCard) {
+    adminOnlyExcelCard.style.display =
+      isCurrentUserAdmin || isCurrentUserSuperadmin ? "block" : "none";
+  }
+
+  const superadminNav = document.getElementById("nav-superadmin");
+  if (superadminNav) {
+    superadminNav.classList.toggle("hidden", !isCurrentUserSuperadmin);
+  }
+
+  applyAppConfigUI();
+}
+
+function applyAppConfigUI() {
+  const title = String(appConfig.app_title || "DakMitra").trim() || "DakMitra";
+  const tagline =
+    String(appConfig.app_tagline || "The Modern Postal Database").trim() ||
+    "The Modern Postal Database";
+
+  document.title = title;
+  const appBarTitle = document.querySelector(".app-bar h1");
+  const authTitle = document.querySelector("#auth-view h1");
+  const splashTitle = document.querySelector(".splash-title");
+  const taglineEl = document.querySelector(".auth-tagline-pill");
+  if (appBarTitle) appBarTitle.textContent = title;
+  if (authTitle) authTitle.textContent = title;
+  if (splashTitle) splashTitle.textContent = title;
+  if (taglineEl) taglineEl.textContent = tagline;
+
+  // Enforce CSV export visibility (Superadmin always allowed)
+  const csvBtn = document.querySelector(
+    '#export-toolbar-group button[onclick*="exportCSV"]'
+  );
+  if (csvBtn) {
+    csvBtn.style.display = canExportCSV() ? "" : "none";
+  }
+
+  // Enforce Full Database Excel export row visibility (Superadmin always allowed)
+  const excelBtn = document.getElementById("export-excel-btn");
+  if (excelBtn?.parentElement) {
+    excelBtn.parentElement.style.display = canExportExcel() ? "flex" : "none";
+  }
+
+  // Global Announcement Banner
+  const bannerEl = document.getElementById("global-announcement-banner");
+  const bannerTextEl = document.getElementById("global-announcement-text");
+  const banner = appConfig.announcement_banner || {};
+  if (bannerEl && bannerTextEl) {
+    const showBanner = Boolean(
+      banner.enabled && String(banner.text || "").trim()
+    );
+    bannerEl.classList.toggle("hidden", !showBanner);
+    if (showBanner) {
+      bannerEl.dataset.type = banner.type || "info";
+      bannerTextEl.textContent = String(banner.text).trim();
+    }
+  }
+
+  // Maintenance Mode Lock (Superadmin bypasses)
+  const maintOverlay = document.getElementById("maintenance-overlay");
+  const maintMsg = document.getElementById("maintenance-message");
+  const maint = appConfig.maintenance_mode || {};
+  const isLoggedIn = !document
+    .getElementById("dashboard-view")
+    ?.classList.contains("hidden");
+  if (maintOverlay) {
+    const showMaint =
+      isLoggedIn && Boolean(maint.enabled) && !isCurrentUserSuperadmin;
+    maintOverlay.classList.toggle("show", showMaint);
+    if (maintMsg) {
+      maintMsg.textContent =
+        maint.message ||
+        "DakMitra is undergoing maintenance. Please check back shortly.";
+    }
+  }
+}
+
+async function fetchAndApplyAppConfig() {
+  if (!navigator.onLine || !supabaseClient) {
+    applyAppConfigUI();
+    return appConfig;
+  }
+  try {
+    const { data, error } = await supabaseClient
+      .from("app_settings")
+      .select("key, value");
+    if (error || !Array.isArray(data)) return appConfig;
+
+    const next = { ...DEFAULT_APP_CONFIG };
+    data.forEach((row) => {
+      if (row && row.key) next[row.key] = row.value;
+    });
+    next.announcement_banner = {
+      ...DEFAULT_APP_CONFIG.announcement_banner,
+      ...(next.announcement_banner || {}),
+    };
+    next.maintenance_mode = {
+      ...DEFAULT_APP_CONFIG.maintenance_mode,
+      ...(next.maintenance_mode || {}),
+    };
+
+    appConfig = next;
+    try {
+      localStorage.setItem(APP_CONFIG_CACHE_KEY, JSON.stringify(appConfig));
+    } catch (_) {}
+
+    applyAppConfigUI();
+    if (
+      isCurrentUserSuperadmin &&
+      document
+        .getElementById("view-superadmin")
+        ?.classList.contains("active") &&
+      typeof syncSuperadminControlsUI === "function"
+    ) {
+      syncSuperadminControlsUI();
+    }
+  } catch (err) {
+    console.warn("App config fetch failed:", err?.message || err);
+  }
+  return appConfig;
 }
 
 // --- FULL DATABASE EXCEL EXPORT ---
 async function exportFullTableToExcel(includeDeleted = true) {
+  if (!canExportExcel()) {
+    return showToast(
+      "🚫 Database export is disabled by Superadmin.",
+      "warning"
+    );
+  }
   try {
     await ensureXLSXLoaded();
   } catch (e) {
@@ -241,6 +379,11 @@ function bootAppInstantly() {
       profileData = JSON.parse(localStorage.getItem("dakmitra_cached_profile"));
     } catch (e) {}
 
+    isCurrentUserSuperadmin = Boolean(profileData?.is_superadmin);
+    isCurrentUserAdmin =
+      isCurrentUserSuperadmin || Boolean(profileData?.is_admin);
+    applyAdminUI();
+
     renderUserProfileUI(profileData, userEmail);
 
     switchDashboardView("search");
@@ -257,7 +400,7 @@ function bootAppInstantly() {
         document.getElementById("stat-addresses").textContent =
           cachedPostOffices.length;
         document.getElementById("stat-offices").textContent = new Set(
-          cachedPostOffices.map((o) => o.Office),
+          cachedPostOffices.map((o) => o.Office)
         ).size;
         currentFilteredData = cachedPostOffices
           .map((item) => ({
@@ -322,32 +465,49 @@ async function checkUserSession() {
     } catch (e) {}
 
     if (cachedProf) {
-      if (typeof cachedProf.is_admin === "boolean") {
-        isCurrentUserAdmin = cachedProf.is_admin;
-        applyAdminUI();
-      }
+      isCurrentUserSuperadmin = Boolean(cachedProf.is_superadmin);
+      isCurrentUserAdmin =
+        isCurrentUserSuperadmin || Boolean(cachedProf.is_admin);
+      applyAdminUI();
       renderUserProfileUI(cachedProf, userEmail);
+    } else {
+      applyAppConfigUI();
     }
 
     if (navigator.onLine && supabaseClient) {
+      fetchAndApplyAppConfig();
+
       Promise.all([
+        Promise.resolve(checkIfSuperadmin(session.user.id)).catch(
+          () => isCurrentUserSuperadmin
+        ),
         Promise.resolve(checkIfAdmin(session.user.id)).catch(
-          () => isCurrentUserAdmin,
+          () => isCurrentUserAdmin
         ),
         Promise.resolve(
           supabaseClient
             .from("profiles")
             .select(
-              "name, designation, employee_id, mobile, avatar_url, show_mobile",
+              "name, designation, employee_id, mobile, avatar_url, show_mobile, approval_status, status_note"
             )
             .eq("id", session.user.id)
-            .single(),
+            .single()
         ).catch(() => ({ data: null })),
-      ]).then(([isAdmin, profRes]) => {
-        isCurrentUserAdmin = isAdmin;
+      ]).then(async ([isSuper, isAdmin, profRes]) => {
+        const prof = profRes?.data;
+        isCurrentUserSuperadmin = Boolean(isSuper);
+        isCurrentUserAdmin = isCurrentUserSuperadmin || Boolean(isAdmin);
+
+        if (prof && typeof getAccountBlockReason === "function") {
+          const blocked = getAccountBlockReason(prof, isCurrentUserSuperadmin);
+          if (blocked && typeof forceLogoutBlockedUser === "function") {
+            await forceLogoutBlockedUser(blocked);
+            return;
+          }
+        }
+
         applyAdminUI();
 
-        const prof = profRes?.data;
         let existing = {};
         try {
           existing =
@@ -358,10 +518,18 @@ async function checkUserSession() {
           ...existing,
           ...(prof || {}),
           email: userEmail,
-          is_admin: isAdmin,
+          is_admin: isCurrentUserAdmin,
+          is_superadmin: isCurrentUserSuperadmin,
         };
         localStorage.setItem("dakmitra_cached_profile", JSON.stringify(merged));
         if (prof) renderUserProfileUI(merged, userEmail);
+
+        if (
+          isCurrentUserSuperadmin &&
+          typeof refreshSuperadminPendingBadge === "function"
+        ) {
+          refreshSuperadminPendingBadge();
+        }
       });
 
       initRealtimeSync();
@@ -376,9 +544,15 @@ async function checkUserSession() {
     fetchAllPostOffices();
   } else {
     currentUserId = null;
+    isCurrentUserAdmin = false;
+    isCurrentUserSuperadmin = false;
     authView.classList.remove("hidden");
     dashboardView.classList.add("hidden");
     splashScreen.classList.add("hidden-splash");
+    applyAppConfigUI();
+    if (navigator.onLine && supabaseClient) {
+      fetchAndApplyAppConfig();
+    }
   }
 }
 

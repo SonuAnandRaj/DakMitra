@@ -1769,10 +1769,14 @@ async function saveOfficeStaffDetails() {
         upsertLocalOfficeStaff(activeOfficeRecord);
       }
     } else {
-      const { error } = await supabaseClient
-        .from("post_offices")
-        .update(updatePayload)
-        .eq("id", activeOfficeRecord.id);
+      const { error } = await supabaseClient.rpc(
+        "update_post_office_staff_details",
+        {
+          p_post_office_id: activeOfficeRecord.id,
+          p_office_type: activeOfficeType,
+          p_payload: updatePayload,
+        }
+      );
 
       if (error) throw error;
 

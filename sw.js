@@ -1,4 +1,4 @@
-const CACHE_NAME = "po-directory-v42";
+const CACHE_NAME = "po-directory-v43";
 
 const LOCAL_ASSETS = [
   "./",
@@ -11,6 +11,7 @@ const LOCAL_ASSETS = [
   "./css/02-components.css",
   "./css/03-views.css",
   "./css/04-learn.css",
+  "./css/05-superadmin.css",
   // Modular Scripts
   "./js/01-config.js",
   "./js/02-utils.js",
@@ -24,6 +25,7 @@ const LOCAL_ASSETS = [
   "./js/11-feedback.js",
   "./js/12-learn-quiz.js",
   "./js/10-settings-boot.js",
+  "./js/13-superadmin.js",
 ];
 
 const CDN_ASSETS = [

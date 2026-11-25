@@ -70,24 +70,50 @@ async function handleAuth() {
       return showAlert("Please enter a valid 10-digit mobile number.");
     }
 
-    const { error: authError } = await supabaseClient.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { name, employee_id: employeeId, mobile, designation },
-        emailRedirectTo: window.location.origin + window.location.pathname,
-      },
-    });
+    const { data: signUpData, error: authError } =
+      await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name, employee_id: employeeId, mobile, designation },
+          emailRedirectTo: window.location.origin + window.location.pathname,
+        },
+      });
+
+    if (authError) {
+      splashScreen.classList.add("hidden-splash");
+      return showAlert(authError.message);
+    }
+
+    if (typeof fetchAndApplyAppConfig === "function") {
+      await fetchAndApplyAppConfig();
+    }
+
+    if (appConfig.require_user_approval) {
+      // When email verification is OFF, Supabase auto-creates a session — revoke it immediately
+      if (signUpData?.session) {
+        await supabaseClient.auth.signOut();
+      }
+      splashScreen.classList.add("hidden-splash");
+      showToast("⏳ Account created! Waiting for Superadmin approval.");
+      switchTab("signin");
+      showAlert(
+        "Registration successful! Your account must be approved by the Superadmin before you can sign in.",
+        "success"
+      );
+      return;
+    }
 
     splashScreen.classList.add("hidden-splash");
-    if (authError) return showAlert(authError.message);
+    if (signUpData?.session) {
+      showToast("🎉 Account created! Signing you in...");
+      checkUserSession();
+      return;
+    }
 
     showToast("✉️ Account created!");
-    showAlert(
-      "Registration successful! Check your email to verify.",
-      "success",
-    );
     switchTab("signin");
+    showAlert("Registration successful! You can now sign in.", "success");
   } else {
     const { data: authData, error: authError } =
       await supabaseClient.auth.signInWithPassword({
@@ -100,17 +126,10 @@ async function handleAuth() {
       return showAlert(authError.message);
     }
 
-    let localDeviceId = localStorage.getItem("dakmitra_device_id");
-    if (!localDeviceId) {
-      localDeviceId =
-        "dev_" + Math.random().toString(36).substring(2) + Date.now();
-      localStorage.setItem("dakmitra_device_id", localDeviceId);
-    }
-
     const { data: profileData, error: profileError } = await supabaseClient
       .from("profiles")
       .select(
-        "device_id, name, designation, employee_id, mobile, avatar_url, show_mobile",
+        "device_id, name, designation, employee_id, mobile, avatar_url, show_mobile, approval_status, status_note"
       )
       .eq("id", authData.user.id)
       .single();
@@ -118,14 +137,33 @@ async function handleAuth() {
     if (profileError) {
       await supabaseClient.auth.signOut();
       splashScreen.classList.add("hidden-splash");
-      return showAlert("Error checking device registration.");
+      return showAlert("Error checking account profile.");
+    }
+
+    const isSuper =
+      typeof checkIfSuperadmin === "function"
+        ? await checkIfSuperadmin(authData.user.id)
+        : false;
+
+    const blockedMsg = getAccountBlockReason(profileData, isSuper);
+    if (blockedMsg) {
+      await forceLogoutBlockedUser(blockedMsg);
+      splashScreen.classList.add("hidden-splash");
+      return;
+    }
+
+    let localDeviceId = localStorage.getItem("dakmitra_device_id");
+    if (!localDeviceId) {
+      localDeviceId =
+        "dev_" + Math.random().toString(36).substring(2) + Date.now();
+      localStorage.setItem("dakmitra_device_id", localDeviceId);
     }
 
     if (profileData.device_id && profileData.device_id !== localDeviceId) {
       await supabaseClient.auth.signOut();
       splashScreen.classList.add("hidden-splash");
       return showAlert(
-        "Login Denied: Account already registered on another device.",
+        "Login Denied: Account already registered on another device."
       );
     }
 
@@ -138,7 +176,11 @@ async function handleAuth() {
 
     localStorage.setItem(
       "dakmitra_cached_profile",
-      JSON.stringify({ ...profileData, email: authData.user.email }),
+      JSON.stringify({
+        ...profileData,
+        email: authData.user.email,
+        is_superadmin: isSuper,
+      })
     );
     checkUserSession();
   }
@@ -159,19 +201,60 @@ async function checkEmailVerificationRedirect() {
           window.history.replaceState(
             {},
             document.title,
-            window.location.pathname,
+            window.location.pathname
           );
           switchTab("signin");
-        },
+        }
       );
     }, 1000);
   }
+}
+
+function getAccountBlockReason(profileData, isSuper = false) {
+  if (isSuper) return null;
+  const status = String(
+    profileData?.approval_status || "APPROVED"
+  ).toUpperCase();
+  const note = profileData?.status_note
+    ? ` Reason: ${profileData.status_note}`
+    : "";
+
+  if (status === "PENDING") {
+    return "Account Pending Approval: Please wait for the Superadmin to approve your account.";
+  }
+  if (status === "REJECTED") {
+    return `Registration Rejected.${note}`;
+  }
+  if (status === "SUSPENDED") {
+    return `Account Suspended by Superadmin.${note}`;
+  }
+  return null;
+}
+
+async function forceLogoutBlockedUser(reasonMsg) {
+  try {
+    teardownRealtimeSync();
+    if (supabaseClient) await supabaseClient.auth.signOut();
+  } catch (_) {}
+  isCurrentUserAdmin = false;
+  isCurrentUserSuperadmin = false;
+  currentUserId = null;
+  localStorage.removeItem("dakmitra_cached_profile");
+  localStorage.removeItem("dakmitra_offline_db");
+  localStorage.removeItem(OFFICE_STAFF_CACHE_KEY);
+  document.getElementById("dashboard-view")?.classList.add("hidden");
+  document.getElementById("auth-view")?.classList.remove("hidden");
+  switchTab("signin");
+  if (reasonMsg) showAlert(reasonMsg, "error");
 }
 
 async function signOutApp() {
   await ensureSupabaseReady();
   teardownRealtimeSync();
   await supabaseClient.auth.signOut();
+  isCurrentUserAdmin = false;
+  isCurrentUserSuperadmin = false;
+  currentUserId = null;
   localStorage.removeItem("dakmitra_cached_profile");
   localStorage.removeItem("dakmitra_members_cache");
   localStorage.removeItem("dakmitra_feedback_cache");
@@ -198,7 +281,7 @@ async function registerDevicePasskey() {
     showCustomAlert(
       "Passkey Failed",
       "Passkey registration failed: " + err.message,
-      "⚠️",
+      "⚠️"
     );
   }
 }
@@ -276,7 +359,7 @@ async function saveProfileDetails() {
   const newName = document.getElementById("edit-profile-name").value.trim();
   const newMobile = document.getElementById("edit-profile-mobile").value.trim();
   const newDesignation = document.getElementById(
-    "edit-profile-designation",
+    "edit-profile-designation"
   ).value;
 
   if (!newName) return showToast("⚠️ Name cannot be empty.");
@@ -342,7 +425,7 @@ async function saveProfileDetails() {
     membersDirectoryLoaded = false;
     localStorage.setItem(
       "dakmitra_cached_profile",
-      JSON.stringify(cachedProfile),
+      JSON.stringify(cachedProfile)
     );
 
     renderUserProfileUI(cachedProfile, session.user.email);
@@ -398,7 +481,7 @@ async function updateAvatarInDatabase(avatarDataUrl) {
   cachedProfile.avatar_url = avatarDataUrl;
   localStorage.setItem(
     "dakmitra_cached_profile",
-    JSON.stringify(cachedProfile),
+    JSON.stringify(cachedProfile)
   );
 
   userProfileCache.delete(String(session.user.id));
@@ -415,7 +498,7 @@ function removeProfilePic() {
     async () => {
       await updateAvatarInDatabase(null);
       document.getElementById("profile-pic-input").value = "";
-    },
+    }
   );
 }
 
@@ -483,7 +566,7 @@ function computeCropBounds() {
   cropState.maxScale = cropState.minScale * 4.5;
   cropState.scale = Math.min(
     Math.max(cropState.scale, cropState.minScale),
-    cropState.maxScale,
+    cropState.maxScale
   );
 
   const effW = baseW * cropState.scale;
@@ -604,7 +687,7 @@ function renderCropToCanvas() {
     -cropState.natW / 2,
     -cropState.natH / 2,
     cropState.natW,
-    cropState.natH,
+    cropState.natH
   );
   ctx.restore();
   return canvas;
@@ -692,9 +775,9 @@ async function applyCropAndUpload() {
         const newScale = Math.min(
           Math.max(
             oldScale * (dist / cropState.lastPinchDist),
-            cropState.minScale,
+            cropState.minScale
           ),
-          cropState.maxScale,
+          cropState.maxScale
         );
         const factor = newScale / oldScale;
 
@@ -741,7 +824,7 @@ async function applyCropAndUpload() {
       computeCropBounds();
       applyCropTransform(false);
     },
-    { passive: false },
+    { passive: false }
   );
 
   window.addEventListener("resize", () => {
@@ -839,7 +922,7 @@ function openProfilePhotoModal(customOptions = null) {
     deleteBtn?.classList.toggle("hidden", isReadOnly);
   } else {
     frame.innerHTML = `<div class="lightbox-initial-circle">${escapeHTML(
-      initial,
+      initial
     )}</div>`;
     deleteBtn?.classList.add("hidden");
   }
@@ -848,7 +931,7 @@ function openProfilePhotoModal(customOptions = null) {
   frame.style.transform = "";
   frame?.classList.toggle(
     "is-screenshot",
-    Boolean(customOptions && customOptions.isScreenshot),
+    Boolean(customOptions && customOptions.isScreenshot)
   );
   overlay.classList.add("show");
 }
@@ -901,7 +984,7 @@ function removePhotoFromLightbox() {
       const pts = Array.from(lbState.pointers.values());
       lbState.lastPinchDist = Math.hypot(
         pts[0].x - pts[1].x,
-        pts[0].y - pts[1].y,
+        pts[0].y - pts[1].y
       );
     }
   });
@@ -933,7 +1016,7 @@ function removePhotoFromLightbox() {
       if (lbState.lastPinchDist > 0) {
         lbState.scale = Math.min(
           Math.max(lbState.scale * (dist / lbState.lastPinchDist), 1),
-          4,
+          4
         );
         clampLightboxPan();
         applyLightboxTransform(true);
@@ -1025,8 +1108,10 @@ function renderUserProfileLink(userId, displayName, extraClass = "") {
     return `<b>${safeName}</b>`;
   }
   return `<button type="button" class="history-dir-link ${extraClass}" onclick="event.stopPropagation(); openUserProfileModal('${escapeForOnclick(
-    userId,
-  )}', '${escapeForOnclick(displayName)}')" title="View ${safeName}'s profile">${safeName}</button>`;
+    userId
+  )}', '${escapeForOnclick(
+    displayName
+  )}')" title="View ${safeName}'s profile">${safeName}</button>`;
 }
 
 const MEMBER_ROLE_CHIPS = [
@@ -1089,7 +1174,7 @@ async function renderMembersDirectory(forceRefresh = false) {
     try {
       localStorage.setItem(
         MEMBERS_CACHE_KEY,
-        JSON.stringify(membersDirectoryData),
+        JSON.stringify(membersDirectoryData)
       );
     } catch (_) {}
 
@@ -1101,7 +1186,7 @@ async function renderMembersDirectory(forceRefresh = false) {
     }
     if (membersDirectoryData.length === 0) {
       contentEl.innerHTML = `<div class="list-empty" style="color: #ef4444;">Failed to load employees: ${escapeHTML(
-        err.message,
+        err.message
       )}</div>`;
     }
   }
@@ -1157,7 +1242,7 @@ function renderMembersListUI() {
         count = textMatched.filter((m) => Boolean(m.is_admin)).length;
       } else if (chip.key !== "all") {
         count = textMatched.filter(
-          (m) => String(m.designation || "") === chip.key,
+          (m) => String(m.designation || "") === chip.key
         ).length;
       }
 
@@ -1175,7 +1260,9 @@ function renderMembersListUI() {
       return `
         <button
           type="button"
-          class="dir-filter-chip ${chip.key === "all" ? "" : styleCls} ${activeCls}"
+          class="dir-filter-chip ${
+            chip.key === "all" ? "" : styleCls
+          } ${activeCls}"
           onclick="setMemberRoleFilter('${escapeForOnclick(chip.key)}')"
         >
           <span>${escapeHTML(chip.label)}</span>
@@ -1208,14 +1295,20 @@ function renderMembersListUI() {
           type="button"
           class="member-card"
           onclick="openUserProfileModal('${escapeForOnclick(
-            m.id,
+            m.id
           )}', '${escapeForOnclick(name)}')"
         >
           <div class="member-avatar">${escapeHTML(initial)}</div>
           <div class="member-info">
             <div class="member-name-row">
               <span class="member-name">${escapeHTML(name)}</span>
-              ${m.is_admin ? `<span class="member-admin-badge">Admin</span>` : ""}
+              ${
+                m.is_superadmin
+                  ? `<span class="member-admin-badge">👑 Superadmin</span>`
+                  : m.is_admin
+                  ? `<span class="member-admin-badge">Admin</span>`
+                  : ""
+              }
               ${isSelf ? `<span class="member-you-badge">You</span>` : ""}
             </div>
             <div class="member-meta">
@@ -1261,7 +1354,9 @@ function renderUserProfileModalContent(profile, isOfflineBasic = false) {
   const empId = profile.employee_id || "Not Set";
   const isSelf = currentUserId && String(profile.id) === String(currentUserId);
   const avatarHtml = profile.avatar_url
-    ? `<img src="${escapeHTML(profile.avatar_url)}" alt="${escapeHTML(name)}" />`
+    ? `<img src="${escapeHTML(profile.avatar_url)}" alt="${escapeHTML(
+        name
+      )}" />`
     : escapeHTML(initial);
 
   const hasMobile = Boolean(profile.mobile && String(profile.mobile).trim());
@@ -1286,7 +1381,7 @@ function renderUserProfileModalContent(profile, isOfflineBasic = false) {
         ${
           cleanPhone
             ? `<a href="tel:${escapeHTML(
-                cleanPhone,
+                cleanPhone
               )}" class="staff-call-btn">📞 Call</a>`
             : ""
         }
@@ -1304,7 +1399,7 @@ function renderUserProfileModalContent(profile, isOfflineBasic = false) {
            new Date(profile.created_at).toLocaleDateString("en-IN", {
              month: "long",
              year: "numeric",
-           }),
+           })
          )}</strong>
        </div>`
     : "";
@@ -1353,7 +1448,13 @@ function renderUserProfileModalContent(profile, isOfflineBasic = false) {
         <h3 style="font-size: 20px; font-weight: 800; color: var(--text); margin: 0;">
           ${escapeHTML(name)}
         </h3>
-        ${profile.is_admin ? `<span class="member-admin-badge">🛡️ Admin</span>` : ""}
+        ${
+          profile.is_superadmin
+            ? `<span class="member-admin-badge">👑 Superadmin</span>`
+            : profile.is_admin
+            ? `<span class="member-admin-badge">🛡️ Admin</span>`
+            : ""
+        }
         ${isSelf ? `<span class="member-you-badge">You</span>` : ""}
       </div>
 
@@ -1424,7 +1525,7 @@ async function openUserProfileModal(userId, fallbackName = "") {
 
   const handleOfflineProfile = () => {
     const basicMember = membersDirectoryData.find(
-      (m) => String(m.id) === cacheKey,
+      (m) => String(m.id) === cacheKey
     );
     if (basicMember) {
       renderUserProfileModalContent(basicMember, true);
@@ -1443,7 +1544,7 @@ async function openUserProfileModal(userId, fallbackName = "") {
     await ensureSupabaseReady();
     const { data, error } = await supabaseClient.rpc(
       "get_user_public_profile",
-      { target_user_id: userId },
+      { target_user_id: userId }
     );
     if (error) throw error;
 
@@ -1461,7 +1562,7 @@ async function openUserProfileModal(userId, fallbackName = "") {
       return;
     }
     bodyEl.innerHTML = `<div style="padding: 40px 20px; color: #ef4444; font-size: 14px;">Error loading profile: ${escapeHTML(
-      err.message,
+      err.message
     )}</div>`;
   }
 }

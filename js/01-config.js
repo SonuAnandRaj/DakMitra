@@ -24,7 +24,7 @@ function initSupabaseClient() {
         auth: {
           experimental: { passkey: true },
         },
-      },
+      }
     );
   }
   return supabaseClient;
@@ -43,12 +43,12 @@ function loadScriptDynamically(src) {
 async function ensureSupabaseReady() {
   if (!window.supabase) {
     await loadScriptDynamically(
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
     );
   }
   if (!window.Fuse) {
     await loadScriptDynamically(
-      "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js",
+      "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"
     );
   }
   return initSupabaseClient();
@@ -63,8 +63,55 @@ const ICON_STAR_FILLED = `<svg height="18px" viewBox="0 0 24 24" width="18px" fi
 const ICON_STAR_OUTLINE = `<svg height="18px" viewBox="0 0 24 24" width="18px" fill="currentColor"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></svg>`;
 
 // --- SHARED APPLICATION STATE ---
+const APP_CONFIG_CACHE_KEY = "dakmitra_app_config";
+const DEFAULT_APP_CONFIG = {
+  require_user_approval: false,
+  export_csv_enabled: true,
+  export_excel_enabled: true,
+  app_title: "DakMitra",
+  app_tagline: "The Modern Postal Database",
+  announcement_banner: { enabled: false, text: "", type: "info" },
+  maintenance_mode: {
+    enabled: false,
+    message: "DakMitra is undergoing maintenance. Please check back shortly.",
+  },
+  community_vote_threshold: 5,
+};
+
+let appConfig = { ...DEFAULT_APP_CONFIG };
+try {
+  const savedCfg = JSON.parse(localStorage.getItem(APP_CONFIG_CACHE_KEY));
+  if (savedCfg && typeof savedCfg === "object") {
+    appConfig = {
+      ...DEFAULT_APP_CONFIG,
+      ...savedCfg,
+      announcement_banner: {
+        ...DEFAULT_APP_CONFIG.announcement_banner,
+        ...(savedCfg.announcement_banner || {}),
+      },
+      maintenance_mode: {
+        ...DEFAULT_APP_CONFIG.maintenance_mode,
+        ...(savedCfg.maintenance_mode || {}),
+      },
+    };
+  }
+} catch (_) {}
+
+function canExportCSV() {
+  return isCurrentUserSuperadmin || appConfig.export_csv_enabled !== false;
+}
+
+function canExportExcel() {
+  return isCurrentUserSuperadmin || appConfig.export_excel_enabled !== false;
+}
+
+function getCommunityVoteThreshold() {
+  return Math.max(1, Number(appConfig.community_vote_threshold) || 5);
+}
+
 let currentMode = "signin";
 let isCurrentUserAdmin = false;
+let isCurrentUserSuperadmin = false;
 let currentUserId = null;
 
 let cachedPostOffices = [];

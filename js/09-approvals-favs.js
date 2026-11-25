@@ -1450,7 +1450,7 @@ function buildApprovalCardHTML(req, searchQuery) {
         <div>📅 ${dateStr}</div>
         ${
           req.status === "PENDING"
-            ? `<div style="margin-top: 4px;">🗳️ Community Votes: <b style="color: var(--primary);">${voteCount} / 5</b></div>`
+            ? `<div style="margin-top: 4px;">🗳️ Community Votes: <b style="color: var(--primary);">${voteCount} / ${getCommunityVoteThreshold()}</b></div>`
             : ""
         }
         ${approverDetailsHtml}
