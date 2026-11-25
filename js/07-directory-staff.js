@@ -9,6 +9,25 @@ let directoryActiveCleanQuery = "";
 let directoryActiveSmartOfficeFilter = null;
 let directorySearchDebounceTimer = null;
 
+let directoryViewMode = "cards";
+
+function setDirectoryViewMode(mode) {
+  directoryViewMode = mode === "table" ? "table" : "cards";
+  document
+    .getElementById("dir-view-cards-btn")
+    ?.classList.toggle("active", directoryViewMode === "cards");
+  document
+    .getElementById("dir-view-table-btn")
+    ?.classList.toggle("active", directoryViewMode === "table");
+  document
+    .getElementById("dir-view-mode-switch")
+    ?.classList.toggle("is-table", directoryViewMode === "table");
+
+  closeAllDirectoryActionTrays();
+  if (navigator.vibrate) navigator.vibrate(15);
+  applyDirectoryFilters({ preserveScroll: false, minPages: 1 });
+}
+
 function getDirectorySearchState() {
   const rawInput =
     document.getElementById("directory-filter-input")?.value.trim() || "";
@@ -443,6 +462,18 @@ function updateDirectoryFilterUI(searchMatchedOffices, filteredOffices) {
       summaryEl.classList.remove("hidden");
     }
   }
+
+  const totalsEl = document.getElementById("dir-table-totals");
+  if (totalsEl) {
+    const offCount = filteredOffices.length;
+    const addrCount = filteredOffices.reduce(
+      (sum, g) => sum + (g.addresses ? g.addresses.length : 0),
+      0
+    );
+    totalsEl.textContent = `${offCount} ${
+      offCount === 1 ? "office" : "offices"
+    } • ${addrCount} ${addrCount === 1 ? "addr" : "addrs"}`;
+  }
 }
 
 function fillDirectoryViewportIfNeeded() {
@@ -670,6 +701,75 @@ function renderDirectoryBatch() {
         }
       </div>`;
     if (sentinel) sentinel.style.display = "none";
+    return;
+  }
+
+  if (directoryViewMode === "table") {
+    const activeQuery = directoryActiveCleanQuery;
+    const smartSuffix = directoryActiveSmartOfficeFilter?.suffix || "";
+
+    const rowsHtml = directoryFilteredData
+      .map((data) => {
+        const safeId = "dir-office-" + data.office.replace(/\W/g, "-");
+        const addressList = Array.isArray(data.addresses) ? data.addresses : [];
+        const shownCount = addressList.length;
+        const totalCount =
+          typeof data.totalAddresses === "number"
+            ? data.totalAddresses
+            : shownCount;
+        const countLabel =
+          shownCount < totalCount
+            ? `${shownCount}/${totalCount}`
+            : `${shownCount}`;
+
+        const officeTitleHtml =
+          activeQuery && data.officeMatches?.length
+            ? highlightText(
+                data.office,
+                data.officeMatches,
+                "Office",
+                activeQuery
+              )
+            : escapeHTML(data.office);
+
+        const pinDisplayHtml =
+          activeQuery && data.pinMatches?.length
+            ? highlightText(data.pin, data.pinMatches, "Pin", activeQuery)
+            : smartSuffix && String(data.pin || "").endsWith(smartSuffix)
+            ? `${escapeHTML(
+                String(data.pin).slice(0, -smartSuffix.length)
+              )}<span class="highlight-text">${escapeHTML(smartSuffix)}</span>`
+            : escapeHTML(data.pin);
+
+        return `
+          <tr id="${safeId}">
+            <td>🏢 ${officeTitleHtml}</td>
+            <td>📍 ${pinDisplayHtml}</td>
+            <td><span class="dir-office-count-pill">${countLabel}</span></td>
+          </tr>`;
+      })
+      .join("");
+
+    contentDiv.innerHTML = `
+      <table class="data-table dir-table">
+        <thead>
+          <tr>
+            <th>Office</th>
+            <th>PIN</th>
+            <th>Addresses</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>`;
+
+    directoryCurrentPage = Math.max(
+      1,
+      Math.ceil(directoryFilteredData.length / batchSize)
+    );
+    if (sentinel) {
+      sentinel.style.display = "block";
+      sentinel.textContent = "End of directory";
+    }
     return;
   }
 

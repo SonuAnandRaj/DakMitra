@@ -2402,6 +2402,29 @@
               </button>
             </div>
 
+            <div class="dir-toolbar-row">
+              <div class="view-mode-switch" id="dir-view-mode-switch">
+                <div class="view-mode-slider" aria-hidden="true"></div>
+                <button
+                  type="button"
+                  class="toolbar-btn active"
+                  id="dir-view-cards-btn"
+                  onclick="setDirectoryViewMode('cards')"
+                >
+                  Cards
+                </button>
+                <button
+                  type="button"
+                  class="toolbar-btn"
+                  id="dir-view-table-btn"
+                  onclick="setDirectoryViewMode('table')"
+                >
+                  Table
+                </button>
+              </div>
+              <span id="dir-table-totals" class="dir-table-totals"></span>
+            </div>
+
             <div id="dir-filter-summary" class="dir-filter-summary hidden">
               <span id="dir-filter-summary-text"></span>
               <button

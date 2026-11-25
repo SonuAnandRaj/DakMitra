@@ -4931,3 +4931,40 @@ body.keyboard-open
 .search-office-btn:active {
   transform: scale(0.94);
 }
+
+/* --- DIRECTORY CARDS / SUMMARY TABLE SWITCH --- */
+.dir-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dir-table-totals {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-light);
+}
+
+table.data-table.dir-table th:nth-child(1),
+table.data-table.dir-table td:nth-child(1) {
+  width: 52%;
+}
+
+table.data-table.dir-table th:nth-child(2),
+table.data-table.dir-table td:nth-child(2) {
+  width: 26%;
+  white-space: nowrap;
+  color: var(--text-light);
+}
+
+table.data-table.dir-table th:nth-child(3),
+table.data-table.dir-table td:nth-child(3) {
+  width: 22%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+table.data-table.dir-table tbody tr:nth-child(even) td {
+  background-color: var(--stripe-bg);
+}
