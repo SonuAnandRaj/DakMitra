@@ -507,7 +507,6 @@ function buildDirectoryGroupedData() {
             b.effectivePriority - a.effectivePriority ||
             String(a.Address).localeCompare(String(b.Address))
         ),
-        searchString: (group.office + " " + group.pin).toLowerCase(),
       };
       directoryGroupByKeyMap.set(group.office.toLowerCase(), built);
       return built;

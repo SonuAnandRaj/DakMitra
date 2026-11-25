@@ -17,7 +17,6 @@ const saState = {
   dbSearchTimer: null,
   dbModalOp: "UPDATE",
   dbModalRow: null,
-  userModalCallback: null,
 };
 
 function resetSuperadminState() {

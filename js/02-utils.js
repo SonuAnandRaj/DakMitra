@@ -403,3 +403,98 @@ function getEffectivePriority(row) {
   if (officeType === "BO") return isPriority ? 3 : 2;
   return isPriority ? 1 : 0;
 }
+
+// --- SHARED BULK ADDRESS PARSER & LIVE DUPLICATE PREVIEW ---
+function parseDelimitedAddresses(rawText) {
+  const seen = new Set();
+  const list = [];
+
+  String(rawText || "")
+    .split(/[\n,]+| {2,}/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .forEach((addr) => {
+      const key = addr.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(addr);
+      }
+    });
+
+  return list;
+}
+
+function renderBulkAddressPreview({
+  addresses,
+  officeName,
+  priority = 0,
+  boxId,
+  countElId,
+  chipsElId,
+  removeFnName,
+}) {
+  const box = document.getElementById(boxId);
+  const countEl = document.getElementById(countElId);
+  const chipsEl = document.getElementById(chipsElId);
+
+  if (!addresses || addresses.length === 0) {
+    box?.classList.add("hidden");
+    return { count: 0, dupCount: 0 };
+  }
+
+  const officeLower = String(officeName || "")
+    .trim()
+    .toLowerCase();
+  const existingExact = new Map();
+  const existingPhonetic = new Map();
+
+  if (officeLower && Array.isArray(cachedPostOffices)) {
+    cachedPostOffices.forEach((r) => {
+      if (
+        String(r.Office || "")
+          .trim()
+          .toLowerCase() === officeLower
+      ) {
+        const rawAddr = String(r.Address || "").trim();
+        existingExact.set(rawAddr.toLowerCase(), rawAddr);
+        const pKey = postalPhoneticKey(rawAddr);
+        if (pKey && !existingPhonetic.has(pKey)) {
+          existingPhonetic.set(pKey, rawAddr);
+        }
+      }
+    });
+  }
+
+  let dupCount = 0;
+  if (chipsEl) {
+    chipsEl.innerHTML = addresses
+      .map((addr, idx) => {
+        const matchedName =
+          existingExact.get(addr.toLowerCase()) ||
+          existingPhonetic.get(postalPhoneticKey(addr)) ||
+          null;
+        const isDup = Boolean(matchedName);
+        if (isDup) dupCount++;
+        const prefix = isDup ? "⚠️ " : priority === 1 ? "⚡ " : "";
+        return `
+          <span class="bulk-chip ${isDup ? "is-duplicate" : ""}" title="${
+          isDup ? `Similar to existing: ${escapeHTML(matchedName)}` : ""
+        }">
+            ${prefix}${escapeHTML(addr)}
+            <button type="button" onclick="${removeFnName}(${idx})" title="Remove">✕</button>
+          </span>`;
+      })
+      .join("");
+  }
+
+  if (countEl) {
+    countEl.textContent = `${addresses.length} ${
+      addresses.length === 1 ? "address" : "addresses"
+    } ready${priority === 1 ? " (⚡ Priority)" : ""}${
+      dupCount > 0 ? ` • ${dupCount} already in DB` : ""
+    }`;
+  }
+
+  box?.classList.remove("hidden");
+  return { count: addresses.length, dupCount };
+}

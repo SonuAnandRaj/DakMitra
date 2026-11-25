@@ -423,22 +423,6 @@ async function signInWithDevice() {
   }
 }
 
-// --- DEVICE PASSKEYS ---
-async function registerDevicePasskey() {
-  await ensureSupabaseReady();
-  try {
-    const { error } = await supabaseClient.auth.registerPasskey();
-    if (error) throw error;
-    showToast("✅ Device successfully registered!");
-  } catch (err) {
-    showCustomAlert(
-      "Passkey Failed",
-      "Passkey registration failed: " + err.message,
-      "⚠️"
-    );
-  }
-}
-
 // --- PROFILE RENDER & EDIT ---
 function renderUserProfileUI(profileData, userEmail) {
   const name = profileData?.name || userEmail.split("@")[0] || "User";
@@ -474,19 +458,16 @@ function renderUserProfileUI(profileData, userEmail) {
   const topAvatar = document.getElementById("top-profile-btn");
   const sidebarAvatar = document.getElementById("avatar-letter");
   const pageAvatar = document.getElementById("profile-page-avatar");
-  const removeBtn = document.getElementById("remove-avatar-btn");
 
   if (avatarUrl) {
     const imgTag = `<img src="${escapeHTML(avatarUrl)}" alt="Profile" />`;
     if (topAvatar) topAvatar.innerHTML = imgTag;
     sidebarAvatar.innerHTML = imgTag;
     pageAvatar.innerHTML = imgTag;
-    removeBtn?.classList.remove("hidden");
   } else {
     if (topAvatar) topAvatar.textContent = initial;
     sidebarAvatar.textContent = initial;
     pageAvatar.textContent = initial;
-    removeBtn?.classList.add("hidden");
   }
 }
 

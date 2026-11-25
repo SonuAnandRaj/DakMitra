@@ -187,36 +187,22 @@ let currentApprovalTab = "pending";
 let approvalsObserver = null;
 let isApprovalsLoading = false;
 
+function createEmptyApprovalsCacheEntry() {
+  return {
+    html: "",
+    page: 0,
+    totalCount: 0,
+    initialHasMore: true,
+    loaded: false,
+  };
+}
+
 let approvalsCache = {
-  pending: {
-    html: "",
-    page: 0,
-    hasMore: true,
-    initialHasMore: true,
-    loaded: false,
-  },
-  resolved: {
-    html: "",
-    page: 0,
-    hasMore: true,
-    initialHasMore: true,
-    loaded: false,
-  },
+  pending: createEmptyApprovalsCacheEntry(),
+  resolved: createEmptyApprovalsCacheEntry(),
 };
 
 function invalidateApprovalsCache() {
-  approvalsCache.pending = {
-    html: "",
-    page: 0,
-    hasMore: true,
-    initialHasMore: true,
-    loaded: false,
-  };
-  approvalsCache.resolved = {
-    html: "",
-    page: 0,
-    hasMore: true,
-    initialHasMore: true,
-    loaded: false,
-  };
+  approvalsCache.pending = createEmptyApprovalsCacheEntry();
+  approvalsCache.resolved = createEmptyApprovalsCacheEntry();
 }

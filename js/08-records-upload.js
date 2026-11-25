@@ -581,50 +581,24 @@ async function submitMultipleRecords() {
     const address = row.querySelector(".manual-address").value.trim();
     const office = row.querySelector(".manual-office").value.trim();
     const Pin = row.querySelector(".manual-Pin").value.trim();
-    const editId = row.getAttribute("data-edit-id");
 
     if (address && office) {
       if (isSelfParentOfficeRow(address, office)) {
         skippedParentOffice++;
         return;
       }
-      if (editId) {
-        const oldAddr = row.getAttribute("data-old-addr");
-        const oldOff = row.getAttribute("data-old-off");
-        const oldPin = row.getAttribute("data-old-pin");
+      const reqData = {
+        action_type: "ADD",
+        proposed_data: {
+          Address: address,
+          Office: office,
+          Pin: Pin || null,
+        },
+        requested_by: session.user.id,
+      };
 
-        const reqData = {
-          post_office_id: editId,
-          action_type: "EDIT",
-          proposed_data: {
-            Address: address,
-            Office: office,
-            Pin: Pin || null,
-          },
-          original_data: {
-            Address: oldAddr,
-            Office: oldOff,
-            Pin: oldPin || null,
-          },
-          requested_by: session.user.id,
-        };
-
-        if (isCurrentUserAdmin) adminDirectEdits.push(reqData);
-        else requests.push(reqData);
-      } else {
-        const reqData = {
-          action_type: "ADD",
-          proposed_data: {
-            Address: address,
-            Office: office,
-            Pin: Pin || null,
-          },
-          requested_by: session.user.id,
-        };
-
-        if (isCurrentUserAdmin) adminDirectEdits.push(reqData);
-        else requests.push(reqData);
-      }
+      if (isCurrentUserAdmin) adminDirectEdits.push(reqData);
+      else requests.push(reqData);
     }
   });
 
@@ -667,7 +641,6 @@ async function submitMultipleRecords() {
 }
 
 // --- BULK SAME OFFICE UPLOAD TAB ---
-let bulkReturnToDirectory = false;
 let bulkAddPriority = 1;
 
 function setBulkPriority(val, silent = false) {
@@ -702,20 +675,6 @@ function switchManualUploadTab(tab) {
   }
 }
 
-function selectBulkOffice(officeName, pinNumber) {
-  const offInput = document.getElementById("bulk-office-input");
-  const pinInput = document.getElementById("bulk-pin-input");
-  const clearBtn = document.getElementById("bulk-office-clear");
-
-  offInput.value = officeName;
-  if (pinInput) pinInput.value = pinNumber;
-  clearBtn?.classList.remove("hidden");
-
-  closeAllDropdowns();
-  updateBulkAddressPreview();
-  document.getElementById("bulk-addresses-input")?.focus();
-}
-
 function clearBulkOffice() {
   const offInput = document.getElementById("bulk-office-input");
   const pinInput = document.getElementById("bulk-pin-input");
@@ -726,99 +685,38 @@ function clearBulkOffice() {
 }
 
 function parseBulkAddresses() {
-  const raw = document.getElementById("bulk-addresses-input")?.value || "";
-  const seen = new Set();
-  const list = [];
-
-  raw
-    .split(/[\n,]+| {2,}/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .forEach((addr) => {
-      const key = addr.toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        list.push(addr);
-      }
-    });
-
-  return list;
+  return parseDelimitedAddresses(
+    document.getElementById("bulk-addresses-input")?.value || ""
+  );
 }
 
 function updateBulkAddressPreview() {
   const addresses = parseBulkAddresses();
-  const box = document.getElementById("bulk-preview-box");
-  const countEl = document.getElementById("bulk-preview-count");
-  const chipsEl = document.getElementById("bulk-preview-chips");
   const submitBtn = document.getElementById("submit-bulk-btn");
-  const officeVal = (document.getElementById("bulk-office-input")?.value || "")
-    .trim()
-    .toLowerCase();
 
-  if (addresses.length === 0) {
-    box?.classList.add("hidden");
-    if (submitBtn) {
+  renderBulkAddressPreview({
+    addresses,
+    officeName: document.getElementById("bulk-office-input")?.value || "",
+    priority: bulkAddPriority,
+    boxId: "bulk-preview-box",
+    countElId: "bulk-preview-count",
+    chipsElId: "bulk-preview-chips",
+    removeFnName: "removeBulkAddressAt",
+  });
+
+  if (submitBtn) {
+    if (addresses.length === 0) {
       submitBtn.textContent =
         bulkAddPriority === 1
           ? "⚡ Submit All as Priority"
           : "Submit All Addresses";
+    } else {
+      const prioPrefix = bulkAddPriority === 1 ? "⚡ " : "";
+      submitBtn.textContent = `${prioPrefix}Submit ${addresses.length} ${
+        addresses.length === 1 ? "Address" : "Addresses"
+      }`;
     }
-    return;
   }
-
-  const existingExact = new Map();
-  const existingPhonetic = new Map();
-
-  if (officeVal && cachedPostOffices) {
-    cachedPostOffices.forEach((r) => {
-      if (
-        String(r.Office || "")
-          .trim()
-          .toLowerCase() === officeVal
-      ) {
-        const rawAddr = String(r.Address || "").trim();
-        existingExact.set(rawAddr.toLowerCase(), rawAddr);
-        const pKey = postalPhoneticKey(rawAddr);
-        if (pKey && !existingPhonetic.has(pKey)) {
-          existingPhonetic.set(pKey, rawAddr);
-        }
-      }
-    });
-  }
-
-  let dupCount = 0;
-  chipsEl.innerHTML = addresses
-    .map((addr, idx) => {
-      const matchedName =
-        existingExact.get(addr.toLowerCase()) ||
-        existingPhonetic.get(postalPhoneticKey(addr)) ||
-        null;
-      const isDup = Boolean(matchedName);
-      if (isDup) dupCount++;
-      const prefix = isDup ? "⚠️ " : bulkAddPriority === 1 ? "⚡ " : "";
-      return `
-        <span class="bulk-chip ${isDup ? "is-duplicate" : ""}" title="${
-        isDup ? `Similar to existing: ${escapeHTML(matchedName)}` : ""
-      }">
-          ${prefix}${escapeHTML(addr)}
-          <button type="button" onclick="removeBulkAddressAt(${idx})" title="Remove">✕</button>
-        </span>`;
-    })
-    .join("");
-
-  countEl.textContent = `${addresses.length} ${
-    addresses.length === 1 ? "address" : "addresses"
-  } ready${bulkAddPriority === 1 ? " (⚡ Priority)" : ""}${
-    dupCount > 0 ? ` • ${dupCount} already in DB` : ""
-  }`;
-
-  if (submitBtn) {
-    const prioPrefix = bulkAddPriority === 1 ? "⚡ " : "";
-    submitBtn.textContent = `${prioPrefix}Submit ${addresses.length} ${
-      addresses.length === 1 ? "Address" : "Addresses"
-    }`;
-  }
-  box?.classList.remove("hidden");
 }
 
 function removeBulkAddressAt(indexToRemove) {
@@ -904,12 +802,7 @@ async function submitBulkSameOffice() {
     setBulkPriority(1, true);
     clearBulkAddresses();
 
-    if (bulkReturnToDirectory) {
-      bulkReturnToDirectory = false;
-      switchDashboardView("directory");
-    } else {
-      switchDashboardView("search");
-    }
+    switchDashboardView("search");
   } catch (err) {
     alert("Error submitting addresses: " + err.message);
   } finally {
@@ -918,7 +811,7 @@ async function submitBulkSameOffice() {
   }
 }
 
-// --- OFFICE AUTOCOMPLETE DROPDOWNS (INLINE EDIT, MANUAL, BULK & SEARCH FILTER) ---
+// --- UNIFIED OFFICE AUTOCOMPLETE DROPDOWNS ---
 function buildOfficeOptionHTML(office, pin, mode) {
   return `<div class="autocomplete-item" onpointerdown="event.preventDefault(); cancelCloseDropdowns();" onclick="pickOfficeOption(this, '${escapeForOnclick(
     office
@@ -936,6 +829,70 @@ function buildOfficeOptionHTML(office, pin, mode) {
     </div>
     ${pin ? `<span class="ac-item-pin">${escapeHTML(pin)}</span>` : ""}
   </div>`;
+}
+
+function getOfficePinMap() {
+  const officeMap = new Map();
+  if (cachedPostOffices) {
+    cachedPostOffices.forEach((row) => {
+      if (row.Office && !officeMap.has(row.Office)) {
+        officeMap.set(row.Office, row.Pin || "");
+      }
+    });
+  }
+  return officeMap;
+}
+
+function renderOfficeAutocomplete({
+  inputEl,
+  dropdownEl,
+  clearBtnEl = null,
+  pinInputEl = null,
+  mode,
+}) {
+  cancelCloseDropdowns();
+  const val = inputEl ? inputEl.value : "";
+
+  if (clearBtnEl) {
+    clearBtnEl.classList.toggle("hidden", val.length === 0);
+  }
+
+  const officeMap = getOfficePinMap();
+
+  if (dropdownEl) {
+    let matchedOffices = Array.from(officeMap.keys());
+    const q = val.trim().toLowerCase();
+    if (q) {
+      matchedOffices = matchedOffices.filter((o) =>
+        o.toLowerCase().includes(q)
+      );
+    }
+    matchedOffices.sort();
+
+    if (matchedOffices.length === 0) {
+      dropdownEl.classList.remove("show");
+    } else {
+      dropdownEl.innerHTML = matchedOffices
+        .slice(0, 10)
+        .map((office) =>
+          buildOfficeOptionHTML(office, officeMap.get(office), mode)
+        )
+        .join("");
+      dropdownEl.classList.add("show");
+    }
+  }
+
+  if (pinInputEl) {
+    const trimmed = val.trim();
+    if (trimmed === "") {
+      pinInputEl.value = "";
+    } else {
+      const exactMatch = Array.from(officeMap.keys()).find(
+        (k) => k.toLowerCase() === trimmed.toLowerCase()
+      );
+      if (exactMatch) pinInputEl.value = officeMap.get(exactMatch);
+    }
+  }
 }
 
 function pickOfficeOption(itemEl, office, pin, mode) {
@@ -969,64 +926,23 @@ function pickOfficeOption(itemEl, office, pin, mode) {
   } else if (mode === "dir-filter") {
     selectDirectoryOfficeFilter(office);
     return;
+  } else if (mode === "appr-filter") {
+    if (typeof selectApprovalsOffice === "function") {
+      selectApprovalsOffice(office);
+    }
+    return;
   }
   closeAllDropdowns();
 }
 
-function getOfficePinMap() {
-  const officeMap = new Map();
-  if (cachedPostOffices) {
-    cachedPostOffices.forEach((row) => {
-      if (row.Office && !officeMap.has(row.Office)) {
-        officeMap.set(row.Office, row.Pin || "");
-      }
-    });
-  }
-  return officeMap;
-}
-
 function handleInlineEditOfficeInput(inputElement) {
-  cancelCloseDropdowns();
-  const val = inputElement.value;
-  const dropdown = document.getElementById("inline-edit-office-dropdown");
-  const clearBtn = document.getElementById("inline-edit-office-clear");
-  const pinInput = document.getElementById("inline-edit-pin");
-
-  if (val.length > 0) clearBtn.classList.remove("hidden");
-  else clearBtn.classList.add("hidden");
-
-  const officeMap = getOfficePinMap();
-  let matchedOffices = Array.from(officeMap.keys());
-  if (val) {
-    const lowerVal = val.toLowerCase();
-    matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal)
-    );
-  }
-  matchedOffices.sort();
-
-  if (matchedOffices.length === 0) {
-    dropdown.classList.remove("show");
-  } else {
-    dropdown.innerHTML = matchedOffices
-      .slice(0, 10)
-      .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "inline")
-      )
-      .join("");
-    dropdown.classList.add("show");
-  }
-
-  if (pinInput) {
-    if (val.trim() === "") {
-      pinInput.value = "";
-    } else {
-      const exactMatch = Array.from(officeMap.keys()).find(
-        (k) => k.toLowerCase() === val.toLowerCase()
-      );
-      if (exactMatch) pinInput.value = officeMap.get(exactMatch);
-    }
-  }
+  renderOfficeAutocomplete({
+    inputEl: inputElement,
+    dropdownEl: document.getElementById("inline-edit-office-dropdown"),
+    clearBtnEl: document.getElementById("inline-edit-office-clear"),
+    pinInputEl: document.getElementById("inline-edit-pin"),
+    mode: "inline",
+  });
 }
 
 function clearInlineEditOffice() {
@@ -1037,136 +953,45 @@ function clearInlineEditOffice() {
 }
 
 function handleOfficeInput(inputElement) {
-  cancelCloseDropdowns();
-  const val = inputElement.value;
   const wrapper = inputElement.closest(".autocomplete-wrapper");
-  const dropdown = wrapper.querySelector(".autocomplete-dropdown");
-  const clearBtn = wrapper.querySelector(".clear-btn");
-  const pinInput = wrapper
-    .closest(".manual-entry-row")
-    .querySelector(".manual-Pin");
-
-  if (val.length > 0) clearBtn.classList.remove("hidden");
-  else clearBtn.classList.add("hidden");
-
-  const officeMap = getOfficePinMap();
-  let matchedOffices = Array.from(officeMap.keys());
-  if (val) {
-    const lowerVal = val.toLowerCase();
-    matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal)
-    );
-  }
-  matchedOffices.sort();
-
-  if (matchedOffices.length === 0) {
-    dropdown.classList.remove("show");
-  } else {
-    dropdown.innerHTML = matchedOffices
-      .slice(0, 10)
-      .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "manual")
-      )
-      .join("");
-    dropdown.classList.add("show");
-  }
-
-  if (pinInput) {
-    if (val.trim() === "") {
-      pinInput.value = "";
-    } else {
-      const exactMatch = Array.from(officeMap.keys()).find(
-        (k) => k.toLowerCase() === val.toLowerCase()
-      );
-      if (exactMatch) pinInput.value = officeMap.get(exactMatch);
-    }
-  }
+  renderOfficeAutocomplete({
+    inputEl: inputElement,
+    dropdownEl: wrapper.querySelector(".autocomplete-dropdown"),
+    clearBtnEl: wrapper.querySelector(".clear-btn"),
+    pinInputEl: wrapper
+      .closest(".manual-entry-row")
+      .querySelector(".manual-Pin"),
+    mode: "manual",
+  });
 }
 
 function clearOfficeInput(btnElement) {
   const wrapper = btnElement.closest(".autocomplete-wrapper");
   const input = wrapper.querySelector(".manual-office");
-
   input.value = "";
   input.focus();
   handleOfficeInput(input);
 }
 
 function handleBulkOfficeInput(inputElement) {
-  cancelCloseDropdowns();
-  const val = inputElement.value;
-  const dropdown = document.getElementById("bulk-office-dropdown");
-  const clearBtn = document.getElementById("bulk-office-clear");
-  const pinInput = document.getElementById("bulk-pin-input");
-
-  if (clearBtn) clearBtn.classList.toggle("hidden", val.length === 0);
-
-  const officeMap = getOfficePinMap();
-  let matchedOffices = Array.from(officeMap.keys());
-  if (val) {
-    const lowerVal = val.toLowerCase();
-    matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal)
-    );
-  }
-  matchedOffices.sort();
-
-  if (matchedOffices.length === 0) {
-    dropdown.classList.remove("show");
-  } else {
-    dropdown.innerHTML = matchedOffices
-      .slice(0, 10)
-      .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "bulk")
-      )
-      .join("");
-    dropdown.classList.add("show");
-  }
-
-  if (pinInput) {
-    if (val.trim() === "") {
-      pinInput.value = "";
-    } else {
-      const exactMatch = Array.from(officeMap.keys()).find(
-        (k) => k.toLowerCase() === val.toLowerCase()
-      );
-      if (exactMatch) pinInput.value = officeMap.get(exactMatch);
-    }
-  }
-
+  renderOfficeAutocomplete({
+    inputEl: inputElement,
+    dropdownEl: document.getElementById("bulk-office-dropdown"),
+    clearBtnEl: document.getElementById("bulk-office-clear"),
+    pinInputEl: document.getElementById("bulk-pin-input"),
+    mode: "bulk",
+  });
   updateBulkAddressPreview();
 }
 
 function handleSearchOfficeFilterInput(inputElement) {
-  cancelCloseDropdowns();
-  const val = inputElement.value;
-  const dropdown = document.getElementById("filter-office-dropdown");
-  if (!dropdown) return;
-
-  toggleClearBtn("filter-office", "clear-office-btn");
+  renderOfficeAutocomplete({
+    inputEl: inputElement,
+    dropdownEl: document.getElementById("filter-office-dropdown"),
+    clearBtnEl: document.getElementById("clear-office-btn"),
+    mode: "search-filter",
+  });
   triggerSearch();
-
-  const officeMap = getOfficePinMap();
-  let matchedOffices = Array.from(officeMap.keys());
-  if (val) {
-    const lowerVal = val.toLowerCase();
-    matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal)
-    );
-  }
-  matchedOffices.sort();
-
-  if (matchedOffices.length === 0) {
-    dropdown.classList.remove("show");
-  } else {
-    dropdown.innerHTML = matchedOffices
-      .slice(0, 10)
-      .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "search-filter")
-      )
-      .join("");
-    dropdown.classList.add("show");
-  }
 }
 
 function selectSearchOfficeFilter(officeName) {
@@ -1184,35 +1009,13 @@ function selectSearchOfficeFilter(officeName) {
 }
 
 function handleDirectoryOfficeFilterInput(inputElement) {
-  cancelCloseDropdowns();
-  const val = inputElement.value;
-  const dropdown = document.getElementById("dir-filter-office-dropdown");
-  if (!dropdown) return;
-
-  toggleClearBtn("dir-filter-office", "clear-dir-office-btn");
+  renderOfficeAutocomplete({
+    inputEl: inputElement,
+    dropdownEl: document.getElementById("dir-filter-office-dropdown"),
+    clearBtnEl: document.getElementById("clear-dir-office-btn"),
+    mode: "dir-filter",
+  });
   filterDirectory();
-
-  const officeMap = getOfficePinMap();
-  let matchedOffices = Array.from(officeMap.keys());
-  if (val) {
-    const lowerVal = val.toLowerCase();
-    matchedOffices = matchedOffices.filter((o) =>
-      o.toLowerCase().includes(lowerVal)
-    );
-  }
-  matchedOffices.sort();
-
-  if (matchedOffices.length === 0) {
-    dropdown.classList.remove("show");
-  } else {
-    dropdown.innerHTML = matchedOffices
-      .slice(0, 10)
-      .map((office) =>
-        buildOfficeOptionHTML(office, officeMap.get(office), "dir-filter")
-      )
-      .join("");
-    dropdown.classList.add("show");
-  }
 }
 
 function selectDirectoryOfficeFilter(officeName) {

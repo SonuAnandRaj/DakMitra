@@ -219,7 +219,33 @@ Deno.serve(async (req) => {
         .update({ approved_by: null })
         .eq("approved_by", targetUserId);
 
-      // 3. Remove FK-blocking votes & requests created by the deleted user
+      // 1b. Clean up user's profile avatars in Storage (safe if bucket doesn't exist yet)
+      try {
+        const { data: avatarFiles } = await adminClient.storage
+          .from("avatars")
+          .list(targetUserId);
+        if (Array.isArray(avatarFiles) && avatarFiles.length > 0) {
+          const avatarPaths = avatarFiles.map(
+            (f: { name: string }) => `${targetUserId}/${f.name}`,
+          );
+          await adminClient.storage.from("avatars").remove(avatarPaths);
+        }
+      } catch (_) {}
+
+      // 3. Detach remaining admin/reviewer FKs & remove votes/requests created by the deleted user
+      await adminClient
+        .from("edit_requests")
+        .update({ last_approved_by: null })
+        .eq("last_approved_by", targetUserId);
+      await adminClient
+        .from("feedback_items")
+        .update({ reviewed_by: null })
+        .eq("reviewed_by", targetUserId);
+      await adminClient
+        .from("profiles")
+        .update({ approved_by: null })
+        .eq("approved_by", targetUserId);
+
       await adminClient
         .from("request_approvals")
         .delete()

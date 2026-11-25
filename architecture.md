@@ -1,25 +1,25 @@
-# DakMitra — Architecture & AI Context Guide
+# DakMitra — Architecture & AI Context Guide (v1.0.7)
 
-> **Purpose of this document:** Provide any AI coding assistant or developer with a complete, accurate mental model of the **DakMitra** PWA so edits can be made safely without breaking global dependencies, CSS cascade order, offline caching, or user/admin workflows.
+> **Purpose of this document:** Provide any AI coding assistant or developer with a complete, accurate mental model of the **DakMitra** PWA so edits can be made safely without breaking global dependencies, CSS cascade order, offline caching, role permissions, or user/admin/superadmin workflows.
 
 ---
 
 ## 1. Project Overview
 
-**DakMitra** is an offline-first Progressive Web App (PWA) built for India Post staff (primarily Mirzapur & Sonbhadra divisions, PIN `231xxx`) to search, manage, and crowd-verify postal routing records (`Address`, `Office`, `Pin`) and post office staff contacts (`BO`, `SO`, `HO`).
+**DakMitra** is an offline-first Progressive Web App (PWA) built for India Post staff (primarily Mirzapur & Sonbhadra divisions, PIN `231xxx`) to search, manage, crowd-verify, and study postal routing records (`Address`, `Office`, `Pin`, `priority`) and post office staff contacts (`BO`, `SO`, `HO`, and parent delivery offices).
 
-- **Architecture Style:** Pure Vanilla HTML5, CSS3, and JavaScript (no bundler, no build step, no ES module imports). Deploys directly to static hosting (e.g., GitHub Pages).
+- **Architecture Style:** Pure Vanilla HTML5, CSS3, and JavaScript (no bundler, no build step, no ES module imports). Deploys directly to static hosting (GitHub Pages via `.github/workflows/static.yml`).
 - **Execution Model:** Ordered `<script defer src="js/...">` files sharing the global `window` scope so inline HTML handlers (`onclick="..."`, `oninput="..."`) work seamlessly.
-- **Offline-First:** Boots synchronously in `0ms` from `localStorage` caches, hydrates Supabase + Realtime in the background, and uses a custom Service Worker (`sw.js`) for full offline availability.
+- **Offline-First:** Boots synchronously in `0ms` from `localStorage` caches, hydrates Supabase + Realtime in the background, and uses a custom Service Worker (`sw.js`) for full offline availability (including cached public Storage avatars).
 
 ### External Dependencies (CDN)
 
-| Library                   | Loading Strategy                                            | Role                                                            |
-| :------------------------ | :---------------------------------------------------------- | :-------------------------------------------------------------- |
-| `@supabase/supabase-js@2` | `<script defer>` + dynamic fallback (`ensureSupabaseReady`) | Auth, PostgreSQL CRUD, RPCs, Realtime, Edge Functions, Passkeys |
-| `fuse.js`                 | `<script defer>` + dynamic fallback (`ensureSupabaseReady`) | Fast client-side fuzzy & strict numeric search                  |
-| `xlsx` (SheetJS)          | Lazy-loaded on demand via `ensureXLSXLoaded()`              | Excel bulk upload, sample template, full DB `.xlsx` export      |
-| Google Fonts (`Inter`)    | Non-blocking `media="print" onload="this.media='all'"`      | UI typography                                                   |
+| Library                   | Loading Strategy                                                 | Role                                                                     |
+| :------------------------ | :--------------------------------------------------------------- | :----------------------------------------------------------------------- |
+| `@supabase/supabase-js@2` | `<script defer>` + deduplicated fallback (`ensureSupabaseReady`) | Auth, PostgreSQL CRUD, RPCs, Realtime, Storage, Edge Functions, Passkeys |
+| `fuse.js`                 | `<script defer>` + background fallback (`ensureSupabaseReady`)   | Cached client-side fuzzy & strict numeric search                         |
+| `xlsx` (SheetJS)          | Lazy-loaded on demand via `ensureXLSXLoaded()`                   | Chunked Excel bulk upload, sample template, full DB `.xlsx` export       |
+| Google Fonts (`Inter`)    | Non-blocking `media="print" onload="this.media='all'"`           | UI typography                                                            |
 
 ---
 
@@ -27,27 +27,37 @@
 
 ```text
 dakmitra/
-├── index.html                  # App shell, views, modals, 2 inline 0ms boot scripts
-├── manifest.json               # PWA manifest
-├── sw.js                       # Service Worker (precache + stale-while-revalidate)
+├── index.html                  # App shell, all views & modals, 2 inline 0ms pre-paint scripts
+├── manifest.json               # PWA manifest (v1.0.7)
+├── sw.js                       # Service Worker (po-directory-v46: precache + SWR + public avatars)
 ├── icon-192.png                # PWA icon (192x192)
 ├── icon-512.png                # PWA icon (512x512)
-├── ARCHITECTURE.md             # This file
+├── architecture.md             # This file
+├── dakmitra_design.md          # Unified design tokens, z-index map & animation guide
+├── PROJECT_MAP.md              # Quick-reference map of files, modules & backend objects
+├── Edge Functions/
+│   ├── ai-postal-search.ts     # Authenticated Gemini AI postal routing estimation
+│   └── superadmin-auth-ops.ts  # Superadmin auth ops (approve/verify, password reset, safe delete)
 ├── css/
-│   ├── 01-base-layout.css      # Design tokens, dark theme, reset, app bar, sidebar, bottom nav, scroll-lock, base keyboard rules
-│   ├── 02-components.css       # Unified .dm-* design system, modals, semantic toasts, badges, autocomplete, skeletons, splash
-│   └── 03-views.css            # View-specific styles (Search, AI, Directory, Staff, Approvals, Upload/Bulk, Auth, Profile, Cropper, Lightbox)
+│   ├── 01-base-layout.css      # Design tokens, OLED dark theme, reset, app bar, sidebar, bottom nav, scroll-lock
+│   ├── 02-components.css       # Unified .dm-* primitives, modals, semantic toasts, badges, autocomplete, skeletons, splash
+│   ├── 03-views.css            # Search, AI, Delivery Office cards, Directory, Staff, Priority, Employees, Approvals, Upload, Feedback, Profile, Auth, Cropper & Lightbox
+│   ├── 04-learn.css            # Learn & Quiz (3-way tabs, mastery ring, 3D flashcards, quiz modes, analytics, leaderboard)
+│   └── 05-superadmin.css       # Superadmin Console, scrollable tab bar, announcement banner, user cards & DB explorer
 └── js/
-    ├── 01-config.js            # Version, Supabase config/init, storage keys, SVG icons, shared state
-    ├── 02-utils.js             # Escaping, storage, Lie-Fi network check, toasts, button states, alert/confirm modals
-    ├── 03-ui-shell.js          # Splash, theme, PWA/SW, Android back nav, keyboard & scroll-lock, sidebar, swipe, collapsible hero, Enter nav
-    ├── 04-data-sync.js         # Post office fetch/cache, PIN suffix index, directory grouping, Realtime sync, offline-to-online hydration
-    ├── 05-auth-profile.js      # Sign in/up, device binding, Passkeys, Profile UI/editor, pinch-to-zoom Cropper & Lightbox
-    ├── 06-search-ai.js         # Fuse search, active filter pills, history, voice/TTS, online AI routing fallback, copy/CSV
-    ├── 07-directory-staff.js   # Directory infinite scroll & filtering, floating action bar, Office Staff (BO/SO/HO) CRUD, Quick-Add/Delete modals
-    ├── 08-records-upload.js    # Inline Edit modal, Delete, Record History audit modal, Manual/Bulk upload, Office autocompletes, Excel upload
-    ├── 09-approvals-favs.js    # Saved Favorites & Community Approvals (Pending/Resolved tabs, infinite scroll, voting)
-    └── 10-settings-boot.js     # Settings preferences, Admin UI toggle, full Excel export, 0ms instant boot & session sync
+    ├── 01-config.js            # Version (1.0.7 / #103), Supabase/Fuse deduplicated loaders, live appConfig, shared state
+    ├── 02-utils.js             # Escaping, Lie-Fi probe, ensureOnline(), toasts, button states, dialogs, phonetic key, priority & bulk preview helpers
+    ├── 03-ui-shell.js          # Splash, theme, SW updates, Android back nav (with Maintenance lock guard), keyboard & scroll-lock, collapsible heroes, swipe & Enter nav
+    ├── 04-data-sync.js         # Post office & office_staff caches, cached Fuse instances, PIN suffix index, Realtime sync, offline-to-online hydration
+    ├── 05-auth-profile.js      # Sign in/up, strict device_id enforcement, Passkeys, Storage avatars (512x512), Cropper, Lightbox, Employees Directory & User Profile modal
+    ├── 06-search-ai.js         # Shared phonetic + fuzzy search engine, Delivery Office cards, filter pills, history, voice/TTS, AI fallback, copy/CSV
+    ├── 07-directory-staff.js   # Directory full search & category chips, floating bar, BO/SO/HO & parent office staff CRUD, 1-tap Priority, Quick-Add/Delete/Priority modals
+    ├── 08-records-upload.js    # Inline Edit modal, Delete, Record History audit modal, Manual/Bulk upload, unified Office autocomplete, chunked Excel upload
+    ├── 09-approvals-favs.js    # Saved Favorites & server-side searchable/filterable Community Approvals (Pending/Resolved, voting, deep-linking)
+    ├── 11-feedback.js          # Report & Suggest Hub (bugs, features, upvotes, compressed screenshots, diagnostics, admin triage)
+    ├── 12-learn-quiz.js        # Leitner spaced-repetition flashcards with Smart Mix traps, 3-mode Quiz engine, Mastery analytics, cloud sync & Division Leaderboard
+    ├── 13-superadmin.js        # Superadmin Console (access/export controls, diffed CMS, user approvals/roles, paginated DB explorer, audit logs)
+    └── 10-settings-boot.js     # LOADED LAST: Settings, live CMS UI enforcement, cache clear, admin/superadmin checks, full Excel export, 0ms boot & session sync
 ```
 
 ---
@@ -67,105 +77,110 @@ Stylesheets **must** load in exact numerical order:
 
 1. `css/01-base-layout.css` — Base variables (`:root`, `[data-theme="dark"]`), layout shell, `.dm-scroll-locked`, base `body.keyboard-open`.
 2. `css/02-components.css` — Shared UI primitives (`.dm-surface`, `.dm-btn`, `.modal-card`, `.toast`, `.autocomplete-dropdown`, skeletons, splash).
-3. `css/03-views.css` — View-specific styling, ambient accents, cropper/lightbox studios, and `body.keyboard-open` view height overrides.
+3. `css/03-views.css` — View-specific styling, ambient accents, Priority badges, Employees, Approvals, Feedback, Cropper/Lightbox studios, and view-level `body.keyboard-open` overrides.
+4. `css/04-learn.css` — Learn & Quiz module styles and keyboard rules.
+5. `css/05-superadmin.css` — Superadmin Console, announcement banner, scrollable tab bar, and DB table styles.
 
 ### C. JavaScript Load Order
 
-Scripts **must** load with `defer` in exact numerical order (`01` through `10`). `10-settings-boot.js` executes `bootAppInstantly()` synchronously at the bottom once all prior modules are defined.
+Scripts load with `defer` in dependency order: `01` → `09` → `11` → `12` → `13` → **`10-settings-boot.js` (last)**. `10-settings-boot.js` runs `bootAppInstantly()` synchronously at the bottom once every feature module is defined.
 
 ---
 
 ## 4. Detailed Module Map
 
-### `js/01-config.js` — Configuration & Global State
+### `js/01-config.js` — Configuration, Live CMS Flags & Global State
 
-- **Version:** `APP_VERSION`, `APP_BUILD_CODE`.
-- **Supabase:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `supabaseClient`, `initSupabaseClient()`, `ensureSupabaseReady()`, `loadScriptDynamically()`.
-- **Constants:** `HISTORY_KEY`, `FAV_KEY`, `ICON_STAR_FILLED`, `ICON_STAR_OUTLINE`, `DIRECTORY_PAGE_SIZE (3)`, `APPROVALS_PAGE_SIZE (5)`, `viewOrder`.
-- **Shared State:** `currentMode`, `isCurrentUserAdmin`, `currentUserId`, `cachedPostOffices`, `currentFilteredData`, `fuse`, `viewMode`, `directoryGroupedData`, `directoryFilteredData`, `directoryCurrentPage`, `approvalsCache`, `invalidateApprovalsCache()`.
+- **Version:** `APP_VERSION` (`"1.0.7"`), `APP_BUILD_CODE` (`"103"`).
+- **Supabase & SDK Loaders:** `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `supabaseClient`, `initSupabaseClient()`, deduplicated `ensureSupabaseReady()` (loads Supabase SDK on demand and loads Fuse.js in background without blocking writes).
+- **Live App Config (`appConfig`):** Loaded from `dakmitra_app_config` cache and synced with `app_settings`. Exposes `canExportCSV()`, `canCopyResults()`, `canExportExcel()`, and `getCommunityVoteThreshold()`.
+- **Shared State:** `currentMode`, `isCurrentUserAdmin`, `isCurrentUserSuperadmin`, `currentUserId`, `cachedPostOffices`, `currentFilteredData`, `cachedOfficeStaff`, `officeStaffByKeyMap`, `fuse`, `viewMode`, `directoryGroupedData`, `directoryFilteredData`, `approvalsCache` (`createEmptyApprovalsCacheEntry()`, `invalidateApprovalsCache()`).
 
-### `js/02-utils.js` — Core Utilities & Dialogs
+### `js/02-utils.js` — Core Utilities, Phonetic Engine & Shared UI Helpers
 
-- **Security & Storage:** `escapeHTML()`, `escapeForOnclick()`, `getSafeStorage()`.
-- **Network ("Lie-Fi" Detector):** `checkActualInternet()` (1.5s timeout probe to `clients3.google.com/generate_204`), `showOfflineToast()`, `ensureOnline()`.
-- **Feedback UI:** `showToast(message, type)` (auto-detects `success`, `error`, `warning`, `info`), `setButtonState(btn, state, label)`.
-- **Dialogs:** `showCustomConfirm()`, `closeConfirmModal()`, `showCustomAlert()`, `closeAlertModal()`, and overrides native `window.alert`.
-- **Helpers:** `ensureXLSXLoaded()`, `getFavoriteBtnStyles()`, `scheduleCloseDropdowns()`, `cancelCloseDropdowns()`, `closeAllDropdowns()`.
+- **Security & Storage:** `escapeHTML()`, `escapeForOnclick()` (escapes quotes, backslashes, and newlines/line separators), `getSafeStorage()`.
+- **Network & Guards:** `checkActualInternet()` (probes `clients3.google.com/generate_204` with `SUPABASE_URL` fallback), `isNetworkError()`, `showOfflineToast()`, `ensureOnline()` (blocks offline actions and awaits `ensureSupabaseReady()`).
+- **Feedback & Dialogs:** `showToast(message, type)`, `setButtonState(btn, state, label)`, `showCustomConfirm()`, `showCustomAlert()`, and `window.alert` override.
+- **Postal Logic:** `postalPhoneticKey()` (1:1 port of PostgreSQL `public.postal_phonetic_key`), `detectOfficeType()`, `isSelfParentOfficeRow()`, `stripPostalSuffixes()`, `getEffectivePriority()`.
+- **Shared Bulk Helpers:** `parseDelimitedAddresses()`, `renderBulkAddressPreview()` (shared by Directory Quick-Add and Upload Bulk Same-Office).
 
 ### `js/03-ui-shell.js` — App Shell, Navigation & Native-Feel UX
 
-- **Splash & Updates:** `showSplashScreen()`, `hideSplashScreen()`, `initAppVersion()`, `checkForAppUpdate()`.
-- **Theme:** `applyTheme()`, `toggleTheme()`.
-- **PWA:** Registers `./sw.js` (`updateViaCache: "none"`), auto-reloads on controller change, handles `beforeinstallprompt` for `#install-app-btn`.
+- **Splash, Theme & PWA:** `showSplashScreen()`, `hideSplashScreen()`, `initAppVersion()`, `checkForAppUpdate()` (inspects `reg.installing` / `reg.waiting`), `applyTheme()`, `toggleTheme()`, SW registration (`./sw.js`), and `beforeinstallprompt`.
 - **Navigation:** `toggleSidebar()`, `closeSidebar()`, `switchDashboardView(viewId)`.
 - **IIFE Controllers:**
-  - `initPwaBackNavigation()` — Intercepts browser/Android Back button (`popstate`) to close modals -> popovers -> sidebar -> return to Search -> exit guard.
-  - `initGlobalKeyboardHandler()` — Tracks `visualViewport`, sets CSS vars (`--vvh`, `--vv-top`, `--kb-height`, `--kb-fixed-offset`), toggles `body.keyboard-open`, keeps focused inputs visible.
-  - `initGlobalOverlayScrollLock()` — Observes `.modal-overlay.show` & `.sidebar.open`, locks background scroll (`.dm-scroll-locked`) while permitting internal scroll and cropper/lightbox gestures.
-  - `createCollapsibleHero()` — Smooth grid-row collapse on scroll for Search (`searchHeroController`), Approvals (`approvalsHeroController`), and Directory (`directoryHeroController`).
-  - `initSwipeNavigation()` — Horizontal swipe switching across `viewOrder`.
-  - `initSidebarDragOpen()` — Right-drag gesture on `#top-profile-btn` to open sidebar.
-  - `initSmartEnterNavigation()` — Enter key moves to next visible input inside forms/modals, or triggers search/blurs on final input; dynamically sets `enterkeyhint`.
+  - `initPwaBackNavigation()` — Intercepts Android/browser Back (`popstate`) to close modals → popovers → sidebar → Learn quiz/sub-tab → previous view → root exit guard. Explicitly excludes `#maintenance-overlay` and skips stale modal entries closed via Cancel/✕.
+  - `initGlobalKeyboardHandler()` — Tracks `visualViewport`, sets `--vvh`, `--vv-top`, `--kb-height`, `--kb-fixed-offset`, toggles `body.keyboard-open`, keeps focused inputs visible.
+  - `initGlobalOverlayScrollLock()` — Locks background scroll (`.dm-scroll-locked`) while overlays are open, permitting internal vertical/horizontal scrolling and Cropper/Lightbox gestures.
+  - `createCollapsibleHero()` — Smooth grid-row collapse on scroll for Search, Approvals, Directory, Members, and Feedback.
+  - `initSwipeNavigation()`, `initSidebarDragOpen()`, `initSmartEnterNavigation()`.
 
 ### `js/04-data-sync.js` — Data Store, Indexing & Realtime Sync
 
-- **Fetching:** `fetchAllPostOffices(forceSync)` loads instant `dakmitra_offline_db` cache first, then runs `fetchFromServerBackground()` (paginated in 1,000-row batches, filters `is_deleted = false`).
-- **Smart 3-Digit PIN Suffix Engine:** `buildPinSuffixIndex()` maps the last 3 digits of 6-digit PINs to their Office. `parseSmartSearchQuery()` parses shorthand queries like `"hallia 211"`, `"hallia@211"`, or `"211 hallia"` into a strict office filter + clean query.
-- **Local Cache Store:** `persistPostOfficeCache()`, `upsertLocalPostOffice()`, `removeLocalPostOffice()`, `syncFavoritesWithCache()`, debounced `scheduleLocalUiRefresh()`, `refreshSearchInPlace()`, `refreshDirectoryInPlace()`.
-- **Directory Grouping:** `buildDirectoryGroupedData()` builds sorted office buckets with precomputed lowercase `searchString`.
-- **Live Sync & Reconnect:** `initRealtimeSync()` / `teardownRealtimeSync()` subscribes to `post_offices` and `edit_requests`. `hydrateOnlineState()` handles offline-to-online transitions with retry backoff, token refresh, admin re-check, and Realtime reconnection.
+- **Parent Office Staff (`office_staff`):** `normalizeOfficeKey()`, `getOfficeStaffByName()`, `loadOfficeStaffFromCache()`, `fetchOfficeStaffBackground()`, `upsertLocalOfficeStaff()`, `removeLocalOfficeStaff()`.
+- **Post Offices (`post_offices`):** `fetchAllPostOffices(forceSync)` loads instant `dakmitra_offline_db` cache first, then runs paginated `fetchFromServerBackground()` (protected against overwriting local cache with `[]` if session is missing).
+- **Search Indexes:** `buildPinSuffixIndex()`, `parseSmartSearchQuery()`, cached `Fuse` pool (`getCachedFuseInstance()`, `clearFuseCache()`), and precomputed metadata (`searchIndexMap`, `compareByPriorityOnly()`).
+- **Local Store & Directory Grouping:** `upsertLocalPostOffice()`, `removeLocalPostOffice()`, `syncFavoritesWithCache()`, debounced `scheduleLocalUiRefresh()`, `buildDirectoryGroupedData()`.
+- **Realtime & Reconnect:** `initRealtimeSync()` subscribes to `post_offices`, `office_staff`, `edit_requests`, `request_approvals`, `feedback_items`, `feedback_votes`, `app_settings`, `admins`, and `profiles` (immediately logs out blocked/suspended or device-reset users). `hydrateOnlineState()` handles offline-to-online recovery with retry backoff.
 
-### `js/05-auth-profile.js` — Auth, Passkeys, Profile & Media Studios
+### `js/05-auth-profile.js` — Auth, Device Lock, Storage Avatars & Employees
 
-- **Auth:** `switchTab()`, `handleAuth()` (sign in/up + single-device binding via `dakmitra_device_id` stored in `profiles.device_id`), `checkEmailVerificationRedirect()`, `signOutApp()`.
-- **Passkeys:** `registerDevicePasskey()`, `signInWithDevice()`.
-- **Profile:** `renderUserProfileUI()`, `saveProfileDetails()`, `updateAvatarInDatabase()`, `removeProfilePic()`.
-- **Photo Cropper (`#crop-modal-overlay`):** Full-screen pinch-to-zoom, pan, double-tap zoom, mouse-wheel zoom, 90-degree rotation (`rotateCropImage()`), and 800x800 JPEG canvas export (`renderCropToCanvas()`, `applyCropAndUpload()`).
-- **Photo Lightbox (`#avatar-lightbox-overlay`):** Full-screen viewer with swipe-down to dismiss, pinch-to-zoom, double-tap zoom, single-tap UI toggle, and bottom dock actions.
+- **Auth & Strict Device Binding:** `handleAuth()` (sign in/up + approval gating + `device_id` binding), `signInWithDevice()` (WebAuthn Passkey with full approval & `device_id` enforcement), `enforceAndBindDeviceOnSignIn()`, `getDeviceLockMismatchReason()` (Superadmins exempt), `clearSessionCachesAndState()`, `forceLogoutBlockedUser()`, `signOutApp()`.
+- **Profile & Storage Avatars:** `renderUserProfileUI()`, `saveProfileDetails()` (includes `show_mobile` privacy toggle), `updateAvatarInDatabase()`, `cleanupOldStorageAvatars()`, `removeProfilePic()`. Uploads `512×512` JPEGs (`0.85` quality) to the public Supabase Storage `avatars` bucket under `<uid>/avatar_<ts>.jpg` and deletes previous files after DB commit.
+- **Media Studios:** Pinch-to-zoom Cropper (`#crop-modal-overlay`) with live dual preview dock (Profile Card square + Round icon) and `URL.revokeObjectURL()` cleanup; Swipe-down Lightbox (`#avatar-lightbox-overlay`) supporting both avatars and uncropped `.is-screenshot` feedback attachments.
+- **Employees Directory & Public Profiles:** `renderMembersDirectory()` (`get_members_directory` RPC), designation filter chips, `renderUserProfileLink()`, and read-only `openUserProfileModal()` (`get_user_public_profile` RPC with clickable Approved Edits / Votes Cast stats).
 
-### `js/06-search-ai.js` — Search, Voice & AI Postal Fallback
+### `js/06-search-ai.js` — Search, Delivery Office Cards, Voice & AI Fallback
 
-- **Search Engine:** `triggerSearch()` combines smart 3-digit PIN suffix filtering, Fuse.js (strict `threshold: 0.0` for pure numeric queries, fuzzy `threshold: 0.3` for text), and secondary must-have `filter-office` / `filter-pin` filters.
-- **UI:** `setViewMode('list'|'table')`, `updateActiveFilterIndicators()` (active filter pills), `highlightText()`, infinite scroll (`setupSearchObserver()`, 10 items per batch).
-- **History:** `loadSearchHistory()`, `saveSearchTerm()` (max 5 items), `applyHistorySearch()`.
-- **Voice & TTS:** `startVoiceSearch()` (`en-IN` SpeechRecognition) + spoken readout of top match with `convertToHindiWords()` for last 3 PIN digits and spaced postal acronyms (`B O`, `S O`, `H O`).
-- **AI Fallback Lookup:** Auto-triggers on zero local matches (`scheduleAutoAiSearch`) or manually via `forceAiSearch()` / `triggerInlineAiBelowResults()`. Enriches prompt with live `api.postalpincode.in` hints (`fetchVillageGeoContext`) + local DB division context (`buildDivisionOfficeDirectoryContext`), invokes Supabase Edge Function `ai-postal-search`, caches in `aiMemoryCache`, and lets staff 1-tap `prefillUploadFromAi()`.
-- **Export:** `copyResults()`, `exportCSV()`.
+- **Shared Search Engine:** `runPostalSearchEngine()` powers both Search and Directory, combining smart 3-digit PIN suffix detection, cached `Fuse.js` (with non-Fuse fallback), `postalPhoneticKey` matching, and two-pool priority ranking.
+- **UI & Delivery Office Cards:** `findMatchingDeliveryOfficesForSearch()` pins matching HO/SO cards with quick `👥 Staff` and `📂 Directory` actions. Supports `List | Table` switch, active filter pills, 1-tap Priority toggle, infinite scroll, and history (`HISTORY_KEY`).
+- **Voice & TTS:** Reusable `toggleVoiceInput()`, `startVoiceSearch()` (`en-IN`), and Indian-accent TTS with `convertToHindiWords()`.
+- **AI Fallback:** `scheduleAutoAiSearch()`, `forceAiSearch()`, `triggerInlineAiBelowResults()`, `fetchVillageGeoContext()`, `buildDivisionOfficeDirectoryContext()`, `ai-postal-search` Edge Function, and `prefillUploadFromAi()`.
+- **Export:** `copyResults()` and `exportCSV()` (gated by `canCopyResults()` / `canExportCSV()`, revokes Blob URLs).
 
-### `js/07-directory-staff.js` — Directory, Floating Bar & Office Staff CRUD
+### `js/07-directory-staff.js` — Directory, Floating Bar, Staff CRUD & Quick Modals
 
-- **Directory:** `renderDirectory()`, `renderDirectoryBatch()` (3 offices per page via `IntersectionObserver`), `filterDirectory()`, `goToDirectoryOffice()`.
-- **Floating Action Popover (`#directory-floating-bar`):** Shared by both Directory chips and Search items (`openDirectoryChipActions`, `closeAllDirectoryActionTrays`). Shows Info (for BO/SO/HO), History, Favorite, Edit, and Delete buttons anchored dynamically to the clicked element.
-- **Office Staff Details (`BO`, `SO`, `HO`):** `detectOfficeType()`, `showOfficeDetailsModal()`, `renderOfficeStaffViewMode()`, `openOfficeStaffEditor()`, `saveOfficeStaffDetails()`. Saves **directly** to `post_offices` (bypasses approval queue). Supports:
-  - `BO`: `bpm_name`, `bpm_contact`, `abpm_name`, `abpm_contact`
-  - `SO`: `spm_name`, `spm_contact`, `pa_list` (JSONB array), `mts_list` (JSONB array)
-  - `HO`: `pm_name`, `pm_contact`, `pa_list` (JSONB array), `mts_list` (JSONB array)
-- **Quick Modals:**
-  - `quickAddForOffice()` / `submitQuickAddModal()` — Add multiple comma/newline-separated addresses directly into a Directory office with duplicate warnings.
-  - `quickDeleteForOffice()` / `executeQuickDeleteModal()` — Filterable chip-selection modal to bulk-delete multiple addresses from a Directory office.
+- **Directory:** Full search + Search Options + Voice + universal category chips (`All`, `📮 Offices`, `⚡ Priority`, `Regular`), infinite scroll (`renderDirectoryBatch()`), `goToDirectoryOffice()`, and `renderDirectoryLink()`.
+- **Floating Action Popover (`#directory-floating-bar`):** Shared by Directory chips and Search items, dynamically clamped below `.app-bar` with horizontal scroll overflow protection.
+- **Office Staff CRUD (`BO`, `SO`, `HO` + Parent Delivery Offices):** `showParentOfficeDetailsModal()` (upserts `office_staff`), `showOfficeDetailsModal()` (updates `post_offices` via `update_post_office_staff_details` RPC).
+- **Priority & Bulk Modals:** 1-tap optimistic `toggleRecordPriority()` (`update_address_priorities` RPC), `quickAddForOffice()`, `quickDeleteForOffice()` (with category filters & red selected chips tray), and `quickPriorityForOffice()`.
 
 ### `js/08-records-upload.js` — CRUD Modals, History, Manual/Bulk & Excel Upload
 
-- **In-Place Edit:** `updateRecord()`, `saveInlineEditRecord()`, `highlightUpdatedRecord()`.
-- **Delete:** `deleteRecord()` (confirm dialog -> Admin instant RPC or Standard User `edit_requests`).
-- **Record History:** `viewHistory(postOfficeId)` fetches `post_offices_history` joined with `profiles` and checks `admins`, renders diff timeline, and caches HTML per record in `localStorage`.
-- **Manual Upload:** `getManualEntryRowHTML()`, `addInputRow()`, `submitMultipleRecords()`.
-- **Bulk Same-Office Upload:** `switchManualUploadTab()`, `parseBulkAddresses()`, `updateBulkAddressPreview()`, `submitBulkSameOffice()`.
-- **Unified Office Autocomplete:** `buildOfficeOptionHTML()`, `pickOfficeOption()`, `getOfficePinMap()`, wired across Inline Edit, Manual Rows, Bulk Same-Office, and Search Options Filter (`handleSearchOfficeFilterInput`).
-- **Excel:** `uploadExcel()` (Admin only, inserts directly to `post_offices` with `upload_method: "excel_bulk"`), `downloadSampleExcel()`.
+- **Edit / Delete / History:** `updateRecord()` / `saveInlineEditRecord()`, `deleteRecord()`, `viewHistory()` (fetches `post_offices_history` + `get_public_profiles_by_ids` RPC, caches HTML per record).
+- **Manual & Bulk Upload:** `getManualEntryRowHTML()`, `submitMultipleRecords()`, `switchManualUploadTab()`, `submitBulkSameOffice()` (reuses `parseDelimitedAddresses()` / `renderBulkAddressPreview()`).
+- **Unified Office Autocomplete:** Single parameterized `renderOfficeAutocomplete()` + `pickOfficeOption()` (touch-safe `onpointerdown` + `onclick`) wired across Inline Edit, Manual Rows, Bulk Same-Office, Search Filter, Directory Filter, and Approvals Filter.
+- **Admin Excel Upload:** `uploadExcel()` trims/validates rows, skips blank or self-parent rows, and inserts in 500-row chunks; `downloadSampleExcel()`.
 
-### `js/09-approvals-favs.js` — Approvals & Favorites
+### `js/09-approvals-favs.js` — Favorites & Server-Side Approvals
 
 - **Favorites:** `toggleFavorite()`, `renderFavorites()`.
-- **Approvals:** `switchApprovalTab('pending'|'resolved')`, `loadApprovalsBatch()` (5 items per batch, skeleton loaders, memory + `localStorage` offline cache).
-- **Actions:** `approveRequest()` (RPC `submit_approval`, 5 community votes or 1 admin vote merges change), `rejectRequest()` (Admin only, RPC `reject_request`), `deleteOwnRequest()` (withdraws user's own `PENDING` request).
+- **Approvals:** Powered by `search_edit_requests` RPC with full-text/phonetic search, multi-select change-type chips, user + role autocomplete, date presets/range, office/PIN filters, vote progress, approval source, sort order, infinite scroll, and `openApprovalsForUser()` deep linking.
+- **Actions:** `approveRequest()` (`submit_approval` RPC), `rejectRequest()` (`reject_request` RPC), `deleteOwnRequest()`.
 
-### `js/10-settings-boot.js` — Settings, Admin UI, Full Export & Bootstrap
+### `js/11-feedback.js` — Report & Suggest Hub
 
-- **Settings:** `saveDefaultView()`, `saveExportMode()`, `applyExportMode()`, `clearAppCache()`, `syncDatabase()`.
-- **Admin:** `checkIfAdmin(userId)`, `applyAdminUI()` (toggles `#admin-excel-upload`).
-- **Full Export:** `exportFullTableToExcel(includeDeleted)` exports all rows (active + deleted) to `.xlsx`, falling back to cached DB when offline.
-- **Boot Sequence:** `bootAppInstantly()` runs immediately on script parse using `getInstantLocalSession()` + `dakmitra_offline_db`. On `DOMContentLoaded`, `initSupabaseClient()`, `checkEmailVerificationRedirect()`, and `checkUserSession()` execute background verification and sync.
+- **Community Board:** Powered by `search_feedback_items` RPC, infinite scroll, type/status/mine filters, sort cycling, optimistic `toggleFeedbackVote()` (`toggle_feedback_vote`), and `refreshFeedbackOpenCount()` sidebar badge.
+- **Submission Form:** Bug vs. Feature switch, impact severity, draft auto-save (`dakmitra_feedback_draft`), client-side screenshot compression (`compressFeedbackImage()` → `feedback-attachments` bucket with signed URLs), optional device diagnostics, and Admin triage modal (`admin_update_feedback` RPC).
+
+### `js/12-learn-quiz.js` — Spaced-Repetition Learn, Quiz & Mastery
+
+- **Flashcards:** 5-box Leitner spaced repetition, 2-tier Office + Category scope, Smart Mix (~25% geographic/phonetic neighbor traps), touch/mouse swipe physics, keyboard shortcuts, and delta-safe re-rating.
+- **3-Mode Quiz Engine:** Standard Sort (Haversine geographic + PIN-proximity distractors), PIN Sniper (last 3 digits), and Spot Intruder (with flipped trap rounds), plus rapid-fire timer, hard mode, and auto-advance.
+- **Mastery & Sync:** Office-wise progress bars, Weak Spots drill, background merge sync (`user_learning_progress`), and opt-in Division Leaderboard (`get_learning_leaderboard` RPC).
+
+### `js/13-superadmin.js` — Superadmin Console
+
+- **Controls & CMS:** Live toggles (`require_user_approval`, `export_csv_enabled`, `export_excel_enabled`, `community_vote_threshold`) and diffed CMS updates (`app_title`, `app_tagline`, `announcement_banner`, `maintenance_mode`).
+- **Users:** `superadmin_get_users`, approve & verify email (`superadmin-auth-ops`), reject/suspend, promote/demote Admin, reset device lock, reset password, and safe account deletion.
+- **Visual Database Explorer:** `superadmin_get_schema_overview`, `superadmin_query_table`, diffed row updates/inserts/deletes (`superadmin_mutate_row`), and full paginated CSV/JSON export.
+- **Audit Log:** `superadmin_get_audit_logs`.
+
+### `js/10-settings-boot.js` — Settings, Live CMS Enforcement & 0ms Boot (Loaded Last)
+
+- **Settings:** Default view, export button preference, `clearAppCache()` (wipes all caches + re-syncs offline DB if online), `syncDatabase()`, `exportFullTableToExcel()`.
+- **Role & CMS Enforcement:** `checkIfSuperadmin()`, `checkIfAdmin()`, `applyAdminUI()`, `applyAppConfigUI()`, `fetchAndApplyAppConfig()`.
+- **Boot Sequence:** `bootAppInstantly()` renders immediately from `getInstantLocalSession()` + `dakmitra_offline_db`. On `DOMContentLoaded`, `checkUserSession()` verifies session, approval status, `device_id` lock, roles, live CMS config, and starts Realtime sync.
 
 ---
 
@@ -173,21 +188,35 @@ Scripts **must** load with `defer` in exact numerical order (`01` through `10`).
 
 ### Database Tables
 
-| Table                  | Purpose & Key Columns                                                                                                                                                                                               |
-| :--------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `post_offices`         | Master directory (`id`, `Address`, `Office`, `Pin`, `is_deleted`, `user_id`, `last_modified_by`, `last_approved_by`, `upload_method`, plus staff columns `bpm_*`, `abpm_*`, `spm_*`, `pm_*`, `pa_list`, `mts_list`) |
-| `post_offices_history` | Audit log (`post_office_id`, `action` [`INSERT`/`UPDATE`/`DELETE`], `old_data`, `new_data`, `changed_by`, `approved_by`, `changed_at`)                                                                              |
-| `edit_requests`        | Community queue (`id`, `post_office_id`, `action_type` [`ADD`/`EDIT`/`DELETE`], `original_data`, `proposed_data`, `status` [`PENDING`/`APPROVED`/`REJECTED`], `requested_by`, `last_approved_by`, `created_at`)     |
-| `request_approvals`    | Votes per request (`edit_request_id`, `approved_by`, `is_admin`)                                                                                                                                                    |
-| `profiles`             | User profile & device lock (`id`, `name`, `employee_id`, `mobile`, `designation`, `avatar_url`, `device_id`)                                                                                                        |
-| `admins`               | Admin allowlist (`id` matching `auth.users.id`)                                                                                                                                                                     |
+| Table                    | Purpose & Key Columns                                                                                                                                                                                     |
+| :----------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `post_offices`           | Master directory (`id`, `Address`, `Office`, `Pin`, `priority`, `is_deleted`, `user_id`, `last_modified_by`, `last_approved_by`, `upload_method`, BO/SO/HO staff)                                         |
+| `post_offices_history`   | Audit log (`post_office_id`, `action` [`INSERT`/`UPDATE`/`DELETE`], `old_data`, `new_data`, `changed_by`, `approved_by`, `changed_at`)                                                                    |
+| `office_staff`           | Parent Delivery Office (`HO`/`SO`) staff directory (`id`, `office_name`, `office_key`, `office_type`, `pm_*`, `spm_*`, `pa_list`, `mts_list`)                                                             |
+| `edit_requests`          | Community queue (`id`, `post_office_id`, `action_type`, `original_data`, `proposed_data`, `status`, `requested_by`, `last_approved_by`, `created_at`)                                                     |
+| `request_approvals`      | Votes per request (`edit_request_id`, `approved_by`, `is_admin`)                                                                                                                                          |
+| `profiles`               | User profile, privacy, approval & device lock (`id`, `name`, `employee_id`, `mobile`, `designation`, `avatar_url`, `show_mobile`, `device_id`, `approval_status`, `status_note`)                          |
+| `admins`                 | Admin allowlist (`id`, `email`)                                                                                                                                                                           |
+| `superadmins`            | Superadmin allowlist (`id`)                                                                                                                                                                               |
+| `app_settings`           | Key-value live CMS & access controls (`key`, `value`)                                                                                                                                                     |
+| `feedback_items`         | Bug reports & feature ideas (`id`, `user_id`, `type`, `category`, `severity`, `title`, `description`, `status`, `attachment_path`, `device_meta`, `admin_response`, `reviewed_by`, `resolved_in_version`) |
+| `feedback_votes`         | Upvotes / "Me Too" votes (`feedback_id`, `user_id`)                                                                                                                                                       |
+| `user_learning_progress` | Cloud-synced Leitner card state & leaderboard aggregates (`user_id`, `progress_json`, `mastered_count`, `streak_days`, `accuracy_pct`, `xp`, `leaderboard_opt_in`)                                        |
+| `superadmin_audit_logs`  | Immutable Superadmin action trail (`actor_id`, `action`, `target_table`, `target_id`, `old_data`, `new_data`, `created_at`)                                                                               |
+
+### Storage Buckets
+
+- **`avatars` (Public, 2 MB limit, JPG/PNG/WebP):** Stores user profile photos at `<user_id>/avatar_<timestamp>.jpg`. RLS restricts write/update/delete to `auth.uid()`'s own folder. Cached offline by `sw.js`.
+- **`feedback-attachments` (Private):** Stores compressed feedback screenshots at `<user_id>/<timestamp>_<rand>.<ext>`, loaded via 1-hour signed URLs.
 
 ### RPC Functions & Edge Functions
 
-- **RPC `admin_direct_submit({ request_payloads })`:** Executes an array of `ADD`/`EDIT`/`DELETE` payloads immediately for Admins without entering the pending queue.
-- **RPC `submit_approval({ req_id })`:** Records a vote; returns `"APPROVED"` when threshold (5 community votes or Admin vote) is met and merges changes.
-- **RPC `reject_request({ req_id })`:** Admin-only rejection of a pending request.
-- **Edge Function `ai-postal-search`:** Accepts `{ prompt }`, returns `{ text }` containing a JSON array of 1–2 postal routing estimates.
+- **Postal & Staff RPCs:** `admin_direct_submit`, `submit_approval`, `reject_request`, `search_edit_requests`, `update_post_office_staff_details`, `update_address_priorities`, `is_approved_user`.
+- **Profile & Employees RPCs:** `get_public_profiles_by_ids`, `get_members_directory`, `get_user_public_profile`.
+- **Feedback & Learn RPCs:** `get_feedback_open_count`, `search_feedback_items`, `toggle_feedback_vote`, `delete_feedback_item`, `admin_update_feedback`, `get_learning_leaderboard`.
+- **Superadmin RPCs:** `superadmin_update_setting`, `superadmin_get_users`, `superadmin_set_admin_status`, `superadmin_reset_device_lock`, `superadmin_set_user_approval`, `superadmin_get_schema_overview`, `superadmin_query_table`, `superadmin_mutate_row`, `superadmin_get_audit_logs`.
+- **Edge Function `ai-postal-search`:** Authenticated Gemini AI lookup returning JSON postal routing estimates.
+- **Edge Function `superadmin-auth-ops`:** Service-role auth ops (`approve_and_verify`, `verify_email`, `reset_password`, `delete_user` with FK detachment and Storage cleanup).
 
 ---
 
@@ -196,36 +225,44 @@ Scripts **must** load with `defer` in exact numerical order (`01` through `10`).
 | Key                                              | Format                              | Role                                                          |
 | :----------------------------------------------- | :---------------------------------- | :------------------------------------------------------------ |
 | `app-theme`                                      | `"light"` \| `"dark"` \| `"system"` | Theme preference (read pre-paint in `index.html`)             |
-| `dakmitra_app_version`                           | String (e.g. `"1.0.1"`)             | Detects version upgrades & triggers SW update                 |
+| `dakmitra_app_version`                           | String (e.g. `"1.0.7"`)             | Detects version upgrades & triggers SW update                 |
+| `dakmitra_app_config`                            | JSON Object                         | Cached `app_settings` CMS & export flags                      |
 | `dakmitra_device_id`                             | String (`dev_...`)                  | Single-device login binding                                   |
-| `dakmitra_cached_profile`                        | JSON Object                         | Cached user profile + `email` + `is_admin` for 0ms boot       |
-| `dakmitra_offline_db`                            | JSON Array                          | Full active `post_offices` table snapshot                     |
-| `dakmitra_favorites`                             | JSON Array                          | Saved favorite records (`{ id, address, office, pin }`)       |
-| `dakmitra_search_history`                        | JSON Array (max 5)                  | Recent search terms                                           |
+| `dakmitra_cached_profile`                        | JSON Object                         | Cached user profile + `email` + `is_admin` + `is_superadmin`  |
+| `dakmitra_offline_db`                            | JSON Array                          | Full active `post_offices` snapshot                           |
+| `dakmitra_offline_office_staff`                  | JSON Array                          | Cached `office_staff` parent delivery office contacts         |
+| `dakmitra_favorites`                             | JSON Array                          | Personal bookmarks saved on this device                       |
+| `dakmitra_search_history`                        | JSON Array (max 5)                  | Recent search terms (shared by Search & Directory)            |
 | `dakmitra_default_view`                          | `"list"` \| `"table"`               | Default Search layout                                         |
 | `dakmitra_export_mode`                           | `"show"` \| `"hide"`                | Visibility of Copy/CSV toolbar buttons                        |
-| `dakmitra_approvals_cache_pending` / `_resolved` | HTML String                         | First page (5 cards) cached for offline Approvals view        |
+| `dakmitra_approvals_cache_pending` / `_resolved` | HTML String                         | First page cached for offline Approvals (cleared on sign-out) |
 | `dakmitra_history_<id>`                          | HTML String                         | Cached audit timeline per record                              |
+| `dakmitra_members_cache`                         | JSON Array                          | Cached Employees Directory snapshot                           |
+| `dakmitra_feedback_cache` / `_draft`             | HTML String / JSON                  | Offline Feedback board snapshot & form auto-save draft        |
+| `dakmitra_learning_progress_<uid>`               | JSON Object                         | User-scoped Leitner cards, streak, daily goal & XP            |
+| `dakmitra_learning_leaderboard_cache`            | JSON Object                         | Cached Division Leaderboard rows + timestamp                  |
+| `dakmitra_learn_smart_mix`                       | `"true"` \| `"false"`               | Smart Mix neighbor-trap preference                            |
 | `sb-*-auth-token`                                | JSON (Supabase managed)             | Read synchronously by `getInstantLocalSession()` for 0ms boot |
 
 ---
 
 ## 7. Rules & Conventions for AI Assistants Making Edits
 
-1. **Maintain Global Scope:** Do **not** add `type="module"` or `import`/`export` syntax unless refactoring the entire app and every inline `onclick="..."` handler in `index.html` and template strings.
-2. **Preserve Script & CSS Ordering:** Never place calls to functions from later files at top-level parse time in earlier files. Keep DOM-mutating initialization inside functions or `DOMContentLoaded` when cross-file.
+1. **Maintain Global Scope:** Do **not** add `type="module"` or `import`/`export` syntax unless refactoring the entire app and every inline `onclick="..."` handler.
+2. **Preserve Script & CSS Ordering:** Keep `css/01`–`05` in order and keep `js/10-settings-boot.js` loaded **last** in `index.html`.
 3. **Always Sanitize Dynamic HTML:**
    - Use `escapeHTML(val)` for all interpolated HTML text and attribute values.
    - Use `escapeForOnclick(val)` for any string injected inside single-quoted inline JS handlers.
-4. **Guard All Network Mutations:** Call `if (!(await ensureOnline("..."))) return;` at the start of any write, sync, or approval function.
-5. **Keep Caches Synchronized:**
-   - After mutating `edit_requests` or executing `admin_direct_submit`, always call `invalidateApprovalsCache()`.
-   - For instant UI updates on `post_offices`, use `upsertLocalPostOffice()` or `removeLocalPostOffice()` (which automatically persist cache, sync Favorites, and refresh Search & Directory in place).
-6. **Respect Admin vs. Standard User Permissions:**
-   - Admins bypass approvals via `admin_direct_submit` and have access to Excel upload and Reject buttons.
-   - Standard users insert into `edit_requests` (`PENDING`).
-   - _Exception:_ Office Staff Details (`BO`/`SO`/`HO`) update `post_offices` directly for all authenticated users.
+4. **Guard All Network Mutations:** Call `if (!(await ensureOnline("..."))) return;` at the start of any write, sync, or approval function (`ensureOnline()` also guarantees `ensureSupabaseReady()`).
+5. **Keep Caches Synchronized & Clean on Sign-Out:**
+   - After mutating `edit_requests` or executing `admin_direct_submit`, call `invalidateApprovalsCache()`.
+   - For instant UI updates on `post_offices`, use `upsertLocalPostOffice()` or `removeLocalPostOffice()`.
+   - Any new user-specific cache added to `localStorage` or memory must be cleared inside `clearSessionCachesAndState()` in `js/05-auth-profile.js` and `clearAppCache()` in `js/10-settings-boot.js`.
+6. **Respect Role Permissions (Staff vs. Admin vs. Superadmin):**
+   - Standard staff submit `ADD`/`EDIT`/`DELETE` into `edit_requests`; Admins apply immediately via `admin_direct_submit` and can reject requests, triage feedback, and bulk-upload Excel.
+   - _Exceptions:_ Office Staff Details (`BO`/`SO`/`HO` & parent `office_staff`) and 1-tap/Bulk Priority updates apply directly for all authenticated staff.
+   - Superadmins bypass Maintenance Mode, export restrictions, and `device_id` lock, and control `app_settings`, user approvals/roles, and the visual DB explorer.
 7. **Service Worker Cache Busting:** Whenever modifying files in `css/`, `js/`, or `index.html` for deployment:
    - Add any newly created file paths to `LOCAL_ASSETS` in `sw.js`.
-   - Bump `CACHE_NAME` in `sw.js` (currently `"po-directory-v13"`).
-   - Optionally bump `APP_VERSION` / `APP_BUILD_CODE` in `js/01-config.js`.
+   - Bump `CACHE_NAME` in `sw.js` (currently `"po-directory-v46"`).
+   - Optionally bump `APP_VERSION` / `APP_BUILD_CODE` in `js/01-config.js` and `manifest.json`.

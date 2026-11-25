@@ -830,55 +830,25 @@ function handleApprovalsDateInputChange() {
 }
 
 function handleApprovalsOfficeInput(inputEl) {
-  cancelCloseDropdowns();
+  const prevVal = approvalsFilters.office;
   const val = inputEl?.value || "";
   approvalsFilters.office = val;
 
-  document
-    .getElementById("clear-appr-office-btn")
-    ?.classList.toggle("hidden", val.length === 0);
-
-  const dropdown = document.getElementById("appr-filter-office-dropdown");
-  if (dropdown && typeof getOfficePinMap === "function") {
-    const officeMap = getOfficePinMap();
-    let matched = Array.from(officeMap.keys());
-    if (val.trim()) {
-      const lower = val.trim().toLowerCase();
-      matched = matched.filter((o) => o.toLowerCase().includes(lower));
-    }
-    matched.sort();
-
-    if (matched.length === 0) {
-      dropdown.classList.remove("show");
-    } else {
-      dropdown.innerHTML = matched
-        .slice(0, 10)
-        .map((office) => {
-          const pin = officeMap.get(office);
-          return `
-            <div
-              class="autocomplete-item"
-              onpointerdown="event.preventDefault()"
-              onclick="selectApprovalsOffice('${escapeForOnclick(office)}')"
-            >
-              <div class="ac-item-main">
-                <span class="ac-item-icon">🏢</span>
-                <span class="ac-item-name">${escapeHTML(office)}</span>
-              </div>
-              ${
-                pin ? `<span class="ac-item-pin">${escapeHTML(pin)}</span>` : ""
-              }
-            </div>`;
-        })
-        .join("");
-      dropdown.classList.add("show");
-    }
+  if (typeof renderOfficeAutocomplete === "function") {
+    renderOfficeAutocomplete({
+      inputEl,
+      dropdownEl: document.getElementById("appr-filter-office-dropdown"),
+      clearBtnEl: document.getElementById("clear-appr-office-btn"),
+      mode: "appr-filter",
+    });
   }
 
-  clearTimeout(approvalsOfficeDebounce);
-  approvalsOfficeDebounce = setTimeout(() => {
-    applyApprovalsFilters(true);
-  }, 280);
+  if (val !== prevVal) {
+    clearTimeout(approvalsOfficeDebounce);
+    approvalsOfficeDebounce = setTimeout(() => {
+      applyApprovalsFilters(true);
+    }, 280);
+  }
 }
 
 function selectApprovalsOffice(officeName) {

@@ -1878,93 +1878,34 @@ function closeQuickAddModal() {
 }
 
 function parseQuickAddAddresses() {
-  const raw = document.getElementById("quick-add-addresses-input")?.value || "";
-  const seen = new Set();
-  const list = [];
-
-  raw
-    .split(/[\n,]+| {2,}/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .forEach((addr) => {
-      const key = addr.toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        list.push(addr);
-      }
-    });
-
-  return list;
+  return parseDelimitedAddresses(
+    document.getElementById("quick-add-addresses-input")?.value || ""
+  );
 }
 
 function updateQuickAddPreview() {
   const addresses = parseQuickAddAddresses();
-  const box = document.getElementById("quick-add-preview-box");
-  const countEl = document.getElementById("quick-add-preview-count");
-  const chipsEl = document.getElementById("quick-add-preview-chips");
   const saveBtn = document.getElementById("quick-add-save-btn");
   const saveBtnContent = document.getElementById("quick-add-save-btn-content");
 
   if (
     saveBtn &&
+    saveBtnContent &&
     !saveBtn.classList.contains("is-loading") &&
     !saveBtn.classList.contains("is-success")
   ) {
     saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(addresses.length);
   }
 
-  if (addresses.length === 0) {
-    box?.classList.add("hidden");
-    return;
-  }
-
-  const officeLower = activeQuickAddOffice.office.trim().toLowerCase();
-  const existingExact = new Map();
-  const existingPhonetic = new Map();
-
-  if (officeLower && cachedPostOffices) {
-    cachedPostOffices.forEach((r) => {
-      if (
-        String(r.Office || "")
-          .trim()
-          .toLowerCase() === officeLower
-      ) {
-        const rawAddr = String(r.Address || "").trim();
-        existingExact.set(rawAddr.toLowerCase(), rawAddr);
-        const pKey = postalPhoneticKey(rawAddr);
-        if (pKey && !existingPhonetic.has(pKey)) {
-          existingPhonetic.set(pKey, rawAddr);
-        }
-      }
-    });
-  }
-
-  let dupCount = 0;
-  chipsEl.innerHTML = addresses
-    .map((addr, idx) => {
-      const matchedName =
-        existingExact.get(addr.toLowerCase()) ||
-        existingPhonetic.get(postalPhoneticKey(addr)) ||
-        null;
-      const isDup = Boolean(matchedName);
-      if (isDup) dupCount++;
-      const prefix = isDup ? "⚠️ " : activeQuickAddPriority === 1 ? "⚡ " : "";
-      return `
-          <span class="bulk-chip ${isDup ? "is-duplicate" : ""}" title="${
-        isDup ? `Similar to existing: ${escapeHTML(matchedName)}` : ""
-      }">
-            ${prefix}${escapeHTML(addr)}
-            <button type="button" onclick="removeQuickAddAddressAt(${idx})" title="Remove">✕</button>
-          </span>`;
-    })
-    .join("");
-
-  countEl.textContent = `${addresses.length} ${
-    addresses.length === 1 ? "address" : "addresses"
-  } ready${activeQuickAddPriority === 1 ? " (⚡ Priority)" : ""}${
-    dupCount > 0 ? ` • ${dupCount} already in DB` : ""
-  }`;
-  box?.classList.remove("hidden");
+  renderBulkAddressPreview({
+    addresses,
+    officeName: activeQuickAddOffice.office,
+    priority: activeQuickAddPriority,
+    boxId: "quick-add-preview-box",
+    countElId: "quick-add-preview-count",
+    chipsElId: "quick-add-preview-chips",
+    removeFnName: "removeQuickAddAddressAt",
+  });
 }
 
 function removeQuickAddAddressAt(indexToRemove) {

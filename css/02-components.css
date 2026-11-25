@@ -612,8 +612,8 @@
   min-width: 0;
 }
 
-.card-actions .info-i-btn,
-.directory-floating-bar .info-i-btn {
+.card-actions .toolbar-btn.info-i-btn,
+.directory-floating-bar .toolbar-btn.info-i-btn {
   width: 32px !important;
   height: 32px !important;
   padding: 0 !important;
