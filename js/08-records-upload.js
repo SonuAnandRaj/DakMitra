@@ -84,6 +84,11 @@ async function saveInlineEditRecord() {
   if (!newAddress || !newOffice) {
     return showToast("⚠️ Address and Office are required.");
   }
+  if (isSelfParentOfficeRow(newAddress, newOffice)) {
+    return showToast(
+      "ℹ️ Parent HO/SO is already shown as the office header. Tap 👥 Staff there instead.",
+    );
+  }
 
   if (
     newAddress === activeInlineEditRecord.oldAddress &&
@@ -569,6 +574,8 @@ async function submitMultipleRecords() {
     return alert("Your session has expired. Please sign in again.");
   }
 
+  let skippedParentOffice = 0;
+
   rows.forEach((row) => {
     const address = row.querySelector(".manual-address").value.trim();
     const office = row.querySelector(".manual-office").value.trim();
@@ -576,6 +583,10 @@ async function submitMultipleRecords() {
     const editId = row.getAttribute("data-edit-id");
 
     if (address && office) {
+      if (isSelfParentOfficeRow(address, office)) {
+        skippedParentOffice++;
+        return;
+      }
       if (editId) {
         const oldAddr = row.getAttribute("data-old-addr");
         const oldOff = row.getAttribute("data-old-off");
@@ -616,8 +627,13 @@ async function submitMultipleRecords() {
     }
   });
 
-  if (requests.length === 0 && adminDirectEdits.length === 0)
-    return showToast("Please fill in at least one complete row.");
+  if (requests.length === 0 && adminDirectEdits.length === 0) {
+    return showToast(
+      skippedParentOffice > 0
+        ? "ℹ️ Parent HO/SO staff is managed from the Directory office header (👥 Staff)."
+        : "Please fill in at least one complete row.",
+    );
+  }
 
   const btn = document.getElementById("submit-multiple-btn");
   setButtonState(btn, "loading", "Submitting...");
@@ -800,11 +816,20 @@ async function submitBulkSameOffice() {
 
   const office = document.getElementById("bulk-office-input")?.value.trim();
   const pin = document.getElementById("bulk-pin-input")?.value.trim();
-  const addresses = parseBulkAddresses();
+  const rawAddresses = parseBulkAddresses();
 
   if (!office) return showToast("⚠️ Please select or enter an Office first.");
-  if (addresses.length === 0) {
+  if (rawAddresses.length === 0) {
     return showToast("⚠️ Please enter at least one address.");
+  }
+
+  const addresses = rawAddresses.filter(
+    (addr) => !isSelfParentOfficeRow(addr, office),
+  );
+  if (addresses.length === 0) {
+    return showToast(
+      "ℹ️ Parent office staff is managed from the Directory office header (👥 Staff).",
+    );
   }
 
   const {
@@ -1210,31 +1235,39 @@ async function uploadExcel() {
         return alert("Your session has expired. Please sign in again.");
       }
 
-      const formattedData = jsonData.map((row) => {
-        const rawPrio = String(row["Priority"] ?? "")
-          .trim()
-          .toLowerCase();
-        const priorityVal =
-          rawPrio === "1" ||
-          rawPrio === "high" ||
-          rawPrio === "frequent" ||
-          rawPrio === "yes" ||
-          rawPrio === "true"
-            ? 1
-            : 0;
+      const formattedData = jsonData
+        .filter((row) => !isSelfParentOfficeRow(row["Address"], row["Office"]))
+        .map((row) => {
+          const rawPrio = String(row["Priority"] ?? "")
+            .trim()
+            .toLowerCase();
+          const priorityVal =
+            rawPrio === "1" ||
+            rawPrio === "high" ||
+            rawPrio === "frequent" ||
+            rawPrio === "yes" ||
+            rawPrio === "true"
+              ? 1
+              : 0;
 
-        return {
-          Address: row["Address"],
-          Office: row["Office"],
-          Pin: row["Pin"] ? parseInt(row["Pin"], 10) || null : null,
-          priority: priorityVal,
-          user_id: session.user.id,
-          last_modified_by: session.user.id,
-          last_approved_by: session.user.id,
-          upload_method: "excel_bulk",
-          is_deleted: false,
-        };
-      });
+          return {
+            Address: row["Address"],
+            Office: row["Office"],
+            Pin: row["Pin"] ? parseInt(row["Pin"], 10) || null : null,
+            priority: priorityVal,
+            user_id: session.user.id,
+            last_modified_by: session.user.id,
+            last_approved_by: session.user.id,
+            upload_method: "excel_bulk",
+            is_deleted: false,
+          };
+        });
+
+      if (formattedData.length === 0) {
+        showToast("ℹ️ No routable address rows found to upload.");
+        setButtonState(uploadBtn, "idle");
+        return;
+      }
 
       const { error } = await supabaseClient
         .from("post_offices")

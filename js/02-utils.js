@@ -341,6 +341,20 @@ function detectOfficeType(address) {
   return null;
 }
 
+function isSelfParentOfficeRow(address, office) {
+  const ot = detectOfficeType(address);
+  if (ot !== "HO" && ot !== "SO") return false;
+  const norm = (v) =>
+    String(v || "")
+      .replace(/\./g, "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  const a = norm(address);
+  const o = norm(office);
+  return Boolean(a && o && a === o);
+}
+
 function stripPostalSuffixes(text) {
   if (!text) return "";
   return String(text)

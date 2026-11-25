@@ -1,132 +1,148 @@
 category,object_name,definition
 01_TABLE_COLUMN,admins,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-01_TABLE_COLUMN,admins,email (text) NOT NULL
 01_TABLE_COLUMN,admins,id (uuid) NOT NULL
-01_TABLE_COLUMN,edit_requests,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-01_TABLE_COLUMN,edit_requests,post_office_id (bigint)
-01_TABLE_COLUMN,edit_requests,id (uuid) NOT NULL DEFAULT gen_random_uuid()
-01_TABLE_COLUMN,edit_requests,requested_by (uuid) NOT NULL
-01_TABLE_COLUMN,edit_requests,proposed_data (jsonb) NOT NULL
-01_TABLE_COLUMN,edit_requests,last_approved_by (uuid)
+01_TABLE_COLUMN,admins,email (text) NOT NULL
 01_TABLE_COLUMN,edit_requests,status (text) NOT NULL DEFAULT 'PENDING'::text
-01_TABLE_COLUMN,edit_requests,action_type (text) NOT NULL
 01_TABLE_COLUMN,edit_requests,original_data (jsonb)
-01_TABLE_COLUMN,feedback_items,status (text) NOT NULL DEFAULT 'OPEN'::text
-01_TABLE_COLUMN,feedback_items,attachment_path (text)
-01_TABLE_COLUMN,feedback_items,admin_response (text)
-01_TABLE_COLUMN,feedback_items,type (text) NOT NULL
-01_TABLE_COLUMN,feedback_items,resolved_in_version (text)
-01_TABLE_COLUMN,feedback_items,category (text) NOT NULL DEFAULT 'General'::text
-01_TABLE_COLUMN,feedback_items,description (text) NOT NULL
+01_TABLE_COLUMN,edit_requests,last_approved_by (uuid)
+01_TABLE_COLUMN,edit_requests,id (uuid) NOT NULL DEFAULT gen_random_uuid()
+01_TABLE_COLUMN,edit_requests,post_office_id (bigint)
+01_TABLE_COLUMN,edit_requests,proposed_data (jsonb) NOT NULL
+01_TABLE_COLUMN,edit_requests,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,edit_requests,requested_by (uuid) NOT NULL
+01_TABLE_COLUMN,edit_requests,action_type (text) NOT NULL
 01_TABLE_COLUMN,feedback_items,title (text) NOT NULL
-01_TABLE_COLUMN,feedback_items,severity (text)
+01_TABLE_COLUMN,feedback_items,description (text) NOT NULL
 01_TABLE_COLUMN,feedback_items,id (uuid) NOT NULL DEFAULT gen_random_uuid()
 01_TABLE_COLUMN,feedback_items,user_id (uuid) NOT NULL
+01_TABLE_COLUMN,feedback_items,severity (text)
+01_TABLE_COLUMN,feedback_items,category (text) NOT NULL DEFAULT 'General'::text
+01_TABLE_COLUMN,feedback_items,type (text) NOT NULL
 01_TABLE_COLUMN,feedback_items,device_meta (jsonb)
 01_TABLE_COLUMN,feedback_items,reviewed_by (uuid)
 01_TABLE_COLUMN,feedback_items,reviewed_at (timestamp with time zone)
 01_TABLE_COLUMN,feedback_items,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
 01_TABLE_COLUMN,feedback_items,"updated_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,feedback_items,resolved_in_version (text)
+01_TABLE_COLUMN,feedback_items,admin_response (text)
+01_TABLE_COLUMN,feedback_items,attachment_path (text)
+01_TABLE_COLUMN,feedback_items,status (text) NOT NULL DEFAULT 'OPEN'::text
 01_TABLE_COLUMN,feedback_votes,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
 01_TABLE_COLUMN,feedback_votes,id (uuid) NOT NULL DEFAULT gen_random_uuid()
 01_TABLE_COLUMN,feedback_votes,feedback_id (uuid) NOT NULL
 01_TABLE_COLUMN,feedback_votes,user_id (uuid) NOT NULL
+01_TABLE_COLUMN,office_staff,pm_contact (text)
+01_TABLE_COLUMN,office_staff,office_type (text) NOT NULL
+01_TABLE_COLUMN,office_staff,pm_name (text)
+01_TABLE_COLUMN,office_staff,spm_name (text)
+01_TABLE_COLUMN,office_staff,mts_list (jsonb) NOT NULL DEFAULT '[]'::jsonb
+01_TABLE_COLUMN,office_staff,id (uuid) NOT NULL DEFAULT gen_random_uuid()
+01_TABLE_COLUMN,office_staff,spm_contact (text)
+01_TABLE_COLUMN,office_staff,updated_by (uuid)
+01_TABLE_COLUMN,office_staff,"updated_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,office_staff,office_name (text) NOT NULL
+01_TABLE_COLUMN,office_staff,office_key (text) NOT NULL
+01_TABLE_COLUMN,office_staff,pa_list (jsonb) NOT NULL DEFAULT '[]'::jsonb
 01_TABLE_COLUMN,post_offices,last_approved_by (uuid)
-01_TABLE_COLUMN,post_offices,pa_list (jsonb) DEFAULT '[]'::jsonb
-01_TABLE_COLUMN,post_offices,mts_list (jsonb) DEFAULT '[]'::jsonb
-01_TABLE_COLUMN,post_offices,priority (smallint) NOT NULL DEFAULT 0
+01_TABLE_COLUMN,post_offices,Pin (integer)
+01_TABLE_COLUMN,post_offices,"inserted_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
 01_TABLE_COLUMN,post_offices,bpm_name (text)
 01_TABLE_COLUMN,post_offices,Address (text) NOT NULL
-01_TABLE_COLUMN,post_offices,user_id (uuid)
-01_TABLE_COLUMN,post_offices,"inserted_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-01_TABLE_COLUMN,post_offices,Pin (integer)
-01_TABLE_COLUMN,post_offices,is_deleted (boolean) DEFAULT false
-01_TABLE_COLUMN,post_offices,abpm_contact (text)
-01_TABLE_COLUMN,post_offices,abpm_name (text)
-01_TABLE_COLUMN,post_offices,bpm_contact (text)
-01_TABLE_COLUMN,post_offices,spm_name (text)
-01_TABLE_COLUMN,post_offices,spm_contact (text)
-01_TABLE_COLUMN,post_offices,id (bigint) NOT NULL
-01_TABLE_COLUMN,post_offices,pm_contact (text)
-01_TABLE_COLUMN,post_offices,pm_name (text)
-01_TABLE_COLUMN,post_offices,upload_method (text) DEFAULT 'manual'::text
 01_TABLE_COLUMN,post_offices,Office (text) NOT NULL
+01_TABLE_COLUMN,post_offices,pa_list (jsonb) DEFAULT '[]'::jsonb
+01_TABLE_COLUMN,post_offices,upload_method (text) DEFAULT 'manual'::text
+01_TABLE_COLUMN,post_offices,pm_contact (text)
+01_TABLE_COLUMN,post_offices,mts_list (jsonb) DEFAULT '[]'::jsonb
+01_TABLE_COLUMN,post_offices,priority (smallint) NOT NULL DEFAULT 0
+01_TABLE_COLUMN,post_offices,pm_name (text)
+01_TABLE_COLUMN,post_offices,id (bigint) NOT NULL
+01_TABLE_COLUMN,post_offices,spm_contact (text)
+01_TABLE_COLUMN,post_offices,spm_name (text)
+01_TABLE_COLUMN,post_offices,abpm_contact (text)
 01_TABLE_COLUMN,post_offices,last_modified_by (uuid)
-01_TABLE_COLUMN,post_offices_history,"changed_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,post_offices,is_deleted (boolean) DEFAULT false
+01_TABLE_COLUMN,post_offices,bpm_contact (text)
+01_TABLE_COLUMN,post_offices,user_id (uuid)
+01_TABLE_COLUMN,post_offices,abpm_name (text)
+01_TABLE_COLUMN,post_offices_history,action (text) NOT NULL
+01_TABLE_COLUMN,post_offices_history,id (uuid) NOT NULL DEFAULT gen_random_uuid()
 01_TABLE_COLUMN,post_offices_history,post_office_id (bigint) NOT NULL
 01_TABLE_COLUMN,post_offices_history,old_data (jsonb)
 01_TABLE_COLUMN,post_offices_history,new_data (jsonb)
 01_TABLE_COLUMN,post_offices_history,changed_by (uuid)
+01_TABLE_COLUMN,post_offices_history,"changed_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
 01_TABLE_COLUMN,post_offices_history,approved_by (uuid)
-01_TABLE_COLUMN,post_offices_history,id (uuid) NOT NULL DEFAULT gen_random_uuid()
-01_TABLE_COLUMN,post_offices_history,action (text) NOT NULL
+01_TABLE_COLUMN,profiles,device_id (text)
+01_TABLE_COLUMN,profiles,show_mobile (boolean) NOT NULL DEFAULT true
+01_TABLE_COLUMN,profiles,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
 01_TABLE_COLUMN,profiles,id (uuid) NOT NULL
 01_TABLE_COLUMN,profiles,mobile (text)
 01_TABLE_COLUMN,profiles,avatar_url (text)
-01_TABLE_COLUMN,profiles,device_id (text)
 01_TABLE_COLUMN,profiles,name (text) NOT NULL
+01_TABLE_COLUMN,profiles,employee_id (text) NOT NULL
 01_TABLE_COLUMN,profiles,designation (text) NOT NULL
 01_TABLE_COLUMN,profiles,email (text) NOT NULL
-01_TABLE_COLUMN,profiles,employee_id (text) NOT NULL
-01_TABLE_COLUMN,profiles,show_mobile (boolean) NOT NULL DEFAULT true
-01_TABLE_COLUMN,profiles,"created_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,request_approvals,request_id (uuid) NOT NULL
 01_TABLE_COLUMN,request_approvals,"approved_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
 01_TABLE_COLUMN,request_approvals,is_admin (boolean) DEFAULT false
 01_TABLE_COLUMN,request_approvals,approved_by (uuid) NOT NULL
-01_TABLE_COLUMN,request_approvals,request_id (uuid) NOT NULL
 01_TABLE_COLUMN,request_approvals,id (uuid) NOT NULL DEFAULT gen_random_uuid()
-01_TABLE_COLUMN,user_learning_progress,streak_days (integer) NOT NULL DEFAULT 0
-01_TABLE_COLUMN,user_learning_progress,"updated_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
-01_TABLE_COLUMN,user_learning_progress,leaderboard_opt_in (boolean) NOT NULL DEFAULT false
-01_TABLE_COLUMN,user_learning_progress,xp (integer) NOT NULL DEFAULT 0
-01_TABLE_COLUMN,user_learning_progress,accuracy_pct (smallint) NOT NULL DEFAULT 0
-01_TABLE_COLUMN,user_learning_progress,progress_json (jsonb) NOT NULL DEFAULT '{}'::jsonb
-01_TABLE_COLUMN,user_learning_progress,mastered_count (integer) NOT NULL DEFAULT 0
 01_TABLE_COLUMN,user_learning_progress,total_answered (integer) NOT NULL DEFAULT 0
-01_TABLE_COLUMN,user_learning_progress,total_correct (integer) NOT NULL DEFAULT 0
 01_TABLE_COLUMN,user_learning_progress,user_id (uuid) NOT NULL
+01_TABLE_COLUMN,user_learning_progress,streak_days (integer) NOT NULL DEFAULT 0
+01_TABLE_COLUMN,user_learning_progress,mastered_count (integer) NOT NULL DEFAULT 0
+01_TABLE_COLUMN,user_learning_progress,progress_json (jsonb) NOT NULL DEFAULT '{}'::jsonb
+01_TABLE_COLUMN,user_learning_progress,"updated_at (timestamp with time zone) NOT NULL DEFAULT timezone('utc'::text, now())"
+01_TABLE_COLUMN,user_learning_progress,accuracy_pct (smallint) NOT NULL DEFAULT 0
+01_TABLE_COLUMN,user_learning_progress,xp (integer) NOT NULL DEFAULT 0
+01_TABLE_COLUMN,user_learning_progress,leaderboard_opt_in (boolean) NOT NULL DEFAULT false
+01_TABLE_COLUMN,user_learning_progress,total_correct (integer) NOT NULL DEFAULT 0
 02_CONSTRAINT,admins,admins_email_key: UNIQUE (email)
 02_CONSTRAINT,admins,admins_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 02_CONSTRAINT,admins,admins_pkey: PRIMARY KEY (id)
-02_CONSTRAINT,edit_requests,edit_requests_post_office_id_fkey: FOREIGN KEY (post_office_id) REFERENCES post_offices(id) ON DELETE SET NULL
-02_CONSTRAINT,edit_requests,"edit_requests_action_type_check: CHECK ((action_type = ANY (ARRAY['ADD'::text, 'EDIT'::text, 'DELETE'::text])))"
 02_CONSTRAINT,edit_requests,edit_requests_pkey: PRIMARY KEY (id)
-02_CONSTRAINT,edit_requests,edit_requests_requested_by_fkey: FOREIGN KEY (requested_by) REFERENCES profiles(id)
-02_CONSTRAINT,edit_requests,"edit_requests_status_check: CHECK ((status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text])))"
+02_CONSTRAINT,edit_requests,"edit_requests_action_type_check: CHECK ((action_type = ANY (ARRAY['ADD'::text, 'EDIT'::text, 'DELETE'::text])))"
 02_CONSTRAINT,edit_requests,fk_edit_requests_last_approved_by: FOREIGN KEY (last_approved_by) REFERENCES profiles(id) ON DELETE SET NULL
-02_CONSTRAINT,feedback_items,feedback_items_reviewed_by_fkey: FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL
-02_CONSTRAINT,feedback_items,feedback_items_pkey: PRIMARY KEY (id)
-02_CONSTRAINT,feedback_items,"feedback_items_status_check: CHECK ((status = ANY (ARRAY['OPEN'::text, 'REVIEWING'::text, 'PLANNED'::text, 'IN_PROGRESS'::text, 'RESOLVED'::text, 'DECLINED'::text])))"
-02_CONSTRAINT,feedback_items,"feedback_items_severity_check: CHECK (((severity IS NULL) OR (severity = ANY (ARRAY['LOW'::text, 'MEDIUM'::text, 'HIGH'::text]))))"
-02_CONSTRAINT,feedback_items,feedback_items_description_check: CHECK (((char_length(TRIM(BOTH FROM description)) >= 5) AND (char_length(TRIM(BOTH FROM description)) <= 2000)))
-02_CONSTRAINT,feedback_items,feedback_items_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
-02_CONSTRAINT,feedback_items,"feedback_items_type_check: CHECK ((type = ANY (ARRAY['BUG'::text, 'FEATURE'::text])))"
+02_CONSTRAINT,edit_requests,"edit_requests_status_check: CHECK ((status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text])))"
+02_CONSTRAINT,edit_requests,edit_requests_requested_by_fkey: FOREIGN KEY (requested_by) REFERENCES profiles(id)
+02_CONSTRAINT,edit_requests,edit_requests_post_office_id_fkey: FOREIGN KEY (post_office_id) REFERENCES post_offices(id) ON DELETE SET NULL
 02_CONSTRAINT,feedback_items,feedback_items_title_check: CHECK (((char_length(TRIM(BOTH FROM title)) >= 3) AND (char_length(TRIM(BOTH FROM title)) <= 140)))
-02_CONSTRAINT,feedback_votes,"feedback_votes_feedback_id_user_id_key: UNIQUE (feedback_id, user_id)"
-02_CONSTRAINT,feedback_votes,feedback_votes_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
-02_CONSTRAINT,feedback_votes,feedback_votes_feedback_id_fkey: FOREIGN KEY (feedback_id) REFERENCES feedback_items(id) ON DELETE CASCADE
+02_CONSTRAINT,feedback_items,feedback_items_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
+02_CONSTRAINT,feedback_items,feedback_items_reviewed_by_fkey: FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL
+02_CONSTRAINT,feedback_items,"feedback_items_status_check: CHECK ((status = ANY (ARRAY['OPEN'::text, 'REVIEWING'::text, 'PLANNED'::text, 'IN_PROGRESS'::text, 'RESOLVED'::text, 'DECLINED'::text])))"
+02_CONSTRAINT,feedback_items,feedback_items_description_check: CHECK (((char_length(TRIM(BOTH FROM description)) >= 5) AND (char_length(TRIM(BOTH FROM description)) <= 2000)))
+02_CONSTRAINT,feedback_items,feedback_items_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,feedback_items,"feedback_items_severity_check: CHECK (((severity IS NULL) OR (severity = ANY (ARRAY['LOW'::text, 'MEDIUM'::text, 'HIGH'::text]))))"
+02_CONSTRAINT,feedback_items,"feedback_items_type_check: CHECK ((type = ANY (ARRAY['BUG'::text, 'FEATURE'::text])))"
 02_CONSTRAINT,feedback_votes,feedback_votes_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,feedback_votes,feedback_votes_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+02_CONSTRAINT,feedback_votes,"feedback_votes_feedback_id_user_id_key: UNIQUE (feedback_id, user_id)"
+02_CONSTRAINT,feedback_votes,feedback_votes_feedback_id_fkey: FOREIGN KEY (feedback_id) REFERENCES feedback_items(id) ON DELETE CASCADE
+02_CONSTRAINT,office_staff,office_staff_office_key_key: UNIQUE (office_key)
+02_CONSTRAINT,office_staff,office_staff_updated_by_fkey: FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL
+02_CONSTRAINT,office_staff,office_staff_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,office_staff,"office_staff_office_type_check: CHECK ((office_type = ANY (ARRAY['HO'::text, 'SO'::text])))"
 02_CONSTRAINT,post_offices,post_offices_last_modified_by_fkey: FOREIGN KEY (last_modified_by) REFERENCES auth.users(id)
 02_CONSTRAINT,post_offices,post_offices_pkey: PRIMARY KEY (id)
-02_CONSTRAINT,post_offices,"post_offices_priority_check: CHECK ((priority = ANY (ARRAY[0, 1])))"
-02_CONSTRAINT,post_offices,post_offices_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 02_CONSTRAINT,post_offices,post_offices_last_approved_by_fkey: FOREIGN KEY (last_approved_by) REFERENCES auth.users(id)
-02_CONSTRAINT,post_offices_history,post_offices_history_pkey: PRIMARY KEY (id)
-02_CONSTRAINT,post_offices_history,post_offices_history_changed_by_fkey: FOREIGN KEY (changed_by) REFERENCES profiles(id)
-02_CONSTRAINT,post_offices_history,post_offices_history_approved_by_fkey: FOREIGN KEY (approved_by) REFERENCES profiles(id)
+02_CONSTRAINT,post_offices,post_offices_user_id_fkey: FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+02_CONSTRAINT,post_offices,"post_offices_priority_check: CHECK ((priority = ANY (ARRAY[0, 1])))"
 02_CONSTRAINT,post_offices_history,"post_offices_history_action_check: CHECK ((action = ANY (ARRAY['INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))"
-02_CONSTRAINT,profiles,profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+02_CONSTRAINT,post_offices_history,post_offices_history_changed_by_fkey: FOREIGN KEY (changed_by) REFERENCES profiles(id)
+02_CONSTRAINT,post_offices_history,post_offices_history_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,post_offices_history,post_offices_history_approved_by_fkey: FOREIGN KEY (approved_by) REFERENCES profiles(id)
 02_CONSTRAINT,profiles,profiles_email_key: UNIQUE (email)
+02_CONSTRAINT,profiles,profiles_id_fkey: FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
 02_CONSTRAINT,profiles,profiles_pkey: PRIMARY KEY (id)
+02_CONSTRAINT,request_approvals,request_approvals_request_id_fkey: FOREIGN KEY (request_id) REFERENCES edit_requests(id) ON DELETE CASCADE
 02_CONSTRAINT,request_approvals,"request_approvals_request_id_approved_by_key: UNIQUE (request_id, approved_by)"
 02_CONSTRAINT,request_approvals,request_approvals_pkey: PRIMARY KEY (id)
 02_CONSTRAINT,request_approvals,request_approvals_approved_by_fkey: FOREIGN KEY (approved_by) REFERENCES auth.users(id)
-02_CONSTRAINT,request_approvals,request_approvals_request_id_fkey: FOREIGN KEY (request_id) REFERENCES edit_requests(id) ON DELETE CASCADE
-02_CONSTRAINT,user_learning_progress,user_learning_progress_streak_days_check: CHECK ((streak_days >= 0))
-02_CONSTRAINT,user_learning_progress,user_learning_progress_accuracy_pct_check: CHECK (((accuracy_pct >= 0) AND (accuracy_pct <= 100)))
 02_CONSTRAINT,user_learning_progress,user_learning_progress_check: CHECK (((total_correct >= 0) AND (total_correct <= total_answered)))
+02_CONSTRAINT,user_learning_progress,user_learning_progress_accuracy_pct_check: CHECK (((accuracy_pct >= 0) AND (accuracy_pct <= 100)))
 02_CONSTRAINT,user_learning_progress,user_learning_progress_mastered_count_check: CHECK ((mastered_count >= 0))
 02_CONSTRAINT,user_learning_progress,user_learning_progress_pkey: PRIMARY KEY (user_id)
+02_CONSTRAINT,user_learning_progress,user_learning_progress_streak_days_check: CHECK ((streak_days >= 0))
 02_CONSTRAINT,user_learning_progress,user_learning_progress_total_answered_check: CHECK ((total_answered >= 0))
 02_CONSTRAINT,user_learning_progress,user_learning_progress_user_id_fkey: FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE
 02_CONSTRAINT,user_learning_progress,user_learning_progress_xp_check: CHECK ((xp >= 0))
@@ -143,6 +159,8 @@ category,object_name,definition
 03_INDEX,feedback_votes -> feedback_votes_feedback_id_user_id_key,"CREATE UNIQUE INDEX feedback_votes_feedback_id_user_id_key ON public.feedback_votes USING btree (feedback_id, user_id)"
 03_INDEX,feedback_votes -> feedback_votes_pkey,CREATE UNIQUE INDEX feedback_votes_pkey ON public.feedback_votes USING btree (id)
 03_INDEX,feedback_votes -> idx_feedback_votes_feedback_user,"CREATE INDEX idx_feedback_votes_feedback_user ON public.feedback_votes USING btree (feedback_id, user_id)"
+03_INDEX,office_staff -> office_staff_office_key_key,CREATE UNIQUE INDEX office_staff_office_key_key ON public.office_staff USING btree (office_key)
+03_INDEX,office_staff -> office_staff_pkey,CREATE UNIQUE INDEX office_staff_pkey ON public.office_staff USING btree (id)
 03_INDEX,post_offices -> idx_post_offices_priority_active,CREATE INDEX idx_post_offices_priority_active ON public.post_offices USING btree (priority) WHERE ((is_deleted = false) AND (priority = 1))
 03_INDEX,post_offices -> post_offices_pkey,CREATE UNIQUE INDEX post_offices_pkey ON public.post_offices USING btree (id)
 03_INDEX,post_offices_history -> post_offices_history_pkey,CREATE UNIQUE INDEX post_offices_history_pkey ON public.post_offices_history USING btree (id)
@@ -1277,6 +1295,36 @@ BEGIN
 END;
 $function$
 "
+06_FUNCTION,sync_office_staff_meta,"CREATE OR REPLACE FUNCTION public.sync_office_staff_meta()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+  NEW.office_name := TRIM(REGEXP_REPLACE(COALESCE(NEW.office_name, ''), '\s+', ' ', 'g'));
+  NEW.office_key  := LOWER(TRIM(REGEXP_REPLACE(REPLACE(NEW.office_name, '.', ''), '\s+', ' ', 'g')));
+
+  IF REPLACE(NEW.office_name, '.', '') ~* '\m(ho|gpo)\M' THEN
+    NEW.office_type := 'HO';
+  ELSE
+    NEW.office_type := 'SO';
+  END IF;
+
+  IF NEW.pa_list IS NULL OR jsonb_typeof(NEW.pa_list) <> 'array' THEN
+    NEW.pa_list := '[]'::jsonb;
+  END IF;
+  IF NEW.mts_list IS NULL OR jsonb_typeof(NEW.mts_list) <> 'array' THEN
+    NEW.mts_list := '[]'::jsonb;
+  END IF;
+
+  NEW.updated_at := timezone('utc'::text, now());
+  IF auth.uid() IS NOT NULL THEN
+    NEW.updated_by := auth.uid();
+  END IF;
+
+  RETURN NEW;
+END;
+$function$
+"
 06_FUNCTION,toggle_feedback_vote,"CREATE OR REPLACE FUNCTION public.toggle_feedback_vote(p_feedback_id uuid)
  RETURNS TABLE(voted boolean, vote_count integer)
  LANGUAGE plpgsql
@@ -1378,6 +1426,7 @@ $function$
 "
 07_TRIGGER,auth.users -> on_auth_user_created,CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()
 07_TRIGGER,public.feedback_items -> trg_feedback_items_updated_at,CREATE TRIGGER trg_feedback_items_updated_at BEFORE UPDATE ON public.feedback_items FOR EACH ROW EXECUTE FUNCTION touch_feedback_updated_at()
+07_TRIGGER,public.office_staff -> trg_sync_office_staff_meta,CREATE TRIGGER trg_sync_office_staff_meta BEFORE INSERT OR UPDATE ON public.office_staff FOR EACH ROW EXECUTE FUNCTION sync_office_staff_meta()
 07_TRIGGER,public.post_offices -> post_offices_audit_trigger,CREATE TRIGGER post_offices_audit_trigger AFTER INSERT OR DELETE OR UPDATE ON public.post_offices FOR EACH ROW EXECUTE FUNCTION log_post_office_history()
 07_TRIGGER,public.post_offices -> trg_auto_title_case,CREATE TRIGGER trg_auto_title_case BEFORE INSERT OR UPDATE ON public.post_offices FOR EACH ROW EXECUTE FUNCTION format_title_case()
 07_TRIGGER,public.post_offices -> trg_prevent_duplicate_post_office,CREATE TRIGGER trg_prevent_duplicate_post_office BEFORE INSERT ON public.post_offices FOR EACH ROW EXECUTE FUNCTION prevent_duplicate_post_office()
@@ -1388,6 +1437,7 @@ $function$
 08_RLS_STATUS,public.edit_requests,RLS ENABLED
 08_RLS_STATUS,public.feedback_items,RLS ENABLED
 08_RLS_STATUS,public.feedback_votes,RLS ENABLED
+08_RLS_STATUS,public.office_staff,RLS ENABLED
 08_RLS_STATUS,public.post_offices,RLS ENABLED
 08_RLS_STATUS,public.post_offices_history,RLS ENABLED
 08_RLS_STATUS,public.profiles,RLS ENABLED
@@ -1415,6 +1465,9 @@ $function$
 09_RLS_POLICY,public.feedback_votes -> Authenticated users can cast own feedback vote,FOR INSERT TO authenticated | WITH CHECK: (auth.uid() = user_id)
 09_RLS_POLICY,public.feedback_votes -> Authenticated users can remove own feedback vote,FOR DELETE TO authenticated | USING: (auth.uid() = user_id)
 09_RLS_POLICY,public.feedback_votes -> Authenticated users can view feedback votes,FOR SELECT TO authenticated | USING: true
+09_RLS_POLICY,public.office_staff -> Authenticated users can insert office staff,FOR INSERT TO authenticated | WITH CHECK: true
+09_RLS_POLICY,public.office_staff -> Authenticated users can read office staff,FOR SELECT TO authenticated | USING: true
+09_RLS_POLICY,public.office_staff -> Authenticated users can update office staff,FOR UPDATE TO authenticated | USING: true | WITH CHECK: true
 09_RLS_POLICY,public.post_offices -> Allow authenticated users to update office staff details,FOR UPDATE TO authenticated | USING: true | WITH CHECK: true
 09_RLS_POLICY,public.post_offices -> Anyone can read active post offices,FOR SELECT TO public | USING: (is_deleted = false)
 09_RLS_POLICY,public.post_offices -> Authenticated users can read all post offices for realtime sync,FOR SELECT TO authenticated | USING: true
@@ -1442,6 +1495,7 @@ $function$
 11_REALTIME_TABLE,public.edit_requests,Published in supabase_realtime
 11_REALTIME_TABLE,public.feedback_items,Published in supabase_realtime
 11_REALTIME_TABLE,public.feedback_votes,Published in supabase_realtime
+11_REALTIME_TABLE,public.office_staff,Published in supabase_realtime
 11_REALTIME_TABLE,public.post_offices,Published in supabase_realtime
 11_REALTIME_TABLE,public.request_approvals,Published in supabase_realtime
 12_EXTENSION,pg_stat_statements,version 1.11

@@ -31,6 +31,9 @@ function clearAppCache() {
       localStorage.removeItem(HISTORY_KEY);
       localStorage.removeItem("dakmitra_default_view");
       localStorage.removeItem("dakmitra_offline_db");
+      localStorage.removeItem(OFFICE_STAFF_CACHE_KEY);
+      cachedOfficeStaff = [];
+      officeStaffByKeyMap.clear();
       localStorage.removeItem("dakmitra_members_cache");
       localStorage.removeItem("dakmitra_feedback_cache");
       localStorage.removeItem("dakmitra_learning_leaderboard_cache");
@@ -241,6 +244,10 @@ function bootAppInstantly() {
     renderUserProfileUI(profileData, userEmail);
 
     switchDashboardView("search");
+
+    if (typeof loadOfficeStaffFromCache === "function") {
+      loadOfficeStaffFromCache();
+    }
 
     const cachedDataString = localStorage.getItem("dakmitra_offline_db");
     if (cachedDataString) {

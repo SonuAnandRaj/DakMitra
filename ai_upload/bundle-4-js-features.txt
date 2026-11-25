@@ -885,6 +885,22 @@ function triggerSearch(hidePanels = false, options = {}) {
         /\b(BO|HO|SO|PO|GPO|RMS|TPS)\b/g,
         (match) => match.split("").join(" "),
       );
+    } else {
+      const matchedOffices = findMatchingDeliveryOfficesForSearch();
+      if (matchedOffices.length > 0) {
+        const topOff = matchedOffices[0];
+        const lastThreePin = topOff.pin ? String(topOff.pin).slice(-3) : "";
+        const hindiPinWords = lastThreePin
+          ? convertToHindiWords(lastThreePin)
+          : "";
+        const pinText = hindiPinWords
+          ? `Pin code ${hindiPinWords}`
+          : "Pin not available";
+        speechText = `${topOff.office}. ${pinText}.`.replace(
+          /\b(BO|HO|SO|PO|GPO|RMS|TPS)\b/g,
+          (match) => match.split("").join(" "),
+        );
+      }
     }
     const utterance = new SpeechSynthesisUtterance(speechText);
     if (preferredIndianVoice) {
@@ -1105,6 +1121,195 @@ function setupSearchObserver() {
   if (sentinel) window.searchObserver.observe(sentinel);
 }
 
+// --- PINNED DELIVERY OFFICE CARD FOR SEARCH RESULTS ---
+function findMatchingDeliveryOfficesForSearch() {
+  const rawInput = document.getElementById("search-input")?.value.trim() || "";
+  const filterVal =
+    document.querySelector('input[name="searchFilter"]:checked')?.value ||
+    "address";
+  const filterOffice =
+    document.getElementById("filter-office")?.value.trim().toLowerCase() || "";
+  const filterPin =
+    document.getElementById("filter-pin")?.value.trim().toLowerCase() || "";
+  const cleanQuery = (window.activeCleanSearchQuery ?? rawInput).trim();
+  const smartOffice = window.activeSmartOfficeFilter?.office || "";
+
+  if (!rawInput && !filterOffice && !filterPin) return [];
+
+  // Build unique parent office summary from cachedPostOffices
+  const officesMap = new Map();
+  for (let i = 0; i < cachedPostOffices.length; i++) {
+    const row = cachedPostOffices[i];
+    const offName = String(row.Office || "")
+      .trim()
+      .replace(/\s+/g, " ");
+    if (!offName) continue;
+    const key =
+      typeof normalizeOfficeKey === "function"
+        ? normalizeOfficeKey(offName)
+        : offName.toLowerCase();
+
+    if (!officesMap.has(key)) {
+      officesMap.set(key, {
+        office: offName,
+        pin: String(row.Pin || "").trim(),
+        count: 0,
+      });
+    }
+    const entry = officesMap.get(key);
+    entry.count++;
+    if (!entry.pin && row.Pin) entry.pin = String(row.Pin).trim();
+  }
+
+  const allOffices = Array.from(officesMap.values());
+  const matches = [];
+
+  const qLower = cleanQuery.toLowerCase();
+  const qCore = stripPostalSuffixes(cleanQuery);
+  const qPhon = postalPhoneticKey(cleanQuery);
+  const isNumeric = /^\d+$/.test(cleanQuery);
+
+  for (let i = 0; i < allOffices.length; i++) {
+    const item = allOffices[i];
+    const offLower = item.office.toLowerCase();
+    const offPin = item.pin.toLowerCase();
+
+    // Respect explicit secondary Office / PIN filters
+    if (filterOffice && !offLower.includes(filterOffice)) continue;
+    if (filterPin) {
+      const isUniqueSuffix =
+        /^\d{3}$/.test(filterPin) && pinSuffixToOfficeMap.has(filterPin);
+      const pinOk = isUniqueSuffix
+        ? offPin.endsWith(filterPin)
+        : offPin.includes(filterPin);
+      if (!pinOk) continue;
+    }
+
+    // Standalone 3-digit PIN suffix or filter-only view (e.g. typed "501" or selected Office filter)
+    if (!cleanQuery) {
+      if (smartOffice && offLower === smartOffice.toLowerCase()) {
+        matches.push({ ...item, rank: 0 });
+      } else if (!smartOffice && (filterOffice || filterPin)) {
+        matches.push({ ...item, rank: 1 });
+      }
+      continue;
+    }
+
+    // When user types "village 501", they're hunting a village inside that officeâ€”skip card unless query also matches the office
+    if (cleanQuery.length < 2) continue;
+
+    let rank = 99;
+
+    if (isNumeric || filterVal === "pin") {
+      if (
+        offPin === qLower ||
+        (qLower.length === 3 && offPin.endsWith(qLower))
+      ) {
+        rank = 0;
+      } else if (offPin.includes(qLower)) {
+        rank = 2;
+      }
+    } else {
+      const offCore = stripPostalSuffixes(item.office);
+      const offPhon = postalPhoneticKey(item.office);
+
+      if (qCore && offCore === qCore) rank = 0;
+      else if (offLower === qLower) rank = 0;
+      else if (qPhon.length >= 2 && offPhon === qPhon) rank = 1;
+      else if (qCore && offCore.startsWith(qCore)) rank = 2;
+      else if (offLower.startsWith(qLower)) rank = 2;
+      else if (qCore.length >= 3 && offCore.includes(qCore)) rank = 3;
+      else if (qPhon.length >= 3 && offPhon.startsWith(qPhon)) rank = 4;
+    }
+
+    if (rank < 99) {
+      matches.push({ ...item, rank });
+    }
+  }
+
+  return matches
+    .sort((a, b) => a.rank - b.rank || a.office.localeCompare(b.office))
+    .slice(0, 3);
+}
+
+function buildSearchDeliveryOfficeCardsHTML(matchedOffices, silent = false) {
+  if (!matchedOffices || matchedOffices.length === 0) return "";
+
+  const activeQuery = (
+    window.activeCleanSearchQuery ||
+    document.getElementById("search-input")?.value ||
+    ""
+  ).trim();
+
+  const cardsHtml = matchedOffices
+    .map((item) => {
+      const officeType = detectOfficeType(item.office) === "HO" ? "HO" : "SO";
+      const staffCount =
+        typeof getOfficeStaffCount === "function"
+          ? getOfficeStaffCount(item.office)
+          : 0;
+      const staffLabel =
+        staffCount > 0 ? `ðŸ‘¥ Staff (${staffCount})` : "ðŸ‘¥ Staff";
+
+      let titleHtml = escapeHTML(item.office);
+      if (activeQuery && !/^\d+$/.test(activeQuery)) {
+        const ranges = computeSmartHighlightRanges(item.office, activeQuery);
+        if (ranges.length > 0) {
+          let out = "";
+          let last = 0;
+          for (const [s, e] of ranges) {
+            out += escapeHTML(item.office.substring(last, s));
+            out += `<span class="highlight-text">${escapeHTML(
+              item.office.substring(s, e + 1),
+            )}</span>`;
+            last = e + 1;
+          }
+          out += escapeHTML(item.office.substring(last));
+          titleHtml = out;
+        }
+      }
+
+      return `
+        <div class="search-office-card${silent ? " no-anim" : ""}">
+          <div class="search-office-card-main">
+            <div class="search-office-card-title">
+              <span>ðŸ¢</span>
+              <span>${titleHtml}</span>
+              <span class="search-office-type-tag">${officeType}</span>
+            </div>
+            <div class="search-office-card-meta">
+              <span>ðŸ“ ${escapeHTML(item.pin || "N/A")}</span>
+              <span class="meta-dot">â€¢</span>
+              <span>${item.count} ${item.count === 1 ? "Address" : "Addresses"}</span>
+            </div>
+          </div>
+          <div class="search-office-card-actions">
+            <button
+              type="button"
+              class="search-office-btn is-staff ${staffCount > 0 ? "has-staff" : ""}"
+              onclick="showParentOfficeDetailsModal('${escapeForOnclick(
+                item.office,
+              )}', '${escapeForOnclick(item.pin)}')"
+              title="View or edit ${escapeHTML(item.office)} staff details"
+            >
+              ${staffLabel}
+            </button>
+            <button
+              type="button"
+              class="search-office-btn"
+              onclick="goToDirectoryOffice('${escapeForOnclick(item.office)}')"
+              title="Open ${escapeHTML(item.office)} in Directory"
+            >
+              ðŸ“‚ Directory
+            </button>
+          </div>
+        </div>`;
+    })
+    .join("");
+
+  return `<div class="search-office-cards-wrap">${cardsHtml}</div>`;
+}
+
 function renderResults(isLoadMore = false, silent = false) {
   const displayArea = document.getElementById("results-display-area");
 
@@ -1113,8 +1318,46 @@ function renderResults(isLoadMore = false, silent = false) {
     window.searchDisplayLimit = 10;
   }
 
+  const matchedDeliveryOffices = findMatchingDeliveryOfficesForSearch();
+  const officeCardsHtml = buildSearchDeliveryOfficeCardsHTML(
+    matchedDeliveryOffices,
+    silent,
+  );
+
   if (currentFilteredData.length === 0) {
     const rawQuery = document.getElementById("search-input").value.trim();
+
+    // If query matched a parent Delivery Office (HO/SO), show its card cleanly instead of auto-triggering AI
+    if (matchedDeliveryOffices.length > 0) {
+      clearTimeout(aiSearchDebounceTimer);
+      if (aiActiveAbortController) {
+        aiActiveAbortController.abort();
+        aiActiveAbortController = null;
+      }
+
+      let html = officeCardsHtml;
+      if (rawQuery.length >= 2) {
+        html += `
+          <div class="ask-ai-bottom-box" id="ask-ai-footer-box">
+            <div class="ask-ai-bottom-text">
+              ðŸ¤” Looking for a village or beat instead of the main office?
+            </div>
+            <button
+              type="button"
+              class="ask-ai-bottom-btn"
+              onclick="triggerInlineAiBelowResults('${escapeForOnclick(
+                rawQuery,
+              )}')"
+            >
+              âœ¨ Ask AI for "${escapeHTML(rawQuery)}"
+            </button>
+          </div>
+          <div id="ai-search-results-container"></div>`;
+      }
+
+      displayArea.innerHTML = html;
+      return;
+    }
 
     displayArea.innerHTML = `
         <div class="ai-fallback-banner">
@@ -1148,9 +1391,11 @@ function renderResults(isLoadMore = false, silent = false) {
   }
 
   if (viewMode === "list") {
-    let html = `<ul class="list-container${
-      silent ? " no-card-anim" : ""
-    }" style="margin:0; list-style:none;">`;
+    let html =
+      officeCardsHtml +
+      `<ul class="list-container${
+        silent ? " no-card-anim" : ""
+      }" style="margin:0; list-style:none;">`;
     currentFilteredData
       .slice(0, window.searchDisplayLimit)
       .forEach((result) => {
@@ -1223,7 +1468,9 @@ function renderResults(isLoadMore = false, silent = false) {
 
     displayArea.innerHTML = html;
   } else {
-    let html = `<table class="data-table">
+    let html =
+      officeCardsHtml +
+      `<table class="data-table">
                     <thead><tr><th>Address</th><th>Office</th><th>Pin</th></tr></thead>
                     <tbody>`;
 
@@ -2552,18 +2799,47 @@ function renderDirectoryBatch() {
             )}<span class="highlight-text">${escapeHTML(smartSuffix)}</span>`
           : escapeHTML(data.pin);
 
+    const parentStaffCount = getOfficeStaffCount(data.office);
+    const staffPillLabel =
+      parentStaffCount > 0 ? `ðŸ‘¥ ${parentStaffCount} Staff` : "ðŸ‘¥ + Staff";
+
     html += `
         <div class="directory-card" id="${safeId}">
           <div class="directory-card-header">
             <div class="directory-office-info">
-              <div class="directory-office-title">
+              <button
+                type="button"
+                class="directory-office-title directory-office-title-btn"
+                onclick="showParentOfficeDetailsModal('${escapeForOnclick(
+                  data.office,
+                )}', '${escapeForOnclick(data.pin)}')"
+                title="View or edit ${escapeHTML(data.office)} staff details"
+              >
                 <span>ðŸ¢</span>
                 <span>${officeTitleHtml}</span>
-              </div>
+                <span class="dir-office-info-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10.2" stroke-width="2"></circle>
+                    <line x1="12" y1="11.2" x2="12" y2="17.6" stroke-width="2.8"></line>
+                    <circle cx="12" cy="7" r="1.45" fill="currentColor" stroke="none"></circle>
+                  </svg>
+                </span>
+              </button>
               <div class="directory-office-meta">
                 <span>ðŸ“ ${pinDisplayHtml}</span>
                 <span class="meta-dot">â€¢</span>
                 <span class="meta-count">${countLabel}</span>
+                <span class="meta-dot">â€¢</span>
+                <button
+                  type="button"
+                  class="dir-staff-pill ${parentStaffCount > 0 ? "has-staff" : ""}"
+                  onclick="showParentOfficeDetailsModal('${escapeForOnclick(
+                    data.office,
+                  )}', '${escapeForOnclick(data.pin)}')"
+                  title="View or edit ${escapeHTML(data.office)} staff details"
+                >
+                  ${staffPillLabel}
+                </button>
               </div>
             </div>
 
@@ -3015,6 +3291,90 @@ document
 // --- OFFICE STAFF DETAILS MODAL (BO / SO / HO CRUD) ---
 let activeOfficeRecord = null;
 let activeOfficeType = null;
+let activeOfficeMode = "child"; // "parent" (office_staff) | "child" (post_offices)
+let activeOfficeKey = null;
+let activeParentOfficeMeta = { office: "", pin: "" };
+
+function getOfficeStaffCount(officeName) {
+  const rec =
+    typeof getOfficeStaffByName === "function"
+      ? getOfficeStaffByName(officeName)
+      : null;
+  if (!rec) return 0;
+
+  const officeType =
+    rec.office_type || (detectOfficeType(officeName) === "HO" ? "HO" : "SO");
+
+  let count = 0;
+  if (officeType === "HO") {
+    if (hasValidValue(rec.pm_name) || hasValidValue(rec.pm_contact)) count++;
+  } else {
+    if (hasValidValue(rec.spm_name) || hasValidValue(rec.spm_contact)) count++;
+  }
+  count += parsePaList(rec).length;
+  count += parseMtsList(rec).length;
+  return count;
+}
+
+function showParentOfficeDetailsModal(officeName, pinNumber = "") {
+  closeAllDirectoryActionTrays();
+  const cleanOffice = String(officeName || "").trim();
+  if (!cleanOffice) return;
+
+  const key =
+    typeof normalizeOfficeKey === "function"
+      ? normalizeOfficeKey(cleanOffice)
+      : cleanOffice.toLowerCase();
+
+  const officeType = detectOfficeType(cleanOffice) === "HO" ? "HO" : "SO";
+  const existing =
+    typeof getOfficeStaffByName === "function"
+      ? getOfficeStaffByName(cleanOffice)
+      : null;
+
+  let resolvedPin =
+    pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
+  if (!resolvedPin && typeof cachedPostOffices !== "undefined") {
+    const match = cachedPostOffices.find(
+      (r) =>
+        typeof normalizeOfficeKey === "function" &&
+        normalizeOfficeKey(r.Office) === key &&
+        r.Pin,
+    );
+    if (match) resolvedPin = String(match.Pin).trim();
+  }
+
+  activeOfficeMode = "parent";
+  activeOfficeKey = key;
+  activeOfficeType = officeType;
+  activeParentOfficeMeta = { office: cleanOffice, pin: resolvedPin };
+  activeOfficeRecord = existing || {
+    office_name: cleanOffice,
+    office_key: key,
+    office_type: officeType,
+    pm_name: null,
+    pm_contact: null,
+    spm_name: null,
+    spm_contact: null,
+    pa_list: [],
+    mts_list: [],
+  };
+
+  const badgeLabels = {
+    SO: "Sub Office (SO)",
+    HO: "Head Office (HO)",
+  };
+
+  document.getElementById("office-modal-badge").textContent =
+    badgeLabels[officeType] || officeType;
+  document.getElementById("office-modal-title").textContent = cleanOffice;
+  document.getElementById("office-modal-subtitle").textContent = `ðŸ“ PIN: ${
+    resolvedPin || "N/A"
+  } â€¢ Delivery Office Staff`;
+
+  renderOfficeStaffViewMode();
+  document.getElementById("office-details-modal-overlay").classList.add("show");
+}
 
 function hasValidValue(val) {
   return (
@@ -3138,6 +3498,10 @@ function showOfficeDetailsModal(addressName, parentOfficeName) {
     return showToast("âš ï¸ Office record not found in local database.");
   }
 
+  activeOfficeRecord = record;
+  activeOfficeType = officeType;
+  activeOfficeMode = "child";
+  activeOfficeKey = null;
   activeOfficeRecord = record;
   activeOfficeType = officeType;
 
@@ -3405,7 +3769,11 @@ function addMtsInputRow(name = "", contact = "") {
 
 async function saveOfficeStaffDetails() {
   if (!(await ensureOnline("Connect to internet to save changes."))) return;
-  if (!activeOfficeRecord || !activeOfficeRecord.id) return;
+  if (activeOfficeMode === "parent") {
+    if (!activeParentOfficeMeta.office) return;
+  } else {
+    if (!activeOfficeRecord || !activeOfficeRecord.id) return;
+  }
 
   const saveBtn = document.getElementById("save-office-staff-btn");
   setButtonState(saveBtn, "loading", "Saving...");
@@ -3473,18 +3841,50 @@ async function saveOfficeStaffDetails() {
   }
 
   try {
-    const { error } = await supabaseClient
-      .from("post_offices")
-      .update(updatePayload)
-      .eq("id", activeOfficeRecord.id);
+    if (activeOfficeMode === "parent") {
+      const officeName = activeParentOfficeMeta.office;
+      const officeKey =
+        activeOfficeKey ||
+        (typeof normalizeOfficeKey === "function"
+          ? normalizeOfficeKey(officeName)
+          : officeName.toLowerCase());
 
-    if (error) throw error;
+      const upsertPayload = {
+        office_name: officeName,
+        office_key: officeKey,
+        office_type: activeOfficeType === "HO" ? "HO" : "SO",
+        ...updatePayload,
+      };
 
-    Object.assign(activeOfficeRecord, updatePayload);
-    localStorage.setItem(
-      "dakmitra_offline_db",
-      JSON.stringify(cachedPostOffices),
-    );
+      const { data: savedRow, error } = await supabaseClient
+        .from("office_staff")
+        .upsert(upsertPayload, { onConflict: "office_key" })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      activeOfficeRecord = savedRow || {
+        ...activeOfficeRecord,
+        ...upsertPayload,
+      };
+      if (typeof upsertLocalOfficeStaff === "function") {
+        upsertLocalOfficeStaff(activeOfficeRecord);
+      }
+    } else {
+      const { error } = await supabaseClient
+        .from("post_offices")
+        .update(updatePayload)
+        .eq("id", activeOfficeRecord.id);
+
+      if (error) throw error;
+
+      Object.assign(activeOfficeRecord, updatePayload);
+      localStorage.setItem(
+        "dakmitra_offline_db",
+        JSON.stringify(cachedPostOffices),
+      );
+    }
 
     showToast("âœ… Office details updated!");
     setButtonState(saveBtn, "success", "Saved!");
@@ -3659,9 +4059,18 @@ function clearQuickAddAddresses() {
 async function submitQuickAddModal() {
   if (!(await ensureOnline("Connect to internet to save changes."))) return;
 
-  const addresses = parseQuickAddAddresses();
-  if (addresses.length === 0) {
+  const rawAddresses = parseQuickAddAddresses();
+  if (rawAddresses.length === 0) {
     return showToast("âš ï¸ Please enter at least one address.");
+  }
+
+  const addresses = rawAddresses.filter(
+    (addr) => !isSelfParentOfficeRow(addr, activeQuickAddOffice.office),
+  );
+  if (addresses.length === 0) {
+    return showToast(
+      "â„¹ï¸ Parent office staff is managed directly from the office header (ðŸ‘¥ Staff).",
+    );
   }
 
   const {
@@ -4782,6 +5191,11 @@ async function saveInlineEditRecord() {
   if (!newAddress || !newOffice) {
     return showToast("âš ï¸ Address and Office are required.");
   }
+  if (isSelfParentOfficeRow(newAddress, newOffice)) {
+    return showToast(
+      "â„¹ï¸ Parent HO/SO is already shown as the office header. Tap ðŸ‘¥ Staff there instead.",
+    );
+  }
 
   if (
     newAddress === activeInlineEditRecord.oldAddress &&
@@ -5267,6 +5681,8 @@ async function submitMultipleRecords() {
     return alert("Your session has expired. Please sign in again.");
   }
 
+  let skippedParentOffice = 0;
+
   rows.forEach((row) => {
     const address = row.querySelector(".manual-address").value.trim();
     const office = row.querySelector(".manual-office").value.trim();
@@ -5274,6 +5690,10 @@ async function submitMultipleRecords() {
     const editId = row.getAttribute("data-edit-id");
 
     if (address && office) {
+      if (isSelfParentOfficeRow(address, office)) {
+        skippedParentOffice++;
+        return;
+      }
       if (editId) {
         const oldAddr = row.getAttribute("data-old-addr");
         const oldOff = row.getAttribute("data-old-off");
@@ -5314,8 +5734,13 @@ async function submitMultipleRecords() {
     }
   });
 
-  if (requests.length === 0 && adminDirectEdits.length === 0)
-    return showToast("Please fill in at least one complete row.");
+  if (requests.length === 0 && adminDirectEdits.length === 0) {
+    return showToast(
+      skippedParentOffice > 0
+        ? "â„¹ï¸ Parent HO/SO staff is managed from the Directory office header (ðŸ‘¥ Staff)."
+        : "Please fill in at least one complete row.",
+    );
+  }
 
   const btn = document.getElementById("submit-multiple-btn");
   setButtonState(btn, "loading", "Submitting...");
@@ -5498,11 +5923,20 @@ async function submitBulkSameOffice() {
 
   const office = document.getElementById("bulk-office-input")?.value.trim();
   const pin = document.getElementById("bulk-pin-input")?.value.trim();
-  const addresses = parseBulkAddresses();
+  const rawAddresses = parseBulkAddresses();
 
   if (!office) return showToast("âš ï¸ Please select or enter an Office first.");
-  if (addresses.length === 0) {
+  if (rawAddresses.length === 0) {
     return showToast("âš ï¸ Please enter at least one address.");
+  }
+
+  const addresses = rawAddresses.filter(
+    (addr) => !isSelfParentOfficeRow(addr, office),
+  );
+  if (addresses.length === 0) {
+    return showToast(
+      "â„¹ï¸ Parent office staff is managed from the Directory office header (ðŸ‘¥ Staff).",
+    );
   }
 
   const {
@@ -5908,31 +6342,39 @@ async function uploadExcel() {
         return alert("Your session has expired. Please sign in again.");
       }
 
-      const formattedData = jsonData.map((row) => {
-        const rawPrio = String(row["Priority"] ?? "")
-          .trim()
-          .toLowerCase();
-        const priorityVal =
-          rawPrio === "1" ||
-          rawPrio === "high" ||
-          rawPrio === "frequent" ||
-          rawPrio === "yes" ||
-          rawPrio === "true"
-            ? 1
-            : 0;
+      const formattedData = jsonData
+        .filter((row) => !isSelfParentOfficeRow(row["Address"], row["Office"]))
+        .map((row) => {
+          const rawPrio = String(row["Priority"] ?? "")
+            .trim()
+            .toLowerCase();
+          const priorityVal =
+            rawPrio === "1" ||
+            rawPrio === "high" ||
+            rawPrio === "frequent" ||
+            rawPrio === "yes" ||
+            rawPrio === "true"
+              ? 1
+              : 0;
 
-        return {
-          Address: row["Address"],
-          Office: row["Office"],
-          Pin: row["Pin"] ? parseInt(row["Pin"], 10) || null : null,
-          priority: priorityVal,
-          user_id: session.user.id,
-          last_modified_by: session.user.id,
-          last_approved_by: session.user.id,
-          upload_method: "excel_bulk",
-          is_deleted: false,
-        };
-      });
+          return {
+            Address: row["Address"],
+            Office: row["Office"],
+            Pin: row["Pin"] ? parseInt(row["Pin"], 10) || null : null,
+            priority: priorityVal,
+            user_id: session.user.id,
+            last_modified_by: session.user.id,
+            last_approved_by: session.user.id,
+            upload_method: "excel_bulk",
+            is_deleted: false,
+          };
+        });
+
+      if (formattedData.length === 0) {
+        showToast("â„¹ï¸ No routable address rows found to upload.");
+        setButtonState(uploadBtn, "idle");
+        return;
+      }
 
       const { error } = await supabaseClient
         .from("post_offices")
@@ -7798,6 +8240,9 @@ function clearAppCache() {
       localStorage.removeItem(HISTORY_KEY);
       localStorage.removeItem("dakmitra_default_view");
       localStorage.removeItem("dakmitra_offline_db");
+      localStorage.removeItem(OFFICE_STAFF_CACHE_KEY);
+      cachedOfficeStaff = [];
+      officeStaffByKeyMap.clear();
       localStorage.removeItem("dakmitra_members_cache");
       localStorage.removeItem("dakmitra_feedback_cache");
       localStorage.removeItem("dakmitra_learning_leaderboard_cache");
@@ -8008,6 +8453,10 @@ function bootAppInstantly() {
     renderUserProfileUI(profileData, userEmail);
 
     switchDashboardView("search");
+
+    if (typeof loadOfficeStaffFromCache === "function") {
+      loadOfficeStaffFromCache();
+    }
 
     const cachedDataString = localStorage.getItem("dakmitra_offline_db");
     if (cachedDataString) {
@@ -9927,32 +10376,32 @@ function computeLearnSummaryMetrics(prog = null) {
 }
 
 function pruneDeletedLearnCards() {
-    if (!Array.isArray(cachedPostOffices) || cachedPostOffices.length === 0)
-      return;
-    const prog = getLearnProgress();
-    const validIds = new Set(cachedPostOffices.map((r) => String(r.id)));
-    let changed = false;
-  
-    Object.keys(prog.cards).forEach((idKey) => {
-      if (!validIds.has(idKey)) {
-        delete prog.cards[idKey];
-        changed = true;
-      }
-    });
-  
-    if (Array.isArray(learnState.fcHistory) && learnState.fcHistory.length > 0) {
-      learnState.fcHistory = learnState.fcHistory.filter((entry) =>
-        validIds.has(String(entry.recordId)),
-      );
-      if (learnState.fcHistoryIndex >= learnState.fcHistory.length) {
-        learnState.fcHistoryIndex = learnState.fcHistory.length - 1;
-      }
+  if (!Array.isArray(cachedPostOffices) || cachedPostOffices.length === 0)
+    return;
+  const prog = getLearnProgress();
+  const validIds = new Set(cachedPostOffices.map((r) => String(r.id)));
+  let changed = false;
+
+  Object.keys(prog.cards).forEach((idKey) => {
+    if (!validIds.has(idKey)) {
+      delete prog.cards[idKey];
+      changed = true;
     }
-  
-    if (changed) {
-      saveLearnProgressLocal(prog, true);
+  });
+
+  if (Array.isArray(learnState.fcHistory) && learnState.fcHistory.length > 0) {
+    learnState.fcHistory = learnState.fcHistory.filter((entry) =>
+      validIds.has(String(entry.recordId)),
+    );
+    if (learnState.fcHistoryIndex >= learnState.fcHistory.length) {
+      learnState.fcHistoryIndex = learnState.fcHistory.length - 1;
     }
   }
+
+  if (changed) {
+    saveLearnProgressLocal(prog, true);
+  }
+}
 
 function updateSidebarLearnBadge() {
   const badge = document.getElementById("sidebar-learn-badge");
@@ -10358,40 +10807,40 @@ function renderLearnFilterChips() {
     })
     .join("");
 
-    containers.forEach((el) => {
-        const prevScrollLeft = el.scrollLeft;
-        el.innerHTML = html;
-        el.scrollLeft = prevScrollLeft;
-      });
-    
-      // Update compact scope summary strip on Learn tab
-      const summaryEl = document.getElementById("learn-scope-summary");
-      const summaryTxt = document.getElementById("learn-scope-summary-text");
-      if (summaryEl && summaryTxt) {
-        if (learnState.scope === "all") {
-          summaryEl.classList.add("hidden");
-        } else {
-          const scoped = getFilteredLearnRecords();
-          summaryTxt.textContent = `Studying: ${getLearnScopeLabel()} (${scoped.length} ${
-            scoped.length === 1 ? "address" : "addresses"
-          })`;
-          summaryEl.classList.remove("hidden");
-        }
-      }
+  containers.forEach((el) => {
+    const prevScrollLeft = el.scrollLeft;
+    el.innerHTML = html;
+    el.scrollLeft = prevScrollLeft;
+  });
+
+  // Update compact scope summary strip on Learn tab
+  const summaryEl = document.getElementById("learn-scope-summary");
+  const summaryTxt = document.getElementById("learn-scope-summary-text");
+  if (summaryEl && summaryTxt) {
+    if (learnState.scope === "all") {
+      summaryEl.classList.add("hidden");
+    } else {
+      const scoped = getFilteredLearnRecords();
+      summaryTxt.textContent = `Studying: ${getLearnScopeLabel()} (${scoped.length} ${
+        scoped.length === 1 ? "address" : "addresses"
+      })`;
+      summaryEl.classList.remove("hidden");
     }
-    
-    function setLearnScope(newScope) {
-      learnState.scope = newScope || "all";
-      learnState.fcRecentIds = [];
-      learnState.fcHistory = [];
-      learnState.fcHistoryIndex = -1;
-      learnState.fcCurrentRecord = null;
-      if (navigator.vibrate) navigator.vibrate(18);
-      renderLearnFilterChips();
-      if (learnState.activeTab === "learn") {
-        loadNextFlashcard("none");
-      }
-    }
+  }
+}
+
+function setLearnScope(newScope) {
+  learnState.scope = newScope || "all";
+  learnState.fcRecentIds = [];
+  learnState.fcHistory = [];
+  learnState.fcHistoryIndex = -1;
+  learnState.fcCurrentRecord = null;
+  if (navigator.vibrate) navigator.vibrate(18);
+  renderLearnFilterChips();
+  if (learnState.activeTab === "learn") {
+    loadNextFlashcard("none");
+  }
+}
 
 // --- OVERVIEW RING & STREAK RENDERER ---
 function renderLearnOverview() {
@@ -10460,140 +10909,140 @@ function speakLearnText(address, office = null, pin = null) {
 
 // --- 3D FLASHCARD PICKER, HISTORY NAVIGATION & INTERACTION ---
 function pickNextFlashcardRecord() {
-    const pool = getFilteredLearnRecords();
-    if (pool.length === 0) return null;
-    if (pool.length === 1) return pool[0];
-  
-    const prog = getLearnProgress();
-    const now = Date.now();
-    const windowSize = Math.min(pool.length - 1, 25);
-    const recentSet = new Set(learnState.fcRecentIds.slice(-windowSize));
-  
-    let candidates = pool.filter((r) => !recentSet.has(String(r.id)));
-    if (candidates.length === 0) {
-      candidates = pool.filter(
-        (r) => String(r.id) !== String(learnState.fcCurrentRecord?.id),
-      );
-    }
-    const list = candidates.length > 0 ? candidates : pool;
-  
-    const overdueWeak = [];
-    const overdueReview = [];
-    const unseen = [];
-    const upcoming = [];
-  
-    for (let i = 0; i < list.length; i++) {
-      const row = list[i];
-      const card = prog.cards[String(row.id)];
-      if (!card) {
-        unseen.push(row);
-      } else if (card.dueAt <= now) {
-        if (isWeakLearnCard(card)) overdueWeak.push(row);
-        else overdueReview.push(row);
-      } else {
-        upcoming.push({ row, dueAt: card.dueAt });
-      }
-    }
-  
-    if (overdueWeak.length > 0) {
-      return overdueWeak[Math.floor(Math.random() * overdueWeak.length)];
-    }
-    if (overdueReview.length > 0) {
-      return overdueReview[Math.floor(Math.random() * overdueReview.length)];
-    }
-    if (unseen.length > 0) {
-      unseen.sort((a, b) => getEffectivePriority(b) - getEffectivePriority(a));
-      const topSlice = Math.min(unseen.length, 6);
-      return unseen[Math.floor(Math.random() * topSlice)];
-    }
-  
-    upcoming.sort((a, b) => a.dueAt - b.dueAt);
-    return upcoming[0]?.row || list[0];
-  }
-  
-  function bounceFlashcardEdge(direction = "left") {
-    const wrap = document.getElementById("learn-card-swipe-wrap");
-    if (!wrap) return;
-    const offset = direction === "left" ? -26 : 26;
-    const tilt = direction === "left" ? -1.5 : 1.5;
-    wrap.classList.remove("is-dragging");
-    wrap.style.transform = `translate3d(${offset}px, 0, 0) rotate(${tilt}deg)`;
-    setTimeout(() => {
-      wrap.style.transform = "";
-    }, 150);
-  }
-  
-  function animateFlashcardExit(direction, callback) {
-    const wrap = document.getElementById("learn-card-swipe-wrap");
-    if (!wrap) {
-      callback();
-      return;
-    }
-    learnState.fcIsTransitioning = true;
-    wrap.classList.remove("is-dragging", "is-entering-left", "is-entering-right");
-    wrap.classList.add(
-      direction === "right" ? "is-exiting-right" : "is-exiting-left",
+  const pool = getFilteredLearnRecords();
+  if (pool.length === 0) return null;
+  if (pool.length === 1) return pool[0];
+
+  const prog = getLearnProgress();
+  const now = Date.now();
+  const windowSize = Math.min(pool.length - 1, 25);
+  const recentSet = new Set(learnState.fcRecentIds.slice(-windowSize));
+
+  let candidates = pool.filter((r) => !recentSet.has(String(r.id)));
+  if (candidates.length === 0) {
+    candidates = pool.filter(
+      (r) => String(r.id) !== String(learnState.fcCurrentRecord?.id),
     );
-    setTimeout(() => {
-      learnState.fcIsTransitioning = false;
-      callback();
-    }, 190);
   }
-  
-  function updateFlashcardActionBars() {
-    const ratingBar = document.getElementById("learn-rating-bar");
-    const navBar = document.getElementById("learn-nav-bar");
-    const prevBtn = document.getElementById("learn-prev-btn");
-    const nextBtn = document.getElementById("learn-next-btn");
-    const counterEl = document.getElementById("learn-nav-counter");
-  
-    if (!learnState.fcCurrentRecord) {
-      ratingBar?.classList.add("hidden");
-      navBar?.classList.add("hidden");
-      return;
-    }
-  
-    if (learnState.fcFlipped) {
-      navBar?.classList.add("hidden");
-      ratingBar?.classList.remove("hidden");
+  const list = candidates.length > 0 ? candidates : pool;
+
+  const overdueWeak = [];
+  const overdueReview = [];
+  const unseen = [];
+  const upcoming = [];
+
+  for (let i = 0; i < list.length; i++) {
+    const row = list[i];
+    const card = prog.cards[String(row.id)];
+    if (!card) {
+      unseen.push(row);
+    } else if (card.dueAt <= now) {
+      if (isWeakLearnCard(card)) overdueWeak.push(row);
+      else overdueReview.push(row);
     } else {
-      ratingBar?.classList.add("hidden");
-      navBar?.classList.remove("hidden");
-    }
-  
-    const pool = getFilteredLearnRecords();
-    const idx = learnState.fcHistoryIndex;
-    const totalHist = learnState.fcHistory.length;
-  
-    if (prevBtn) prevBtn.disabled = idx <= 0;
-    if (nextBtn) {
-      nextBtn.disabled = pool.length <= 1 && idx >= totalHist - 1;
-    }
-    if (counterEl) {
-      if (idx < totalHist - 1) {
-        counterEl.textContent = `Card ${idx + 1} of ${totalHist}`;
-      } else if (pool.length <= 30) {
-        counterEl.textContent = `Card ${idx + 1} (${pool.length} in deck)`;
-      } else {
-        counterEl.textContent = `Card ${idx + 1}`;
-      }
+      upcoming.push({ row, dueAt: card.dueAt });
     }
   }
-  
-  function renderFlashcardEntry(entry, animDir = "none") {
-    const stage = document.getElementById("learn-flashcard-stage");
-    if (!stage) return;
-  
-    if (!entry) {
-      learnState.fcCurrentRecord = null;
-      learnState.fcFlipped = false;
-      updateFlashcardActionBars();
-  
-      const msg =
-        learnState.scope === "weak"
-          ? "No weak spots right now! ðŸŽ‰ Switch to All Offices or try a Quiz."
-          : "No addresses available in this filter.";
-      stage.innerHTML = `
+
+  if (overdueWeak.length > 0) {
+    return overdueWeak[Math.floor(Math.random() * overdueWeak.length)];
+  }
+  if (overdueReview.length > 0) {
+    return overdueReview[Math.floor(Math.random() * overdueReview.length)];
+  }
+  if (unseen.length > 0) {
+    unseen.sort((a, b) => getEffectivePriority(b) - getEffectivePriority(a));
+    const topSlice = Math.min(unseen.length, 6);
+    return unseen[Math.floor(Math.random() * topSlice)];
+  }
+
+  upcoming.sort((a, b) => a.dueAt - b.dueAt);
+  return upcoming[0]?.row || list[0];
+}
+
+function bounceFlashcardEdge(direction = "left") {
+  const wrap = document.getElementById("learn-card-swipe-wrap");
+  if (!wrap) return;
+  const offset = direction === "left" ? -26 : 26;
+  const tilt = direction === "left" ? -1.5 : 1.5;
+  wrap.classList.remove("is-dragging");
+  wrap.style.transform = `translate3d(${offset}px, 0, 0) rotate(${tilt}deg)`;
+  setTimeout(() => {
+    wrap.style.transform = "";
+  }, 150);
+}
+
+function animateFlashcardExit(direction, callback) {
+  const wrap = document.getElementById("learn-card-swipe-wrap");
+  if (!wrap) {
+    callback();
+    return;
+  }
+  learnState.fcIsTransitioning = true;
+  wrap.classList.remove("is-dragging", "is-entering-left", "is-entering-right");
+  wrap.classList.add(
+    direction === "right" ? "is-exiting-right" : "is-exiting-left",
+  );
+  setTimeout(() => {
+    learnState.fcIsTransitioning = false;
+    callback();
+  }, 190);
+}
+
+function updateFlashcardActionBars() {
+  const ratingBar = document.getElementById("learn-rating-bar");
+  const navBar = document.getElementById("learn-nav-bar");
+  const prevBtn = document.getElementById("learn-prev-btn");
+  const nextBtn = document.getElementById("learn-next-btn");
+  const counterEl = document.getElementById("learn-nav-counter");
+
+  if (!learnState.fcCurrentRecord) {
+    ratingBar?.classList.add("hidden");
+    navBar?.classList.add("hidden");
+    return;
+  }
+
+  if (learnState.fcFlipped) {
+    navBar?.classList.add("hidden");
+    ratingBar?.classList.remove("hidden");
+  } else {
+    ratingBar?.classList.add("hidden");
+    navBar?.classList.remove("hidden");
+  }
+
+  const pool = getFilteredLearnRecords();
+  const idx = learnState.fcHistoryIndex;
+  const totalHist = learnState.fcHistory.length;
+
+  if (prevBtn) prevBtn.disabled = idx <= 0;
+  if (nextBtn) {
+    nextBtn.disabled = pool.length <= 1 && idx >= totalHist - 1;
+  }
+  if (counterEl) {
+    if (idx < totalHist - 1) {
+      counterEl.textContent = `Card ${idx + 1} of ${totalHist}`;
+    } else if (pool.length <= 30) {
+      counterEl.textContent = `Card ${idx + 1} (${pool.length} in deck)`;
+    } else {
+      counterEl.textContent = `Card ${idx + 1}`;
+    }
+  }
+}
+
+function renderFlashcardEntry(entry, animDir = "none") {
+  const stage = document.getElementById("learn-flashcard-stage");
+  if (!stage) return;
+
+  if (!entry) {
+    learnState.fcCurrentRecord = null;
+    learnState.fcFlipped = false;
+    updateFlashcardActionBars();
+
+    const msg =
+      learnState.scope === "weak"
+        ? "No weak spots right now! ðŸŽ‰ Switch to All Offices or try a Quiz."
+        : "No addresses available in this filter.";
+    stage.innerHTML = `
         <div class="list-empty" style="gap: 12px; margin: 0;">
           <span>${msg}</span>
           ${
@@ -10602,95 +11051,99 @@ function pickNextFlashcardRecord() {
               : ""
           }
         </div>`;
-      return;
-    }
-  
-    const liveRec =
-      (cachedPostOffices || []).find(
-        (r) => String(r.id) === String(entry.recordId),
-      ) || entry.record;
-  
-    if (!liveRec) {
-      learnState.fcHistory.splice(learnState.fcHistoryIndex, 1);
-      learnState.fcHistoryIndex = Math.min(
-        learnState.fcHistoryIndex,
-        learnState.fcHistory.length - 1,
+    return;
+  }
+
+  const liveRec =
+    (cachedPostOffices || []).find(
+      (r) => String(r.id) === String(entry.recordId),
+    ) || entry.record;
+
+  if (!liveRec) {
+    learnState.fcHistory.splice(learnState.fcHistoryIndex, 1);
+    learnState.fcHistoryIndex = Math.min(
+      learnState.fcHistoryIndex,
+      learnState.fcHistory.length - 1,
+    );
+    if (learnState.fcHistoryIndex >= 0) {
+      renderFlashcardEntry(
+        learnState.fcHistory[learnState.fcHistoryIndex],
+        animDir,
       );
-      if (learnState.fcHistoryIndex >= 0) {
-        renderFlashcardEntry(
-          learnState.fcHistory[learnState.fcHistoryIndex],
-          animDir,
-        );
-      } else {
-        loadNextFlashcard(animDir);
-      }
-      return;
+    } else {
+      loadNextFlashcard(animDir);
     }
-  
-    learnState.fcCurrentRecord = liveRec;
-    learnState.fcFlipped = false;
-  
-    const idKey = String(liveRec.id);
-    learnState.fcRecentIds = learnState.fcRecentIds.filter((id) => id !== idKey);
-    learnState.fcRecentIds.push(idKey);
-    const maxRecent = Math.max(25, getFilteredLearnRecords().length);
-    if (learnState.fcRecentIds.length > maxRecent) {
-      learnState.fcRecentIds.shift();
-    }
-  
-    const prog = getLearnProgress();
-    const card = prog.cards[idKey];
-    const currentBox = card ? card.box : 0;
-    const boxLabel = !card
-      ? "New"
+    return;
+  }
+
+  learnState.fcCurrentRecord = liveRec;
+  learnState.fcFlipped = false;
+
+  const idKey = String(liveRec.id);
+  learnState.fcRecentIds = learnState.fcRecentIds.filter((id) => id !== idKey);
+  learnState.fcRecentIds.push(idKey);
+  const maxRecent = Math.max(25, getFilteredLearnRecords().length);
+  if (learnState.fcRecentIds.length > maxRecent) {
+    learnState.fcRecentIds.shift();
+  }
+
+  const prog = getLearnProgress();
+  const card = prog.cards[idKey];
+  const currentBox = card ? card.box : 0;
+  const boxLabel = !card
+    ? "New"
+    : currentBox === 0
+      ? "ðŸ” Relearning"
       : currentBox >= 4
         ? "â­ Mastered"
-        : `Box ${currentBox}`;
-  
-    const officeType = detectOfficeType(liveRec.Address);
-    const isPrio = Number(liveRec.priority) >= 1;
-    const typeBadgeHtml = officeType
-      ? `<span class="badge badge-primary" style="margin:0; padding:3px 9px; font-size:11px;">ðŸ“® ${escapeHTML(officeType)}</span>`
-      : isPrio
-        ? `<span class="badge learn-priority-badge">âš¡ Priority</span>`
-        : `<span class="badge" style="margin:0; padding:3px 9px; font-size:11px;">ðŸ“ Locality</span>`;
-  
-    const ratedLabels = { again: "Again", good: "Good", easy: "Easy" };
-    const ratedBadgeHtml = entry.rating
-      ? `<span class="learn-rated-pill is-${escapeHTML(entry.rating)}">Rated: ${ratedLabels[entry.rating] || ""}</span>`
-      : "";
-  
-    const goodBox = Math.min(5, currentBox + 1);
-    const easyBox = Math.min(5, currentBox + 2);
-    const setInt = (id, txt) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = txt;
-    };
-    setInt("fc-int-again", LEARN_BOX_LABELS[0]);
-    setInt("fc-int-good", LEARN_BOX_LABELS[goodBox]);
-    setInt("fc-int-easy", LEARN_BOX_LABELS[easyBox]);
-  
-    document.querySelectorAll("#learn-rating-bar .learn-rate-btn").forEach((b) => {
+        : `Stage ${currentBox}/3`;
+
+  const officeType = detectOfficeType(liveRec.Address);
+  const isPrio = Number(liveRec.priority) >= 1;
+  const typeBadgeHtml = officeType
+    ? `<span class="badge badge-primary" style="margin:0; padding:3px 9px; font-size:11px;">ðŸ“® ${escapeHTML(officeType)}</span>`
+    : isPrio
+      ? `<span class="badge learn-priority-badge">âš¡ Priority</span>`
+      : `<span class="badge" style="margin:0; padding:3px 9px; font-size:11px;">ðŸ“ Locality</span>`;
+
+  const ratedLabels = { again: "Again", good: "Good", easy: "Easy" };
+  const ratedBadgeHtml = entry.rating
+    ? `<span class="learn-rated-pill is-${escapeHTML(entry.rating)}">Rated: ${ratedLabels[entry.rating] || ""}</span>`
+    : "";
+
+  const goodBox = Math.min(5, currentBox + 1);
+  const easyBox = Math.min(5, currentBox + 2);
+  const setInt = (id, txt) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = txt;
+  };
+  setInt("fc-int-again", LEARN_BOX_LABELS[0]);
+  setInt("fc-int-good", LEARN_BOX_LABELS[goodBox]);
+  setInt("fc-int-easy", LEARN_BOX_LABELS[easyBox]);
+
+  document
+    .querySelectorAll("#learn-rating-bar .learn-rate-btn")
+    .forEach((b) => {
       b.classList.toggle(
         "is-selected",
         Boolean(entry.rating && b.getAttribute("data-rate") === entry.rating),
       );
     });
-  
-    updateFlashcardActionBars();
-  
-    const enterCls =
-      animDir === "left"
-        ? "is-entering-right"
-        : animDir === "right"
-          ? "is-entering-left"
-          : "";
-  
-    const safeAddr = escapeHTML(liveRec.Address);
-    const safeOff = escapeHTML(liveRec.Office);
-    const safePin = escapeHTML(liveRec.Pin || "N/A");
-  
-    stage.innerHTML = `
+
+  updateFlashcardActionBars();
+
+  const enterCls =
+    animDir === "left"
+      ? "is-entering-right"
+      : animDir === "right"
+        ? "is-entering-left"
+        : "";
+
+  const safeAddr = escapeHTML(liveRec.Address);
+  const safeOff = escapeHTML(liveRec.Office);
+  const safePin = escapeHTML(liveRec.Pin || "N/A");
+
+  stage.innerHTML = `
       <div id="learn-card-swipe-wrap" class="learn-card-swipe-wrap ${enterCls}">
         <div
           id="learn-active-flashcard"
@@ -10761,161 +11214,161 @@ function pickNextFlashcardRecord() {
         </div>
       </div>
     `;
-  
-    if (typeof bindFlashcardSwipeGestures === "function") {
-      bindFlashcardSwipeGestures();
-    }
+
+  if (typeof bindFlashcardSwipeGestures === "function") {
+    bindFlashcardSwipeGestures();
   }
-  
-  function loadNextFlashcard(animDir = "none") {
-    if (learnState.fcHistoryIndex < learnState.fcHistory.length - 1) {
+}
+
+function loadNextFlashcard(animDir = "none") {
+  if (learnState.fcHistoryIndex < learnState.fcHistory.length - 1) {
+    learnState.fcHistoryIndex += 1;
+    renderFlashcardEntry(
+      learnState.fcHistory[learnState.fcHistoryIndex],
+      animDir,
+    );
+    return;
+  }
+
+  const nextRec = pickNextFlashcardRecord();
+  if (!nextRec) {
+    renderFlashcardEntry(null, "none");
+    return;
+  }
+
+  const entry = {
+    recordId: String(nextRec.id),
+    record: nextRec,
+    prevCardSnapshot: null,
+    prevStatsSnapshot: null,
+    rating: null,
+  };
+  learnState.fcHistory.push(entry);
+  learnState.fcHistoryIndex = learnState.fcHistory.length - 1;
+  renderFlashcardEntry(entry, animDir);
+}
+
+function goToNextFlashcard(fromSwipe = false) {
+  if (learnState.fcIsTransitioning || !learnState.fcCurrentRecord) return;
+
+  if (learnState.fcHistoryIndex < learnState.fcHistory.length - 1) {
+    if (navigator.vibrate) navigator.vibrate(15);
+    animateFlashcardExit("left", () => {
       learnState.fcHistoryIndex += 1;
       renderFlashcardEntry(
         learnState.fcHistory[learnState.fcHistoryIndex],
-        animDir,
-      );
-      return;
-    }
-  
-    const nextRec = pickNextFlashcardRecord();
-    if (!nextRec) {
-      renderFlashcardEntry(null, "none");
-      return;
-    }
-  
-    const entry = {
-      recordId: String(nextRec.id),
-      record: nextRec,
-      prevCardSnapshot: null,
-      prevStatsSnapshot: null,
-      rating: null,
-    };
-    learnState.fcHistory.push(entry);
-    learnState.fcHistoryIndex = learnState.fcHistory.length - 1;
-    renderFlashcardEntry(entry, animDir);
-  }
-  
-  function goToNextFlashcard(fromSwipe = false) {
-    if (learnState.fcIsTransitioning || !learnState.fcCurrentRecord) return;
-  
-    if (learnState.fcHistoryIndex < learnState.fcHistory.length - 1) {
-      if (navigator.vibrate) navigator.vibrate(15);
-      animateFlashcardExit("left", () => {
-        learnState.fcHistoryIndex += 1;
-        renderFlashcardEntry(
-          learnState.fcHistory[learnState.fcHistoryIndex],
-          "left",
-        );
-      });
-      return;
-    }
-  
-    const pool = getFilteredLearnRecords();
-    if (pool.length <= 1) {
-      bounceFlashcardEdge("left");
-      if (fromSwipe) showToast("Only 1 card in this deck", "info");
-      return;
-    }
-  
-    if (navigator.vibrate) navigator.vibrate(15);
-    animateFlashcardExit("left", () => {
-      loadNextFlashcard("left");
-    });
-  }
-  
-  function goToPrevFlashcard(fromSwipe = false) {
-    if (learnState.fcIsTransitioning || !learnState.fcCurrentRecord) return;
-  
-    if (learnState.fcHistoryIndex <= 0) {
-      bounceFlashcardEdge("right");
-      if (fromSwipe) showToast("Already at first card", "info");
-      return;
-    }
-  
-    if (navigator.vibrate) navigator.vibrate(15);
-    animateFlashcardExit("right", () => {
-      learnState.fcHistoryIndex -= 1;
-      renderFlashcardEntry(
-        learnState.fcHistory[learnState.fcHistoryIndex],
-        "right",
+        "left",
       );
     });
+    return;
   }
-  
-  function flipLearnCard() {
-    const cardEl = document.getElementById("learn-active-flashcard");
-    if (!cardEl || !learnState.fcCurrentRecord || learnState.fcIsTransitioning) {
-      return;
-    }
-  
-    learnState.fcFlipped = !learnState.fcFlipped;
-    cardEl.classList.toggle("is-flipped", learnState.fcFlipped);
-    updateFlashcardActionBars();
-    if (navigator.vibrate) navigator.vibrate(18);
+
+  const pool = getFilteredLearnRecords();
+  if (pool.length <= 1) {
+    bounceFlashcardEdge("left");
+    if (fromSwipe) showToast("Only 1 card in this deck", "info");
+    return;
   }
-  
-  function rateLearnCard(rating) {
-    const rec = learnState.fcCurrentRecord;
-    if (!rec || learnState.fcIsTransitioning) return;
-  
-    const prog = getLearnProgress();
-    const idKey = String(rec.id);
-    const entry = learnState.fcHistory[learnState.fcHistoryIndex];
-  
-    // Undo-safe re-rating if user swiped back to an already-rated card
-    if (entry && entry.recordId === idKey) {
-      if (
-        entry.rating !== null &&
-        entry.prevCardSnapshot &&
-        entry.prevStatsSnapshot
-      ) {
-        if (entry.prevCardSnapshot === "__NEW__") {
-          delete prog.cards[idKey];
-        } else {
-          prog.cards[idKey] = { ...entry.prevCardSnapshot };
-        }
-  
-        const today = getLearnLocalDateKey();
-        prog.stats.totalAnswered = entry.prevStatsSnapshot.totalAnswered;
-        prog.stats.totalCorrect = entry.prevStatsSnapshot.totalCorrect;
-        prog.stats.xp = entry.prevStatsSnapshot.xp;
-        prog.stats.streakDays = entry.prevStatsSnapshot.streakDays;
-        prog.stats.lastPracticeDate = entry.prevStatsSnapshot.lastPracticeDate;
-        if (entry.prevStatsSnapshot.dailyDate === today) {
-          prog.stats.dailyDate = today;
-          prog.stats.dailyCount = entry.prevStatsSnapshot.dailyCount;
-        }
-      } else {
-        entry.prevCardSnapshot = prog.cards[idKey]
-          ? { ...prog.cards[idKey] }
-          : "__NEW__";
-        entry.prevStatsSnapshot = { ...prog.stats };
-      }
-      entry.rating = rating;
-    }
-  
-    const { hitDailyGoal } = recordLearnCardOutcome(
-      rec.id,
-      rating,
-      null,
-      "flashcard",
+
+  if (navigator.vibrate) navigator.vibrate(15);
+  animateFlashcardExit("left", () => {
+    loadNextFlashcard("left");
+  });
+}
+
+function goToPrevFlashcard(fromSwipe = false) {
+  if (learnState.fcIsTransitioning || !learnState.fcCurrentRecord) return;
+
+  if (learnState.fcHistoryIndex <= 0) {
+    bounceFlashcardEdge("right");
+    if (fromSwipe) showToast("Already at first card", "info");
+    return;
+  }
+
+  if (navigator.vibrate) navigator.vibrate(15);
+  animateFlashcardExit("right", () => {
+    learnState.fcHistoryIndex -= 1;
+    renderFlashcardEntry(
+      learnState.fcHistory[learnState.fcHistoryIndex],
+      "right",
     );
-  
-    if (navigator.vibrate) {
-      navigator.vibrate(rating === "again" ? [35, 35, 35] : 25);
-    }
-  
-    if (hitDailyGoal) {
-      showToast("ðŸŽ‰ Daily learning goal reached!", "success");
-    }
-  
-    renderLearnOverview();
-    renderLearnFilterChips();
-  
-    animateFlashcardExit("left", () => {
-      loadNextFlashcard("left");
-    });
+  });
+}
+
+function flipLearnCard() {
+  const cardEl = document.getElementById("learn-active-flashcard");
+  if (!cardEl || !learnState.fcCurrentRecord || learnState.fcIsTransitioning) {
+    return;
   }
+
+  learnState.fcFlipped = !learnState.fcFlipped;
+  cardEl.classList.toggle("is-flipped", learnState.fcFlipped);
+  updateFlashcardActionBars();
+  if (navigator.vibrate) navigator.vibrate(18);
+}
+
+function rateLearnCard(rating) {
+  const rec = learnState.fcCurrentRecord;
+  if (!rec || learnState.fcIsTransitioning) return;
+
+  const prog = getLearnProgress();
+  const idKey = String(rec.id);
+  const entry = learnState.fcHistory[learnState.fcHistoryIndex];
+
+  // Undo-safe re-rating if user swiped back to an already-rated card
+  if (entry && entry.recordId === idKey) {
+    if (
+      entry.rating !== null &&
+      entry.prevCardSnapshot &&
+      entry.prevStatsSnapshot
+    ) {
+      if (entry.prevCardSnapshot === "__NEW__") {
+        delete prog.cards[idKey];
+      } else {
+        prog.cards[idKey] = { ...entry.prevCardSnapshot };
+      }
+
+      const today = getLearnLocalDateKey();
+      prog.stats.totalAnswered = entry.prevStatsSnapshot.totalAnswered;
+      prog.stats.totalCorrect = entry.prevStatsSnapshot.totalCorrect;
+      prog.stats.xp = entry.prevStatsSnapshot.xp;
+      prog.stats.streakDays = entry.prevStatsSnapshot.streakDays;
+      prog.stats.lastPracticeDate = entry.prevStatsSnapshot.lastPracticeDate;
+      if (entry.prevStatsSnapshot.dailyDate === today) {
+        prog.stats.dailyDate = today;
+        prog.stats.dailyCount = entry.prevStatsSnapshot.dailyCount;
+      }
+    } else {
+      entry.prevCardSnapshot = prog.cards[idKey]
+        ? { ...prog.cards[idKey] }
+        : "__NEW__";
+      entry.prevStatsSnapshot = { ...prog.stats };
+    }
+    entry.rating = rating;
+  }
+
+  const { hitDailyGoal } = recordLearnCardOutcome(
+    rec.id,
+    rating,
+    null,
+    "flashcard",
+  );
+
+  if (navigator.vibrate) {
+    navigator.vibrate(rating === "again" ? [35, 35, 35] : 25);
+  }
+
+  if (hitDailyGoal) {
+    showToast("ðŸŽ‰ Daily learning goal reached!", "success");
+  }
+
+  renderLearnOverview();
+  renderLearnFilterChips();
+
+  animateFlashcardExit("left", () => {
+    loadNextFlashcard("left");
+  });
+}
 
 // --- TAB SWITCHING & LIFECYCLE HOOKS ---
 function switchLearnTab(tab) {
@@ -11692,7 +12145,7 @@ function renderQuizQuestion() {
         )
         .join("");
     }
-} else if (item.type === "pin") {
+  } else if (item.type === "pin") {
     if (kickerEl) kickerEl.textContent = "PIN SNIPER";
     if (titleEl) titleEl.textContent = item.record.Address;
     if (subEl) subEl.textContent = "Enter last 3 PIN digits";
@@ -11834,34 +12287,34 @@ function handleStandardAnswer(selectedIdx) {
 }
 
 function submitPinSniperAnswer() {
-    const q = learnState.quiz;
-    if (!q.active || q.answered) return;
-  
-    const inputEl = document.getElementById("learn-pin-input");
-    const submitBtn = document.getElementById("learn-pin-submit-btn");
-    const typed = (inputEl?.value || "").replace(/\D/g, "");
-  
-    if (typed.length < 3) {
-      showToast("âœï¸ Enter all 3 last digits of the PIN");
-      inputEl?.focus();
-      return;
-    }
-  
-    const item = q.questions[q.index];
-    const isCorrect = typed === item.pinSuffix;
-  
-    if (inputEl) {
-      inputEl.disabled = true;
-      inputEl.blur();
-    }
-    if (submitBtn) submitBtn.disabled = true;
-  
-    const note = isCorrect
-      ? `âœ… Bullseye! ${item.record.Office} PIN is ${item.fullPin}`
-      : `âŒ You entered ${item.pinPrefix}${typed}. Correct PIN is ${item.fullPin} (${item.record.Office})`;
-  
-    finishQuizAnswer(isCorrect, item.record, note);
+  const q = learnState.quiz;
+  if (!q.active || q.answered) return;
+
+  const inputEl = document.getElementById("learn-pin-input");
+  const submitBtn = document.getElementById("learn-pin-submit-btn");
+  const typed = (inputEl?.value || "").replace(/\D/g, "");
+
+  if (typed.length < 3) {
+    showToast("âœï¸ Enter all 3 last digits of the PIN");
+    inputEl?.focus();
+    return;
   }
+
+  const item = q.questions[q.index];
+  const isCorrect = typed === item.pinSuffix;
+
+  if (inputEl) {
+    inputEl.disabled = true;
+    inputEl.blur();
+  }
+  if (submitBtn) submitBtn.disabled = true;
+
+  const note = isCorrect
+    ? `âœ… Bullseye! ${item.record.Office} PIN is ${item.fullPin}`
+    : `âŒ You entered ${item.pinPrefix}${typed}. Correct PIN is ${item.fullPin} (${item.record.Office})`;
+
+  finishQuizAnswer(isCorrect, item.record, note);
+}
 
 function handleIntruderAnswer(selectedIdx) {
   const q = learnState.quiz;
@@ -12580,210 +13033,210 @@ function practiceOfficeFromDirectory(officeName) {
 
 // --- FLASHCARD SWIPE PHYSICS (TOUCH & MOUSE) ---
 function bindFlashcardSwipeGestures() {
-    const wrap = document.getElementById("learn-card-swipe-wrap");
-    if (!wrap || wrap.dataset.swipeBound === "1") return;
-    wrap.dataset.swipeBound = "1";
-  
-    let activePointerId = null;
-    let startX = 0;
-    let startY = 0;
-    let startTime = 0;
-    let dx = 0;
-    let dy = 0;
-    let axis = null; // null | "x" | "y"
-    let captured = false;
-  
-    wrap.addEventListener("dragstart", (e) => e.preventDefault());
-  
-    wrap.addEventListener("pointerdown", (e) => {
-      if (learnState.fcIsTransitioning) return;
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-      if (e.target.closest("button, a, input")) return;
-  
-      activePointerId = e.pointerId;
-      startX = e.clientX;
-      startY = e.clientY;
-      startTime = performance.now();
-      dx = 0;
-      dy = 0;
-      axis = null;
-      captured = false;
-    });
-  
-    wrap.addEventListener("pointermove", (e) => {
-      if (e.pointerId !== activePointerId) return;
-  
-      dx = e.clientX - startX;
-      dy = e.clientY - startY;
-  
-      if (axis === null) {
-        if (Math.hypot(dx, dy) < 8) return;
-  
-        if (Math.abs(dx) > Math.abs(dy) * 1.15) {
-          axis = "x";
-          wrap.classList.remove("is-entering-left", "is-entering-right");
-          wrap.classList.add("is-dragging");
-          try {
-            wrap.setPointerCapture(e.pointerId);
-            captured = true;
-          } catch (_) {}
-        } else {
-          // Vertical drag -> yield immediately to page scroll
-          axis = "y";
-          activePointerId = null;
-          return;
-        }
-      }
-  
-      if (axis !== "x") return;
-  
-      const canPrev = learnState.fcHistoryIndex > 0;
-      const canNext =
-        learnState.fcHistoryIndex < learnState.fcHistory.length - 1 ||
-        getFilteredLearnRecords().length > 1;
-      const isBlockedEdge = (dx > 0 && !canPrev) || (dx < 0 && !canNext);
-  
-      if (isBlockedEdge) {
-        const damped = Math.max(-52, Math.min(52, dx * 0.24));
-        const tilt = damped * 0.04;
-        wrap.style.transform = `translate3d(${damped}px, 0, 0) rotate(${tilt}deg)`;
-        wrap.style.opacity = "";
-      } else {
-        const tilt = Math.max(-10, Math.min(10, dx * 0.045));
-        const opacity = Math.max(0.55, 1 - Math.abs(dx) / 420);
-        wrap.style.transform = `translate3d(${dx}px, 0, 0) rotate(${tilt}deg)`;
-        wrap.style.opacity = String(opacity);
-      }
-    });
-  
-    function finishPointerGesture(e, cancelled = false) {
-      if (e.pointerId !== activePointerId) return;
-  
-      const finalAxis = axis;
-      const finalDx = dx;
-      const finalDy = dy;
-      const elapsed = Math.max(1, performance.now() - startTime);
-  
-      activePointerId = null;
-      axis = null;
-  
-      if (captured) {
+  const wrap = document.getElementById("learn-card-swipe-wrap");
+  if (!wrap || wrap.dataset.swipeBound === "1") return;
+  wrap.dataset.swipeBound = "1";
+
+  let activePointerId = null;
+  let startX = 0;
+  let startY = 0;
+  let startTime = 0;
+  let dx = 0;
+  let dy = 0;
+  let axis = null; // null | "x" | "y"
+  let captured = false;
+
+  wrap.addEventListener("dragstart", (e) => e.preventDefault());
+
+  wrap.addEventListener("pointerdown", (e) => {
+    if (learnState.fcIsTransitioning) return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (e.target.closest("button, a, input")) return;
+
+    activePointerId = e.pointerId;
+    startX = e.clientX;
+    startY = e.clientY;
+    startTime = performance.now();
+    dx = 0;
+    dy = 0;
+    axis = null;
+    captured = false;
+  });
+
+  wrap.addEventListener("pointermove", (e) => {
+    if (e.pointerId !== activePointerId) return;
+
+    dx = e.clientX - startX;
+    dy = e.clientY - startY;
+
+    if (axis === null) {
+      if (Math.hypot(dx, dy) < 8) return;
+
+      if (Math.abs(dx) > Math.abs(dy) * 1.15) {
+        axis = "x";
+        wrap.classList.remove("is-entering-left", "is-entering-right");
+        wrap.classList.add("is-dragging");
         try {
-          wrap.releasePointerCapture(e.pointerId);
+          wrap.setPointerCapture(e.pointerId);
+          captured = true;
         } catch (_) {}
-        captured = false;
-      }
-  
-      wrap.classList.remove("is-dragging");
-  
-      if (cancelled) {
-        wrap.style.transform = "";
-        wrap.style.opacity = "";
+      } else {
+        // Vertical drag -> yield immediately to page scroll
+        axis = "y";
+        activePointerId = null;
         return;
       }
-  
-      // Clean tap -> flip flashcard
-      if (finalAxis === null && Math.hypot(finalDx, finalDy) <= 10) {
-        flipLearnCard();
-        return;
-      }
-  
-      if (finalAxis !== "x") return;
-  
-      const cardWidth = wrap.offsetWidth || 320;
-      const distanceThreshold = Math.min(95, cardWidth * 0.26);
-      const velocity = Math.abs(finalDx) / elapsed;
-      const triggered =
-        Math.abs(finalDx) >= distanceThreshold ||
-        (Math.abs(finalDx) >= 42 && velocity >= 0.35);
-  
-      const canPrev = learnState.fcHistoryIndex > 0;
-      const canNext =
-        learnState.fcHistoryIndex < learnState.fcHistory.length - 1 ||
-        getFilteredLearnRecords().length > 1;
-  
-      if (triggered && finalDx < 0) {
-        if (canNext) {
-          wrap.style.transform = "";
-          wrap.style.opacity = "";
-          goToNextFlashcard(true);
-          return;
-        }
-        if (Math.abs(finalDx) > 32) showToast("Only 1 card in this deck", "info");
-      } else if (triggered && finalDx > 0) {
-        if (canPrev) {
-          wrap.style.transform = "";
-          wrap.style.opacity = "";
-          goToPrevFlashcard(true);
-          return;
-        }
-        if (finalDx > 32) showToast("Already at first card", "info");
-      }
-  
-      // Snap back smoothly
+    }
+
+    if (axis !== "x") return;
+
+    const canPrev = learnState.fcHistoryIndex > 0;
+    const canNext =
+      learnState.fcHistoryIndex < learnState.fcHistory.length - 1 ||
+      getFilteredLearnRecords().length > 1;
+    const isBlockedEdge = (dx > 0 && !canPrev) || (dx < 0 && !canNext);
+
+    if (isBlockedEdge) {
+      const damped = Math.max(-52, Math.min(52, dx * 0.24));
+      const tilt = damped * 0.04;
+      wrap.style.transform = `translate3d(${damped}px, 0, 0) rotate(${tilt}deg)`;
+      wrap.style.opacity = "";
+    } else {
+      const tilt = Math.max(-10, Math.min(10, dx * 0.045));
+      const opacity = Math.max(0.55, 1 - Math.abs(dx) / 420);
+      wrap.style.transform = `translate3d(${dx}px, 0, 0) rotate(${tilt}deg)`;
+      wrap.style.opacity = String(opacity);
+    }
+  });
+
+  function finishPointerGesture(e, cancelled = false) {
+    if (e.pointerId !== activePointerId) return;
+
+    const finalAxis = axis;
+    const finalDx = dx;
+    const finalDy = dy;
+    const elapsed = Math.max(1, performance.now() - startTime);
+
+    activePointerId = null;
+    axis = null;
+
+    if (captured) {
+      try {
+        wrap.releasePointerCapture(e.pointerId);
+      } catch (_) {}
+      captured = false;
+    }
+
+    wrap.classList.remove("is-dragging");
+
+    if (cancelled) {
       wrap.style.transform = "";
       wrap.style.opacity = "";
+      return;
     }
-  
-    wrap.addEventListener("pointerup", (e) => finishPointerGesture(e, false));
-    wrap.addEventListener("pointercancel", (e) => finishPointerGesture(e, true));
+
+    // Clean tap -> flip flashcard
+    if (finalAxis === null && Math.hypot(finalDx, finalDy) <= 10) {
+      flipLearnCard();
+      return;
+    }
+
+    if (finalAxis !== "x") return;
+
+    const cardWidth = wrap.offsetWidth || 320;
+    const distanceThreshold = Math.min(95, cardWidth * 0.26);
+    const velocity = Math.abs(finalDx) / elapsed;
+    const triggered =
+      Math.abs(finalDx) >= distanceThreshold ||
+      (Math.abs(finalDx) >= 42 && velocity >= 0.35);
+
+    const canPrev = learnState.fcHistoryIndex > 0;
+    const canNext =
+      learnState.fcHistoryIndex < learnState.fcHistory.length - 1 ||
+      getFilteredLearnRecords().length > 1;
+
+    if (triggered && finalDx < 0) {
+      if (canNext) {
+        wrap.style.transform = "";
+        wrap.style.opacity = "";
+        goToNextFlashcard(true);
+        return;
+      }
+      if (Math.abs(finalDx) > 32) showToast("Only 1 card in this deck", "info");
+    } else if (triggered && finalDx > 0) {
+      if (canPrev) {
+        wrap.style.transform = "";
+        wrap.style.opacity = "";
+        goToPrevFlashcard(true);
+        return;
+      }
+      if (finalDx > 32) showToast("Already at first card", "info");
+    }
+
+    // Snap back smoothly
+    wrap.style.transform = "";
+    wrap.style.opacity = "";
   }
-  
-  // --- DESKTOP / TABLET KEYBOARD SHORTCUTS FOR FLASHCARDS ---
-  (function initLearnKeyboardShortcuts() {
-    document.addEventListener("keydown", (e) => {
-      const viewEl = document.getElementById("view-learn");
-      if (!viewEl || !viewEl.classList.contains("active")) return;
-      if (learnState.activeTab !== "learn" || learnState.quiz.active) return;
-      if (document.querySelector(".modal-overlay.show")) return;
-      if (document.getElementById("sidebar")?.classList.contains("open")) return;
-  
-      const activeEl = document.activeElement;
+
+  wrap.addEventListener("pointerup", (e) => finishPointerGesture(e, false));
+  wrap.addEventListener("pointercancel", (e) => finishPointerGesture(e, true));
+}
+
+// --- DESKTOP / TABLET KEYBOARD SHORTCUTS FOR FLASHCARDS ---
+(function initLearnKeyboardShortcuts() {
+  document.addEventListener("keydown", (e) => {
+    const viewEl = document.getElementById("view-learn");
+    if (!viewEl || !viewEl.classList.contains("active")) return;
+    if (learnState.activeTab !== "learn" || learnState.quiz.active) return;
+    if (document.querySelector(".modal-overlay.show")) return;
+    if (document.getElementById("sidebar")?.classList.contains("open")) return;
+
+    const activeEl = document.activeElement;
+    if (
+      activeEl &&
+      (activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        activeEl.tagName === "SELECT" ||
+        activeEl.isContentEditable)
+    ) {
+      return;
+    }
+
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      goToNextFlashcard(false);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      goToPrevFlashcard(false);
+    } else if (e.key === " ") {
       if (
         activeEl &&
-        (activeEl.tagName === "INPUT" ||
-          activeEl.tagName === "TEXTAREA" ||
-          activeEl.tagName === "SELECT" ||
-          activeEl.isContentEditable)
+        activeEl.tagName === "BUTTON" &&
+        activeEl.id !== "learn-active-flashcard"
       ) {
         return;
       }
-  
-      if (e.key === "ArrowRight") {
+      e.preventDefault();
+      flipLearnCard();
+    } else if (
+      e.key === "Enter" &&
+      activeEl &&
+      activeEl.id === "learn-active-flashcard"
+    ) {
+      e.preventDefault();
+      flipLearnCard();
+    } else if (learnState.fcFlipped) {
+      if (e.key === "1") {
         e.preventDefault();
-        goToNextFlashcard(false);
-      } else if (e.key === "ArrowLeft") {
+        rateLearnCard("again");
+      } else if (e.key === "2") {
         e.preventDefault();
-        goToPrevFlashcard(false);
-      } else if (e.key === " ") {
-        if (
-          activeEl &&
-          activeEl.tagName === "BUTTON" &&
-          activeEl.id !== "learn-active-flashcard"
-        ) {
-          return;
-        }
+        rateLearnCard("good");
+      } else if (e.key === "3") {
         e.preventDefault();
-        flipLearnCard();
-      } else if (
-        e.key === "Enter" &&
-        activeEl &&
-        activeEl.id === "learn-active-flashcard"
-      ) {
-        e.preventDefault();
-        flipLearnCard();
-      } else if (learnState.fcFlipped) {
-        if (e.key === "1") {
-          e.preventDefault();
-          rateLearnCard("again");
-        } else if (e.key === "2") {
-          e.preventDefault();
-          rateLearnCard("good");
-        } else if (e.key === "3") {
-          e.preventDefault();
-          rateLearnCard("easy");
-        }
+        rateLearnCard("easy");
       }
-    });
-  })();
+    }
+  });
+})();
 
