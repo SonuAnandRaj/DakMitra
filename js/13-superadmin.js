@@ -478,12 +478,17 @@ async function saResetDevice(userId, name) {
   );
 }
 
+function closeSuperadminUserModal() {
+  document.getElementById("sa-user-modal-overlay")?.classList.remove("show");
+}
+
 function openSuperadminUserModal({
   title,
   desc,
   label,
   placeholder,
   type = "text",
+  confirmText = "Confirm",
   onConfirm,
 }) {
   document.getElementById("sa-user-modal-title").textContent = title;
@@ -496,6 +501,11 @@ function openSuperadminUserModal({
 
   const btn = document.getElementById("sa-user-modal-confirm");
   const freshBtn = btn.cloneNode(true);
+  freshBtn.disabled = false;
+  freshBtn.classList.remove("is-loading", "is-success");
+  delete freshBtn.dataset.originalHtml;
+  freshBtn.textContent = confirmText;
+
   btn.parentNode.replaceChild(freshBtn, btn);
   freshBtn.addEventListener("click", () =>
     onConfirm(input.value.trim(), freshBtn)
@@ -515,6 +525,7 @@ function saPromptUserStatus(userId, status, name) {
     desc: "This user will be blocked from signing in and accessing data.",
     label: "Reason (Optional)",
     placeholder: "e.g. Duplicate account or not verified staff",
+    confirmText: status === "REJECTED" ? "Reject User" : "Suspend User",
     onConfirm: async (note, btn) => {
       if (!(await ensureOnline("Connect to internet to update status.")))
         return;
@@ -534,8 +545,9 @@ function saPromptUserStatus(userId, status, name) {
         showToast(`✅ User marked as ${status}.`, "success");
         await loadSuperadminUsers(true);
       } catch (err) {
-        setButtonState(btn, "idle");
         showToast("❌ " + err.message, "error");
+      } finally {
+        setButtonState(btn, "idle");
       }
     },
   });
@@ -548,6 +560,7 @@ function saPromptPasswordReset(userId, name) {
     label: "New Password",
     placeholder: "At least 6 characters",
     type: "password",
+    confirmText: "Update Password",
     onConfirm: async (pw, btn) => {
       if (pw.length < 6)
         return showToast("⚠️ Minimum 6 characters.", "warning");
@@ -561,8 +574,9 @@ function saPromptPasswordReset(userId, name) {
         closeSuperadminUserModal();
         showToast("🔑 Password updated successfully!", "success");
       } catch (err) {
-        setButtonState(btn, "idle");
         showToast("❌ " + err.message, "error");
+      } finally {
+        setButtonState(btn, "idle");
       }
     },
   });
