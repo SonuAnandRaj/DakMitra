@@ -2083,7 +2083,7 @@ function finishQuizAnswer(isCorrect, targetRecord, noteText) {
   if (isCorrect && q.autoNext) {
     q.autoNextTimer = setTimeout(() => {
       advanceQuizQuestion();
-    }, 1500);
+    }, 2000);
   }
 }
 

@@ -3,8 +3,8 @@
 // =========================================================
 
 // --- CENTRAL APP VERSION CONTROL ---
-const APP_VERSION = "1.0.6"; // <-- Change ONLY this when releasing a new version
-const APP_BUILD_CODE = "102"; // <-- Increment for each build (e.g., 101, 102)
+const APP_VERSION = "1.0.7"; // <-- Change ONLY this when releasing a new version
+const APP_BUILD_CODE = "103"; // <-- Increment for each build (e.g., 101, 102)
 
 // --- SPLASH TIMING ---
 const SPLASH_START_TIME = performance.now();
