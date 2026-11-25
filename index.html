@@ -4962,7 +4962,7 @@
         </div>
 
         <!-- Filter Addresses Inside Modal -->
-        <div class="input-group edit-modal-field" style="margin-bottom: 12px">
+        <div class="input-group edit-modal-field" style="margin-bottom: 10px">
           <div class="profile-input-wrapper">
             <svg
               class="field-icon"
@@ -4981,8 +4981,84 @@
               id="quick-delete-filter-input"
               placeholder="Filter addresses to delete..."
               autocomplete="off"
-              oninput="renderQuickDeleteChips()"
+              style="padding-right: 40px"
+              oninput="handleQuickDeleteFilterInput()"
             />
+            <button
+              type="button"
+              id="clear-quick-delete-filter-btn"
+              class="clear-btn hidden"
+              onpointerdown="event.preventDefault()"
+              style="
+                position: absolute;
+                right: 6px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 34px;
+                height: 34px;
+                padding: 0;
+                margin: 0;
+                z-index: 2;
+              "
+              onclick="clearQuickDeleteFilterInput()"
+              title="Clear Filter"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- Category Filter Chips (Reuses Directory Filter Bar) -->
+        <div class="dir-filter-bar qd-filter-bar edit-modal-field">
+          <div
+            id="quick-delete-category-chips"
+            class="dir-filter-chips"
+            role="group"
+            aria-label="Filter addresses by category"
+          >
+            <button
+              type="button"
+              id="qd-chip-all"
+              class="dir-filter-chip active"
+              onpointerdown="event.preventDefault()"
+              onclick="toggleQuickDeleteFilterChip('all')"
+            >
+              <span>All</span>
+              <span class="dir-chip-count" id="qd-count-all">0</span>
+            </button>
+
+            <button
+              type="button"
+              id="qd-chip-office"
+              class="dir-filter-chip is-office"
+              onpointerdown="event.preventDefault()"
+              onclick="toggleQuickDeleteFilterChip('office')"
+            >
+              <span>📮 Offices</span>
+              <span class="dir-chip-count" id="qd-count-office">0</span>
+            </button>
+
+            <button
+              type="button"
+              id="qd-chip-priority"
+              class="dir-filter-chip is-priority"
+              onpointerdown="event.preventDefault()"
+              onclick="toggleQuickDeleteFilterChip('priority')"
+            >
+              <span>⚡ Priority</span>
+              <span class="dir-chip-count" id="qd-count-priority">0</span>
+            </button>
+
+            <button
+              type="button"
+              id="qd-chip-regular"
+              class="dir-filter-chip is-regular"
+              onpointerdown="event.preventDefault()"
+              onclick="toggleQuickDeleteFilterChip('regular')"
+            >
+              <span>Regular</span>
+              <span class="dir-chip-count" id="qd-count-regular">0</span>
+            </button>
           </div>
         </div>
 

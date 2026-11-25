@@ -1907,6 +1907,7 @@ async function submitQuickAddModal() {
 let activeQuickDeleteOffice = { office: "", pin: "" };
 let activeQuickDeleteItems = [];
 let activeQuickDeleteSelectedIds = new Set();
+let activeQuickDeleteFilters = new Set();
 let isQuickDeleteTrayExpanded = false;
 
 function getQuickDeleteBtnDefaultHTML(count = 0) {
@@ -1921,7 +1922,7 @@ function getQuickDeleteBtnDefaultHTML(count = 0) {
     `;
 }
 
-function getFilteredQuickDeleteItems() {
+function getTextMatchedQuickDeleteItems() {
   const q = (document.getElementById("quick-delete-filter-input")?.value || "")
     .trim()
     .toLowerCase();
@@ -1931,6 +1932,105 @@ function getFilteredQuickDeleteItems() {
       .toLowerCase()
       .includes(q),
   );
+}
+
+function matchesQuickDeleteCategoryFilter(item) {
+  if (activeQuickDeleteFilters.size === 0) return true;
+  const { isOffice, isPriority, isRegular } = getDirectoryItemFlags(item);
+  if (activeQuickDeleteFilters.has("office") && isOffice) return true;
+  if (activeQuickDeleteFilters.has("priority") && isPriority) return true;
+  if (activeQuickDeleteFilters.has("regular") && isRegular) return true;
+  return false;
+}
+
+function getFilteredQuickDeleteItems(textMatchedOverride = null) {
+  const textMatched = textMatchedOverride || getTextMatchedQuickDeleteItems();
+  if (activeQuickDeleteFilters.size === 0) return textMatched;
+  return textMatched.filter(matchesQuickDeleteCategoryFilter);
+}
+
+function handleQuickDeleteFilterInput() {
+  const input = document.getElementById("quick-delete-filter-input");
+  const clearBtn = document.getElementById("clear-quick-delete-filter-btn");
+  if (clearBtn && input) {
+    clearBtn.classList.toggle("hidden", input.value.length === 0);
+  }
+  renderQuickDeleteChips();
+}
+
+function clearQuickDeleteFilterInput() {
+  const input = document.getElementById("quick-delete-filter-input");
+  if (input) {
+    input.value = "";
+    input.focus();
+  }
+  document
+    .getElementById("clear-quick-delete-filter-btn")
+    ?.classList.add("hidden");
+  renderQuickDeleteChips();
+}
+
+function toggleQuickDeleteFilterChip(type) {
+  if (type === "all") {
+    activeQuickDeleteFilters.clear();
+  } else if (DIRECTORY_FILTER_TYPES.includes(type)) {
+    if (activeQuickDeleteFilters.has(type)) {
+      activeQuickDeleteFilters.delete(type);
+    } else {
+      activeQuickDeleteFilters.add(type);
+    }
+    if (activeQuickDeleteFilters.size === DIRECTORY_FILTER_TYPES.length) {
+      activeQuickDeleteFilters.clear();
+    }
+  }
+
+  if (navigator.vibrate) navigator.vibrate(18);
+  const chipsContainer = document.getElementById(
+    "quick-delete-chips-container",
+  );
+  if (chipsContainer) chipsContainer.scrollTop = 0;
+  renderQuickDeleteChips();
+}
+
+function updateQuickDeleteFilterUI(textMatchedItems) {
+  let allCount = 0;
+  let officeCount = 0;
+  let priorityCount = 0;
+  let regularCount = 0;
+
+  for (let i = 0; i < textMatchedItems.length; i++) {
+    allCount++;
+    const { isOffice, isPriority, isRegular } = getDirectoryItemFlags(
+      textMatchedItems[i],
+    );
+    if (isOffice) officeCount++;
+    if (isPriority) priorityCount++;
+    if (isRegular) regularCount++;
+  }
+
+  const setTxt = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  setTxt("qd-count-all", allCount);
+  setTxt("qd-count-office", officeCount);
+  setTxt("qd-count-priority", priorityCount);
+  setTxt("qd-count-regular", regularCount);
+
+  const isAll = activeQuickDeleteFilters.size === 0;
+  document.getElementById("qd-chip-all")?.classList.toggle("active", isAll);
+
+  const syncChip = (id, key, count) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle("active", activeQuickDeleteFilters.has(key));
+    el.classList.toggle("is-empty", count === 0);
+  };
+
+  syncChip("qd-chip-office", "office", officeCount);
+  syncChip("qd-chip-priority", "priority", priorityCount);
+  syncChip("qd-chip-regular", "regular", regularCount);
 }
 
 function quickDeleteForOffice(officeName, pinNumber) {
@@ -1943,6 +2043,7 @@ function quickDeleteForOffice(officeName, pinNumber) {
     pin: cleanPin,
   };
   activeQuickDeleteSelectedIds = new Set();
+  activeQuickDeleteFilters.clear();
   isQuickDeleteTrayExpanded = false;
 
   const targetLower = activeQuickDeleteOffice.office.trim().toLowerCase();
@@ -1963,6 +2064,12 @@ function quickDeleteForOffice(officeName, pinNumber) {
 
   const filterInput = document.getElementById("quick-delete-filter-input");
   if (filterInput) filterInput.value = "";
+  document
+    .getElementById("clear-quick-delete-filter-btn")
+    ?.classList.add("hidden");
+
+  const catChips = document.getElementById("quick-delete-category-chips");
+  if (catChips) catChips.scrollLeft = 0;
 
   const submitBtn = document.getElementById("quick-delete-submit-btn");
   submitBtn.classList.remove("is-loading", "is-success");
@@ -1983,9 +2090,12 @@ function closeQuickDeleteModal() {
   const chipsContainer = document.getElementById(
     "quick-delete-chips-container",
   );
+  const catChips = document.getElementById("quick-delete-category-chips");
+  activeQuickDeleteFilters.clear();
   isQuickDeleteTrayExpanded = false;
   overlay?.classList.remove("show");
   if (chipsContainer) chipsContainer.scrollTop = 0;
+  if (catChips) catChips.scrollLeft = 0;
   if (overlay) overlay.scrollTop = 0;
 }
 
@@ -1993,32 +2103,55 @@ function renderQuickDeleteChips() {
   const container = document.getElementById("quick-delete-chips-container");
   if (!container) return;
 
-  const visibleItems = getFilteredQuickDeleteItems();
+  const textMatched = getTextMatchedQuickDeleteItems();
+  updateQuickDeleteFilterUI(textMatched);
+  const visibleItems = getFilteredQuickDeleteItems(textMatched);
 
   if (visibleItems.length === 0) {
-    container.innerHTML = `<div style="width: 100%; text-align: center; padding: 18px 8px; font-size: 13px; color: var(--text-light);">No matching addresses found.</div>`;
+    const showResetBtn = activeQuickDeleteFilters.size > 0;
+    container.innerHTML = `
+      <div style="width: 100%; text-align: center; padding: 18px 8px; font-size: 13px; color: var(--text-light); display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <span>No matching addresses found.</span>
+        ${
+          showResetBtn
+            ? `<button type="button" class="dir-filter-reset-btn" onpointerdown="event.preventDefault()" onclick="toggleQuickDeleteFilterChip('all')">Show All</button>`
+            : ""
+        }
+      </div>`;
   } else {
     container.innerHTML = visibleItems
       .map((item) => {
         const idStr = String(item.id);
         const isSelected = activeQuickDeleteSelectedIds.has(idStr);
+        const { isOffice, isPriority } = getDirectoryItemFlags(item);
+        const typeCls = isOffice
+          ? "is-office-item"
+          : isPriority
+            ? "is-priority-item"
+            : "";
+        const label = isOffice
+          ? `📮 ${escapeHTML(item.Address)}${isPriority ? " ⚡" : ""}`
+          : isPriority
+            ? `⚡ ${escapeHTML(item.Address)}`
+            : escapeHTML(item.Address);
+
         return `
             <button
               type="button"
-              class="delete-select-chip ${isSelected ? "selected" : ""}"
+              class="delete-select-chip ${typeCls} ${isSelected ? "selected" : ""}"
               data-delete-id="${escapeHTML(idStr)}"
               onclick="toggleQuickDeleteItem('${escapeForOnclick(
                 idStr,
               )}', this)"
             >
               <span class="delete-chip-check">${isSelected ? "✓" : ""}</span>
-              <span>${escapeHTML(item.Address)}</span>
+              <span>${label}</span>
             </button>`;
       })
       .join("");
   }
 
-  updateQuickDeleteUI();
+  updateQuickDeleteUI(visibleItems);
 }
 
 function toggleQuickDeleteItem(idStr, chipEl) {
@@ -2149,8 +2282,14 @@ function toggleSelectAllQuickDelete() {
   renderQuickDeleteChips();
 }
 
-function updateQuickDeleteUI() {
+function updateQuickDeleteUI(visibleItemsOverride = null) {
   const count = activeQuickDeleteSelectedIds.size;
+  const visibleItems = visibleItemsOverride || getFilteredQuickDeleteItems();
+  const hasTextFilter =
+    (document.getElementById("quick-delete-filter-input")?.value || "").trim()
+      .length > 0;
+  const isFiltered = activeQuickDeleteFilters.size > 0 || hasTextFilter;
+
   const countEl = document.getElementById("quick-delete-count");
   const selectAllBtn = document.getElementById("quick-delete-select-all-btn");
   const submitBtn = document.getElementById("quick-delete-submit-btn");
@@ -2159,20 +2298,28 @@ function updateQuickDeleteUI() {
   );
 
   if (countEl) {
-    countEl.textContent = `${count} of ${activeQuickDeleteItems.length} selected`;
+    countEl.textContent = isFiltered
+      ? `${count} selected • ${visibleItems.length} shown`
+      : `${count} of ${activeQuickDeleteItems.length} selected`;
     countEl.style.color = count > 0 ? "#ef4444" : "var(--text-light)";
   }
 
-  const visibleItems = getFilteredQuickDeleteItems();
   const allVisibleSelected =
     visibleItems.length > 0 &&
     visibleItems.every((item) =>
       activeQuickDeleteSelectedIds.has(String(item.id)),
     );
   if (selectAllBtn) {
-    selectAllBtn.textContent = allVisibleSelected
-      ? "Deselect All"
-      : "Select All";
+    selectAllBtn.disabled = visibleItems.length === 0;
+    if (isFiltered) {
+      selectAllBtn.textContent = allVisibleSelected
+        ? "Deselect Shown"
+        : `Select Shown (${visibleItems.length})`;
+    } else {
+      selectAllBtn.textContent = allVisibleSelected
+        ? "Deselect All"
+        : "Select All";
+    }
   }
 
   if (
@@ -2191,6 +2338,31 @@ function confirmQuickDeleteModal() {
   const count = activeQuickDeleteSelectedIds.size;
   if (count === 0) return;
 
+  let officeCount = 0;
+  let priorityCount = 0;
+  activeQuickDeleteItems.forEach((item) => {
+    if (!activeQuickDeleteSelectedIds.has(String(item.id))) return;
+    const { isOffice, isPriority } = getDirectoryItemFlags(item);
+    if (isOffice) officeCount++;
+    else if (isPriority) priorityCount++;
+  });
+
+  const warnParts = [];
+  if (officeCount > 0) {
+    warnParts.push(
+      `${officeCount} ${officeCount === 1 ? "Office" : "Offices"}`,
+    );
+  }
+  if (priorityCount > 0) {
+    warnParts.push(
+      `${priorityCount} Priority ${
+        priorityCount === 1 ? "address" : "addresses"
+      }`,
+    );
+  }
+  const safetyNote =
+    warnParts.length > 0 ? ` ⚠️ Includes ${warnParts.join(" and ")}.` : "";
+
   const title = isCurrentUserAdmin
     ? `Admin: Delete ${count} ${count === 1 ? "Address" : "Addresses"}?`
     : `Request Deletion of ${count} ${count === 1 ? "Address" : "Addresses"}?`;
@@ -2198,10 +2370,10 @@ function confirmQuickDeleteModal() {
   const message = isCurrentUserAdmin
     ? `This will immediately delete ${count} selected ${
         count === 1 ? "address" : "addresses"
-      } from ${activeQuickDeleteOffice.office}. Continue?`
+      } from ${activeQuickDeleteOffice.office}.${safetyNote} Continue?`
     : `This will submit ${count} deletion ${
         count === 1 ? "request" : "requests"
-      } for ${activeQuickDeleteOffice.office} to the community for approval.`;
+      } for ${activeQuickDeleteOffice.office} to the community for approval.${safetyNote}`;
 
   const btnText = isCurrentUserAdmin ? "Delete Instantly" : "Submit Requests";
 

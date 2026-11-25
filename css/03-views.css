@@ -5116,21 +5116,74 @@ body.keyboard-open .feedback-submit-panel {
   z-index: 1;
 }
 
-/* Make Directory Delete modal taller */
+/* Compact category filter chips inside Directory Delete modal */
+.qd-filter-bar {
+  margin-bottom: 10px;
+}
+
+.qd-filter-bar .dir-filter-chips {
+  gap: 6px;
+  padding: 1px 1px 3px;
+}
+
+.qd-filter-bar .dir-filter-chip {
+  padding: 5px 8px 5px 10px;
+  font-size: 12px;
+  gap: 5px;
+}
+
+.qd-filter-bar .dir-chip-count {
+  min-width: 19px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 10.5px;
+}
+
+.qd-filter-bar .dir-filter-chip.is-empty:not(.active) {
+  opacity: 0.52;
+}
+
+/* Subtle Office / Priority hints on unselected Delete chips */
+.delete-select-chip.is-office-item:not(.selected) {
+  border-color: rgba(79, 70, 229, 0.34);
+  background: rgba(79, 70, 229, 0.06);
+}
+
+[data-theme="dark"] .delete-select-chip.is-office-item:not(.selected) {
+  border-color: rgba(129, 140, 248, 0.35);
+  background: rgba(129, 140, 248, 0.11);
+}
+
+.delete-select-chip.is-priority-item:not(.selected) {
+  border-color: rgba(245, 158, 11, 0.42);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+[data-theme="dark"] .delete-select-chip.is-priority-item:not(.selected) {
+  border-color: rgba(251, 191, 36, 0.36);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+/* Taller Directory Delete modal + adjusted keyboard clearance for filter bar */
 #quick-delete-chips-container {
   min-height: 165px;
   max-height: 300px;
+  align-content: flex-start;
 }
 
-/* Keep mobile keyboard resizing working */
+#quick-delete-modal-overlay:has(#quick-delete-selected-box:not(.hidden))
+  #quick-delete-chips-container {
+  max-height: 245px;
+}
+
 body.keyboard-open #quick-delete-chips-container {
   min-height: 0;
-  max-height: clamp(135px, calc(var(--vvh, 100dvh) - 310px), 340px);
+  max-height: clamp(120px, calc(var(--vvh, 100dvh) - 355px), 300px);
 }
 
 body.keyboard-open
   #quick-delete-modal-overlay:has(#quick-delete-selected-box:not(.hidden))
   #quick-delete-chips-container {
   min-height: 0;
-  max-height: clamp(115px, calc(var(--vvh, 100dvh) - 390px), 260px);
+  max-height: clamp(100px, calc(var(--vvh, 100dvh) - 435px), 230px);
 }

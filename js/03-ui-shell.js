@@ -658,6 +658,7 @@ function switchDashboardView(viewId) {
 
 // --- GLOBAL ACTIVE-WINDOW SCROLL LOCK (ALL MODALS & SIDEBAR) ---
 (function initGlobalOverlayScrollLock() {
+  let touchStartX = 0;
   let touchStartY = 0;
 
   function getTopActiveOverlay() {
@@ -697,6 +698,21 @@ function switchDashboardView(viewId) {
     return null;
   }
 
+  function findHorizontalScrollableAncestor(target, boundaryEl) {
+    let el = target instanceof Element ? target : target?.parentElement;
+    while (el) {
+      const style = getComputedStyle(el);
+      const canScrollX =
+        (style.overflowX === "auto" || style.overflowX === "scroll") &&
+        el.scrollWidth > el.clientWidth + 1;
+
+      if (canScrollX) return el;
+      if (el === boundaryEl) break;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
   const observer = new MutationObserver(syncScrollLock);
   document
     .querySelectorAll(".modal-overlay, .sidebar, .sidebar-overlay")
@@ -712,6 +728,7 @@ function switchDashboardView(viewId) {
     "touchstart",
     (e) => {
       if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
       }
     },
@@ -733,8 +750,16 @@ function switchDashboardView(viewId) {
       }
 
       if (!e.touches || e.touches.length === 0) return;
-      const currentY = e.touches[0].clientY;
-      const deltaY = currentY - touchStartY;
+      const deltaX = e.touches[0].clientX - touchStartX;
+      const deltaY = e.touches[0].clientY - touchStartY;
+
+      if (
+        Math.abs(deltaX) > Math.abs(deltaY) &&
+        findHorizontalScrollableAncestor(e.target, activeOverlay)
+      ) {
+        return;
+      }
+
       if (Math.abs(deltaY) < 8) return; // Allow normal taps without cancelling
 
       const scrollable = findScrollableAncestor(e.target, activeOverlay);
@@ -763,6 +788,13 @@ function switchDashboardView(viewId) {
 
       if (!activeOverlay.contains(e.target)) {
         e.preventDefault();
+        return;
+      }
+
+      if (
+        Math.abs(e.deltaX) > Math.abs(e.deltaY) &&
+        findHorizontalScrollableAncestor(e.target, activeOverlay)
+      ) {
         return;
       }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "po-directory-v37";
+const CACHE_NAME = "po-directory-v38";
 
 const LOCAL_ASSETS = [
   "./",
@@ -37,16 +37,16 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE_NAME).then(async (cache) => {
       // Bypass browser HTTP cache on install so GitHub Pages always delivers the latest CSS/JS
       await cache.addAll(
-        LOCAL_ASSETS.map((url) => new Request(url, { cache: "no-cache" })),
+        LOCAL_ASSETS.map((url) => new Request(url, { cache: "no-cache" }))
       );
       await Promise.allSettled(
         CDN_ASSETS.map((url) =>
           fetch(url).then((res) => {
             if (res && res.status === 200) return cache.put(url, res);
-          }),
-        ),
+          })
+        )
       );
-    }),
+    })
   );
 });
 
@@ -58,10 +58,10 @@ self.addEventListener("activate", (event) => {
         Promise.all(
           keys.map((key) => {
             if (key !== CACHE_NAME) return caches.delete(key);
-          }),
-        ),
+          })
+        )
       )
-      .then(() => self.clients.claim()),
+      .then(() => self.clients.claim())
   );
 });
 
@@ -104,7 +104,7 @@ self.addEventListener("fetch", (event) => {
 
         // Return cached shell immediately; only wait for network on very first visit
         return cached || networkFetch;
-      }),
+      })
     );
     return;
   }
@@ -125,7 +125,7 @@ self.addEventListener("fetch", (event) => {
             .catch(() => null);
 
           return cachedResponse || networkFetch;
-        }),
-    ),
+        })
+    )
   );
 });
