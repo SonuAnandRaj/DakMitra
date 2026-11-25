@@ -307,55 +307,127 @@ function updateFeedbackDiagPreview() {
 }
 
 // --- CLIENT-SIDE SCREENSHOT COMPRESSION & PREVIEW ---
-function compressFeedbackImage(file, maxEdge = 1280, quality = 0.82) {
-  return new Promise((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
-
-    img.onload = () => {
-      try {
-        let w = img.naturalWidth;
-        let h = img.naturalHeight;
-        if (w > maxEdge || h > maxEdge) {
-          const scale = maxEdge / Math.max(w, h);
-          w = Math.round(w * scale);
-          h = Math.round(h * scale);
+function isCanvasSolidWhite(ctx, w, h) {
+    try {
+      const sampleRows = [0.2, 0.35, 0.5, 0.65, 0.8];
+      for (const ratio of sampleRows) {
+        const y = Math.min(h - 1, Math.max(0, Math.floor(h * ratio)));
+        const data = ctx.getImageData(0, y, w, 1).data;
+        for (let i = 0; i < data.length; i += 16) {
+          if (data[i] < 252 || data[i + 1] < 252 || data[i + 2] < 252) {
+            return false;
+          }
         }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, w, h);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(img, 0, 0, w, h);
-
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+  
+  function loadDecodedImage(blob) {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(blob);
+      const img = new Image();
+      img.decoding = "sync";
+  
+      img.onload = async () => {
+        try {
+          if (typeof img.decode === "function") {
+            await img.decode().catch(() => {});
+          }
+          resolve({ source: img, width: img.naturalWidth, height: img.naturalHeight, cleanup: () => URL.revokeObjectURL(objectUrl) });
+        } catch (err) {
+          URL.revokeObjectURL(objectUrl);
+          reject(err);
+        }
+      };
+  
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Could not read selected image."));
+      };
+  
+      img.src = objectUrl;
+    });
+  }
+  
+  async function compressFeedbackImage(file, maxEdge = 1280, quality = 0.82) {
+    // Read Android Photo Picker stream fully into RAM first
+    const buffer = await file.arrayBuffer();
+    const safeBlob = new Blob([buffer], { type: file.type || "image/jpeg" });
+  
+    let decoded = null;
+    if (typeof createImageBitmap === "function") {
+      try {
+        const bitmap = await createImageBitmap(safeBlob);
+        decoded = {
+          source: bitmap,
+          width: bitmap.width,
+          height: bitmap.height,
+          cleanup: () => bitmap.close(),
+        };
+      } catch (_) {
+        decoded = null;
+      }
+    }
+  
+    if (!decoded) {
+      decoded = await loadDecodedImage(safeBlob);
+    }
+  
+    try {
+      const origW = decoded.width;
+      const origH = decoded.height;
+      let w = origW;
+      let h = origH;
+  
+      if (w > maxEdge || h > maxEdge) {
+        const scale = maxEdge / Math.max(w, h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+  
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(decoded.source, 0, 0, w, h);
+  
+      // Safety net: if the browser still produced a blank white canvas, use the original image if allowed
+      const allowedOriginalTypes = new Set([
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+      ]);
+      if (
+        isCanvasSolidWhite(ctx, w, h) &&
+        safeBlob.size <= 2 * 1024 * 1024 &&
+        allowedOriginalTypes.has(safeBlob.type)
+      ) {
+        return { blob: safeBlob, width: origW, height: origH };
+      }
+  
+      const blob = await new Promise((resolve, reject) => {
         canvas.toBlob(
-          (blob) => {
-            URL.revokeObjectURL(objectUrl);
-            if (!blob) return reject(new Error("Image compression failed."));
-            resolve({ blob, width: w, height: h });
+          (b) => {
+            if (!b) return reject(new Error("Image compression failed."));
+            resolve(b);
           },
           "image/jpeg",
           quality,
         );
-      } catch (err) {
-        URL.revokeObjectURL(objectUrl);
-        reject(err);
-      }
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error("Could not read selected image."));
-    };
-
-    img.src = objectUrl;
-  });
-}
-
+      });
+  
+      return { blob, width: w, height: h };
+    } finally {
+      decoded.cleanup();
+    }
+  }
 async function handleFeedbackScreenshotPick(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -486,16 +558,19 @@ async function submitFeedbackForm() {
 
   try {
     if (feedbackFormState.fileBlob) {
-      const rand = Math.random().toString(36).slice(2, 8);
-      uploadedPath = `${session.user.id}/${Date.now()}_${rand}.jpg`;
-      const { error: uploadErr } = await supabaseClient.storage
-        .from(FEEDBACK_BUCKET)
-        .upload(uploadedPath, feedbackFormState.fileBlob, {
-          contentType: "image/jpeg",
-          upsert: false,
-        });
-      if (uploadErr) throw uploadErr;
-    }
+        const mime = feedbackFormState.fileBlob.type || "image/jpeg";
+        const ext =
+          mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+        const rand = Math.random().toString(36).slice(2, 8);
+        uploadedPath = `${session.user.id}/${Date.now()}_${rand}.${ext}`;
+        const { error: uploadErr } = await supabaseClient.storage
+          .from(FEEDBACK_BUCKET)
+          .upload(uploadedPath, feedbackFormState.fileBlob, {
+            contentType: mime,
+            upsert: false,
+          });
+        if (uploadErr) throw uploadErr;
+      }
 
     const isBug = feedbackFormState.type === "BUG";
     const includeDiag =
