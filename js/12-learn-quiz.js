@@ -1767,11 +1767,10 @@ function renderQuizQuestion() {
         )
         .join("");
     }
-  } else if (item.type === "pin") {
+} else if (item.type === "pin") {
     if (kickerEl) kickerEl.textContent = "PIN SNIPER";
     if (titleEl) titleEl.textContent = item.record.Address;
-    if (subEl)
-      subEl.textContent = `🏢 ${item.record.Office} — Enter last 3 PIN digits`;
+    if (subEl) subEl.textContent = "Enter last 3 PIN digits";
 
     if (answerArea) {
       answerArea.innerHTML = `
@@ -1910,34 +1909,34 @@ function handleStandardAnswer(selectedIdx) {
 }
 
 function submitPinSniperAnswer() {
-  const q = learnState.quiz;
-  if (!q.active || q.answered) return;
-
-  const inputEl = document.getElementById("learn-pin-input");
-  const submitBtn = document.getElementById("learn-pin-submit-btn");
-  const typed = (inputEl?.value || "").replace(/\D/g, "");
-
-  if (typed.length < 3) {
-    showToast("✍️ Enter all 3 last digits of the PIN");
-    inputEl?.focus();
-    return;
+    const q = learnState.quiz;
+    if (!q.active || q.answered) return;
+  
+    const inputEl = document.getElementById("learn-pin-input");
+    const submitBtn = document.getElementById("learn-pin-submit-btn");
+    const typed = (inputEl?.value || "").replace(/\D/g, "");
+  
+    if (typed.length < 3) {
+      showToast("✏️ Enter all 3 last digits of the PIN");
+      inputEl?.focus();
+      return;
+    }
+  
+    const item = q.questions[q.index];
+    const isCorrect = typed === item.pinSuffix;
+  
+    if (inputEl) {
+      inputEl.disabled = true;
+      inputEl.blur();
+    }
+    if (submitBtn) submitBtn.disabled = true;
+  
+    const note = isCorrect
+      ? `✅ Bullseye! ${item.record.Office} PIN is ${item.fullPin}`
+      : `❌ You entered ${item.pinPrefix}${typed}. Correct PIN is ${item.fullPin} (${item.record.Office})`;
+  
+    finishQuizAnswer(isCorrect, item.record, note);
   }
-
-  const item = q.questions[q.index];
-  const isCorrect = typed === item.pinSuffix;
-
-  if (inputEl) {
-    inputEl.disabled = true;
-    inputEl.blur();
-  }
-  if (submitBtn) submitBtn.disabled = true;
-
-  const note = isCorrect
-    ? `✅ Bullseye! ${item.record.Office} PIN is ${item.fullPin}`
-    : `❌ You entered ${item.pinPrefix}${typed}. Correct PIN is ${item.fullPin}`;
-
-  finishQuizAnswer(isCorrect, item.record, note);
-}
 
 function handleIntruderAnswer(selectedIdx) {
   const q = learnState.quiz;
@@ -2084,7 +2083,7 @@ function finishQuizAnswer(isCorrect, targetRecord, noteText) {
   if (isCorrect && q.autoNext) {
     q.autoNextTimer = setTimeout(() => {
       advanceQuizQuestion();
-    }, 750);
+    }, 1500);
   }
 }
 
