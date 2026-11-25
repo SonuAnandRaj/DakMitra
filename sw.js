@@ -1,4 +1,4 @@
-const CACHE_NAME = "po-directory-v44";
+const CACHE_NAME = "po-directory-v45";
 
 const LOCAL_ASSETS = [
   "./",
@@ -71,8 +71,12 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (!event.request.url.startsWith("http")) return;
 
+  const isPublicAvatar = event.request.url.includes(
+    "/storage/v1/object/public/avatars/"
+  );
+
   if (
-    event.request.url.includes("supabase.co") ||
+    (!isPublicAvatar && event.request.url.includes("supabase.co")) ||
     event.request.url.includes("generate_204") ||
     event.request.url.includes("postalpincode.in")
   ) {
@@ -119,7 +123,11 @@ self.addEventListener("fetch", (event) => {
         .then((cachedResponse) => {
           const networkFetch = fetch(event.request)
             .then((networkResponse) => {
-              if (networkResponse && networkResponse.status === 200) {
+              if (
+                networkResponse &&
+                (networkResponse.status === 200 ||
+                  (isPublicAvatar && networkResponse.type === "opaque"))
+              ) {
                 cache.put(event.request, networkResponse.clone());
               }
               return networkResponse;

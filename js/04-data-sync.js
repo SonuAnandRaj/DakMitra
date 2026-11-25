@@ -194,6 +194,9 @@ async function fetchFromServerBackground() {
     return false;
   }
 
+  if (!supabaseClient) initSupabaseClient();
+  if (!supabaseClient) return false;
+
   try {
     let allRows = [];
     let from = 0;
@@ -213,6 +216,14 @@ async function fetchFromServerBackground() {
       allRows = allRows.concat(data);
       if (data.length < batchSize) break;
       from += batchSize;
+    }
+
+    if (allRows.length === 0 && cachedPostOffices.length > 0) {
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      if (!sessionData?.session) {
+        console.warn("Skipping empty DB overwrite: no active session.");
+        return false;
+      }
     }
 
     const newJson = JSON.stringify(allRows);
@@ -250,6 +261,41 @@ function buildPinSuffixIndex() {
       }
     }
   });
+}
+
+// --- CACHED FUSE.JS INSTANCES (ZERO REBUILD PER KEYSTROKE) ---
+const fuseInstanceCache = new Map();
+
+function clearFuseCache() {
+  fuseInstanceCache.clear();
+}
+
+function getCachedFuseInstance(filterVal, isNumericSearch) {
+  if (!window.Fuse) return null;
+  const cacheKey = `${filterVal}|${isNumericSearch ? "num" : "txt"}`;
+  let instance = fuseInstanceCache.get(cacheKey);
+  if (instance) return instance;
+
+  let keysToSearch = ["Address", "Office", "Pin"];
+  if (filterVal === "address") keysToSearch = ["Address"];
+  if (filterVal === "office") keysToSearch = ["Office"];
+  if (filterVal === "pin") keysToSearch = ["Pin"];
+
+  instance = new Fuse(cachedPostOffices, {
+    keys: keysToSearch,
+    threshold: isNumericSearch ? 0.0 : 0.3,
+    ignoreLocation: isNumericSearch ? true : false,
+    location: 0,
+    distance: 100,
+    includeMatches: true,
+    includeScore: true,
+    getFn: (obj, path) => {
+      const value = obj[path];
+      return value === null || value === undefined ? "" : String(value);
+    },
+  });
+  fuseInstanceCache.set(cacheKey, instance);
+  return instance;
 }
 
 // --- PRECOMPUTED SEARCH & PRIORITY INDEX (ZERO-LAG MOBILE RANKING) ---
@@ -296,6 +342,7 @@ function createSearchMeta(row) {
 }
 
 function buildSearchIndex() {
+  clearFuseCache();
   searchIndexMap.clear();
   if (!cachedPostOffices) return;
   for (let i = 0; i < cachedPostOffices.length; i++) {
@@ -309,6 +356,7 @@ function buildSearchIndex() {
 function updateSearchIndexRow(row) {
   if (!row || row.id === undefined || row.id === null) return;
   searchIndexMap.set(String(row.id), createSearchMeta(row));
+  clearFuseCache();
 }
 
 function getSearchMeta(row) {
@@ -398,15 +446,8 @@ function initializeSearchAndRender(dataChanged = false) {
   document.getElementById("stat-offices").textContent = uniqueOffices;
 
   if (window.Fuse) {
-    fuse = new Fuse(cachedPostOffices, {
-      keys: ["Address", "Office", "Pin"],
-      threshold: 0.3,
-      includeScore: true,
-      ignoreLocation: false,
-      location: 0,
-      distance: 100,
-      includeMatches: true,
-    });
+    clearFuseCache();
+    fuse = getCachedFuseInstance("address", false);
   }
 
   syncFavoritesWithCache();
@@ -608,6 +649,7 @@ function removeLocalPostOffice(id) {
     (r) => String(r.id) !== String(id)
   );
   if (cachedPostOffices.length === beforeLen) return;
+  clearFuseCache();
 
   if (
     (typeof activeOfficeMode === "undefined" ||
@@ -640,15 +682,8 @@ function scheduleLocalUiRefresh() {
     }
 
     if (window.Fuse) {
-      fuse = new Fuse(cachedPostOffices, {
-        keys: ["Address", "Office", "Pin"],
-        threshold: 0.3,
-        ignoreLocation: false,
-        includeScore: true,
-        location: 0,
-        distance: 100,
-        includeMatches: true,
-      });
+      clearFuseCache();
+      fuse = getCachedFuseInstance("address", false);
     }
 
     syncFavoritesWithCache();
@@ -815,15 +850,27 @@ function initRealtimeSync() {
       (payload) => {
         if (
           payload.new?.id &&
-          String(payload.new.id) === String(currentUserId) &&
-          typeof getAccountBlockReason === "function"
+          String(payload.new.id) === String(currentUserId)
         ) {
-          const blocked = getAccountBlockReason(
-            payload.new,
-            isCurrentUserSuperadmin
-          );
-          if (blocked && typeof forceLogoutBlockedUser === "function") {
-            forceLogoutBlockedUser(blocked);
+          const blocked =
+            typeof getAccountBlockReason === "function"
+              ? getAccountBlockReason(payload.new, isCurrentUserSuperadmin)
+              : null;
+          const devMismatch =
+            !blocked &&
+            "device_id" in payload.new &&
+            typeof getDeviceLockMismatchReason === "function"
+              ? getDeviceLockMismatchReason(
+                  payload.new,
+                  isCurrentUserSuperadmin
+                )
+              : null;
+          if (
+            (blocked || devMismatch) &&
+            typeof forceLogoutBlockedUser === "function"
+          ) {
+            forceLogoutBlockedUser(blocked || devMismatch);
+            return;
           }
         }
         if (
@@ -915,7 +962,7 @@ async function hydrateOnlineState(attempt = 1) {
       client
         .from("profiles")
         .select(
-          "name, designation, employee_id, mobile, avatar_url, show_mobile, approval_status, status_note"
+          "device_id, name, designation, employee_id, mobile, avatar_url, show_mobile, approval_status, status_note"
         )
         .eq("id", session.user.id)
         .maybeSingle(),
@@ -925,13 +972,20 @@ async function hydrateOnlineState(attempt = 1) {
     isCurrentUserAdmin = isCurrentUserSuperadmin || Boolean(isAdm);
 
     const profileData = profRes?.data;
-    if (profileData && typeof getAccountBlockReason === "function") {
-      const blocked = getAccountBlockReason(
-        profileData,
-        isCurrentUserSuperadmin
-      );
-      if (blocked && typeof forceLogoutBlockedUser === "function") {
-        await forceLogoutBlockedUser(blocked);
+    if (profileData) {
+      const blocked =
+        typeof getAccountBlockReason === "function"
+          ? getAccountBlockReason(profileData, isCurrentUserSuperadmin)
+          : null;
+      const devMismatch =
+        !blocked && typeof getDeviceLockMismatchReason === "function"
+          ? getDeviceLockMismatchReason(profileData, isCurrentUserSuperadmin)
+          : null;
+      if (
+        (blocked || devMismatch) &&
+        typeof forceLogoutBlockedUser === "function"
+      ) {
+        await forceLogoutBlockedUser(blocked || devMismatch);
         return;
       }
     }

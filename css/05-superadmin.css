@@ -16,6 +16,12 @@
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
+body.keyboard-open #view-superadmin.active {
+  height: calc(var(--vvh, 100dvh) - 88px - env(safe-area-inset-top, 0px));
+  min-height: 0;
+  padding-bottom: 16px;
+}
+
 .sa-announcement-banner {
   padding: 10px 14px;
   border-radius: 14px;
@@ -154,6 +160,7 @@
   margin-top: 12px;
 }
 
+/* Single horizontally scrollable row: centered on desktop, flush-left on phone */
 .sa-tabs-chips {
   justify-content: flex-start;
   overflow-x: auto;

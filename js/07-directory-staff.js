@@ -1147,10 +1147,14 @@ function openDirectoryChipActions(chipEl) {
     Math.min(left, window.innerWidth - barWidth - margin)
   );
 
+  const minTop =
+    (document.querySelector(".app-bar")?.getBoundingClientRect().bottom || 64) +
+    8;
   let top = rect.bottom + 8;
   if (top + barHeight > window.innerHeight - 90) {
     top = rect.top - barHeight - 8;
   }
+  top = Math.max(minTop, Math.min(top, window.innerHeight - barHeight - 16));
 
   bar.style.left = `${left}px`;
   bar.style.top = `${top}px`;
@@ -2705,6 +2709,7 @@ async function toggleRecordPriority(recordId, btnEl) {
   );
 
   try {
+    await ensureSupabaseReady();
     const numericId = Number(recordId);
     const { error } = await supabaseClient.rpc("update_address_priorities", {
       promote_ids: nextPriority === 1 ? [numericId] : [],

@@ -20,6 +20,23 @@ const saState = {
   userModalCallback: null,
 };
 
+function resetSuperadminState() {
+  clearTimeout(saState.dbSearchTimer);
+  saState.activeTab = "controls";
+  saState.users = [];
+  saState.userFilter = "all";
+  saState.schema = [];
+  saState.dbTable = "";
+  saState.dbRows = [];
+  saState.dbTotal = 0;
+  saState.dbPage = 0;
+  saState.dbSortCol = null;
+  saState.dbSortDir = "desc";
+  saState.dbModalRow = null;
+  document.getElementById("sidebar-superadmin-badge")?.classList.add("hidden");
+  document.getElementById("nav-superadmin")?.classList.add("hidden");
+}
+
 // --- ENTRY & TAB SWITCHING ---
 function renderSuperadminView() {
   if (!isCurrentUserSuperadmin) {
@@ -127,8 +144,6 @@ async function saveSuperadminVoteThreshold() {
 
 async function saveSuperadminCmsChanges() {
   if (!(await ensureOnline("Connect to internet to save CMS changes."))) return;
-  const btn = document.getElementById("sa-cms-save-btn");
-  setButtonState(btn, "loading", "Saving...");
 
   const title =
     document.getElementById("sa-cms-title")?.value.trim() || "DakMitra";
@@ -147,12 +162,40 @@ async function saveSuperadminCmsChanges() {
       "DakMitra is undergoing maintenance. Please check back shortly.",
   };
 
-  const results = await Promise.all([
-    saveSuperadminSetting("app_title", title, true),
-    saveSuperadminSetting("app_tagline", tagline, true),
-    saveSuperadminSetting("announcement_banner", banner, true),
-    saveSuperadminSetting("maintenance_mode", maint, true),
-  ]);
+  const updates = [];
+  if (title !== (appConfig.app_title || "DakMitra")) {
+    updates.push(["app_title", title]);
+  }
+  if (tagline !== (appConfig.app_tagline || "The Modern Postal Database")) {
+    updates.push(["app_tagline", tagline]);
+  }
+  if (
+    JSON.stringify(banner) !==
+    JSON.stringify(
+      appConfig.announcement_banner || DEFAULT_APP_CONFIG.announcement_banner
+    )
+  ) {
+    updates.push(["announcement_banner", banner]);
+  }
+  if (
+    JSON.stringify(maint) !==
+    JSON.stringify(
+      appConfig.maintenance_mode || DEFAULT_APP_CONFIG.maintenance_mode
+    )
+  ) {
+    updates.push(["maintenance_mode", maint]);
+  }
+
+  if (updates.length === 0) {
+    return showToast("ℹ️ No CMS changes to save.", "info");
+  }
+
+  const btn = document.getElementById("sa-cms-save-btn");
+  setButtonState(btn, "loading", "Saving...");
+
+  const results = await Promise.all(
+    updates.map(([key, value]) => saveSuperadminSetting(key, value, true))
+  );
 
   if (results.every(Boolean)) {
     setButtonState(btn, "success", "Saved Live!");
@@ -830,30 +873,60 @@ async function saveSuperadminDbRow() {
   if (!(await ensureOnline("Connect to internet to save row."))) return;
 
   const payload = {};
+  const isUpdate =
+    saState.dbModalOp === "UPDATE" && Boolean(saState.dbModalRow);
   const fields = document.querySelectorAll("#sa-db-modal-fields .sa-db-field");
+
   for (const el of fields) {
     if (el.disabled) continue;
     const col = el.getAttribute("data-col");
     const type = el.getAttribute("data-type");
     const val = el.value;
 
-    if (saState.dbModalOp === "INSERT" && val.trim() === "") continue;
+    if (!isUpdate && val.trim() === "") continue;
 
+    let parsedVal;
     if (type === "boolean") {
-      payload[col] = val === "" ? null : val === "true";
+      parsedVal = val === "" ? null : val === "true";
     } else if (type === "jsonb") {
       if (val.trim() === "") {
-        payload[col] = null;
+        parsedVal = null;
       } else {
         try {
-          payload[col] = JSON.parse(val);
+          parsedVal = JSON.parse(val);
         } catch (e) {
           return showToast(`⚠️ Invalid JSON in "${col}"`, "warning");
         }
       }
     } else {
-      payload[col] = val === "" ? null : val;
+      parsedVal = val === "" ? null : val;
     }
+
+    if (isUpdate) {
+      const origVal = saState.dbModalRow[col];
+      if (type === "boolean") {
+        const origBool =
+          origVal === true ? true : origVal === false ? false : null;
+        if (parsedVal === origBool) continue;
+      } else if (type === "jsonb") {
+        if (
+          JSON.stringify(parsedVal ?? null) === JSON.stringify(origVal ?? null)
+        ) {
+          continue;
+        }
+      } else {
+        const origStr =
+          origVal === null || origVal === undefined ? "" : String(origVal);
+        if (val === origStr) continue;
+      }
+    }
+
+    payload[col] = parsedVal;
+  }
+
+  if (isUpdate && Object.keys(payload).length === 0) {
+    closeSuperadminDbModal();
+    return showToast("No changes made.", "info");
   }
 
   const btn = document.getElementById("sa-db-save-btn");
@@ -861,7 +934,7 @@ async function saveSuperadminDbRow() {
   try {
     await ensureSupabaseReady();
     const pkVal =
-      saState.dbModalOp === "UPDATE" && tMeta.pk_column
+      isUpdate && tMeta.pk_column
         ? String(saState.dbModalRow[tMeta.pk_column])
         : null;
 
@@ -878,6 +951,12 @@ async function saveSuperadminDbRow() {
     showToast("✅ Database row saved!", "success");
     await loadSuperadminTableRows(false);
     if (tMeta.table_name === "post_offices") fetchAllPostOffices(true);
+    if (
+      tMeta.table_name === "office_staff" &&
+      typeof fetchOfficeStaffBackground === "function"
+    ) {
+      fetchOfficeStaffBackground();
+    }
     if (tMeta.table_name === "app_settings") fetchAndApplyAppConfig();
   } catch (err) {
     showToast("❌ " + err.message, "error");
@@ -921,20 +1000,40 @@ function deleteSuperadminDbRow() {
 async function exportSuperadminTable(format) {
   if (!saState.dbTable) return;
   if (!(await ensureOnline("Connect to internet to export table."))) return;
-  showToast(`⏳ Exporting ${saState.dbTable}...`, "info");
+  showToast(`⏳ Exporting all rows from ${saState.dbTable}...`, "info");
 
   try {
     await ensureSupabaseReady();
-    const { data, error } = await supabaseClient.rpc("superadmin_query_table", {
-      p_table: saState.dbTable,
-      p_search: document.getElementById("sa-db-search")?.value.trim() || null,
-      p_sort_col: saState.dbSortCol,
-      p_sort_dir: saState.dbSortDir,
-      p_limit: 500,
-      p_offset: 0,
-    });
-    if (error) throw error;
-    const rows = Array.isArray(data?.rows) ? data.rows : [];
+    const BATCH_SIZE = 500;
+    const search =
+      document.getElementById("sa-db-search")?.value.trim() || null;
+    const rows = [];
+    let offset = 0;
+    let totalCount = Infinity;
+
+    while (rows.length < totalCount) {
+      const { data, error } = await supabaseClient.rpc(
+        "superadmin_query_table",
+        {
+          p_table: saState.dbTable,
+          p_search: search,
+          p_sort_col: saState.dbSortCol,
+          p_sort_dir: saState.dbSortDir,
+          p_limit: BATCH_SIZE,
+          p_offset: offset,
+        }
+      );
+      if (error) throw error;
+
+      const batch = Array.isArray(data?.rows) ? data.rows : [];
+      const parsedTotal = Number(data?.total_count);
+      if (!Number.isNaN(parsedTotal)) totalCount = parsedTotal;
+      if (batch.length === 0) break;
+
+      rows.push(...batch);
+      offset += batch.length;
+    }
+
     if (rows.length === 0) return showToast("No rows to export.", "warning");
 
     let content = "";
@@ -962,12 +1061,15 @@ async function exportSuperadminTable(format) {
     }
 
     const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = `DakMitra_${saState.dbTable}.${ext}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
     showToast(
       `📥 Exported ${rows.length} rows (${ext.toUpperCase()})!`,
       "success"

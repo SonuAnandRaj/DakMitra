@@ -295,6 +295,7 @@ async function viewHistory(postOfficeId) {
   }
 
   try {
+    await ensureSupabaseReady();
     const { data, error } = await supabaseClient
       .from("post_offices_history")
       .select("*")
@@ -919,7 +920,7 @@ async function submitBulkSameOffice() {
 
 // --- OFFICE AUTOCOMPLETE DROPDOWNS (INLINE EDIT, MANUAL, BULK & SEARCH FILTER) ---
 function buildOfficeOptionHTML(office, pin, mode) {
-  return `<div class="autocomplete-item" onmousedown="pickOfficeOption(this, '${escapeForOnclick(
+  return `<div class="autocomplete-item" onpointerdown="event.preventDefault(); cancelCloseDropdowns();" onclick="pickOfficeOption(this, '${escapeForOnclick(
     office
   )}', '${escapeForOnclick(pin)}', '${mode}')">
     <div class="ac-item-main">
@@ -1265,55 +1266,79 @@ async function uploadExcel() {
         return alert("Your session has expired. Please sign in again.");
       }
 
-      const formattedData = jsonData
-        .filter((row) => !isSelfParentOfficeRow(row["Address"], row["Office"]))
-        .map((row) => {
-          const rawPrio = String(row["Priority"] ?? "")
-            .trim()
-            .toLowerCase();
-          const priorityVal =
-            rawPrio === "1" ||
-            rawPrio === "high" ||
-            rawPrio === "frequent" ||
-            rawPrio === "yes" ||
-            rawPrio === "true"
-              ? 1
-              : 0;
+      const formattedData = [];
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        const address = String(row["Address"] ?? "").trim();
+        const office = String(row["Office"] ?? "").trim();
+        if (!address || !office) continue;
+        if (isSelfParentOfficeRow(address, office)) continue;
 
-          return {
-            Address: row["Address"],
-            Office: row["Office"],
-            Pin: row["Pin"] ? parseInt(row["Pin"], 10) || null : null,
-            priority: priorityVal,
-            user_id: session.user.id,
-            last_modified_by: session.user.id,
-            last_approved_by: session.user.id,
-            upload_method: "excel_bulk",
-            is_deleted: false,
-          };
+        const rawPrio = String(row["Priority"] ?? "")
+          .trim()
+          .toLowerCase();
+        const priorityVal =
+          rawPrio === "1" ||
+          rawPrio === "high" ||
+          rawPrio === "frequent" ||
+          rawPrio === "yes" ||
+          rawPrio === "true"
+            ? 1
+            : 0;
+
+        const pinStr = String(row["Pin"] ?? "").trim();
+        const parsedPin = pinStr ? parseInt(pinStr, 10) || null : null;
+
+        formattedData.push({
+          Address: address,
+          Office: office,
+          Pin: parsedPin,
+          priority: priorityVal,
+          user_id: session.user.id,
+          last_modified_by: session.user.id,
+          last_approved_by: session.user.id,
+          upload_method: "excel_bulk",
+          is_deleted: false,
         });
+      }
 
       if (formattedData.length === 0) {
-        showToast("ℹ️ No routable address rows found to upload.");
+        showToast("ℹ️ No valid Address + Office rows found to upload.");
         setButtonState(uploadBtn, "idle");
         return;
       }
 
-      const { error } = await supabaseClient
-        .from("post_offices")
-        .insert(formattedData);
-      if (error) {
-        alert("Upload Error: " + error.message);
-        setButtonState(uploadBtn, "idle");
-      } else {
-        setButtonState(uploadBtn, "success", "Uploaded!");
-        showToast("✅ Excel data uploaded successfully!");
-        fileInput.value = "";
-        await fetchAllPostOffices(true);
-        setTimeout(() => {
+      const CHUNK_SIZE = 500;
+      let uploadedCount = 0;
+      for (let start = 0; start < formattedData.length; start += CHUNK_SIZE) {
+        const chunk = formattedData.slice(start, start + CHUNK_SIZE);
+        setButtonState(
+          uploadBtn,
+          "loading",
+          `Uploading ${Math.min(
+            start + chunk.length,
+            formattedData.length
+          )} / ${formattedData.length}...`
+        );
+        const { error } = await supabaseClient
+          .from("post_offices")
+          .insert(chunk);
+        if (error) {
+          alert(`Upload failed after ${uploadedCount} rows: ${error.message}`);
+          if (uploadedCount > 0) await fetchAllPostOffices(true);
           setButtonState(uploadBtn, "idle");
-        }, 2000);
+          return;
+        }
+        uploadedCount += chunk.length;
       }
+
+      setButtonState(uploadBtn, "success", "Uploaded!");
+      showToast(`✅ Uploaded ${uploadedCount} rows from Excel!`);
+      fileInput.value = "";
+      await fetchAllPostOffices(true);
+      setTimeout(() => {
+        setButtonState(uploadBtn, "idle");
+      }, 2000);
     } catch (err) {
       console.error(err);
       alert("Error reading Excel file.");

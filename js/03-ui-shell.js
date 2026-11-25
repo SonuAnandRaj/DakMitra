@@ -59,15 +59,30 @@ async function checkForAppUpdate() {
   if (!(await ensureOnline("Connect to internet to check for updates.")))
     return;
   showToast("🔍 Checking for updates...");
-  if ("serviceWorker" in navigator) {
-    const regs = await navigator.serviceWorker.getRegistrations();
-    for (let reg of regs) {
-      await reg.update();
-    }
+
+  if (!("serviceWorker" in navigator)) {
+    return showToast(`✅ DakMitra v${APP_VERSION} is up to date!`);
   }
-  setTimeout(() => {
-    showToast(`✅ DakMitra v${APP_VERSION} is up to date!`);
-  }, 1000);
+
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    let foundUpdate = false;
+
+    for (const reg of regs) {
+      await reg.update();
+      if (reg.installing || reg.waiting) {
+        foundUpdate = true;
+      }
+    }
+
+    if (foundUpdate) {
+      showToast("⬇️ New update found — installing now...", "info");
+    } else {
+      showToast(`✅ DakMitra v${APP_VERSION} is up to date!`);
+    }
+  } catch (err) {
+    showToast("⚠️ Could not check for updates right now.", "warning");
+  }
 }
 
 initAppVersion();
@@ -282,8 +297,25 @@ function switchDashboardView(viewId) {
   let isRestoringFromPopstate = false;
   let rootGuardPushed = false;
 
+  const DISMISSIBLE_MODAL_SELECTOR =
+    ".modal-overlay.show:not(#maintenance-overlay)";
+
+  function getActiveDashboardViewId() {
+    return (
+      document
+        .querySelector(".view-section.active")
+        ?.id?.replace(/^view-/, "") || "search"
+    );
+  }
+
+  function isMaintenanceLocked() {
+    return !!document
+      .getElementById("maintenance-overlay")
+      ?.classList.contains("show");
+  }
+
   function isRootCleanState() {
-    const hasOpenModal = !!document.querySelector(".modal-overlay.show");
+    const hasOpenModal = !!document.querySelector(DISMISSIBLE_MODAL_SELECTOR);
     const hasOpenSidebar = !!document
       .getElementById("sidebar")
       ?.classList.contains("open");
@@ -300,9 +332,18 @@ function switchDashboardView(viewId) {
   function pushNavStep(tag, viewId = null) {
     if (isHandlingPopstate || isRestoringFromPopstate) return;
     try {
-      const stateObj = { dakmitraNav: tag, ts: Date.now() };
-      if (viewId) stateObj.viewId = viewId;
-      history.pushState(stateObj, "");
+      const resolvedView = viewId || getActiveDashboardViewId();
+      if (
+        tag.startsWith("view:") &&
+        history.state?.dakmitraNav === tag &&
+        history.state?.viewId === resolvedView
+      ) {
+        return;
+      }
+      history.pushState(
+        { dakmitraNav: tag, viewId: resolvedView, ts: Date.now() },
+        ""
+      );
       rootGuardPushed = true;
     } catch (_) {}
   }
@@ -356,6 +397,7 @@ function switchDashboardView(viewId) {
       if (
         m.type === "attributes" &&
         m.attributeName === "class" &&
+        m.target.id !== "maintenance-overlay" &&
         m.target.classList?.contains("modal-overlay") &&
         m.target.classList.contains("show")
       ) {
@@ -365,16 +407,29 @@ function switchDashboardView(viewId) {
     }
   });
 
-  document.querySelectorAll(".modal-overlay").forEach((modal) => {
-    modalObserver.observe(modal, { attributes: true });
-  });
+  document
+    .querySelectorAll(".modal-overlay:not(#maintenance-overlay)")
+    .forEach((modal) => {
+      modalObserver.observe(modal, { attributes: true });
+    });
 
   window.addEventListener("popstate", (event) => {
+    if (isMaintenanceLocked()) {
+      try {
+        history.pushState(
+          { dakmitraNav: "maintenance", viewId: getActiveDashboardViewId() },
+          ""
+        );
+      } catch (_) {}
+      return;
+    }
+
     isHandlingPopstate = true;
+    let shouldSkipStaleStep = false;
 
     try {
       const openModals = Array.from(
-        document.querySelectorAll(".modal-overlay.show")
+        document.querySelectorAll(DISMISSIBLE_MODAL_SELECTOR)
       );
       if (openModals.length > 0) {
         const topModal = openModals[openModals.length - 1];
@@ -486,10 +541,7 @@ function switchDashboardView(viewId) {
           ? event.state.viewId
           : "search";
 
-      const currentViewId =
-        document
-          .querySelector(".view-section.active")
-          ?.id?.replace(/^view-/, "") || "search";
+      const currentViewId = getActiveDashboardViewId();
 
       if (
         currentViewId !== targetView &&
@@ -506,13 +558,29 @@ function switchDashboardView(viewId) {
         return;
       }
 
+      // Skip stale modal/sidebar history entries closed via Cancel/X
+      if (
+        event.state &&
+        !event.state.dakmitraBase &&
+        event.state.dakmitraNav &&
+        event.state.dakmitraNav !== "root"
+      ) {
+        shouldSkipStaleStep = true;
+        return;
+      }
+
       if (isRootCleanState()) {
         showToast("Press Back again to exit DakMitra");
       }
     } finally {
-      setTimeout(() => {
+      if (shouldSkipStaleStep) {
         isHandlingPopstate = false;
-      }, 60);
+        history.back();
+      } else {
+        setTimeout(() => {
+          isHandlingPopstate = false;
+        }, 60);
+      }
     }
   });
 })();

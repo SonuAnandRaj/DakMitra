@@ -30,27 +30,56 @@ function initSupabaseClient() {
   return supabaseClient;
 }
 
+let _supabaseSdkPromise = null;
+let _fuseSdkPromise = null;
+
 function loadScriptDynamically(src) {
   return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing && existing.dataset.loaded === "1") {
+      resolve();
+      return;
+    }
     const s = document.createElement("script");
     s.src = src;
-    s.onload = resolve;
-    s.onerror = reject;
+    s.onload = () => {
+      s.dataset.loaded = "1";
+      resolve();
+    };
+    s.onerror = () => {
+      s.remove();
+      reject(new Error("Failed to load script: " + src));
+    };
     document.head.appendChild(s);
   });
 }
 
 async function ensureSupabaseReady() {
   if (!window.supabase) {
-    await loadScriptDynamically(
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-    );
+    if (!_supabaseSdkPromise) {
+      _supabaseSdkPromise = loadScriptDynamically(
+        "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+      ).catch((err) => {
+        _supabaseSdkPromise = null;
+        throw err;
+      });
+    }
+    await _supabaseSdkPromise;
   }
-  if (!window.Fuse) {
-    await loadScriptDynamically(
+
+  // Load Fuse.js in background so a CDN hiccup never blocks Supabase DB writes
+  if (!window.Fuse && !_fuseSdkPromise) {
+    _fuseSdkPromise = loadScriptDynamically(
       "https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"
-    );
+    )
+      .then(() => {
+        if (typeof clearFuseCache === "function") clearFuseCache();
+      })
+      .catch(() => {
+        _fuseSdkPromise = null;
+      });
   }
+
   return initSupabaseClient();
 }
 

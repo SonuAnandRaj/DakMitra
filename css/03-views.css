@@ -115,8 +115,7 @@
 .search-input-wrapper:focus-within {
   border-color: var(--primary);
   background: var(--card-bg);
-  box-shadow:
-    0 0 0 4px rgba(79, 70, 229, 0.12),
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12),
     0 8px 16px -4px rgba(79, 70, 229, 0.1);
   transform: translateY(-2px);
 }
@@ -420,9 +419,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition:
-    transform 0.15s ease,
-    background 0.2s ease;
+  transition: transform 0.15s ease, background 0.2s ease;
 }
 
 .active-filter-pill button:hover {
@@ -441,9 +438,7 @@
   font-weight: 700;
   cursor: pointer;
   margin-left: auto;
-  transition:
-    transform 0.15s ease,
-    background 0.2s ease;
+  transition: transform 0.15s ease, background 0.2s ease;
 }
 
 .clear-all-filters-pill:hover {
@@ -990,8 +985,7 @@ table.data-table .card-actions {
   left: 0;
   right: 0;
   height: 320px;
-  background:
-    radial-gradient(
+  background: radial-gradient(
       circle at 18% 12%,
       rgba(79, 70, 229, 0.13) 0%,
       transparent 55%
@@ -1008,8 +1002,7 @@ table.data-table .card-actions {
 }
 
 [data-theme="dark"] #view-search::before {
-  background:
-    radial-gradient(
+  background: radial-gradient(
       circle at 18% 12%,
       rgba(129, 140, 248, 0.16) 0%,
       transparent 55%
@@ -1057,9 +1050,7 @@ table.data-table .card-actions {
   width: 4px;
   background: var(--dm-gradient-brand);
   opacity: 0.78;
-  transition:
-    opacity 0.2s ease,
-    width 0.2s ease;
+  transition: opacity 0.2s ease, width 0.2s ease;
 }
 
 #view-search li.list-item:hover::before,
@@ -1347,9 +1338,7 @@ table.data-table .card-actions {
   margin-bottom: 16px;
   padding: 16px;
   box-shadow: var(--shadow-sm);
-  transition:
-    transform 0.25s var(--dm-ease-smooth),
-    box-shadow 0.25s ease,
+  transition: transform 0.25s var(--dm-ease-smooth), box-shadow 0.25s ease,
     border-color 0.25s ease;
 }
 
@@ -1446,10 +1435,7 @@ table.data-table .card-actions {
   background: rgba(14, 165, 233, 0.12);
   color: #0284c7;
   border: 1px solid rgba(14, 165, 233, 0.28);
-  transition:
-    transform 0.15s ease,
-    background 0.2s ease,
-    color 0.2s ease,
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease,
     border-color 0.2s ease;
 }
 
@@ -1536,8 +1522,7 @@ table.data-table .card-actions {
   padding: 11px 10px 9px;
   z-index: 950;
   overflow: hidden;
-  box-shadow:
-    0 18px 36px -8px rgba(15, 23, 42, 0.18),
+  box-shadow: 0 18px 36px -8px rgba(15, 23, 42, 0.18),
     0 6px 14px -4px rgba(79, 70, 229, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(18px) saturate(160%);
@@ -1546,18 +1531,15 @@ table.data-table .card-actions {
   pointer-events: none;
   transform: scale(0.84) translateY(-8px);
   transform-origin: top center;
-  transition:
-    opacity 0.2s ease,
+  transition: opacity 0.2s ease,
     transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 [data-theme="dark"] .directory-floating-bar {
   background: rgba(17, 24, 39, 0.86);
   border-color: rgba(129, 140, 248, 0.28);
-  box-shadow:
-    0 20px 40px -8px rgba(0, 0, 0, 0.65),
-    0 0 0 1px rgba(129, 140, 248, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(129, 140, 248, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .directory-floating-bar.open {
@@ -1571,8 +1553,21 @@ table.data-table .card-actions {
   opacity: 1;
   margin-top: 0;
   transform: translateY(0);
-  justify-content: center !important;
+  justify-content: flex-start !important;
+  overflow-x: auto;
+  scrollbar-width: none;
   gap: 6px !important;
+}
+
+.directory-floating-bar .card-actions::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 400px) {
+  .directory-floating-bar .toolbar-btn {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+  }
 }
 
 @keyframes popoverBtnPop {
@@ -1590,10 +1585,7 @@ table.data-table .card-actions {
   border-radius: 12px !important;
   padding: 7px 10px !important;
   font-weight: 700 !important;
-  transition:
-    transform 0.15s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .directory-floating-bar.open .toolbar-btn {
@@ -1670,10 +1662,7 @@ table.data-table .card-actions {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition:
-    transform 0.15s ease,
-    background 0.2s ease,
-    color 0.2s ease,
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease,
     border-color 0.2s ease;
 }
 
@@ -1868,10 +1857,7 @@ table.data-table .card-actions {
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease,
-    transform 0.15s ease;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
 }
 
 [data-theme="dark"] .quick-delete-tray-btn {
@@ -1963,10 +1949,7 @@ table.data-table .card-actions {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease,
-    transform 0.15s ease;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
 }
 
 [data-theme="dark"] .delete-selected-pill button {
@@ -2156,8 +2139,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
 
 [data-theme="dark"] .edit-modal-card {
   border-color: rgba(129, 140, 248, 0.24);
-  box-shadow:
-    0 24px 50px -12px rgba(0, 0, 0, 0.7),
+  box-shadow: 0 24px 50px -12px rgba(0, 0, 0, 0.7),
     0 0 0 1px rgba(129, 140, 248, 0.12);
 }
 
@@ -2215,10 +2197,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition:
-    transform 0.25s ease,
-    background 0.2s ease,
-    color 0.2s ease;
+  transition: transform 0.25s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .edit-modal-close-btn:hover {
@@ -2304,9 +2283,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   box-shadow: var(--shadow-sm);
   overflow: hidden;
   animation: fadeIn 0.3s var(--dm-ease-smooth);
-  transition:
-    transform 0.25s var(--dm-ease-smooth),
-    box-shadow 0.25s ease;
+  transition: transform 0.25s var(--dm-ease-smooth), box-shadow 0.25s ease;
 }
 
 .approval-card::before {
@@ -2535,8 +2512,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   box-shadow: var(--shadow-lg);
   overflow: hidden;
   cursor: pointer;
-  transition:
-    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
     box-shadow 0.25s ease;
 }
 
@@ -2570,9 +2546,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   justify-content: center;
   cursor: pointer;
   box-shadow: var(--shadow-md);
-  transition:
-    transform 0.2s,
-    background 0.2s;
+  transition: transform 0.2s, background 0.2s;
 }
 
 .avatar-Upload-fab:hover {
@@ -2666,9 +2640,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   color: var(--text-light);
   pointer-events: none;
   z-index: 2;
-  transition:
-    color 0.25s ease,
-    transform 0.25s ease;
+  transition: color 0.25s ease, transform 0.25s ease;
 }
 
 .profile-input-wrapper input,
@@ -2763,9 +2735,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition:
-    transform 0.3s ease,
-    opacity 0.25s ease;
+  transition: transform 0.3s ease, opacity 0.25s ease;
 }
 
 .btn-save-profile svg {
@@ -2899,8 +2869,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   align-items: center;
   justify-content: center;
   box-shadow: 0 14px 30px -8px rgba(79, 70, 229, 0.45);
-  animation:
-    authBadgePop 0.55s var(--dm-ease-spring) both,
+  animation: authBadgePop 0.55s var(--dm-ease-spring) both,
     authBadgeFloat 4.5s ease-in-out 0.6s infinite;
 }
 
@@ -3145,9 +3114,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   overflow: hidden;
   opacity: 0;
   transform: scale(0.98);
-  transition:
-    opacity 0.24s ease,
-    transform 0.28s var(--dm-ease-smooth);
+  transition: opacity 0.24s ease, transform 0.28s var(--dm-ease-smooth);
 }
 
 #crop-modal-overlay.show .crop-studio {
@@ -3239,8 +3206,11 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.28) 1px, transparent 1px),
+  background-image: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.28) 1px,
+      transparent 1px
+    ),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.28) 1px, transparent 1px);
   background-size: 33.33% 33.33%;
   opacity: 0;
@@ -3263,17 +3233,14 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   border-radius: 22px;
   background: rgba(17, 24, 39, 0.84);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 18px 38px -12px rgba(0, 0, 0, 0.75),
+  box-shadow: 0 18px 38px -12px rgba(0, 0, 0, 0.75),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   overflow: hidden;
   opacity: 0;
   transform: translateY(14px) scale(0.96);
-  transition:
-    transform 0.36s var(--dm-ease-spring),
-    opacity 0.26s ease;
+  transition: transform 0.36s var(--dm-ease-spring), opacity 0.26s ease;
 }
 
 .crop-preview-dock::before {
@@ -3338,11 +3305,8 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   border: 1px solid transparent;
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  transition:
-    background 0.22s ease,
-    border-color 0.22s ease,
-    transform 0.2s var(--dm-ease-spring),
-    color 0.2s ease;
+  transition: background 0.22s ease, border-color 0.22s ease,
+    transform 0.2s var(--dm-ease-spring), color 0.2s ease;
 }
 
 .crop-preview-item:active {
@@ -3362,9 +3326,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   border: 2px solid rgba(255, 255, 255, 0.22);
   box-shadow: 0 8px 18px -6px rgba(0, 0, 0, 0.65);
   flex-shrink: 0;
-  transition:
-    border-color 0.25s ease,
-    box-shadow 0.25s ease,
+  transition: border-color 0.25s ease, box-shadow 0.25s ease,
     transform 0.25s var(--dm-ease-spring);
 }
 
@@ -3382,8 +3344,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
 
 .crop-preview-item.active .crop-preview-frame {
   border-color: var(--primary);
-  box-shadow:
-    0 0 0 3px rgba(129, 140, 248, 0.25),
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25),
     0 8px 18px -6px rgba(79, 70, 229, 0.5);
   transform: scale(1.04);
 }
@@ -3434,9 +3395,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   padding: 10px 14px;
   border-radius: 12px;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.15s ease;
+  transition: background 0.2s ease, transform 0.15s ease;
 }
 
 .crop-action-text:active {
@@ -3455,9 +3414,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .crop-rotate-btn:active {
@@ -3479,9 +3436,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   align-items: center;
   gap: 8px;
   box-shadow: 0 6px 18px -4px rgba(79, 70, 229, 0.6);
-  transition:
-    transform 0.15s ease,
-    opacity 0.2s ease;
+  transition: transform 0.15s ease, opacity 0.2s ease;
 }
 
 .crop-save-pill:active {
@@ -3500,9 +3455,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   -webkit-backdrop-filter: blur(12px);
   padding: 0;
   z-index: 3400;
-  transition:
-    opacity 0.25s ease,
-    visibility 0.25s ease,
+  transition: opacity 0.25s ease, visibility 0.25s ease,
     background-color 0.15s ease;
 }
 
@@ -3528,9 +3481,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   justify-content: space-between;
   gap: 12px;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
-  transition:
-    opacity 0.22s ease,
-    transform 0.22s ease;
+  transition: opacity 0.22s ease, transform 0.22s ease;
 }
 
 .lightbox-shell.ui-hidden .lightbox-topbar {
@@ -3568,9 +3519,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.18s var(--dm-ease-spring);
+  transition: background 0.2s ease, transform 0.18s var(--dm-ease-spring);
 }
 
 .lightbox-icon-btn:active {
@@ -3589,9 +3538,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   justify-content: center;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0));
   pointer-events: none;
-  transition:
-    opacity 0.24s ease,
-    transform 0.28s var(--dm-ease-smooth);
+  transition: opacity 0.24s ease, transform 0.28s var(--dm-ease-smooth);
 }
 
 .lightbox-shell.ui-hidden .lightbox-bottombar {
@@ -3608,16 +3555,13 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   border-radius: 999px;
   background: rgba(17, 24, 39, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 18px 40px -10px rgba(0, 0, 0, 0.75),
+  box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.75),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   transform: translateY(14px) scale(0.95);
   opacity: 0;
-  transition:
-    transform 0.34s var(--dm-ease-spring),
-    opacity 0.25s ease;
+  transition: transform 0.34s var(--dm-ease-spring), opacity 0.25s ease;
 }
 
 #avatar-lightbox-overlay.show .lightbox-action-dock {
@@ -3639,11 +3583,8 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   gap: 8px;
   white-space: nowrap;
   cursor: pointer;
-  transition:
-    transform 0.18s var(--dm-ease-spring),
-    background 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+  transition: transform 0.18s var(--dm-ease-spring), background 0.2s ease,
+    box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .lightbox-pill-btn svg {
@@ -3660,8 +3601,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   background: var(--dm-gradient-btn);
   background-size: 200% 200%;
   color: #ffffff;
-  box-shadow:
-    0 6px 18px -4px rgba(79, 70, 229, 0.65),
+  box-shadow: 0 6px 18px -4px rgba(79, 70, 229, 0.65),
     inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
@@ -3700,9 +3640,7 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
   justify-content: center;
   will-change: transform, opacity;
   transform: scale(0.88);
-  transition:
-    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.25s ease;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
 }
 
 #avatar-lightbox-overlay.show .lightbox-media-wrap {
@@ -3812,12 +3750,8 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   justify-content: center;
   flex-shrink: 0;
   margin-top: -2px;
-  transition:
-    transform 0.18s var(--dm-ease-spring),
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: transform 0.18s var(--dm-ease-spring), background 0.2s ease,
+    color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card-priority-btn:hover {
@@ -3863,10 +3797,7 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition:
-    transform 0.16s ease,
-    background 0.2s ease,
-    color 0.2s ease;
+  transition: transform 0.16s ease, background 0.2s ease, color 0.2s ease;
 }
 
 .table-priority-btn:active {
@@ -3900,10 +3831,7 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   background: rgba(245, 158, 11, 0.14);
   color: #d97706;
   border: 1px solid rgba(245, 158, 11, 0.32);
-  transition:
-    transform 0.15s ease,
-    background 0.2s ease,
-    color 0.2s ease,
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease,
     border-color 0.2s ease;
 }
 
@@ -4123,12 +4051,8 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   font-weight: 700;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  transition:
-    transform 0.18s var(--dm-ease-spring),
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: transform 0.18s var(--dm-ease-spring), background 0.2s ease,
+    color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dir-filter-chip:active {
@@ -4147,9 +4071,7 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   font-weight: 800;
   background: var(--input-bg);
   color: var(--text-light);
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 /* Active: All */
@@ -4246,10 +4168,7 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    transform 0.15s ease;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
 
 .dir-filter-reset-btn:hover {
@@ -4275,9 +4194,7 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   text-decoration-style: dotted;
   text-underline-offset: 3px;
   cursor: pointer;
-  transition:
-    opacity 0.18s ease,
-    color 0.18s ease;
+  transition: opacity 0.18s ease, color 0.18s ease;
 }
 
 .history-dir-link:hover,
@@ -4370,9 +4287,7 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   text-align: left;
   width: 100%;
   box-shadow: var(--shadow-sm);
-  transition:
-    transform 0.22s var(--dm-ease-smooth),
-    border-color 0.22s ease,
+  transition: transform 0.22s var(--dm-ease-smooth), border-color 0.22s ease,
     box-shadow 0.22s ease;
 }
 
@@ -4687,10 +4602,7 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   color: var(--text-light);
   border: 1px solid var(--border);
   cursor: pointer;
-  transition:
-    background 0.18s ease,
-    color 0.18s ease,
-    border-color 0.18s ease,
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease,
     transform 0.15s ease;
 }
 
@@ -4784,9 +4696,7 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
 /* Clickable stats inside User Profile Modal */
 .member-stat-pill.is-clickable {
   cursor: pointer;
-  transition:
-    transform 0.18s var(--dm-ease-spring),
-    border-color 0.2s ease,
+  transition: transform 0.18s var(--dm-ease-spring), border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 
@@ -4899,10 +4809,7 @@ body.keyboard-open .feedback-submit-panel {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition:
-    border-color 0.2s ease,
-    color 0.2s ease,
-    background 0.2s ease;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 
 .feedback-upload-dropzone:hover {
@@ -5073,9 +4980,7 @@ body.keyboard-open .feedback-submit-panel {
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    transform 0.15s ease;
+  transition: border-color 0.2s ease, transform 0.15s ease;
 }
 
 .feedback-thumb-btn:hover {
@@ -5365,10 +5270,7 @@ body.keyboard-open
   color: var(--text);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
-  transition:
-    transform 0.15s ease,
-    border-color 0.18s ease,
-    color 0.18s ease,
+  transition: transform 0.15s ease, border-color 0.18s ease, color 0.18s ease,
     background 0.18s ease;
 }
 

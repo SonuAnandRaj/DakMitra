@@ -396,9 +396,18 @@ function scheduleLearnCloudSync(delayMs = 2500) {
   }, delayMs);
 }
 
+function updateQuizSummarySyncStatus(statusText) {
+  const quizSubEl = document.getElementById("quiz-sum-sub");
+  const summaryView = document.getElementById("quiz-summary-view");
+  if (quizSubEl && summaryView && !summaryView.classList.contains("hidden")) {
+    quizSubEl.textContent = `Best streak: ${learnState.quiz.bestStreak}x • ${statusText}`;
+  }
+}
+
 async function pushLearningProgressToCloud() {
   if (!navigator.onLine || !currentUserId) {
     updateLearnSyncStatusText("📴 Saved offline — will sync online");
+    updateQuizSummarySyncStatus("📴 Saved offline");
     return false;
   }
 
@@ -429,10 +438,12 @@ async function pushLearningProgressToCloud() {
 
     learnState.lastSyncedAt = Date.now();
     updateLearnSyncStatusText("☁️ Cloud synced");
+    updateQuizSummarySyncStatus("☁️ Synced to cloud");
     return true;
   } catch (err) {
     console.warn("Learning cloud push skipped:", err?.message || err);
     updateLearnSyncStatusText("📴 Saved locally (offline)");
+    updateQuizSummarySyncStatus("📴 Saved offline");
     return false;
   }
 }
@@ -808,6 +819,22 @@ function resetLearnFlashcardDeck() {
   learnState.fcConsecutiveTraps = 0;
 }
 
+function scrollActiveLearnOfficeChipIntoView() {
+  requestAnimationFrame(() => {
+    ["learn-filter-chips", "quiz-filter-chips"].forEach((id) => {
+      const container = document.getElementById(id);
+      const activeChip = container?.querySelector(".dir-filter-chip.active");
+      if (activeChip && container.offsetParent !== null) {
+        activeChip.scrollIntoView({
+          behavior: "smooth",
+          inline: "center",
+          block: "nearest",
+        });
+      }
+    });
+  });
+}
+
 function setLearnOfficeScope(newOffice) {
   const nextOffice = !newOffice || newOffice === "all" ? "all" : newOffice;
   learnState.officeScope = nextOffice;
@@ -818,6 +845,7 @@ function setLearnOfficeScope(newOffice) {
   if (navigator.vibrate) navigator.vibrate(18);
   renderLearnOverview();
   renderLearnFilterChips();
+  scrollActiveLearnOfficeChipIntoView();
   if (learnState.activeTab === "learn") {
     loadNextFlashcard("none");
   }
@@ -1434,7 +1462,7 @@ function loadNextFlashcard(animDir = "none") {
     record: picked.record,
     isTrap: Boolean(picked.isTrap),
     prevCardSnapshot: null,
-    prevStatsSnapshot: null,
+    lastOutcome: null,
     rating: null,
   };
   learnState.fcHistory.push(entry);
@@ -1507,51 +1535,58 @@ function rateLearnCard(rating) {
   const prog = getLearnProgress();
   const idKey = String(rec.id);
   const entry = learnState.fcHistory[learnState.fcHistoryIndex];
+  let isReRating = false;
 
-  // Undo-safe re-rating if user swiped back to an already-rated card
+  // Delta-safe re-rating: only reverts THIS card's prior box & XP without touching later cards
   if (entry && entry.recordId === idKey) {
-    if (
-      entry.rating !== null &&
-      entry.prevCardSnapshot &&
-      entry.prevStatsSnapshot
-    ) {
+    if (entry.rating !== null && entry.prevCardSnapshot && entry.lastOutcome) {
+      isReRating = true;
       if (entry.prevCardSnapshot === "__NEW__") {
         delete prog.cards[idKey];
       } else {
         prog.cards[idKey] = { ...entry.prevCardSnapshot };
       }
 
-      const today = getLearnLocalDateKey();
-      prog.stats.totalAnswered = entry.prevStatsSnapshot.totalAnswered;
-      prog.stats.totalCorrect = entry.prevStatsSnapshot.totalCorrect;
-      prog.stats.xp = entry.prevStatsSnapshot.xp;
-      prog.stats.streakDays = entry.prevStatsSnapshot.streakDays;
-      prog.stats.lastPracticeDate = entry.prevStatsSnapshot.lastPracticeDate;
-      if (entry.prevStatsSnapshot.dailyDate === today) {
-        prog.stats.dailyDate = today;
-        prog.stats.dailyCount = entry.prevStatsSnapshot.dailyCount;
+      prog.stats.totalAnswered = Math.max(
+        0,
+        (prog.stats.totalAnswered || 0) - 1
+      );
+      if (entry.lastOutcome.wasCorrect) {
+        prog.stats.totalCorrect = Math.max(
+          0,
+          (prog.stats.totalCorrect || 0) - 1
+        );
+      }
+      prog.stats.xp = Math.max(
+        0,
+        (prog.stats.xp || 0) - (entry.lastOutcome.xpDelta || 0)
+      );
+      if (entry.lastOutcome.dailyDate === getLearnLocalDateKey()) {
+        prog.stats.dailyCount = Math.max(0, (prog.stats.dailyCount || 0) - 1);
       }
     } else {
       entry.prevCardSnapshot = prog.cards[idKey]
         ? { ...prog.cards[idKey] }
         : "__NEW__";
-      entry.prevStatsSnapshot = { ...prog.stats };
     }
     entry.rating = rating;
   }
 
-  const { hitDailyGoal } = recordLearnCardOutcome(
-    rec.id,
-    rating,
-    null,
-    "flashcard"
-  );
+  const outcome = recordLearnCardOutcome(rec.id, rating, null, "flashcard");
+
+  if (entry && entry.recordId === idKey) {
+    entry.lastOutcome = {
+      xpDelta: outcome.xpDelta,
+      wasCorrect: rating === "good" || rating === "easy",
+      dailyDate: getLearnLocalDateKey(),
+    };
+  }
 
   if (navigator.vibrate) {
     navigator.vibrate(rating === "again" ? [35, 35, 35] : 25);
   }
 
-  if (hitDailyGoal) {
+  if (outcome.hitDailyGoal && !isReRating) {
     showToast("🎉 Daily learning goal reached!", "success");
   }
 
@@ -1611,9 +1646,11 @@ function switchLearnTab(tab) {
   if (learnState.activeTab === "learn") {
     renderLearnOverview();
     renderLearnFilterChips();
+    scrollActiveLearnOfficeChipIntoView();
     if (!learnState.fcCurrentRecord) loadNextFlashcard();
   } else if (learnState.activeTab === "quiz") {
     renderLearnFilterChips();
+    scrollActiveLearnOfficeChipIntoView();
     if (typeof renderQuizSetupView === "function") {
       renderQuizSetupView();
     }

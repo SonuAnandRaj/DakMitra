@@ -42,32 +42,44 @@ function escapeHTML(str) {
 }
 
 function escapeForOnclick(str) {
-  if (!str) return "";
+  if (str === null || str === undefined) return "";
   return String(str)
     .replace(/\\/g, "\\\\")
     .replace(/'/g, "\\'")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 // --- BACKGROUND "LIE-FI" DETECTOR (Use ONLY for silent reconnect / wake-up) ---
 async function checkActualInternet(timeoutMs = 2500) {
   if (!navigator.onLine) return false;
-  try {
+
+  const probe = async (url) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      await fetch(url, {
+        method: "HEAD",
+        mode: "no-cors",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
 
-    await fetch("https://clients3.google.com/generate_204", {
-      method: "HEAD",
-      mode: "no-cors",
-      cache: "no-store",
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-    return true;
-  } catch (e) {
-    return false;
+  if (await probe("https://clients3.google.com/generate_204")) return true;
+  if (typeof SUPABASE_URL === "string" && SUPABASE_URL) {
+    return await probe(SUPABASE_URL);
   }
+  return false;
 }
 
 function isNetworkError(err) {
@@ -94,7 +106,7 @@ window.addEventListener("online", () => {
 
 function showOfflineToast(
   extraMsg = "Using cached version.",
-  isActiveAction = false,
+  isActiveAction = false
 ) {
   if (!isActiveAction && hasShownPassiveOfflineToast) return;
 
@@ -106,16 +118,26 @@ function showOfflineToast(
   showToast(`📴 No internet connection. ${extraMsg}`);
 }
 
-// For DB writes/actions: only block if the OS reports offline; let slow networks connect to Supabase
+// For DB writes/actions: block if offline, and ensure Supabase SDK is ready after an offline boot
 async function ensureOnline(
   offlineMsg = "Using cached version.",
-  isActiveAction = true,
+  isActiveAction = true
 ) {
   if (!navigator.onLine) {
     showOfflineToast(offlineMsg, isActiveAction);
     return false;
   }
   hasShownPassiveOfflineToast = false;
+  try {
+    const client = await ensureSupabaseReady();
+    if (!client) {
+      showOfflineToast(offlineMsg, isActiveAction);
+      return false;
+    }
+  } catch (_) {
+    showOfflineToast(offlineMsg, isActiveAction);
+    return false;
+  }
   return true;
 }
 
@@ -126,21 +148,21 @@ function detectToastType(message) {
   const msg = String(message || "");
   if (
     /[✅🎉✨📥📋✉️]|\b(success|saved|updated|copied|exported|added|created|up to date)\b/i.test(
-      msg,
+      msg
     )
   ) {
     return "success";
   }
   if (
     /[❌🗑️]|\b(error|failed|deleted|removed|denied|expired|invalid)\b/i.test(
-      msg,
+      msg
     )
   ) {
     return "error";
   }
   if (
     /[⚠️📴⭐⏹️]|\b(offline|no internet|warning|stopped|please|not found)\b/i.test(
-      msg,
+      msg
     )
   ) {
     return "warning";
@@ -178,7 +200,7 @@ function setButtonState(btn, state, label = "") {
     btn.disabled = true;
     btn.classList.add("is-loading");
     btn.innerHTML = `<div class="btn-spinner"></div><span>${escapeHTML(
-      label || "Working...",
+      label || "Working..."
     )}</span>`;
   } else if (state === "success") {
     btn.disabled = true;

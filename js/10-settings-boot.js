@@ -30,7 +30,7 @@ function applyExportMode(mode) {
 function clearAppCache() {
   showCustomConfirm(
     "Clear Cache?",
-    "This will reset your recent searches and preferences. You will not lose your database records.",
+    "This will reset your recent searches and cached copies. Your database records on the server are safe.",
     "Clear Cache",
     () => {
       localStorage.removeItem(HISTORY_KEY);
@@ -42,12 +42,35 @@ function clearAppCache() {
       localStorage.removeItem("dakmitra_members_cache");
       localStorage.removeItem("dakmitra_feedback_cache");
       localStorage.removeItem("dakmitra_learning_leaderboard_cache");
+      localStorage.removeItem("dakmitra_approvals_cache_pending");
+      localStorage.removeItem("dakmitra_approvals_cache_resolved");
+
+      // Clear per-record cached history timelines
+      const historyKeys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith("dakmitra_history_")) historyKeys.push(k);
+      }
+      historyKeys.forEach((k) => localStorage.removeItem(k));
+
+      if (typeof membersDirectoryData !== "undefined") {
+        membersDirectoryData = [];
+        membersDirectoryLoaded = false;
+      }
+      if (typeof userProfileCache !== "undefined") userProfileCache.clear();
       if (typeof invalidateFeedbackCache === "function") {
         invalidateFeedbackCache();
       }
-      showToast("🧹 Cache cleared successfully!");
+
       loadSearchHistory();
       invalidateApprovalsCache();
+
+      if (navigator.onLine) {
+        showToast("🧹 Cache cleared! Refreshing offline copy...");
+        fetchAllPostOffices(true);
+      } else {
+        showToast("🧹 Cache cleared!");
+      }
     }
   );
 }
@@ -522,7 +545,7 @@ async function checkUserSession() {
           supabaseClient
             .from("profiles")
             .select(
-              "name, designation, employee_id, mobile, avatar_url, show_mobile, approval_status, status_note"
+              "device_id, name, designation, employee_id, mobile, avatar_url, show_mobile, approval_status, status_note"
             )
             .eq("id", session.user.id)
             .single()
@@ -532,10 +555,20 @@ async function checkUserSession() {
         isCurrentUserSuperadmin = Boolean(isSuper);
         isCurrentUserAdmin = isCurrentUserSuperadmin || Boolean(isAdmin);
 
-        if (prof && typeof getAccountBlockReason === "function") {
-          const blocked = getAccountBlockReason(prof, isCurrentUserSuperadmin);
-          if (blocked && typeof forceLogoutBlockedUser === "function") {
-            await forceLogoutBlockedUser(blocked);
+        if (prof) {
+          const blocked =
+            typeof getAccountBlockReason === "function"
+              ? getAccountBlockReason(prof, isCurrentUserSuperadmin)
+              : null;
+          const devMismatch =
+            !blocked && typeof getDeviceLockMismatchReason === "function"
+              ? getDeviceLockMismatchReason(prof, isCurrentUserSuperadmin)
+              : null;
+          if (
+            (blocked || devMismatch) &&
+            typeof forceLogoutBlockedUser === "function"
+          ) {
+            await forceLogoutBlockedUser(blocked || devMismatch);
             return;
           }
         }

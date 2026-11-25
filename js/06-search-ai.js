@@ -735,20 +735,22 @@ function runPostalSearchEngine({
     isNumericSearch = /^\d+$/.test(cleanQuery);
 
     if (window.Fuse) {
-      const localFuse = new Fuse(searchDataset, {
-        keys: keysToSearch,
-        threshold: isNumericSearch ? 0.0 : 0.3,
-        ignoreLocation: isNumericSearch ? true : false,
-        location: 0,
-        distance: 100,
-        includeMatches: true,
-        includeScore: true,
-        getFn: (obj, path) => {
-          const value = obj[path];
-          return value === null || value === undefined ? "" : String(value);
-        },
-      });
-      baseData = localFuse.search(cleanQuery);
+      const localFuse = !targetOffice
+        ? getCachedFuseInstance(filterVal, isNumericSearch)
+        : new Fuse(searchDataset, {
+            keys: keysToSearch,
+            threshold: isNumericSearch ? 0.0 : 0.3,
+            ignoreLocation: isNumericSearch ? true : false,
+            location: 0,
+            distance: 100,
+            includeMatches: true,
+            includeScore: true,
+            getFn: (obj, path) => {
+              const value = obj[path];
+              return value === null || value === undefined ? "" : String(value);
+            },
+          });
+      baseData = localFuse ? localFuse.search(cleanQuery) : [];
     } else {
       // Safe fallback if Fuse CDN hasn't finished loading yet
       const qLower = cleanQuery.toLowerCase();
@@ -830,7 +832,7 @@ function triggerSearch(hidePanels = false, options = {}) {
     closeAllDropdowns();
   }
 
-  if (!fuse) return;
+  if (!cachedPostOffices || cachedPostOffices.length === 0) return;
 
   const searchInput = document.getElementById("search-input").value.trim();
   const filterVal = document.querySelector(
@@ -1898,6 +1900,7 @@ async function executeAiOfficeEstimation(query) {
     }
   ]`;
 
+    await ensureSupabaseReady();
     const { data, error } = await supabaseClient.functions.invoke(
       "ai-postal-search",
       { body: { prompt } }
@@ -2040,6 +2043,9 @@ function renderAiEstimationCards(query, estimations) {
 
 function prefillUploadFromAi(address, office, pin) {
   switchDashboardView("upload");
+  if (typeof switchManualUploadTab === "function") {
+    switchManualUploadTab("rows");
+  }
   const container = document.getElementById("manual-entries-container");
   const safePin = !pin || pin === "N/A" ? "" : pin;
 
@@ -2100,5 +2106,6 @@ function exportCSV() {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
   showToast("📥 CSV Exported successfully!");
 }

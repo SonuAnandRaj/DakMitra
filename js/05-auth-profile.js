@@ -50,7 +50,7 @@ async function handleAuth() {
     return showAlert("Please fill in all required fields.");
 
   const splashScreen = document.getElementById("splash-screen");
-  splashScreen.classList.remove("hidden-splash");
+  showSplashScreen();
 
   if (currentMode === "signup") {
     const name = document.getElementById("signup-name").value.trim();
@@ -152,32 +152,22 @@ async function handleAuth() {
       return;
     }
 
-    let localDeviceId = localStorage.getItem("dakmitra_device_id");
-    if (!localDeviceId) {
-      localDeviceId =
-        "dev_" + Math.random().toString(36).substring(2) + Date.now();
-      localStorage.setItem("dakmitra_device_id", localDeviceId);
-    }
-
-    if (profileData.device_id && profileData.device_id !== localDeviceId) {
-      await supabaseClient.auth.signOut();
+    const devCheck = await enforceAndBindDeviceOnSignIn(
+      authData.user.id,
+      profileData,
+      isSuper
+    );
+    if (!devCheck.ok) {
+      await forceLogoutBlockedUser(devCheck.reason);
       splashScreen.classList.add("hidden-splash");
-      return showAlert(
-        "Login Denied: Account already registered on another device."
-      );
-    }
-
-    if (!profileData.device_id) {
-      await supabaseClient
-        .from("profiles")
-        .update({ device_id: localDeviceId })
-        .eq("id", authData.user.id);
+      return;
     }
 
     localStorage.setItem(
       "dakmitra_cached_profile",
       JSON.stringify({
         ...profileData,
+        device_id: devCheck.device_id,
         email: authData.user.email,
         is_superadmin: isSuper,
       })
@@ -231,17 +221,107 @@ function getAccountBlockReason(profileData, isSuper = false) {
   return null;
 }
 
+function getOrCreateLocalDeviceId() {
+  let localDeviceId = localStorage.getItem("dakmitra_device_id");
+  if (!localDeviceId) {
+    localDeviceId =
+      "dev_" + Math.random().toString(36).substring(2) + Date.now();
+    localStorage.setItem("dakmitra_device_id", localDeviceId);
+  }
+  return localDeviceId;
+}
+
+function getDeviceLockMismatchReason(profileData, isSuper = false) {
+  if (isSuper) return null; // Keeps Superadmin accessible across dev & mobile
+  const localDeviceId = localStorage.getItem("dakmitra_device_id");
+  if (!profileData?.device_id) {
+    return "Session Ended: Your device lock was reset by Superadmin. Please sign in again.";
+  }
+  if (!localDeviceId || profileData.device_id !== localDeviceId) {
+    return "Session Ended: Account is registered on another device.";
+  }
+  return null;
+}
+
+async function enforceAndBindDeviceOnSignIn(
+  userId,
+  profileData,
+  isSuper = false
+) {
+  if (isSuper) {
+    return { ok: true, device_id: profileData?.device_id || null };
+  }
+
+  const localDeviceId = getOrCreateLocalDeviceId();
+  if (profileData?.device_id && profileData.device_id !== localDeviceId) {
+    return {
+      ok: false,
+      reason: "Login Denied: Account already registered on another device.",
+    };
+  }
+
+  if (!profileData?.device_id) {
+    const { error } = await supabaseClient
+      .from("profiles")
+      .update({ device_id: localDeviceId })
+      .eq("id", userId);
+    if (error) {
+      return { ok: false, reason: "Error binding device: " + error.message };
+    }
+  }
+
+  return { ok: true, device_id: localDeviceId };
+}
+
+function clearSessionCachesAndState() {
+  isCurrentUserAdmin = false;
+  isCurrentUserSuperadmin = false;
+  currentUserId = null;
+
+  localStorage.removeItem("dakmitra_cached_profile");
+  localStorage.removeItem("dakmitra_members_cache");
+  localStorage.removeItem("dakmitra_feedback_cache");
+  localStorage.removeItem("dakmitra_feedback_draft");
+  localStorage.removeItem("dakmitra_learning_leaderboard_cache");
+  localStorage.removeItem("dakmitra_approvals_cache_pending");
+  localStorage.removeItem("dakmitra_approvals_cache_resolved");
+
+  if (typeof invalidateApprovalsCache === "function") {
+    invalidateApprovalsCache();
+  }
+  if (typeof resetApprovalsFiltersStateOnly === "function") {
+    resetApprovalsFiltersStateOnly();
+  }
+  if (typeof invalidateFeedbackCache === "function") invalidateFeedbackCache();
+  if (typeof updateSidebarFeedbackBadge === "function") {
+    updateSidebarFeedbackBadge(0);
+  }
+  if (typeof resetLearnMemoryState === "function") resetLearnMemoryState();
+  if (typeof resetSuperadminState === "function") resetSuperadminState();
+
+  membersDirectoryData = [];
+  membersDirectoryLoaded = false;
+  if (typeof userProfileCache !== "undefined") userProfileCache.clear();
+
+  document.getElementById("maintenance-overlay")?.classList.remove("show");
+  if (typeof closeAllDirectoryActionTrays === "function") {
+    closeAllDirectoryActionTrays();
+  }
+}
+
 async function forceLogoutBlockedUser(reasonMsg) {
   try {
     teardownRealtimeSync();
     if (supabaseClient) await supabaseClient.auth.signOut();
   } catch (_) {}
-  isCurrentUserAdmin = false;
-  isCurrentUserSuperadmin = false;
-  currentUserId = null;
-  localStorage.removeItem("dakmitra_cached_profile");
+
+  clearSessionCachesAndState();
   localStorage.removeItem("dakmitra_offline_db");
   localStorage.removeItem(OFFICE_STAFF_CACHE_KEY);
+  cachedPostOffices = [];
+  cachedOfficeStaff = [];
+  officeStaffByKeyMap.clear();
+
   document.getElementById("dashboard-view")?.classList.add("hidden");
   document.getElementById("auth-view")?.classList.remove("hidden");
   switchTab("signin");
@@ -252,20 +332,7 @@ async function signOutApp() {
   await ensureSupabaseReady();
   teardownRealtimeSync();
   await supabaseClient.auth.signOut();
-  isCurrentUserAdmin = false;
-  isCurrentUserSuperadmin = false;
-  currentUserId = null;
-  localStorage.removeItem("dakmitra_cached_profile");
-  localStorage.removeItem("dakmitra_members_cache");
-  localStorage.removeItem("dakmitra_feedback_cache");
-  localStorage.removeItem("dakmitra_feedback_draft");
-  if (typeof invalidateFeedbackCache === "function") invalidateFeedbackCache();
-  if (typeof updateSidebarFeedbackBadge === "function") {
-    updateSidebarFeedbackBadge(0);
-  }
-  localStorage.removeItem("dakmitra_learning_leaderboard_cache");
-  if (typeof resetLearnMemoryState === "function") resetLearnMemoryState();
-  if (typeof userProfileCache !== "undefined") userProfileCache.clear();
+  clearSessionCachesAndState();
   closeSidebar();
   checkUserSession();
 }
@@ -288,18 +355,87 @@ async function registerDevicePasskey() {
 
 async function signInWithDevice() {
   await ensureSupabaseReady();
+  hideAlert();
   const splashScreen = document.getElementById("splash-screen");
-  splashScreen.classList.remove("hidden-splash");
+  showSplashScreen();
 
   try {
-    const { error } = await supabaseClient.auth.signInWithPasskey();
+    const { data: authData, error } =
+      await supabaseClient.auth.signInWithPasskey();
     if (error) throw error;
+
+    const user =
+      authData?.user || (await supabaseClient.auth.getUser())?.data?.user;
+    if (!user) throw new Error("Unable to verify user session.");
+
+    const { data: profileData, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select(
+        "device_id, name, designation, employee_id, mobile, avatar_url, show_mobile, approval_status, status_note"
+      )
+      .eq("id", user.id)
+      .single();
+
+    if (profileError) {
+      await supabaseClient.auth.signOut();
+      splashScreen.classList.add("hidden-splash");
+      return showAlert("Error checking account profile.");
+    }
+
+    const isSuper =
+      typeof checkIfSuperadmin === "function"
+        ? await checkIfSuperadmin(user.id)
+        : false;
+
+    const blockedMsg = getAccountBlockReason(profileData, isSuper);
+    if (blockedMsg) {
+      await forceLogoutBlockedUser(blockedMsg);
+      splashScreen.classList.add("hidden-splash");
+      return;
+    }
+
+    const devCheck = await enforceAndBindDeviceOnSignIn(
+      user.id,
+      profileData,
+      isSuper
+    );
+    if (!devCheck.ok) {
+      await forceLogoutBlockedUser(devCheck.reason);
+      splashScreen.classList.add("hidden-splash");
+      return;
+    }
+
+    localStorage.setItem(
+      "dakmitra_cached_profile",
+      JSON.stringify({
+        ...profileData,
+        device_id: devCheck.device_id,
+        email: user.email,
+        is_superadmin: isSuper,
+      })
+    );
 
     showToast("🔓 Verified by Device");
     checkUserSession();
   } catch (err) {
     splashScreen.classList.add("hidden-splash");
     showAlert("Device authentication failed. Try again.");
+  }
+}
+
+// --- DEVICE PASSKEYS ---
+async function registerDevicePasskey() {
+  await ensureSupabaseReady();
+  try {
+    const { error } = await supabaseClient.auth.registerPasskey();
+    if (error) throw error;
+    showToast("✅ Device successfully registered!");
+  } catch (err) {
+    showCustomAlert(
+      "Passkey Failed",
+      "Passkey registration failed: " + err.message,
+      "⚠️"
+    );
   }
 }
 
@@ -453,41 +589,112 @@ async function saveProfileDetails() {
   }
 }
 
-async function updateAvatarInDatabase(avatarDataUrl) {
+const AVATAR_BUCKET = "avatars";
+
+async function cleanupOldStorageAvatars(userId, keepFileName = null) {
+  if (!userId || !supabaseClient) return;
+  try {
+    const { data: files, error } = await supabaseClient.storage
+      .from(AVATAR_BUCKET)
+      .list(String(userId));
+    if (error || !Array.isArray(files) || files.length === 0) return;
+
+    const toRemove = files
+      .filter((f) => f?.name && f.name !== keepFileName)
+      .map((f) => `${userId}/${f.name}`);
+
+    if (toRemove.length > 0) {
+      await supabaseClient.storage.from(AVATAR_BUCKET).remove(toRemove);
+    }
+  } catch (_) {}
+}
+
+async function updateAvatarInDatabase(avatarUrlOrBlob) {
   if (!(await ensureOnline("Connect to internet to update your photo.")))
-    return;
-  await ensureSupabaseReady();
+    return false;
+
   const {
     data: { session },
   } = await supabaseClient.auth.getSession();
-  if (!session) return showToast("⚠️ Please sign in to update your photo.");
-
-  showToast("⏳ Updating profile picture...");
-
-  const { error } = await supabaseClient
-    .from("profiles")
-    .update({ avatar_url: avatarDataUrl })
-    .eq("id", session.user.id);
-
-  if (error) {
-    return alert("Failed to update picture: " + error.message);
+  if (!session) {
+    showToast("⚠️ Please sign in to update your photo.");
+    return false;
   }
 
-  let cachedProfile = {};
+  const userId = session.user.id;
+  showToast("⏳ Updating profile picture...");
+
+  let nextAvatarUrl = null;
+  let uploadedFileName = null;
+  let uploadedPath = null;
+
   try {
-    cachedProfile =
-      JSON.parse(localStorage.getItem("dakmitra_cached_profile")) || {};
-  } catch (e) {}
-  cachedProfile.avatar_url = avatarDataUrl;
-  localStorage.setItem(
-    "dakmitra_cached_profile",
-    JSON.stringify(cachedProfile)
-  );
+    if (avatarUrlOrBlob instanceof Blob) {
+      uploadedFileName = `avatar_${Date.now()}.jpg`;
+      uploadedPath = `${userId}/${uploadedFileName}`;
 
-  userProfileCache.delete(String(session.user.id));
+      const { error: uploadErr } = await supabaseClient.storage
+        .from(AVATAR_BUCKET)
+        .upload(uploadedPath, avatarUrlOrBlob, {
+          contentType: "image/jpeg",
+          cacheControl: "31536000",
+          upsert: false,
+        });
 
-  renderUserProfileUI(cachedProfile, session.user.email);
-  showToast("✨ Profile picture updated!");
+      if (uploadErr) throw uploadErr;
+
+      const { data: publicData } = supabaseClient.storage
+        .from(AVATAR_BUCKET)
+        .getPublicUrl(uploadedPath);
+      nextAvatarUrl = publicData?.publicUrl || null;
+      if (!nextAvatarUrl) throw new Error("Could not resolve avatar URL.");
+    } else if (typeof avatarUrlOrBlob === "string" && avatarUrlOrBlob.trim()) {
+      nextAvatarUrl = avatarUrlOrBlob.trim();
+    }
+
+    const { error } = await supabaseClient
+      .from("profiles")
+      .update({ avatar_url: nextAvatarUrl })
+      .eq("id", userId);
+
+    if (error) {
+      if (uploadedPath) {
+        supabaseClient.storage
+          .from(AVATAR_BUCKET)
+          .remove([uploadedPath])
+          .catch(() => {});
+      }
+      throw error;
+    }
+
+    // Delete older files in Storage only after the DB update succeeds
+    await cleanupOldStorageAvatars(userId, uploadedFileName);
+
+    let cachedProfile = {};
+    try {
+      cachedProfile =
+        JSON.parse(localStorage.getItem("dakmitra_cached_profile")) || {};
+    } catch (e) {}
+    cachedProfile.avatar_url = nextAvatarUrl;
+    localStorage.setItem(
+      "dakmitra_cached_profile",
+      JSON.stringify(cachedProfile)
+    );
+
+    userProfileCache.delete(String(userId));
+    membersDirectoryLoaded = false;
+
+    renderUserProfileUI(cachedProfile, session.user.email);
+    showToast(
+      nextAvatarUrl
+        ? "✨ Profile picture updated!"
+        : "🗑️ Profile picture removed."
+    );
+    return true;
+  } catch (err) {
+    alert("Failed to update picture: " + err.message);
+    return false;
+  }
 }
 
 function removeProfilePic() {
@@ -497,7 +704,8 @@ function removeProfilePic() {
     "Remove",
     async () => {
       await updateAvatarInDatabase(null);
-      document.getElementById("profile-pic-input").value = "";
+      const input = document.getElementById("profile-pic-input");
+      if (input) input.value = "";
     }
   );
 }
@@ -664,6 +872,12 @@ function closeCropModal() {
   const input = document.getElementById("profile-pic-input");
   if (input) input.value = "";
   cropState.pointers.clear();
+
+  if (cropState.objectUrl) {
+    const urlToRevoke = cropState.objectUrl;
+    cropState.objectUrl = null;
+    setTimeout(() => URL.revokeObjectURL(urlToRevoke), 320);
+  }
 }
 
 function renderCropToCanvas() {
@@ -696,17 +910,28 @@ function renderCropToCanvas() {
 async function applyCropAndUpload() {
   const canvas = renderCropToCanvas();
   if (!canvas) return;
-  const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
 
   const btn = document.getElementById("apply-crop-btn");
   btn.textContent = "Saving...";
   btn.disabled = true;
 
-  await updateAvatarInDatabase(compressedDataUrl);
+  try {
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("Image encoding failed."))),
+        "image/jpeg",
+        0.85
+      );
+    });
 
-  btn.textContent = "Save Photo";
-  btn.disabled = false;
-  closeCropModal();
+    const ok = await updateAvatarInDatabase(blob);
+    if (ok) closeCropModal();
+  } catch (err) {
+    showToast("❌ " + (err.message || "Could not process photo."), "error");
+  } finally {
+    btn.textContent = "Save Photo";
+    btn.disabled = false;
+  }
 }
 
 (function initCropGestures() {
