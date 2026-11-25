@@ -552,12 +552,11 @@ async function submitFeedbackForm() {
     );
 
     setTimeout(() => {
-      submitBtn.classList.remove("is-success");
-      submitBtn.disabled = false;
-      submitContent.innerHTML = getFeedbackSubmitBtnDefaultHTML();
-      switchFeedbackTab("board");
-      loadFeedbackBoardOrCache(true);
-    }, 650);
+        submitBtn.classList.remove("is-success");
+        submitBtn.disabled = false;
+        submitContent.innerHTML = getFeedbackSubmitBtnDefaultHTML();
+        switchFeedbackTab("board");
+      }, 650);
   } catch (err) {
     submitBtn.classList.remove("is-loading", "is-success");
     submitBtn.disabled = false;
@@ -743,7 +742,7 @@ function buildFeedbackCardHTML(item, searchQuery) {
   const thumbSrc =
     cachedSigned && cachedSigned.expiresAt > Date.now() ? cachedSigned.url : "";
 
-  const attachmentHtml = item.attachment_path
+    const attachmentHtml = item.attachment_path
     ? `<button
          type="button"
          class="feedback-thumb-btn"
@@ -753,7 +752,7 @@ function buildFeedbackCardHTML(item, searchQuery) {
        >
          <img
            data-fb-thumb-path="${escapeHTML(item.attachment_path)}"
-           src="${escapeHTML(thumbSrc)}"
+           ${thumbSrc ? `src="${escapeHTML(thumbSrc)}"` : ""}
            alt="Attachment"
            class="${thumbSrc ? "" : "hidden"}"
          />
@@ -858,73 +857,127 @@ function buildFeedbackCardHTML(item, searchQuery) {
     </div>`;
 }
 
-async function hydrateFeedbackThumbnails(rows) {
-  if (!navigator.onLine || !supabaseClient || !Array.isArray(rows)) return;
-  const now = Date.now();
-  const needed = [];
-
-  rows.forEach((r) => {
-    if (!r.attachment_path) return;
-    const cached = feedbackSignedUrlCache.get(r.attachment_path);
-    if (!cached || cached.expiresAt <= now) {
-      needed.push(r.attachment_path);
-    }
-  });
-
-  if (needed.length === 0) return;
-
-  try {
-    const { data, error } = await supabaseClient.storage
-      .from(FEEDBACK_BUCKET)
-      .createSignedUrls(needed, 3600);
-    if (error || !Array.isArray(data)) return;
-
-    const exp = Date.now() + 45 * 60 * 1000;
-    data.forEach((entry) => {
-      if (!entry.path || !entry.signedUrl) return;
-      feedbackSignedUrlCache.set(entry.path, {
-        url: entry.signedUrl,
-        expiresAt: exp,
+function applyFeedbackThumbUrlToDom(path, signedUrl) {
+    if (!path || !signedUrl) return;
+    const contentDiv = document.getElementById("feedback-content");
+    if (!contentDiv) return;
+  
+    contentDiv.querySelectorAll("img[data-fb-thumb-path]").forEach((imgEl) => {
+      if (imgEl.getAttribute("data-fb-thumb-path") === path) {
+        imgEl.onerror = () => imgEl.classList.add("hidden");
+        imgEl.src = signedUrl;
+        imgEl.classList.remove("hidden");
+      }
+    });
+  }
+  
+  async function hydrateFeedbackThumbnails(rows = null) {
+    const contentDiv = document.getElementById("feedback-content");
+    const now = Date.now();
+    const pathSet = new Set();
+  
+    if (Array.isArray(rows)) {
+      rows.forEach((r) => {
+        if (r?.attachment_path) pathSet.add(r.attachment_path);
       });
-      document
-        .querySelectorAll(`img[data-fb-thumb-path="${CSS.escape(entry.path)}"]`)
-        .forEach((imgEl) => {
-          imgEl.src = entry.signedUrl;
-          imgEl.classList.remove("hidden");
+    } else if (contentDiv) {
+      contentDiv.querySelectorAll("img[data-fb-thumb-path]").forEach((imgEl) => {
+        const p = imgEl.getAttribute("data-fb-thumb-path");
+        if (p) pathSet.add(p);
+      });
+    }
+  
+    if (pathSet.size === 0) return;
+  
+    const needed = [];
+    pathSet.forEach((path) => {
+      const cached = feedbackSignedUrlCache.get(path);
+      if (cached && cached.expiresAt > now) {
+        applyFeedbackThumbUrlToDom(path, cached.url);
+      } else {
+        needed.push(path);
+      }
+    });
+  
+    if (needed.length === 0 || !navigator.onLine) return;
+  
+    try {
+      await ensureSupabaseReady();
+      if (!supabaseClient) return;
+  
+      const { data, error } = await supabaseClient.storage
+        .from(FEEDBACK_BUCKET)
+        .createSignedUrls(needed, 3600);
+  
+      const exp = Date.now() + 45 * 60 * 1000;
+  
+      if (!error && Array.isArray(data)) {
+        data.forEach((entry, idx) => {
+          const path = entry?.path || needed[idx];
+          const url = entry?.signedUrl || entry?.signedURL;
+          if (path && url) {
+            feedbackSignedUrlCache.set(path, { url, expiresAt: exp });
+            applyFeedbackThumbUrlToDom(path, url);
+          }
         });
-    });
-  } catch (_) {}
-}
-
-async function openFeedbackAttachment(path, title = "Screenshot") {
-  if (!path) return;
-  const cached = feedbackSignedUrlCache.get(path);
-  if (cached && cached.expiresAt > Date.now()) {
-    openFeedbackImageLightbox(cached.url, title);
-    return;
+        return;
+      }
+  
+      if (error) {
+        console.warn("createSignedUrls failed, using fallback:", error.message);
+      }
+  
+      // Fallback to individual signed URL requests if batch fails
+      await Promise.allSettled(
+        needed.map(async (path) => {
+          const { data: single, error: singleErr } = await supabaseClient.storage
+            .from(FEEDBACK_BUCKET)
+            .createSignedUrl(path, 3600);
+          if (!singleErr && single?.signedUrl) {
+            feedbackSignedUrlCache.set(path, {
+              url: single.signedUrl,
+              expiresAt: exp,
+            });
+            applyFeedbackThumbUrlToDom(path, single.signedUrl);
+          }
+        }),
+      );
+    } catch (err) {
+      console.warn("Feedback thumbnail hydration error:", err);
+    }
   }
-
-  if (!(await ensureOnline("Connect to internet to view full screenshot."))) {
-    return;
+  
+  async function openFeedbackAttachment(path, title = "Screenshot") {
+    if (!path) return;
+    const cached = feedbackSignedUrlCache.get(path);
+    if (cached && cached.expiresAt > Date.now()) {
+      applyFeedbackThumbUrlToDom(path, cached.url);
+      openFeedbackImageLightbox(cached.url, title);
+      return;
+    }
+  
+    if (!(await ensureOnline("Connect to internet to view full screenshot."))) {
+      return;
+    }
+  
+    showToast("🖼️ Loading screenshot...");
+    try {
+      await ensureSupabaseReady();
+      const { data, error } = await supabaseClient.storage
+        .from(FEEDBACK_BUCKET)
+        .createSignedUrl(path, 3600);
+      if (error || !data?.signedUrl) throw error || new Error("URL unavailable");
+  
+      feedbackSignedUrlCache.set(path, {
+        url: data.signedUrl,
+        expiresAt: Date.now() + 45 * 60 * 1000,
+      });
+      applyFeedbackThumbUrlToDom(path, data.signedUrl);
+      openFeedbackImageLightbox(data.signedUrl, title);
+    } catch (err) {
+      showToast("❌ Could not load screenshot: " + err.message);
+    }
   }
-
-  showToast("🖼️ Loading screenshot...");
-  try {
-    await ensureSupabaseReady();
-    const { data, error } = await supabaseClient.storage
-      .from(FEEDBACK_BUCKET)
-      .createSignedUrl(path, 3600);
-    if (error || !data?.signedUrl) throw error || new Error("URL unavailable");
-
-    feedbackSignedUrlCache.set(path, {
-      url: data.signedUrl,
-      expiresAt: Date.now() + 45 * 60 * 1000,
-    });
-    openFeedbackImageLightbox(data.signedUrl, title);
-  } catch (err) {
-    showToast("❌ Could not load screenshot: " + err.message);
-  }
-}
 
 // --- PAGINATED BOARD LOADER ---
 function getFeedbackSkeletonHTML(count = 3) {
@@ -967,6 +1020,7 @@ function loadFeedbackBoardOrCache(forceLoad = false) {
     }
     updateFeedbackSummaryStrip(feedbackCache.totalCount);
     setupFeedbackObserver();
+    hydrateFeedbackThumbnails();
     return;
   }
 
