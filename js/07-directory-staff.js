@@ -684,12 +684,8 @@ function renderDirectoryBatch() {
         ? data.totalAddresses
         : shownCount;
 
-    const countLabel =
-      shownCount < totalCount
-        ? `${shownCount} / ${totalCount} ${
-            totalCount === 1 ? "Address" : "Addresses"
-          }`
-        : `${shownCount} ${shownCount === 1 ? "Address" : "Addresses"}`;
+    const countBadgeText =
+      shownCount < totalCount ? `${shownCount}/${totalCount}` : `${shownCount}`;
 
     const officeTitleHtml =
       activeQuery && data.officeMatches?.length
@@ -706,23 +702,47 @@ function renderDirectoryBatch() {
           )}<span class="highlight-text">${escapeHTML(smartSuffix)}</span>`
         : escapeHTML(data.pin);
 
+    const parentStaffCount = getOfficeStaffCount(data.office);
+    const staffBtnTitle =
+      parentStaffCount > 0
+        ? `Office Staff Details (${parentStaffCount} saved)`
+        : `Add Staff Details for ${escapeHTML(data.office)}`;
+
     html += `
         <div class="directory-card" id="${safeId}">
           <div class="directory-card-header">
-            <div class="directory-office-info">
+            <div class="directory-header-top">
               <div class="directory-office-title">
                 <span>🏢</span>
-                <span>${officeTitleHtml}</span>
+                <span class="directory-office-name">${officeTitleHtml}</span>
+                <span class="dir-office-count-pill" title="${shownCount} ${
+      shownCount === 1 ? "Address" : "Addresses"
+    }">${countBadgeText}</span>
               </div>
-              <div class="directory-office-meta">
-                <span>📍 ${pinDisplayHtml}</span>
-                <span class="meta-dot">•</span>
-                <span class="meta-count">${countLabel}</span>
-              </div>
+              <span class="directory-office-pin">📍 ${pinDisplayHtml}</span>
             </div>
 
             <div class="directory-header-actions">
-            <button
+              <button
+                type="button"
+                class="dir-quick-staff-btn ${
+                  parentStaffCount > 0 ? "has-staff" : ""
+                }"
+                onclick="showParentOfficeDetailsModal('${escapeForOnclick(
+                  data.office
+                )}', '${escapeForOnclick(data.pin)}')"
+                title="${staffBtnTitle}"
+                aria-label="${staffBtnTitle}"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </button>
+
+              <button
                 type="button"
                 class="dir-quick-practice-btn"
                 onclick="practiceOfficeFromDirectory('${escapeForOnclick(
@@ -731,12 +751,13 @@ function renderDirectoryBatch() {
                 title="Practice ${escapeHTML(data.office)} in Learn &amp; Quiz"
                 aria-label="Practice this office"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
                   <path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"></path>
                 </svg>
-              </button>  
-            <button
+              </button>
+
+              <button
                 type="button"
                 class="dir-quick-priority-btn"
                 onclick="quickPriorityForOffice('${escapeForOnclick(
@@ -745,7 +766,7 @@ function renderDirectoryBatch() {
                 title="Mark priority addresses in ${escapeHTML(data.office)}"
                 aria-label="Manage priority addresses"
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                 </svg>
               </button>
@@ -1169,6 +1190,90 @@ document
 // --- OFFICE STAFF DETAILS MODAL (BO / SO / HO CRUD) ---
 let activeOfficeRecord = null;
 let activeOfficeType = null;
+let activeOfficeMode = "child"; // "parent" (office_staff) | "child" (post_offices)
+let activeOfficeKey = null;
+let activeParentOfficeMeta = { office: "", pin: "" };
+
+function getOfficeStaffCount(officeName) {
+  const rec =
+    typeof getOfficeStaffByName === "function"
+      ? getOfficeStaffByName(officeName)
+      : null;
+  if (!rec) return 0;
+
+  const officeType =
+    rec.office_type || (detectOfficeType(officeName) === "HO" ? "HO" : "SO");
+
+  let count = 0;
+  if (officeType === "HO") {
+    if (hasValidValue(rec.pm_name) || hasValidValue(rec.pm_contact)) count++;
+  } else {
+    if (hasValidValue(rec.spm_name) || hasValidValue(rec.spm_contact)) count++;
+  }
+  count += parsePaList(rec).length;
+  count += parseMtsList(rec).length;
+  return count;
+}
+
+function showParentOfficeDetailsModal(officeName, pinNumber = "") {
+  closeAllDirectoryActionTrays();
+  const cleanOffice = String(officeName || "").trim();
+  if (!cleanOffice) return;
+
+  const key =
+    typeof normalizeOfficeKey === "function"
+      ? normalizeOfficeKey(cleanOffice)
+      : cleanOffice.toLowerCase();
+
+  const officeType = detectOfficeType(cleanOffice) === "HO" ? "HO" : "SO";
+  const existing =
+    typeof getOfficeStaffByName === "function"
+      ? getOfficeStaffByName(cleanOffice)
+      : null;
+
+  let resolvedPin =
+    pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
+  if (!resolvedPin && typeof cachedPostOffices !== "undefined") {
+    const match = cachedPostOffices.find(
+      (r) =>
+        typeof normalizeOfficeKey === "function" &&
+        normalizeOfficeKey(r.Office) === key &&
+        r.Pin
+    );
+    if (match) resolvedPin = String(match.Pin).trim();
+  }
+
+  activeOfficeMode = "parent";
+  activeOfficeKey = key;
+  activeOfficeType = officeType;
+  activeParentOfficeMeta = { office: cleanOffice, pin: resolvedPin };
+  activeOfficeRecord = existing || {
+    office_name: cleanOffice,
+    office_key: key,
+    office_type: officeType,
+    pm_name: null,
+    pm_contact: null,
+    spm_name: null,
+    spm_contact: null,
+    pa_list: [],
+    mts_list: [],
+  };
+
+  const badgeLabels = {
+    SO: "Sub Office (SO)",
+    HO: "Head Office (HO)",
+  };
+
+  document.getElementById("office-modal-badge").textContent =
+    badgeLabels[officeType] || officeType;
+  document.getElementById("office-modal-title").textContent = cleanOffice;
+  document.getElementById("office-modal-subtitle").textContent = `📍 PIN: ${
+    resolvedPin || "N/A"
+  } • Delivery Office Staff`;
+
+  renderOfficeStaffViewMode();
+  document.getElementById("office-details-modal-overlay").classList.add("show");
+}
 
 function hasValidValue(val) {
   return (
@@ -1292,6 +1397,8 @@ function showOfficeDetailsModal(addressName, parentOfficeName) {
     return showToast("⚠️ Office record not found in local database.");
   }
 
+  activeOfficeMode = "child";
+  activeOfficeKey = null;
   activeOfficeRecord = record;
   activeOfficeType = officeType;
 
@@ -1559,7 +1666,11 @@ function addMtsInputRow(name = "", contact = "") {
 
 async function saveOfficeStaffDetails() {
   if (!(await ensureOnline("Connect to internet to save changes."))) return;
-  if (!activeOfficeRecord || !activeOfficeRecord.id) return;
+  if (activeOfficeMode === "parent") {
+    if (!activeParentOfficeMeta.office) return;
+  } else {
+    if (!activeOfficeRecord || !activeOfficeRecord.id) return;
+  }
 
   const saveBtn = document.getElementById("save-office-staff-btn");
   setButtonState(saveBtn, "loading", "Saving...");
@@ -1627,18 +1738,50 @@ async function saveOfficeStaffDetails() {
   }
 
   try {
-    const { error } = await supabaseClient
-      .from("post_offices")
-      .update(updatePayload)
-      .eq("id", activeOfficeRecord.id);
+    if (activeOfficeMode === "parent") {
+      const officeName = activeParentOfficeMeta.office;
+      const officeKey =
+        activeOfficeKey ||
+        (typeof normalizeOfficeKey === "function"
+          ? normalizeOfficeKey(officeName)
+          : officeName.toLowerCase());
 
-    if (error) throw error;
+      const upsertPayload = {
+        office_name: officeName,
+        office_key: officeKey,
+        office_type: activeOfficeType === "HO" ? "HO" : "SO",
+        ...updatePayload,
+      };
 
-    Object.assign(activeOfficeRecord, updatePayload);
-    localStorage.setItem(
-      "dakmitra_offline_db",
-      JSON.stringify(cachedPostOffices)
-    );
+      const { data: savedRow, error } = await supabaseClient
+        .from("office_staff")
+        .upsert(upsertPayload, { onConflict: "office_key" })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      activeOfficeRecord = savedRow || {
+        ...activeOfficeRecord,
+        ...upsertPayload,
+      };
+      if (typeof upsertLocalOfficeStaff === "function") {
+        upsertLocalOfficeStaff(activeOfficeRecord);
+      }
+    } else {
+      const { error } = await supabaseClient
+        .from("post_offices")
+        .update(updatePayload)
+        .eq("id", activeOfficeRecord.id);
+
+      if (error) throw error;
+
+      Object.assign(activeOfficeRecord, updatePayload);
+      localStorage.setItem(
+        "dakmitra_offline_db",
+        JSON.stringify(cachedPostOffices)
+      );
+    }
 
     showToast("✅ Office details updated!");
     setButtonState(saveBtn, "success", "Saved!");
@@ -1833,9 +1976,18 @@ function clearQuickAddAddresses() {
 async function submitQuickAddModal() {
   if (!(await ensureOnline("Connect to internet to save changes."))) return;
 
-  const addresses = parseQuickAddAddresses();
-  if (addresses.length === 0) {
+  const rawAddresses = parseQuickAddAddresses();
+  if (rawAddresses.length === 0) {
     return showToast("⚠️ Please enter at least one address.");
+  }
+
+  const addresses = rawAddresses.filter(
+    (addr) => !isSelfParentOfficeRow(addr, activeQuickAddOffice.office)
+  );
+  if (addresses.length === 0) {
+    return showToast(
+      "ℹ️ Parent office staff is managed directly from the office header (👥 Staff)."
+    );
   }
 
   const {

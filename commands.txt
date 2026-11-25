@@ -9,6 +9,7 @@ VS code to generate four small files
 New-Item -ItemType Directory -Force -Path ai_upload | Out-Null
 
 -------------
+
 if (-not (Test-Path ai_upload)) { New-Item -ItemType Directory -Path ai_upload | Out-Null }
 
 # 1. HTML + Config + Edge Functions + Service Worker (+ any .sql if present)

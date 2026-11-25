@@ -2,9 +2,165 @@
 // 04-DATA-SYNC.JS — Data Fetching, Caching & Realtime Sync
 // =========================================================
 
+// --- PARENT OFFICE STAFF CACHE & SYNC (public.office_staff) ---
+function normalizeOfficeKey(name) {
+  return String(name || "")
+    .replace(/\./g, "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function rebuildOfficeStaffMap() {
+  officeStaffByKeyMap.clear();
+  if (!Array.isArray(cachedOfficeStaff)) return;
+  for (let i = 0; i < cachedOfficeStaff.length; i++) {
+    const row = cachedOfficeStaff[i];
+    if (!row) continue;
+    const key = row.office_key || normalizeOfficeKey(row.office_name);
+    if (key) officeStaffByKeyMap.set(key, row);
+  }
+}
+
+function getOfficeStaffByName(officeName) {
+  const key = normalizeOfficeKey(officeName);
+  return key ? officeStaffByKeyMap.get(key) || null : null;
+}
+
+function persistOfficeStaffCache() {
+  try {
+    localStorage.setItem(
+      OFFICE_STAFF_CACHE_KEY,
+      JSON.stringify(cachedOfficeStaff),
+    );
+  } catch (e) {
+    console.warn("Failed to persist office staff cache:", e);
+  }
+}
+
+function loadOfficeStaffFromCache() {
+  try {
+    const raw = localStorage.getItem(OFFICE_STAFF_CACHE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      cachedOfficeStaff = parsed;
+      rebuildOfficeStaffMap();
+      return true;
+    }
+  } catch (e) {
+    console.warn("Office staff cache corrupted, will refetch.");
+  }
+  return false;
+}
+
+async function fetchOfficeStaffBackground() {
+  if (!navigator.onLine || !supabaseClient) return false;
+  try {
+    const { data, error } = await supabaseClient
+      .from("office_staff")
+      .select("*")
+      .order("office_name", { ascending: true });
+
+    if (error) throw error;
+    const rows = Array.isArray(data) ? data : [];
+    const newJson = JSON.stringify(rows);
+    const oldJson = localStorage.getItem(OFFICE_STAFF_CACHE_KEY);
+
+    if (newJson !== oldJson || cachedOfficeStaff.length !== rows.length) {
+      cachedOfficeStaff = rows;
+      rebuildOfficeStaffMap();
+      persistOfficeStaffCache();
+      refreshDirectoryInPlace();
+      if (
+        document.getElementById("view-search")?.classList.contains("active")
+      ) {
+        refreshSearchInPlace(true);
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn("Office staff background sync failed:", err?.message || err);
+    return false;
+  }
+}
+
+function upsertLocalOfficeStaff(row) {
+  if (!row) return;
+  const key = row.office_key || normalizeOfficeKey(row.office_name);
+  if (!key) return;
+
+  const idx = cachedOfficeStaff.findIndex(
+    (r) =>
+      (row.id && String(r.id) === String(row.id)) ||
+      (r.office_key || normalizeOfficeKey(r.office_name)) === key,
+  );
+
+  if (idx > -1) {
+    if (isRowDataUnchanged(cachedOfficeStaff[idx], row)) return;
+    cachedOfficeStaff[idx] = { ...cachedOfficeStaff[idx], ...row };
+  } else {
+    cachedOfficeStaff.push(row);
+  }
+
+  rebuildOfficeStaffMap();
+  persistOfficeStaffCache();
+
+  // Live-update open modal if user is viewing this parent office
+  if (
+    typeof activeOfficeMode !== "undefined" &&
+    activeOfficeMode === "parent" &&
+    typeof activeOfficeKey !== "undefined" &&
+    activeOfficeKey === key
+  ) {
+    activeOfficeRecord = officeStaffByKeyMap.get(key) || row;
+    const isModalOpen = document
+      .getElementById("office-details-modal-overlay")
+      ?.classList.contains("show");
+    const isViewMode = !document
+      .getElementById("office-modal-view-actions")
+      ?.classList.contains("hidden");
+    if (
+      isModalOpen &&
+      isViewMode &&
+      typeof renderOfficeStaffViewMode === "function"
+    ) {
+      renderOfficeStaffViewMode();
+    }
+  }
+
+  refreshDirectoryInPlace();
+  if (document.getElementById("view-search")?.classList.contains("active")) {
+    refreshSearchInPlace(true);
+  }
+}
+
+function removeLocalOfficeStaff(rowOrId) {
+  const id = typeof rowOrId === "object" ? rowOrId?.id : rowOrId;
+  const key =
+    typeof rowOrId === "object"
+      ? rowOrId?.office_key || normalizeOfficeKey(rowOrId?.office_name)
+      : null;
+
+  const beforeLen = cachedOfficeStaff.length;
+  cachedOfficeStaff = cachedOfficeStaff.filter((r) => {
+    if (id && String(r.id) === String(id)) return false;
+    if (key && (r.office_key || normalizeOfficeKey(r.office_name)) === key) {
+      return false;
+    }
+    return true;
+  });
+
+  if (cachedOfficeStaff.length === beforeLen) return;
+  rebuildOfficeStaffMap();
+  persistOfficeStaffCache();
+  refreshDirectoryInPlace();
+}
+
 // --- DATA FETCHING & STATS ---
 async function fetchAllPostOffices(forceSync = false) {
   if (!forceSync) {
+    loadOfficeStaffFromCache();
     const cachedDataString = localStorage.getItem("dakmitra_offline_db");
     if (cachedDataString) {
       try {
@@ -66,6 +222,7 @@ async function fetchFromServerBackground() {
       localStorage.setItem("dakmitra_offline_db", newJson);
       initializeSearchAndRender(true);
     }
+    await fetchOfficeStaffBackground();
     return true;
   } catch (error) {
     console.error("Background sync failed:", error);
@@ -415,6 +572,8 @@ function upsertLocalPostOffice(row) {
   }
 
   if (
+    (typeof activeOfficeMode === "undefined" ||
+      activeOfficeMode !== "parent") &&
     typeof activeOfficeRecord !== "undefined" &&
     activeOfficeRecord &&
     String(activeOfficeRecord.id) === String(row.id)
@@ -450,6 +609,8 @@ function removeLocalPostOffice(id) {
   if (cachedPostOffices.length === beforeLen) return;
 
   if (
+    (typeof activeOfficeMode === "undefined" ||
+      activeOfficeMode !== "parent") &&
     typeof activeOfficeRecord !== "undefined" &&
     activeOfficeRecord &&
     String(activeOfficeRecord.id) === String(id)
@@ -554,6 +715,27 @@ function initRealtimeSync() {
       { event: "DELETE", schema: "public", table: "post_offices" },
       (payload) => {
         if (payload.old?.id) removeLocalPostOffice(payload.old.id);
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "office_staff" },
+      (payload) => {
+        upsertLocalOfficeStaff(payload.new);
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "office_staff" },
+      (payload) => {
+        upsertLocalOfficeStaff(payload.new);
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "DELETE", schema: "public", table: "office_staff" },
+      (payload) => {
+        if (payload.old) removeLocalOfficeStaff(payload.old);
       },
     )
     .on(

@@ -883,6 +883,22 @@ function triggerSearch(hidePanels = false, options = {}) {
         /\b(BO|HO|SO|PO|GPO|RMS|TPS)\b/g,
         (match) => match.split("").join(" "),
       );
+    } else {
+      const matchedOffices = findMatchingDeliveryOfficesForSearch();
+      if (matchedOffices.length > 0) {
+        const topOff = matchedOffices[0];
+        const lastThreePin = topOff.pin ? String(topOff.pin).slice(-3) : "";
+        const hindiPinWords = lastThreePin
+          ? convertToHindiWords(lastThreePin)
+          : "";
+        const pinText = hindiPinWords
+          ? `Pin code ${hindiPinWords}`
+          : "Pin not available";
+        speechText = `${topOff.office}. ${pinText}.`.replace(
+          /\b(BO|HO|SO|PO|GPO|RMS|TPS)\b/g,
+          (match) => match.split("").join(" "),
+        );
+      }
     }
     const utterance = new SpeechSynthesisUtterance(speechText);
     if (preferredIndianVoice) {
@@ -1103,6 +1119,196 @@ function setupSearchObserver() {
   if (sentinel) window.searchObserver.observe(sentinel);
 }
 
+// --- PINNED DELIVERY OFFICE CARD FOR SEARCH RESULTS ---
+function findMatchingDeliveryOfficesForSearch() {
+  const rawInput = document.getElementById("search-input")?.value.trim() || "";
+  const filterVal =
+    document.querySelector('input[name="searchFilter"]:checked')?.value ||
+    "address";
+  const filterOffice =
+    document.getElementById("filter-office")?.value.trim().toLowerCase() || "";
+  const filterPin =
+    document.getElementById("filter-pin")?.value.trim().toLowerCase() || "";
+  const cleanQuery = (window.activeCleanSearchQuery ?? rawInput).trim();
+  const smartOffice = window.activeSmartOfficeFilter?.office || "";
+
+  if (!rawInput && !filterOffice && !filterPin) return [];
+
+  // Build unique parent office summary from cachedPostOffices
+  const officesMap = new Map();
+  for (let i = 0; i < cachedPostOffices.length; i++) {
+    const row = cachedPostOffices[i];
+    const offName = String(row.Office || "")
+      .trim()
+      .replace(/\s+/g, " ");
+    if (!offName) continue;
+    const key =
+      typeof normalizeOfficeKey === "function"
+        ? normalizeOfficeKey(offName)
+        : offName.toLowerCase();
+
+    if (!officesMap.has(key)) {
+      officesMap.set(key, {
+        office: offName,
+        pin: String(row.Pin || "").trim(),
+        count: 0,
+      });
+    }
+    const entry = officesMap.get(key);
+    entry.count++;
+    if (!entry.pin && row.Pin) entry.pin = String(row.Pin).trim();
+  }
+
+  const allOffices = Array.from(officesMap.values());
+  const matches = [];
+
+  const qLower = cleanQuery.toLowerCase();
+  const qCore = stripPostalSuffixes(cleanQuery);
+  const qPhon = postalPhoneticKey(cleanQuery);
+  const isNumeric = /^\d+$/.test(cleanQuery);
+
+  for (let i = 0; i < allOffices.length; i++) {
+    const item = allOffices[i];
+    const offLower = item.office.toLowerCase();
+    const offPin = item.pin.toLowerCase();
+
+    // Respect explicit secondary Office / PIN filters
+    if (filterOffice && !offLower.includes(filterOffice)) continue;
+    if (smartOffice && offLower !== smartOffice.toLowerCase()) continue;
+    if (filterPin) {
+      const isUniqueSuffix =
+        /^\d{3}$/.test(filterPin) && pinSuffixToOfficeMap.has(filterPin);
+      const pinOk = isUniqueSuffix
+        ? offPin.endsWith(filterPin)
+        : offPin.includes(filterPin);
+      if (!pinOk) continue;
+    }
+
+    // Standalone 3-digit PIN suffix or filter-only view (e.g. typed "501" or selected Office filter)
+    if (!cleanQuery) {
+      if (smartOffice && offLower === smartOffice.toLowerCase()) {
+        matches.push({ ...item, rank: 0 });
+      } else if (!smartOffice && (filterOffice || filterPin)) {
+        matches.push({ ...item, rank: 1 });
+      }
+      continue;
+    }
+
+    // When user types "village 501", they're hunting a village inside that office—skip card unless query also matches the office
+    if (cleanQuery.length < 2) continue;
+
+    let rank = 99;
+
+    if (isNumeric || filterVal === "pin") {
+      if (
+        offPin === qLower ||
+        (qLower.length === 3 && offPin.endsWith(qLower))
+      ) {
+        rank = 0;
+      } else if (offPin.includes(qLower)) {
+        rank = 2;
+      }
+    } else {
+      const offCore = stripPostalSuffixes(item.office);
+      const offPhon = postalPhoneticKey(item.office);
+
+      if (qCore && offCore === qCore) rank = 0;
+      else if (offLower === qLower) rank = 0;
+      else if (qPhon.length >= 2 && offPhon === qPhon) rank = 1;
+      else if (qCore && offCore.startsWith(qCore)) rank = 2;
+      else if (offLower.startsWith(qLower)) rank = 2;
+      else if (qCore.length >= 3 && offCore.includes(qCore)) rank = 3;
+      else if (qPhon.length >= 3 && offPhon.startsWith(qPhon)) rank = 4;
+    }
+
+    if (rank < 99) {
+      matches.push({ ...item, rank });
+    }
+  }
+
+  return matches
+    .sort((a, b) => a.rank - b.rank || a.office.localeCompare(b.office))
+    .slice(0, 3);
+}
+
+function buildSearchDeliveryOfficeCardsHTML(matchedOffices, silent = false) {
+  if (!matchedOffices || matchedOffices.length === 0) return "";
+
+  const activeQuery = (
+    window.activeCleanSearchQuery ||
+    document.getElementById("search-input")?.value ||
+    ""
+  ).trim();
+
+  const cardsHtml = matchedOffices
+    .map((item) => {
+      const officeType = detectOfficeType(item.office) === "HO" ? "HO" : "SO";
+      const staffCount =
+        typeof getOfficeStaffCount === "function"
+          ? getOfficeStaffCount(item.office)
+          : 0;
+      const staffLabel =
+        staffCount > 0 ? `👥 Staff (${staffCount})` : "👥 Staff";
+
+      let titleHtml = escapeHTML(item.office);
+      if (activeQuery && !/^\d+$/.test(activeQuery)) {
+        const ranges = computeSmartHighlightRanges(item.office, activeQuery);
+        if (ranges.length > 0) {
+          let out = "";
+          let last = 0;
+          for (const [s, e] of ranges) {
+            out += escapeHTML(item.office.substring(last, s));
+            out += `<span class="highlight-text">${escapeHTML(
+              item.office.substring(s, e + 1),
+            )}</span>`;
+            last = e + 1;
+          }
+          out += escapeHTML(item.office.substring(last));
+          titleHtml = out;
+        }
+      }
+
+      return `
+        <div class="search-office-card${silent ? " no-anim" : ""}">
+          <div class="search-office-card-main">
+            <div class="search-office-card-title">
+              <span>🏢</span>
+              <span>${titleHtml}</span>
+              <span class="search-office-type-tag">${officeType}</span>
+            </div>
+            <div class="search-office-card-meta">
+              <span>📍 ${escapeHTML(item.pin || "N/A")}</span>
+              <span class="meta-dot">•</span>
+              <span>${item.count} ${item.count === 1 ? "Address" : "Addresses"}</span>
+            </div>
+          </div>
+          <div class="search-office-card-actions">
+            <button
+              type="button"
+              class="search-office-btn is-staff ${staffCount > 0 ? "has-staff" : ""}"
+              onclick="showParentOfficeDetailsModal('${escapeForOnclick(
+                item.office,
+              )}', '${escapeForOnclick(item.pin)}')"
+              title="View or edit ${escapeHTML(item.office)} staff details"
+            >
+              ${staffLabel}
+            </button>
+            <button
+              type="button"
+              class="search-office-btn"
+              onclick="goToDirectoryOffice('${escapeForOnclick(item.office)}')"
+              title="Open ${escapeHTML(item.office)} in Directory"
+            >
+              📂 Directory
+            </button>
+          </div>
+        </div>`;
+    })
+    .join("");
+
+  return `<div class="search-office-cards-wrap">${cardsHtml}</div>`;
+}
+
 function renderResults(isLoadMore = false, silent = false) {
   const displayArea = document.getElementById("results-display-area");
 
@@ -1111,8 +1317,46 @@ function renderResults(isLoadMore = false, silent = false) {
     window.searchDisplayLimit = 10;
   }
 
+  const matchedDeliveryOffices = findMatchingDeliveryOfficesForSearch();
+  const officeCardsHtml = buildSearchDeliveryOfficeCardsHTML(
+    matchedDeliveryOffices,
+    silent,
+  );
+
   if (currentFilteredData.length === 0) {
     const rawQuery = document.getElementById("search-input").value.trim();
+
+    // If query matched a parent Delivery Office (HO/SO), show its card cleanly instead of auto-triggering AI
+    if (matchedDeliveryOffices.length > 0) {
+      clearTimeout(aiSearchDebounceTimer);
+      if (aiActiveAbortController) {
+        aiActiveAbortController.abort();
+        aiActiveAbortController = null;
+      }
+
+      let html = officeCardsHtml;
+      if (rawQuery.length >= 2) {
+        html += `
+          <div class="ask-ai-bottom-box" id="ask-ai-footer-box">
+            <div class="ask-ai-bottom-text">
+              🤔 Looking for a village or beat instead of the main office?
+            </div>
+            <button
+              type="button"
+              class="ask-ai-bottom-btn"
+              onclick="triggerInlineAiBelowResults('${escapeForOnclick(
+                rawQuery,
+              )}')"
+            >
+              ✨ Ask AI for "${escapeHTML(rawQuery)}"
+            </button>
+          </div>
+          <div id="ai-search-results-container"></div>`;
+      }
+
+      displayArea.innerHTML = html;
+      return;
+    }
 
     displayArea.innerHTML = `
         <div class="ai-fallback-banner">
@@ -1146,9 +1390,11 @@ function renderResults(isLoadMore = false, silent = false) {
   }
 
   if (viewMode === "list") {
-    let html = `<ul class="list-container${
-      silent ? " no-card-anim" : ""
-    }" style="margin:0; list-style:none;">`;
+    let html =
+      officeCardsHtml +
+      `<ul class="list-container${
+        silent ? " no-card-anim" : ""
+      }" style="margin:0; list-style:none;">`;
     currentFilteredData
       .slice(0, window.searchDisplayLimit)
       .forEach((result) => {
@@ -1221,7 +1467,9 @@ function renderResults(isLoadMore = false, silent = false) {
 
     displayArea.innerHTML = html;
   } else {
-    let html = `<table class="data-table">
+    let html =
+      officeCardsHtml +
+      `<table class="data-table">
                     <thead><tr><th>Address</th><th>Office</th><th>Pin</th></tr></thead>
                     <tbody>`;
 
