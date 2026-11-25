@@ -2056,6 +2056,12 @@ function prefillUploadFromAi(address, office, pin) {
 
 // --- COPY & CSV EXPORT ---
 function copyResults() {
+  if (!canCopyResults()) {
+    return showToast(
+      "🚫 Copying results is disabled by Superadmin.",
+      "warning"
+    );
+  }
   if (!currentFilteredData.length) return showToast("No data to copy!");
   const text = currentFilteredData
     .map(

@@ -97,12 +97,33 @@ try {
   }
 } catch (_) {}
 
+function isConfigFlagEnabled(val, defaultVal = true) {
+  if (val === undefined || val === null) return defaultVal;
+  if (typeof val === "boolean") return val;
+  if (typeof val === "string") {
+    const s = val.trim().toLowerCase();
+    if (s === "false" || s === "0" || s === "off" || s === "no") return false;
+    if (s === "true" || s === "1" || s === "on" || s === "yes") return true;
+  }
+  return Boolean(val);
+}
+
 function canExportCSV() {
-  return isCurrentUserSuperadmin || appConfig.export_csv_enabled !== false;
+  return (
+    isCurrentUserSuperadmin ||
+    isConfigFlagEnabled(appConfig.export_csv_enabled, true)
+  );
+}
+
+function canCopyResults() {
+  return canExportCSV();
 }
 
 function canExportExcel() {
-  return isCurrentUserSuperadmin || appConfig.export_excel_enabled !== false;
+  return (
+    isCurrentUserSuperadmin ||
+    isConfigFlagEnabled(appConfig.export_excel_enabled, true)
+  );
 }
 
 function getCommunityVoteThreshold() {

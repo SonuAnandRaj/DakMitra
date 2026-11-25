@@ -1013,7 +1013,12 @@ document.addEventListener("visibilitychange", () => {
       const isLoggedIn = !document
         .getElementById("dashboard-view")
         ?.classList.contains("hidden");
-      if (isLoggedIn) fetchFromServerBackground();
+      if (isLoggedIn) {
+        fetchFromServerBackground();
+        if (typeof fetchAndApplyAppConfig === "function") {
+          fetchAndApplyAppConfig();
+        }
+      }
     }
   }
 });

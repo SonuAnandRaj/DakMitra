@@ -17,9 +17,14 @@ function saveExportMode(mode) {
 
 function applyExportMode(mode) {
   const exportGroup = document.getElementById("export-toolbar-group");
-  if (exportGroup) {
-    exportGroup.style.display = mode === "hide" ? "none" : "flex";
+  if (!exportGroup) return;
+
+  const allowAnyToolbarExport = canCopyResults() || canExportCSV();
+  if (!allowAnyToolbarExport) {
+    exportGroup.style.display = "none";
+    return;
   }
+  exportGroup.style.display = mode === "hide" ? "none" : "flex";
 }
 
 function clearAppCache() {
@@ -53,7 +58,10 @@ async function syncDatabase() {
   if (!syncBtn) return;
 
   setButtonState(syncBtn, "loading", "Syncing...");
-  const success = await fetchAllPostOffices(true);
+  const [success] = await Promise.all([
+    fetchAllPostOffices(true),
+    fetchAndApplyAppConfig(),
+  ]);
 
   if (success) {
     setButtonState(syncBtn, "success", "Synced");
@@ -126,13 +134,27 @@ function applyAppConfigUI() {
   if (splashTitle) splashTitle.textContent = title;
   if (taglineEl) taglineEl.textContent = tagline;
 
-  // Enforce CSV export visibility (Superadmin always allowed)
+  // Enforce Copy & CSV export visibility (Superadmin always allowed)
+  const copyBtn = document.querySelector(
+    '#export-toolbar-group button[onclick*="copyResults"]'
+  );
+  if (copyBtn) {
+    copyBtn.style.display = canCopyResults() ? "" : "none";
+  }
+
   const csvBtn = document.querySelector(
     '#export-toolbar-group button[onclick*="exportCSV"]'
   );
   if (csvBtn) {
     csvBtn.style.display = canExportCSV() ? "" : "none";
   }
+
+  const exportModeSelect = document.getElementById("export-mode-select");
+  if (exportModeSelect?.parentElement) {
+    exportModeSelect.parentElement.style.display =
+      canCopyResults() || canExportCSV() ? "flex" : "none";
+  }
+  applyExportMode(localStorage.getItem("dakmitra_export_mode") || "show");
 
   // Enforce Full Database Excel export row visibility (Superadmin always allowed)
   const excelBtn = document.getElementById("export-excel-btn");
@@ -183,7 +205,16 @@ async function fetchAndApplyAppConfig() {
     const { data, error } = await supabaseClient
       .from("app_settings")
       .select("key, value");
-    if (error || !Array.isArray(data)) return appConfig;
+    if (error) {
+      console.warn("app_settings read error (check RLS):", error.message);
+      applyAppConfigUI();
+      return appConfig;
+    }
+    if (!Array.isArray(data) || data.length === 0) {
+      console.warn("app_settings returned 0 rows (check SELECT RLS policy).");
+      applyAppConfigUI();
+      return appConfig;
+    }
 
     const next = { ...DEFAULT_APP_CONFIG };
     data.forEach((row) => {
@@ -221,6 +252,9 @@ async function fetchAndApplyAppConfig() {
 
 // --- FULL DATABASE EXCEL EXPORT ---
 async function exportFullTableToExcel(includeDeleted = true) {
+  if (navigator.onLine && supabaseClient) {
+    await fetchAndApplyAppConfig();
+  }
   if (!canExportExcel()) {
     return showToast(
       "🚫 Database export is disabled by Superadmin.",
