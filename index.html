@@ -3708,32 +3708,62 @@
             <!-- 3D Flip Flashcard Stage -->
             <div id="learn-flashcard-stage" class="learn-flashcard-stage"></div>
 
-            <!-- Spaced-Repetition Rating Bar -->
-            <div id="learn-rating-bar" class="learn-rating-bar hidden">
-              <button
-                type="button"
-                class="learn-rate-btn is-again"
-                onclick="rateLearnCard('again')"
-              >
-                <strong>Again</strong>
-                <span id="fc-int-again">2 min</span>
-              </button>
-              <button
-                type="button"
-                class="learn-rate-btn is-good"
-                onclick="rateLearnCard('good')"
-              >
-                <strong>Good</strong>
-                <span id="fc-int-good">1 day</span>
-              </button>
-              <button
-                type="button"
-                class="learn-rate-btn is-easy"
-                onclick="rateLearnCard('easy')"
-              >
-                <strong>Easy</strong>
-                <span id="fc-int-easy">3 days</span>
-              </button>
+            <!-- Fixed-Height Bottom Action Slot (Zero Layout Jump on Flip) -->
+            <div id="learn-action-slot" class="learn-action-slot">
+              <!-- Browse Nav Bar (Shown before flipping) -->
+              <div id="learn-nav-bar" class="learn-nav-bar hidden">
+                <button
+                  type="button"
+                  id="learn-prev-btn"
+                  class="learn-nav-btn"
+                  onclick="goToPrevFlashcard()"
+                  disabled
+                >
+                  ‹ Prev
+                </button>
+                <div id="learn-nav-counter" class="learn-nav-counter">
+                  Card 1
+                </div>
+                <button
+                  type="button"
+                  id="learn-next-btn"
+                  class="learn-nav-btn"
+                  onclick="goToNextFlashcard()"
+                >
+                  Next ›
+                </button>
+              </div>
+
+              <!-- Spaced-Repetition Rating Bar (Shown after flipping) -->
+              <div id="learn-rating-bar" class="learn-rating-bar hidden">
+                <button
+                  type="button"
+                  class="learn-rate-btn is-again"
+                  data-rate="again"
+                  onclick="rateLearnCard('again')"
+                >
+                  <strong>Again</strong>
+                  <span id="fc-int-again">2 min</span>
+                </button>
+                <button
+                  type="button"
+                  class="learn-rate-btn is-good"
+                  data-rate="good"
+                  onclick="rateLearnCard('good')"
+                >
+                  <strong>Good</strong>
+                  <span id="fc-int-good">1 day</span>
+                </button>
+                <button
+                  type="button"
+                  class="learn-rate-btn is-easy"
+                  data-rate="easy"
+                  onclick="rateLearnCard('easy')"
+                >
+                  <strong>Easy</strong>
+                  <span id="fc-int-easy">3 days</span>
+                </button>
+              </div>
             </div>
           </div>
 

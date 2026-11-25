@@ -4711,6 +4711,11 @@ body.keyboard-open #office-details-modal-overlay .staff-detail-list {
   border-color: #f87171;
 }
 
+.dir-filter-chip.is-danger.active .dir-chip-count {
+  background: #ef4444;
+  color: #ffffff;
+}
+
 /* Clickable stats inside User Profile Modal */
 .member-stat-pill.is-clickable {
   cursor: pointer;
