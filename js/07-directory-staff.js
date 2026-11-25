@@ -1803,16 +1803,16 @@ function closeOfficeDetailsModal() {
 
 // --- DIRECTORY QUICK-ADD MULTIPLE ADDRESSES MODAL ---
 let activeQuickAddOffice = { office: "", pin: "" };
-let activeQuickAddPriority = 0;
+let activeQuickAddPriority = 1;
 
 function setQuickAddPriority(val, silent = false) {
   activeQuickAddPriority = Number(val) === 1 ? 1 : 0;
   document
-    .getElementById("qa-prio-regular")
-    ?.classList.toggle("active", activeQuickAddPriority === 0);
-  document
     .getElementById("qa-prio-priority")
     ?.classList.toggle("active", activeQuickAddPriority === 1);
+  document
+    .getElementById("qa-prio-regular")
+    ?.classList.toggle("active", activeQuickAddPriority === 0);
 
   if (!silent && navigator.vibrate) navigator.vibrate(15);
   updateQuickAddPreview();
@@ -1858,7 +1858,7 @@ function quickAddForOffice(officeName, pinNumber) {
   if (textarea) textarea.value = "";
   saveBtn.classList.remove("is-loading", "is-success");
   saveBtn.disabled = false;
-  setQuickAddPriority(0, true);
+  setQuickAddPriority(1, true);
   saveBtnContent.innerHTML = getQuickAddBtnDefaultHTML(0);
 
   document.getElementById("quick-add-modal-overlay").classList.add("show");

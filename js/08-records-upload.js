@@ -86,7 +86,7 @@ async function saveInlineEditRecord() {
   }
   if (isSelfParentOfficeRow(newAddress, newOffice)) {
     return showToast(
-      "ℹ️ Parent HO/SO is already shown as the office header. Tap 👥 Staff there instead.",
+      "ℹ️ Parent HO/SO is already shown as the office header. Tap 👥 Staff there instead."
     );
   }
 
@@ -631,7 +631,7 @@ async function submitMultipleRecords() {
     return showToast(
       skippedParentOffice > 0
         ? "ℹ️ Parent HO/SO staff is managed from the Directory office header (👥 Staff)."
-        : "Please fill in at least one complete row.",
+        : "Please fill in at least one complete row."
     );
   }
 
@@ -667,16 +667,16 @@ async function submitMultipleRecords() {
 
 // --- BULK SAME OFFICE UPLOAD TAB ---
 let bulkReturnToDirectory = false;
-let bulkAddPriority = 0;
+let bulkAddPriority = 1;
 
 function setBulkPriority(val, silent = false) {
   bulkAddPriority = Number(val) === 1 ? 1 : 0;
   document
-    .getElementById("bulk-prio-regular")
-    ?.classList.toggle("active", bulkAddPriority === 0);
-  document
     .getElementById("bulk-prio-priority")
     ?.classList.toggle("active", bulkAddPriority === 1);
+  document
+    .getElementById("bulk-prio-regular")
+    ?.classList.toggle("active", bulkAddPriority === 0);
 
   if (!silent && navigator.vibrate) navigator.vibrate(15);
   updateBulkAddressPreview();
@@ -847,11 +847,11 @@ async function submitBulkSameOffice() {
   }
 
   const addresses = rawAddresses.filter(
-    (addr) => !isSelfParentOfficeRow(addr, office),
+    (addr) => !isSelfParentOfficeRow(addr, office)
   );
   if (addresses.length === 0) {
     return showToast(
-      "ℹ️ Parent office staff is managed from the Directory office header (👥 Staff).",
+      "ℹ️ Parent office staff is managed from the Directory office header (👥 Staff)."
     );
   }
 
@@ -900,7 +900,7 @@ async function submitBulkSameOffice() {
     }
 
     invalidateApprovalsCache();
-    setBulkPriority(0, true);
+    setBulkPriority(1, true);
     clearBulkAddresses();
 
     if (bulkReturnToDirectory) {
