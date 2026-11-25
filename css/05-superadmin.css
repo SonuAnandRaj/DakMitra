@@ -153,3 +153,16 @@
   align-items: center;
   margin-top: 12px;
 }
+
+.sa-tabs-chips {
+  justify-content: flex-start;
+  overflow-x: auto;
+}
+
+.sa-tabs-chips > :first-child {
+  margin-left: auto;
+}
+
+.sa-tabs-chips > :last-child {
+  margin-right: auto;
+}
