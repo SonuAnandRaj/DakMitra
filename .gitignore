@@ -1,1 +1,4 @@
 ﻿ai_upload/
+.vscode/
+bundle.ps1
+bundle.bat

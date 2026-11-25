@@ -233,67 +233,65 @@ body.keyboard-open #view-learn.active {
 
 /* --- 3D FLIP FLASHCARD & SWIPE WRAPPER --- */
 .learn-flashcard-stage {
-    position: relative;
-    perspective: 1100px;
-    margin-bottom: 14px;
-    touch-action: pan-y;
-  }
-  
-  .learn-card-swipe-wrap {
-    position: relative;
-    will-change: transform, opacity;
-    transform: translate3d(0, 0, 0);
-    transition:
-      transform 0.24s var(--dm-ease-smooth),
-      opacity 0.2s ease;
-  }
-  
-  .learn-card-swipe-wrap.is-dragging {
-    transition: none !important;
-    cursor: grabbing;
-  }
-  
-  .learn-card-swipe-wrap.is-exiting-left {
-    transform: translate3d(-115%, 0, 0) rotate(-6deg);
+  position: relative;
+  perspective: 1100px;
+  margin-bottom: 14px;
+  touch-action: pan-y;
+}
+
+.learn-card-swipe-wrap {
+  position: relative;
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.24s var(--dm-ease-smooth), opacity 0.2s ease;
+}
+
+.learn-card-swipe-wrap.is-dragging {
+  transition: none !important;
+  cursor: grabbing;
+}
+
+.learn-card-swipe-wrap.is-exiting-left {
+  transform: translate3d(-115%, 0, 0) rotate(-6deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.learn-card-swipe-wrap.is-exiting-right {
+  transform: translate3d(115%, 0, 0) rotate(6deg);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.learn-card-swipe-wrap.is-entering-right {
+  animation: learnCardInFromRight 0.26s var(--dm-ease-smooth) both;
+}
+
+.learn-card-swipe-wrap.is-entering-left {
+  animation: learnCardInFromLeft 0.26s var(--dm-ease-smooth) both;
+}
+
+@keyframes learnCardInFromRight {
+  from {
     opacity: 0;
-    pointer-events: none;
+    transform: translate3d(44px, 0, 0) scale(0.97);
   }
-  
-  .learn-card-swipe-wrap.is-exiting-right {
-    transform: translate3d(115%, 0, 0) rotate(6deg);
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes learnCardInFromLeft {
+  from {
     opacity: 0;
-    pointer-events: none;
+    transform: translate3d(-44px, 0, 0) scale(0.97);
   }
-  
-  .learn-card-swipe-wrap.is-entering-right {
-    animation: learnCardInFromRight 0.26s var(--dm-ease-smooth) both;
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
   }
-  
-  .learn-card-swipe-wrap.is-entering-left {
-    animation: learnCardInFromLeft 0.26s var(--dm-ease-smooth) both;
-  }
-  
-  @keyframes learnCardInFromRight {
-    from {
-      opacity: 0;
-      transform: translate3d(44px, 0, 0) scale(0.97);
-    }
-    to {
-      opacity: 1;
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-  }
-  
-  @keyframes learnCardInFromLeft {
-    from {
-      opacity: 0;
-      transform: translate3d(-44px, 0, 0) scale(0.97);
-    }
-    to {
-      opacity: 1;
-      transform: translate3d(0, 0, 0) scale(1);
-    }
-  }
+}
 
 .learn-flashcard {
   position: relative;
@@ -363,9 +361,7 @@ body.keyboard-open #view-learn.active {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition:
-    transform 0.15s ease,
-    background 0.2s ease;
+  transition: transform 0.15s ease, background 0.2s ease;
 }
 
 .learn-speak-btn:active {
@@ -438,9 +434,7 @@ body.keyboard-open #view-learn.active {
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  transition:
-    transform 0.16s var(--dm-ease-spring),
-    background 0.2s ease,
+  transition: transform 0.16s var(--dm-ease-spring), background 0.2s ease,
     border-color 0.2s ease;
 }
 
@@ -487,121 +481,118 @@ body.keyboard-open #view-learn.active {
 }
 
 .learn-rate-btn.is-selected {
-    box-shadow: 0 0 0 2px currentColor;
-  }
-  
-  /* --- FIXED-HEIGHT ACTION SLOT & PREV/NEXT BAR --- */
-  .learn-action-slot {
-    min-height: 62px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  
-  .learn-nav-bar {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    gap: 10px;
-    min-height: 62px;
-    animation: fadeInDown 0.2s var(--dm-ease-smooth);
-  }
-  
-  .learn-nav-btn {
-    height: 46px;
-    padding: 0 14px;
-    border-radius: 14px;
-    border: 1.5px solid var(--border);
-    background: var(--card-bg);
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    box-shadow: var(--shadow-sm);
-    transition:
-      transform 0.16s var(--dm-ease-spring),
-      border-color 0.2s ease,
-      color 0.2s ease,
-      opacity 0.2s ease;
-  }
-  
-  .learn-nav-btn:hover:not(:disabled) {
-    border-color: var(--primary);
-    color: var(--primary);
-  }
-  
-  .learn-nav-btn:active:not(:disabled) {
-    transform: scale(0.94);
-  }
-  
-  .learn-nav-btn:disabled {
-    opacity: 0.38;
-    cursor: default;
-  }
-  
-  .learn-nav-counter {
-    text-align: center;
-    font-size: 12.5px;
-    font-weight: 700;
-    color: var(--text-light);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  /* --- THEMED PRIORITY BADGE & SESSION RATED PILL --- */
-  .learn-priority-badge {
-    margin: 0;
-    padding: 3px 9px;
-    font-size: 11px;
-    background: rgba(245, 158, 11, 0.14);
-    color: #b45309;
-    border-color: rgba(245, 158, 11, 0.28);
-  }
-  
-  [data-theme="dark"] .learn-priority-badge {
-    background: rgba(251, 191, 36, 0.16);
-    color: #fbbf24;
-    border-color: rgba(251, 191, 36, 0.3);
-  }
-  
-  .learn-rated-pill {
-    font-size: 10.5px;
-    font-weight: 800;
-    padding: 3px 8px;
-    border-radius: 999px;
-    border: 1px solid transparent;
-  }
-  
-  .learn-rated-pill.is-again {
-    background: rgba(239, 68, 68, 0.12);
-    color: #dc2626;
-    border-color: rgba(239, 68, 68, 0.3);
-  }
-  
-  [data-theme="dark"] .learn-rated-pill.is-again {
-    background: rgba(239, 68, 68, 0.2);
-    color: #fca5a5;
-  }
-  
-  .learn-rated-pill.is-good {
-    background: rgba(79, 70, 229, 0.12);
-    color: var(--primary);
-    border-color: rgba(79, 70, 229, 0.3);
-  }
-  
-  [data-theme="dark"] .learn-rated-pill.is-good {
-    background: rgba(129, 140, 248, 0.2);
-  }
-  
-  .learn-rated-pill.is-easy {
-    background: var(--success-bg);
-    color: var(--success-text);
-    border-color: var(--success-border);
-  }
+  box-shadow: 0 0 0 2px currentColor;
+}
+
+/* --- FIXED-HEIGHT ACTION SLOT & PREV/NEXT BAR --- */
+.learn-action-slot {
+  min-height: 62px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.learn-nav-bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 62px;
+  animation: fadeInDown 0.2s var(--dm-ease-smooth);
+}
+
+.learn-nav-btn {
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.16s var(--dm-ease-spring), border-color 0.2s ease,
+    color 0.2s ease, opacity 0.2s ease;
+}
+
+.learn-nav-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.learn-nav-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.learn-nav-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.learn-nav-counter {
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- THEMED PRIORITY BADGE & SESSION RATED PILL --- */
+.learn-priority-badge {
+  margin: 0;
+  padding: 3px 9px;
+  font-size: 11px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+[data-theme="dark"] .learn-priority-badge {
+  background: rgba(251, 191, 36, 0.16);
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.learn-rated-pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.learn-rated-pill.is-again {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+[data-theme="dark"] .learn-rated-pill.is-again {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.learn-rated-pill.is-good {
+  background: rgba(79, 70, 229, 0.12);
+  color: var(--primary);
+  border-color: rgba(79, 70, 229, 0.3);
+}
+
+[data-theme="dark"] .learn-rated-pill.is-good {
+  background: rgba(129, 140, 248, 0.2);
+}
+
+.learn-rated-pill.is-easy {
+  background: var(--success-bg);
+  color: var(--success-text);
+  border-color: var(--success-border);
+}
 
 /* --- QUIZ SETUP SCREEN --- */
 .quiz-setup-card {
@@ -843,9 +834,7 @@ body.keyboard-open #view-learn.active {
   gap: 12px;
   text-align: left;
   cursor: pointer;
-  transition:
-    transform 0.16s var(--dm-ease-spring),
-    border-color 0.2s ease,
+  transition: transform 0.16s var(--dm-ease-spring), border-color 0.2s ease,
     background 0.2s ease;
 }
 
@@ -1348,10 +1337,7 @@ body.keyboard-open #view-learn.active {
   background: rgba(16, 185, 129, 0.13);
   color: #059669;
   border: 1px solid rgba(16, 185, 129, 0.3);
-  transition:
-    transform 0.15s ease,
-    background 0.2s ease,
-    color 0.2s ease,
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease,
     border-color 0.2s ease;
 }
 
@@ -1369,4 +1355,109 @@ body.keyboard-open #view-learn.active {
 
 .dir-quick-practice-btn:active {
   transform: scale(0.92);
+}
+
+/* --- DYNAMIC OFFICE SCOPE HEADER, SMART MIX BAR & TRAP PILL --- */
+.learn-overview-scope-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.learn-scope-pill {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.learn-scope-reset-btn {
+  background: var(--input-bg);
+  color: var(--text-light);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.learn-scope-reset-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.learn-scope-reset-btn:active {
+  transform: scale(0.94);
+}
+
+.learn-smart-mix-bar {
+  padding: 7px 12px;
+  border-style: solid;
+  border-color: var(--dm-border-tint);
+}
+
+.learn-smart-mix-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.learn-smart-mix-info strong {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.learn-smart-mix-info span {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+/* Compact version of existing .dm-toggle-switch */
+.dm-toggle-switch.learn-mini-toggle {
+  width: 42px;
+  height: 24px;
+}
+
+.dm-toggle-switch.learn-mini-toggle .dm-toggle-slider::before {
+  width: 18px;
+  height: 18px;
+}
+
+.dm-toggle-switch.learn-mini-toggle input:checked + .dm-toggle-slider::before {
+  transform: translateX(18px);
+}
+
+/* Back-face trap reveal badge (never shown on front) */
+.learn-trap-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.36);
+  margin-bottom: 8px;
+}
+
+[data-theme="dark"] .learn-trap-pill {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fcd34d;
+  border-color: rgba(251, 191, 36, 0.38);
 }

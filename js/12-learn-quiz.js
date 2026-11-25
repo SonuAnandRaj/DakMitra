@@ -6,6 +6,7 @@
 const LEARN_RING_CIRCUMFERENCE = 263.89;
 const LEARN_DAILY_GOAL_DEFAULT = 15;
 const LEARN_LEADERBOARD_CACHE_KEY = "dakmitra_learning_leaderboard_cache";
+const LEARN_SMART_MIX_KEY = "dakmitra_learn_smart_mix";
 
 // 5-Box Leitner Intervals (Box 0 = 2m, 1 = 4h, 2 = 1d, 3 = 3d, 4 = 7d, 5 = 21d)
 const LEARN_BOX_INTERVALS_MS = [
@@ -28,20 +29,23 @@ const LEARN_BOX_LABELS = [
 
 const learnState = {
   activeTab: "learn", // 'learn' | 'quiz' | 'mastery'
-  scope: "all", // 'all' | 'weak' | 'offices' | 'priority' | 'office:<name>'
+  officeScope: "all", // 'all' | exact Delivery Office name (e.g. 'Amwar SO')
+  categoryFilter: "all", // 'all' | 'office' | 'priority' | 'regular' | 'weak'
+  smartMix: localStorage.getItem(LEARN_SMART_MIX_KEY) !== "false",
   progress: null,
   loadedForUserId: null,
   fcCurrentRecord: null,
+  fcCurrentIsTrap: false,
   fcFlipped: false,
   fcRecentIds: [],
   fcHistory: [],
   fcHistoryIndex: -1,
+  fcConsecutiveTraps: 0,
   fcIsTransitioning: false,
   syncTimer: null,
   isSyncing: false,
   lastSyncedAt: null,
   cloudLoadedForUser: null,
-  // Shared Quiz & Mastery state (populated in Steps 4 & 5)
   quiz: {
     active: false,
     mode: "standard",
@@ -123,12 +127,12 @@ function normalizeLearnProgress(raw) {
     base.stats.dailyCount = Math.max(0, Number(s.dailyCount) || 0);
     base.stats.dailyGoal = Math.max(
       5,
-      Number(s.dailyGoal) || LEARN_DAILY_GOAL_DEFAULT,
+      Number(s.dailyGoal) || LEARN_DAILY_GOAL_DEFAULT
     );
     base.stats.totalAnswered = Math.max(0, Number(s.totalAnswered) || 0);
     base.stats.totalCorrect = Math.min(
       base.stats.totalAnswered,
-      Math.max(0, Number(s.totalCorrect) || 0),
+      Math.max(0, Number(s.totalCorrect) || 0)
     );
     base.stats.xp = Math.max(0, Number(s.xp) || 0);
   }
@@ -214,9 +218,13 @@ function isWeakLearnCard(card) {
   return card.misses >= 2 || (card.misses >= 1 && card.box === 0);
 }
 
-function computeLearnSummaryMetrics(prog = null) {
+function computeLearnSummaryMetrics(prog = null, recordsOverride = null) {
   const p = prog || getLearnProgress();
-  const records = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  const records = Array.isArray(recordsOverride)
+    ? recordsOverride
+    : Array.isArray(cachedPostOffices)
+    ? cachedPostOffices
+    : [];
   const totalAddresses = records.length;
 
   let masteredCount = 0;
@@ -276,7 +284,7 @@ function pruneDeletedLearnCards() {
 
   if (Array.isArray(learnState.fcHistory) && learnState.fcHistory.length > 0) {
     learnState.fcHistory = learnState.fcHistory.filter((entry) =>
-      validIds.has(String(entry.recordId)),
+      validIds.has(String(entry.recordId))
     );
     if (learnState.fcHistoryIndex >= learnState.fcHistory.length) {
       learnState.fcHistoryIndex = learnState.fcHistory.length - 1;
@@ -345,11 +353,11 @@ function mergeLearnProgress(localProg, cloudProg) {
   const today = getLearnLocalDateKey();
   merged.stats.totalAnswered = Math.max(
     l.stats.totalAnswered,
-    c.stats.totalAnswered,
+    c.stats.totalAnswered
   );
   merged.stats.totalCorrect = Math.min(
     merged.stats.totalAnswered,
-    Math.max(l.stats.totalCorrect, c.stats.totalCorrect),
+    Math.max(l.stats.totalCorrect, c.stats.totalCorrect)
   );
   merged.stats.xp = Math.max(l.stats.xp, c.stats.xp);
   merged.stats.dailyGoal =
@@ -497,7 +505,7 @@ function recordLearnCardOutcome(
   recordId,
   rating,
   responseMs = null,
-  source = "flashcard",
+  source = "flashcard"
 ) {
   if (recordId === undefined || recordId === null)
     return { xpDelta: 0, hitDailyGoal: false };
@@ -576,115 +584,130 @@ function recordLearnCardOutcome(
   return { xpDelta, hitDailyGoal, card };
 }
 
-// --- DECK FILTERING & SCOPE CHIPS ---
-function getFilteredLearnRecords(scopeOverride = null) {
-  const scope = scopeOverride || learnState.scope || "all";
-  const records = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
-  if (scope === "all") return records;
-
-  const prog = getLearnProgress();
-
-  if (scope === "weak") {
-    return records.filter((r) => isWeakLearnCard(prog.cards[String(r.id)]));
-  }
-  if (scope === "offices") {
-    return records.filter((r) => Boolean(detectOfficeType(r.Address)));
-  }
-  if (scope === "priority") {
-    return records.filter((r) => Number(r.priority) >= 1);
-  }
-  if (scope.startsWith("office:")) {
-    const target = scope.slice(7).trim().toLowerCase();
-    return records.filter(
-      (r) =>
-        String(r.Office || "")
-          .trim()
-          .toLowerCase() === target,
-    );
-  }
-  return records;
+// --- DECK FILTERING & 2-TIER SCOPE CHIPS ---
+function isSingleOfficeLearnScope() {
+  return Boolean(learnState.officeScope && learnState.officeScope !== "all");
 }
 
-function getLearnScopeLabel(scope = learnState.scope) {
-  if (scope === "all") return "All Offices";
-  if (scope === "weak") return "Weak Spots";
-  if (scope === "offices") return "Offices (BO/SO/HO)";
-  if (scope === "priority") return "Priority Addresses";
-  if (scope.startsWith("office:")) return scope.slice(7);
-  return "All Offices";
+function getLearnOfficeRecords(officeOverride = null) {
+  const targetOffice =
+    officeOverride !== null ? officeOverride : learnState.officeScope || "all";
+  const records = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  if (!targetOffice || targetOffice === "all") return records;
+
+  const targetLower = String(targetOffice).trim().toLowerCase();
+  return records.filter(
+    (r) =>
+      String(r.Office || "")
+        .trim()
+        .toLowerCase() === targetLower
+  );
+}
+
+function matchesLearnCategory(row, category, progOverride = null) {
+  if (!category || category === "all") return true;
+  if (category === "weak") {
+    const prog = progOverride || getLearnProgress();
+    return isWeakLearnCard(prog.cards[String(row.id)]);
+  }
+  const flags =
+    typeof getDirectoryItemFlags === "function"
+      ? getDirectoryItemFlags(row)
+      : {
+          isOffice: Boolean(detectOfficeType(row.Address)),
+          isPriority: Number(row.priority) >= 1,
+          isRegular: !detectOfficeType(row.Address) && Number(row.priority) < 1,
+        };
+  if (category === "office") return flags.isOffice;
+  if (category === "priority") return flags.isPriority;
+  if (category === "regular") return flags.isRegular;
+  return true;
+}
+
+function getFilteredLearnRecords(
+  officeOverride = null,
+  categoryOverride = null
+) {
+  const officeRows = getLearnOfficeRecords(officeOverride);
+  const category =
+    categoryOverride !== null
+      ? categoryOverride
+      : learnState.categoryFilter || "all";
+  if (category === "all") return officeRows;
+
+  const prog = getLearnProgress();
+  return officeRows.filter((r) => matchesLearnCategory(r, category, prog));
+}
+
+function syncSmartMixTogglesUI() {
+  const isSingle = isSingleOfficeLearnScope();
+  const isOn = Boolean(learnState.smartMix);
+
+  const learnBar = document.getElementById("learn-smart-mix-bar");
+  const learnChk = document.getElementById("learn-opt-smart-mix");
+  const learnSub = document.getElementById("learn-smart-mix-sub");
+
+  if (learnBar) learnBar.classList.toggle("hidden", !isSingle);
+  if (learnChk) learnChk.checked = isOn;
+  if (learnSub) {
+    learnSub.textContent = isOn
+      ? "~25% neighbor traps"
+      : `Pure ${learnState.officeScope} only`;
+  }
+
+  const quizRow = document.getElementById("quiz-opt-smart-mix-row");
+  const quizChk = document.getElementById("quiz-opt-smart-mix");
+  if (quizRow) quizRow.classList.toggle("hidden", !isSingle);
+  if (quizChk) quizChk.checked = isOn;
 }
 
 function renderLearnFilterChips() {
-  const containers = [
+  const officeContainers = [
     document.getElementById("learn-filter-chips"),
     document.getElementById("quiz-filter-chips"),
   ].filter(Boolean);
-  if (containers.length === 0) return;
 
-  const records = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  const categoryContainers = [
+    document.getElementById("learn-category-chips"),
+    document.getElementById("quiz-category-chips"),
+  ].filter(Boolean);
+
+  const allRecords = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
   const prog = getLearnProgress();
 
-  let weakCount = 0;
-  let officeTypeCount = 0;
-  let priorityCount = 0;
+  // Row 1: All Offices + every Delivery Office sorted A-Z
   const officeCounts = new Map();
-
-  for (let i = 0; i < records.length; i++) {
-    const r = records[i];
-    if (isWeakLearnCard(prog.cards[String(r.id)])) weakCount++;
-    if (detectOfficeType(r.Address)) officeTypeCount++;
-    if (Number(r.priority) >= 1) priorityCount++;
-
-    const off = String(r.Office || "").trim();
+  for (let i = 0; i < allRecords.length; i++) {
+    const off = String(allRecords[i].Office || "").trim();
     if (off) officeCounts.set(off, (officeCounts.get(off) || 0) + 1);
   }
 
-  const chips = [{ key: "all", label: "All", count: records.length, cls: "" }];
-
-  if (weakCount > 0 || learnState.scope === "weak") {
-    chips.push({
-      key: "weak",
-      label: "⚠️ Weak Spots",
-      count: weakCount,
-      cls: "is-danger",
-    });
-  }
-  if (officeTypeCount > 0) {
-    chips.push({
-      key: "offices",
-      label: "📮 Offices",
-      count: officeTypeCount,
-      cls: "is-office",
-    });
-  }
-  if (priorityCount > 0) {
-    chips.push({
-      key: "priority",
-      label: "⚡ Priority",
-      count: priorityCount,
-      cls: "is-priority",
-    });
-  }
-
+  const officeChips = [
+    { key: "all", label: "All Offices", count: allRecords.length, cls: "" },
+  ];
   Array.from(officeCounts.keys())
     .sort((a, b) => a.localeCompare(b))
     .forEach((offName) => {
-      chips.push({
-        key: `office:${offName}`,
+      officeChips.push({
+        key: offName,
         label: offName,
         count: officeCounts.get(offName),
         cls: "is-office",
       });
     });
 
-  const html = chips
+  const officeHtml = officeChips
     .map((ch) => {
-      const isActive = learnState.scope === ch.key;
+      const isActive =
+        ch.key === "all"
+          ? !isSingleOfficeLearnScope()
+          : String(learnState.officeScope).toLowerCase() ===
+            ch.key.toLowerCase();
       return `
         <button
           type="button"
           class="dir-filter-chip ${ch.cls} ${isActive ? "active" : ""}"
-          onclick="setLearnScope('${escapeForOnclick(ch.key)}')"
+          onclick="setLearnOfficeScope('${escapeForOnclick(ch.key)}')"
         >
           <span>${escapeHTML(ch.label)}</span>
           <span class="dir-chip-count">${ch.count}</span>
@@ -692,34 +715,122 @@ function renderLearnFilterChips() {
     })
     .join("");
 
-  containers.forEach((el) => {
-    const prevScrollLeft = el.scrollLeft;
-    el.innerHTML = html;
-    el.scrollLeft = prevScrollLeft;
+  officeContainers.forEach((el) => {
+    const prevLeft = el.scrollLeft;
+    el.innerHTML = officeHtml;
+    el.scrollLeft = prevLeft;
   });
 
-  // Update compact scope summary strip on Learn tab
-  const summaryEl = document.getElementById("learn-scope-summary");
-  const summaryTxt = document.getElementById("learn-scope-summary-text");
-  if (summaryEl && summaryTxt) {
-    if (learnState.scope === "all") {
-      summaryEl.classList.add("hidden");
-    } else {
-      const scoped = getFilteredLearnRecords();
-      summaryTxt.textContent = `Studying: ${getLearnScopeLabel()} (${scoped.length} ${
-        scoped.length === 1 ? "address" : "addresses"
-      })`;
-      summaryEl.classList.remove("hidden");
-    }
+  // Row 2: Directory-style categories calculated strictly for the selected office
+  const officeRecords = getLearnOfficeRecords();
+  let officeTypeCount = 0;
+  let priorityCount = 0;
+  let regularCount = 0;
+  let weakCount = 0;
+
+  for (let i = 0; i < officeRecords.length; i++) {
+    const r = officeRecords[i];
+    const flags =
+      typeof getDirectoryItemFlags === "function"
+        ? getDirectoryItemFlags(r)
+        : {
+            isOffice: Boolean(detectOfficeType(r.Address)),
+            isPriority: Number(r.priority) >= 1,
+            isRegular: !detectOfficeType(r.Address) && Number(r.priority) < 1,
+          };
+    if (flags.isOffice) officeTypeCount++;
+    if (flags.isPriority) priorityCount++;
+    if (flags.isRegular) regularCount++;
+    if (isWeakLearnCard(prog.cards[String(r.id)])) weakCount++;
   }
+
+  const catChips = [
+    { key: "all", label: "All", count: officeRecords.length, cls: "" },
+    {
+      key: "office",
+      label: "📮 Offices",
+      count: officeTypeCount,
+      cls: "is-office",
+    },
+    {
+      key: "priority",
+      label: "⚡ Priority",
+      count: priorityCount,
+      cls: "is-priority",
+    },
+    {
+      key: "regular",
+      label: "Regular",
+      count: regularCount,
+      cls: "is-regular",
+    },
+  ];
+
+  if (weakCount > 0 || learnState.categoryFilter === "weak") {
+    catChips.push({
+      key: "weak",
+      label: "⚠️ Weak",
+      count: weakCount,
+      cls: "is-danger",
+    });
+  }
+
+  const catHtml = catChips
+    .map((ch) => {
+      const isActive = learnState.categoryFilter === ch.key;
+      return `
+        <button
+          type="button"
+          class="dir-filter-chip ${ch.cls} ${isActive ? "active" : ""}"
+          onclick="setLearnCategoryFilter('${escapeForOnclick(ch.key)}')"
+        >
+          <span>${escapeHTML(ch.label)}</span>
+          <span class="dir-chip-count">${ch.count}</span>
+        </button>`;
+    })
+    .join("");
+
+  categoryContainers.forEach((el) => {
+    const prevLeft = el.scrollLeft;
+    el.innerHTML = catHtml;
+    el.scrollLeft = prevLeft;
+  });
+
+  syncSmartMixTogglesUI();
 }
 
-function setLearnScope(newScope) {
-  learnState.scope = newScope || "all";
+function resetLearnFlashcardDeck() {
   learnState.fcRecentIds = [];
   learnState.fcHistory = [];
   learnState.fcHistoryIndex = -1;
   learnState.fcCurrentRecord = null;
+  learnState.fcCurrentIsTrap = false;
+  learnState.fcConsecutiveTraps = 0;
+}
+
+function setLearnOfficeScope(newOffice) {
+  const nextOffice = !newOffice || newOffice === "all" ? "all" : newOffice;
+  learnState.officeScope = nextOffice;
+  // Reset category to All when switching offices so you never land on an empty tab
+  learnState.categoryFilter = "all";
+  resetLearnFlashcardDeck();
+
+  if (navigator.vibrate) navigator.vibrate(18);
+  renderLearnOverview();
+  renderLearnFilterChips();
+  if (learnState.activeTab === "learn") {
+    loadNextFlashcard("none");
+  }
+}
+
+function setLearnCategoryFilter(category) {
+  const next =
+    category === "all" || learnState.categoryFilter === category
+      ? "all"
+      : category;
+  learnState.categoryFilter = next;
+  resetLearnFlashcardDeck();
+
   if (navigator.vibrate) navigator.vibrate(18);
   renderLearnFilterChips();
   if (learnState.activeTab === "learn") {
@@ -727,9 +838,38 @@ function setLearnScope(newScope) {
   }
 }
 
-// --- OVERVIEW RING & STREAK RENDERER ---
+function toggleLearnSmartMix(enabled) {
+  learnState.smartMix = Boolean(enabled);
+  try {
+    localStorage.setItem(LEARN_SMART_MIX_KEY, String(learnState.smartMix));
+  } catch (_) {}
+
+  learnState.fcConsecutiveTraps = 0;
+  syncSmartMixTogglesUI();
+  if (navigator.vibrate) navigator.vibrate(18);
+  showToast(
+    learnState.smartMix
+      ? "🔀 Smart Mix ON — ~25% neighbor traps mixed in"
+      : `🎯 Pure Focus ON — only ${learnState.officeScope}`,
+    "info"
+  );
+}
+
+// --- OVERVIEW RING & STREAK RENDERER (DYNAMIC PER SELECTED OFFICE) ---
 function renderLearnOverview() {
-  const m = computeLearnSummaryMetrics();
+  const scopedRows = getLearnOfficeRecords();
+  const m = computeLearnSummaryMetrics(null, scopedRows);
+
+  const scopeRow = document.getElementById("learn-overview-scope-row");
+  const scopeLabel = document.getElementById("learn-overview-scope-label");
+  if (scopeRow && scopeLabel) {
+    if (isSingleOfficeLearnScope()) {
+      scopeLabel.textContent = `🏢 ${learnState.officeScope}`;
+      scopeRow.classList.remove("hidden");
+    } else {
+      scopeRow.classList.add("hidden");
+    }
+  }
 
   const ringEl = document.getElementById("learn-ring-progress");
   if (ringEl) {
@@ -749,7 +889,7 @@ function renderLearnOverview() {
   setTxt("learn-daily-label", `${m.dailyCount} / ${m.dailyGoal}`);
   setTxt(
     "learn-cards-studied",
-    `${m.studiedCount} / ${m.totalAddresses} studied • ${m.dueCount} due`,
+    `${m.studiedCount} / ${m.totalAddresses} studied • ${m.dueCount} due`
   );
 
   const dailyFill = document.getElementById("learn-daily-fill");
@@ -779,7 +919,7 @@ function speakLearnText(address, office = null, pin = null) {
 
   let text = parts.filter(Boolean).join(". ");
   text = text.replace(/\b(BO|HO|SO|PO|GPO|RMS|EDBO)\b/g, (m) =>
-    m.split("").join(" "),
+    m.split("").join(" ")
   );
 
   const utter = new SpeechSynthesisUtterance(text);
@@ -792,24 +932,115 @@ function speakLearnText(address, office = null, pin = null) {
   window.speechSynthesis.speak(utter);
 }
 
-// --- 3D FLASHCARD PICKER, HISTORY NAVIGATION & INTERACTION ---
-function pickNextFlashcardRecord() {
+// --- 3D FLASHCARD PICKER, SMART MIX & HISTORY NAVIGATION ---
+function canAdvanceLearnDeck() {
   const pool = getFilteredLearnRecords();
-  if (pool.length === 0) return null;
-  if (pool.length === 1) return pool[0];
-
-  const prog = getLearnProgress();
-  const now = Date.now();
-  const windowSize = Math.min(pool.length - 1, 25);
-  const recentSet = new Set(learnState.fcRecentIds.slice(-windowSize));
-
-  let candidates = pool.filter((r) => !recentSet.has(String(r.id)));
-  if (candidates.length === 0) {
-    candidates = pool.filter(
-      (r) => String(r.id) !== String(learnState.fcCurrentRecord?.id),
-    );
+  if (pool.length > 1) return true;
+  if (
+    pool.length === 1 &&
+    isSingleOfficeLearnScope() &&
+    learnState.smartMix &&
+    getAllUniqueOffices().length > 1
+  ) {
+    return true;
   }
-  const list = candidates.length > 0 ? candidates : pool;
+  return false;
+}
+
+function getNeighborTrapRecords(targetOffice, category = "all", options = {}) {
+  const targetLower = String(targetOffice || "")
+    .trim()
+    .toLowerCase();
+  const allRows = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  if (!targetLower || allRows.length === 0) return [];
+
+  const targetRows = getLearnOfficeRecords(targetOffice);
+  const targetPin = String(targetRows[0]?.Pin || "").trim();
+  const targetAddrSet = new Set(
+    targetRows.map((r) =>
+      String(r.Address || "")
+        .trim()
+        .toLowerCase()
+    )
+  );
+  const targetPhonSet = new Set(
+    targetRows.map((r) => postalPhoneticKey(r.Address || "")).filter(Boolean)
+  );
+  const excludeIds = options.excludeIds || null;
+  const distinctPin = Boolean(options.distinctPin);
+
+  const neighborOffices = getSmartDistractorOffices(
+    targetOffice,
+    targetPin,
+    6
+  ).map((n) => n.office.toLowerCase());
+  const neighborSet = new Set(neighborOffices);
+
+  const isValidTrap = (r) => {
+    const offLower = String(r.Office || "")
+      .trim()
+      .toLowerCase();
+    if (!offLower || offLower === targetLower) return false;
+    if (excludeIds && excludeIds.has(String(r.id))) return false;
+    const addrLower = String(r.Address || "")
+      .trim()
+      .toLowerCase();
+    if (!addrLower || targetAddrSet.has(addrLower)) return false;
+    if (distinctPin) {
+      const p = String(r.Pin || "").trim();
+      if (!/^\d{6}$/.test(p) || (targetPin && p === targetPin)) return false;
+    }
+    return true;
+  };
+
+  const geoAll = [];
+  const geoSameCat = [];
+  const phoneticLookalikes = [];
+
+  for (let i = 0; i < allRows.length; i++) {
+    const r = allRows[i];
+    if (!isValidTrap(r)) continue;
+
+    const offLower = String(r.Office || "")
+      .trim()
+      .toLowerCase();
+    const inNeighbor = neighborSet.has(offLower);
+
+    if (inNeighbor) {
+      geoAll.push(r);
+      if (category !== "all" && category !== "weak") {
+        if (matchesLearnCategory(r, category)) geoSameCat.push(r);
+      }
+    } else if (targetPhonSet.size > 0) {
+      const pk = postalPhoneticKey(r.Address || "");
+      if (pk && targetPhonSet.has(pk)) {
+        phoneticLookalikes.push(r);
+      }
+    }
+  }
+
+  // Category anti-cheat: match Priority/Offices/Regular badges when enough traps exist
+  let primaryPool =
+    category !== "all" && category !== "weak" && geoSameCat.length >= 3
+      ? geoSameCat
+      : geoAll;
+
+  if (phoneticLookalikes.length > 0) {
+    const seen = new Set(primaryPool.map((r) => String(r.id)));
+    const extras = phoneticLookalikes.filter((r) => !seen.has(String(r.id)));
+    primaryPool = primaryPool.concat(extras.slice(0, 6));
+  }
+
+  if (primaryPool.length === 0) {
+    primaryPool = allRows.filter(isValidTrap);
+  }
+
+  return primaryPool;
+}
+
+function pickWeightedFromList(list, prog, now) {
+  if (!list || list.length === 0) return null;
+  if (list.length === 1) return list[0];
 
   const overdueWeak = [];
   const overdueReview = [];
@@ -845,6 +1076,52 @@ function pickNextFlashcardRecord() {
   return upcoming[0]?.row || list[0];
 }
 
+function pickNextFlashcardRecord() {
+  const pool = getFilteredLearnRecords();
+  if (pool.length === 0) return null;
+
+  const prog = getLearnProgress();
+  const now = Date.now();
+
+  // Smart Mix (~25% neighbor traps) when practicing a single Delivery Office
+  const shouldConsiderTrap =
+    isSingleOfficeLearnScope() &&
+    learnState.smartMix &&
+    learnState.fcHistory.length > 0 &&
+    learnState.fcConsecutiveTraps < 1 &&
+    Math.random() < 0.25;
+
+  if (shouldConsiderTrap) {
+    const recentTrapSet = new Set(learnState.fcRecentIds.slice(-30));
+    const trapPool = getNeighborTrapRecords(
+      learnState.officeScope,
+      learnState.categoryFilter,
+      { excludeIds: recentTrapSet }
+    );
+    const trapRec = pickWeightedFromList(trapPool, prog, now);
+    if (trapRec) {
+      learnState.fcConsecutiveTraps += 1;
+      return { record: trapRec, isTrap: true };
+    }
+  }
+
+  learnState.fcConsecutiveTraps = 0;
+  if (pool.length === 1) return { record: pool[0], isTrap: false };
+
+  const windowSize = Math.min(pool.length - 1, 25);
+  const recentSet = new Set(learnState.fcRecentIds.slice(-windowSize));
+
+  let candidates = pool.filter((r) => !recentSet.has(String(r.id)));
+  if (candidates.length === 0) {
+    candidates = pool.filter(
+      (r) => String(r.id) !== String(learnState.fcCurrentRecord?.id)
+    );
+  }
+  const list = candidates.length > 0 ? candidates : pool;
+  const chosen = pickWeightedFromList(list, prog, now);
+  return chosen ? { record: chosen, isTrap: false } : null;
+}
+
 function bounceFlashcardEdge(direction = "left") {
   const wrap = document.getElementById("learn-card-swipe-wrap");
   if (!wrap) return;
@@ -866,7 +1143,7 @@ function animateFlashcardExit(direction, callback) {
   learnState.fcIsTransitioning = true;
   wrap.classList.remove("is-dragging", "is-entering-left", "is-entering-right");
   wrap.classList.add(
-    direction === "right" ? "is-exiting-right" : "is-exiting-left",
+    direction === "right" ? "is-exiting-right" : "is-exiting-left"
   );
   setTimeout(() => {
     learnState.fcIsTransitioning = false;
@@ -901,13 +1178,17 @@ function updateFlashcardActionBars() {
 
   if (prevBtn) prevBtn.disabled = idx <= 0;
   if (nextBtn) {
-    nextBtn.disabled = pool.length <= 1 && idx >= totalHist - 1;
+    nextBtn.disabled = !canAdvanceLearnDeck() && idx >= totalHist - 1;
   }
   if (counterEl) {
     if (idx < totalHist - 1) {
       counterEl.textContent = `Card ${idx + 1} of ${totalHist}`;
     } else if (pool.length <= 30) {
-      counterEl.textContent = `Card ${idx + 1} (${pool.length} in deck)`;
+      const mixSuffix =
+        isSingleOfficeLearnScope() && learnState.smartMix ? "+mix" : "";
+      counterEl.textContent = `Card ${idx + 1} (${
+        pool.length
+      }${mixSuffix} in deck)`;
     } else {
       counterEl.textContent = `Card ${idx + 1}`;
     }
@@ -920,40 +1201,48 @@ function renderFlashcardEntry(entry, animDir = "none") {
 
   if (!entry) {
     learnState.fcCurrentRecord = null;
+    learnState.fcCurrentIsTrap = false;
     learnState.fcFlipped = false;
     updateFlashcardActionBars();
 
-    const msg =
-      learnState.scope === "weak"
-        ? "No weak spots right now! 🎉 Switch to All Offices or try a Quiz."
-        : "No addresses available in this filter.";
+    const isWeak = learnState.categoryFilter === "weak";
+    const msg = isWeak
+      ? "No weak spots in this selection! 🎉 Switch category or try a Quiz."
+      : "No addresses available in this filter.";
+    const resetAction =
+      learnState.categoryFilter !== "all"
+        ? `<button type="button" class="dm-btn dm-btn-secondary dm-btn-sm" onclick="setLearnCategoryFilter('all')">Show All in ${
+            isSingleOfficeLearnScope()
+              ? escapeHTML(learnState.officeScope)
+              : "Division"
+          }</button>`
+        : isSingleOfficeLearnScope()
+        ? `<button type="button" class="dm-btn dm-btn-secondary dm-btn-sm" onclick="setLearnOfficeScope('all')">Show All Offices</button>`
+        : "";
+
     stage.innerHTML = `
         <div class="list-empty" style="gap: 12px; margin: 0;">
           <span>${msg}</span>
-          ${
-            learnState.scope !== "all"
-              ? `<button type="button" class="dm-btn dm-btn-secondary dm-btn-sm" onclick="setLearnScope('all')">Show All Offices</button>`
-              : ""
-          }
+          ${resetAction}
         </div>`;
     return;
   }
 
   const liveRec =
     (cachedPostOffices || []).find(
-      (r) => String(r.id) === String(entry.recordId),
+      (r) => String(r.id) === String(entry.recordId)
     ) || entry.record;
 
   if (!liveRec) {
     learnState.fcHistory.splice(learnState.fcHistoryIndex, 1);
     learnState.fcHistoryIndex = Math.min(
       learnState.fcHistoryIndex,
-      learnState.fcHistory.length - 1,
+      learnState.fcHistory.length - 1
     );
     if (learnState.fcHistoryIndex >= 0) {
       renderFlashcardEntry(
         learnState.fcHistory[learnState.fcHistoryIndex],
-        animDir,
+        animDir
       );
     } else {
       loadNextFlashcard(animDir);
@@ -962,12 +1251,13 @@ function renderFlashcardEntry(entry, animDir = "none") {
   }
 
   learnState.fcCurrentRecord = liveRec;
+  learnState.fcCurrentIsTrap = Boolean(entry.isTrap);
   learnState.fcFlipped = false;
 
   const idKey = String(liveRec.id);
   learnState.fcRecentIds = learnState.fcRecentIds.filter((id) => id !== idKey);
   learnState.fcRecentIds.push(idKey);
-  const maxRecent = Math.max(25, getFilteredLearnRecords().length);
+  const maxRecent = Math.max(30, getFilteredLearnRecords().length + 10);
   if (learnState.fcRecentIds.length > maxRecent) {
     learnState.fcRecentIds.shift();
   }
@@ -978,23 +1268,34 @@ function renderFlashcardEntry(entry, animDir = "none") {
   const boxLabel = !card
     ? "New"
     : currentBox === 0
-      ? "🔁 Relearning"
-      : currentBox >= 4
-        ? "⭐ Mastered"
-        : `Stage ${currentBox}/3`;
+    ? "🔁 Relearning"
+    : currentBox >= 4
+    ? "⭐ Mastered"
+    : `Stage ${currentBox}/3`;
 
   const officeType = detectOfficeType(liveRec.Address);
   const isPrio = Number(liveRec.priority) >= 1;
   const typeBadgeHtml = officeType
-    ? `<span class="badge badge-primary" style="margin:0; padding:3px 9px; font-size:11px;">📮 ${escapeHTML(officeType)}</span>`
+    ? `<span class="badge badge-primary" style="margin:0; padding:3px 9px; font-size:11px;">📮 ${escapeHTML(
+        officeType
+      )}</span>`
     : isPrio
-      ? `<span class="badge learn-priority-badge">⚡ Priority</span>`
-      : `<span class="badge" style="margin:0; padding:3px 9px; font-size:11px;">📍 Locality</span>`;
+    ? `<span class="badge learn-priority-badge">⚡ Priority</span>`
+    : `<span class="badge" style="margin:0; padding:3px 9px; font-size:11px;">📍 Locality</span>`;
 
   const ratedLabels = { again: "Again", good: "Good", easy: "Easy" };
   const ratedBadgeHtml = entry.rating
-    ? `<span class="learn-rated-pill is-${escapeHTML(entry.rating)}">Rated: ${ratedLabels[entry.rating] || ""}</span>`
+    ? `<span class="learn-rated-pill is-${escapeHTML(entry.rating)}">Rated: ${
+        ratedLabels[entry.rating] || ""
+      }</span>`
     : "";
+
+  const trapBackBadgeHtml =
+    entry.isTrap && isSingleOfficeLearnScope()
+      ? `<div class="learn-trap-pill">🔀 Neighbor Trap • Not ${escapeHTML(
+          learnState.officeScope
+        )}</div>`
+      : "";
 
   const goodBox = Math.min(5, currentBox + 1);
   const easyBox = Math.min(5, currentBox + 2);
@@ -1011,7 +1312,7 @@ function renderFlashcardEntry(entry, animDir = "none") {
     .forEach((b) => {
       b.classList.toggle(
         "is-selected",
-        Boolean(entry.rating && b.getAttribute("data-rate") === entry.rating),
+        Boolean(entry.rating && b.getAttribute("data-rate") === entry.rating)
       );
     });
 
@@ -1021,8 +1322,8 @@ function renderFlashcardEntry(entry, animDir = "none") {
     animDir === "left"
       ? "is-entering-right"
       : animDir === "right"
-        ? "is-entering-left"
-        : "";
+      ? "is-entering-left"
+      : "";
 
   const safeAddr = escapeHTML(liveRec.Address);
   const safeOff = escapeHTML(liveRec.Office);
@@ -1037,7 +1338,7 @@ function renderFlashcardEntry(entry, animDir = "none") {
           tabindex="0"
           aria-label="Flashcard for ${safeAddr}. Tap to reveal sorting office, or swipe left and right."
         >
-          <!-- FRONT FACE -->
+          <!-- FRONT FACE (Zero trap giveaway) -->
           <div class="dm-surface learn-card-face learn-card-front">
             <div class="learn-card-top-row">
               <div class="learn-card-badges">
@@ -1048,7 +1349,9 @@ function renderFlashcardEntry(entry, animDir = "none") {
               <button
                 type="button"
                 class="learn-speak-btn"
-                onclick="event.stopPropagation(); speakLearnText('${escapeForOnclick(liveRec.Address)}')"
+                onclick="event.stopPropagation(); speakLearnText('${escapeForOnclick(
+                  liveRec.Address
+                )}')"
                 title="Hear address"
                 aria-label="Hear address"
               >
@@ -1076,7 +1379,11 @@ function renderFlashcardEntry(entry, animDir = "none") {
               <button
                 type="button"
                 class="learn-speak-btn"
-                onclick="event.stopPropagation(); speakLearnText('${escapeForOnclick(liveRec.Address)}', '${escapeForOnclick(liveRec.Office)}', '${escapeForOnclick(liveRec.Pin || "")}')"
+                onclick="event.stopPropagation(); speakLearnText('${escapeForOnclick(
+                  liveRec.Address
+                )}', '${escapeForOnclick(liveRec.Office)}', '${escapeForOnclick(
+    liveRec.Pin || ""
+  )}')"
                 title="Hear full routing"
                 aria-label="Hear full routing"
               >
@@ -1085,6 +1392,7 @@ function renderFlashcardEntry(entry, animDir = "none") {
             </div>
   
             <div class="learn-card-body">
+              ${trapBackBadgeHtml}
               <div class="learn-card-back-office">🏢 ${safeOff}</div>
               <div class="learn-card-back-badges">
                 <span class="badge badge-primary" style="margin:0;">📍 PIN: ${safePin}</span>
@@ -1110,20 +1418,21 @@ function loadNextFlashcard(animDir = "none") {
     learnState.fcHistoryIndex += 1;
     renderFlashcardEntry(
       learnState.fcHistory[learnState.fcHistoryIndex],
-      animDir,
+      animDir
     );
     return;
   }
 
-  const nextRec = pickNextFlashcardRecord();
-  if (!nextRec) {
+  const picked = pickNextFlashcardRecord();
+  if (!picked || !picked.record) {
     renderFlashcardEntry(null, "none");
     return;
   }
 
   const entry = {
-    recordId: String(nextRec.id),
-    record: nextRec,
+    recordId: String(picked.record.id),
+    record: picked.record,
+    isTrap: Boolean(picked.isTrap),
     prevCardSnapshot: null,
     prevStatsSnapshot: null,
     rating: null,
@@ -1142,14 +1451,13 @@ function goToNextFlashcard(fromSwipe = false) {
       learnState.fcHistoryIndex += 1;
       renderFlashcardEntry(
         learnState.fcHistory[learnState.fcHistoryIndex],
-        "left",
+        "left"
       );
     });
     return;
   }
 
-  const pool = getFilteredLearnRecords();
-  if (pool.length <= 1) {
+  if (!canAdvanceLearnDeck()) {
     bounceFlashcardEdge("left");
     if (fromSwipe) showToast("Only 1 card in this deck", "info");
     return;
@@ -1175,7 +1483,7 @@ function goToPrevFlashcard(fromSwipe = false) {
     learnState.fcHistoryIndex -= 1;
     renderFlashcardEntry(
       learnState.fcHistory[learnState.fcHistoryIndex],
-      "right",
+      "right"
     );
   });
 }
@@ -1236,7 +1544,7 @@ function rateLearnCard(rating) {
     rec.id,
     rating,
     null,
-    "flashcard",
+    "flashcard"
   );
 
   if (navigator.vibrate) {
@@ -1273,8 +1581,8 @@ function switchLearnTab(tab) {
     learnState.activeTab === "learn"
       ? 0
       : learnState.activeTab === "quiz"
-        ? 1
-        : 2;
+      ? 1
+      : 2;
   if (tabsEl) {
     tabsEl.classList.toggle("is-tab-1", tabIndex === 1);
     tabsEl.classList.toggle("is-tab-2", tabIndex === 2);
@@ -1396,13 +1704,10 @@ function resetLearnMemoryState() {
   learnState.progress = null;
   learnState.loadedForUserId = null;
   learnState.cloudLoadedForUser = null;
-  learnState.fcCurrentRecord = null;
-  learnState.fcFlipped = false;
-  learnState.fcRecentIds = [];
-  learnState.fcHistory = [];
-  learnState.fcHistoryIndex = -1;
-  learnState.scope = "all";
+  learnState.officeScope = "all";
+  learnState.categoryFilter = "all";
   learnState.activeTab = "learn";
+  resetLearnFlashcardDeck();
   learnLeaderboardMemCache = { ts: 0, rows: null };
   const badge = document.getElementById("sidebar-learn-badge");
   if (badge) badge.classList.add("hidden");
@@ -1412,43 +1717,50 @@ function resetLearnMemoryState() {
 // Part 2: Smart Distractors & 3-Mode Quiz Engine
 // =========================================================
 
-// Regional Delivery Office Coordinates (Mirzapur & Sonbhadra) for neighbor-aware distractors
+// Verified Mirzapur & Sonbhadra Delivery Office Coordinates (merged from Division CSV + centroid fixes)
 const LEARN_SO_COORDS = [
-  { office: "Mirzapur HO", pin: "231001", lat: 25.146, lon: 82.569 },
-  { office: "Kachhwa SO", pin: "231501", lat: 25.211, lon: 82.716 },
-  { office: "Vindhyachal SO", pin: "231307", lat: 25.165, lon: 82.504 },
-  { office: "Chunar SO", pin: "231304", lat: 25.125, lon: 82.875 },
-  { office: "Jigna SO", pin: "231313", lat: 25.158, lon: 82.345 },
-  { office: "Bijaipur SO", pin: "231303", lat: 25.164, lon: 82.422 },
+  // Mirzapur District
+  { office: "Mirzapur HO", pin: "231001", lat: 25.1601, lon: 82.5912 },
   { office: "Lalganj SO", pin: "231211", lat: 25.012, lon: 82.362 },
-  { office: "Hallia SO", pin: "231211", lat: 24.819, lon: 82.302 },
-  { office: "Marihan SO", pin: "231310", lat: 24.922, lon: 82.681 },
-  { office: "Ahraura SO", pin: "231301", lat: 25.021, lon: 83.021 },
-  { office: "Adalhat SO", pin: "231302", lat: 25.134, lon: 83.025 },
-  { office: "Narayanpur SO", pin: "231305", lat: 25.161, lon: 82.976 },
-  { office: "Jamalpur SO", pin: "231302", lat: 25.16, lon: 83.095 },
-  { office: "Kailhat SO", pin: "231305", lat: 25.145, lon: 82.927 },
-  { office: "Pahari SO", pin: "231001", lat: 25.118, lon: 82.712 },
-  { office: "Chilh SO", pin: "231312", lat: 25.176, lon: 82.559 },
-  { office: "Robertsganj HO", pin: "231216", lat: 24.688, lon: 83.068 },
-  { office: "Ghorawal SO", pin: "231210", lat: 24.752, lon: 82.774 },
-  { office: "Shahganj SO", pin: "231215", lat: 24.708, lon: 82.948 },
-  { office: "Churk SO", pin: "231206", lat: 24.636, lon: 83.078 },
-  { office: "Chopan SO", pin: "231205", lat: 24.524, lon: 83.03 },
-  { office: "Obra SO", pin: "231219", lat: 24.42, lon: 82.986 },
-  { office: "Dala SO", pin: "231207", lat: 24.444, lon: 83.037 },
-  { office: "Kon SO", pin: "231226", lat: 24.415, lon: 83.332 },
-  { office: "Ram Garh SO", pin: "231213", lat: 24.646, lon: 83.257 },
-  { office: "Renukoot SO", pin: "231217", lat: 24.218, lon: 83.038 },
-  { office: "Pipri SO", pin: "231221", lat: 24.198, lon: 83.003 },
-  { office: "Turra SO", pin: "231221", lat: 24.205, lon: 83.025 },
-  { office: "Muirpur SO", pin: "231208", lat: 24.122, lon: 82.952 },
-  { office: "Dudhi SO", pin: "231208", lat: 24.216, lon: 83.241 },
+  { office: "Ahraura SO", pin: "231301", lat: 25.0165, lon: 83.016 },
+  { office: "Adalhat SO", pin: "231302", lat: 25.1318, lon: 83.0351 },
+  { office: "Bijaipur SO", pin: "231303", lat: 25.1327, lon: 82.4156 },
+  { office: "Chunar SO", pin: "231304", lat: 25.085, lon: 82.7826 },
+  { office: "Narainpur SO", pin: "231305", lat: 25.161, lon: 82.976 },
+  { office: "Sikhar SO", pin: "231306", lat: 25.0742, lon: 82.4857 },
+  { office: "Vindhyachal SO", pin: "231307", lat: 25.1629, lon: 82.4998 },
+  { office: "Kubari Patehara SO", pin: "231309", lat: 25.0454, lon: 82.3401 },
+  {
+    office: "Chunar Cement Factory SO",
+    pin: "231311",
+    lat: 24.9555,
+    lon: 82.8839,
+  },
+  { office: "Chilh SO", pin: "231312", lat: 25.2056, lon: 82.527 },
+  { office: "Jigna RS SO", pin: "231313", lat: 25.1656, lon: 82.3202 },
+  { office: "Jamua SO", pin: "231314", lat: 25.205, lon: 82.778 },
+  { office: "Kachhwa SO", pin: "231501", lat: 25.211, lon: 82.716 },
+  // Sonbhadra District
+  { office: "Chopan SO", pin: "231205", lat: 24.5521, lon: 82.9673 },
+  { office: "Churk SO", pin: "231206", lat: 24.6412, lon: 83.0988 },
+  { office: "Dalla SO", pin: "231207", lat: 24.4391, lon: 83.0946 },
+  { office: "Dudhi SO", pin: "231208", lat: 24.2132, lon: 83.2374 },
+  { office: "Gurma Markundi SO", pin: "231209", lat: 24.3612, lon: 83.1236 },
+  { office: "Ghorawal SO", pin: "231210", lat: 24.7522, lon: 82.7832 },
+  { office: "Amwar SO", pin: "231212", lat: 24.0675, lon: 83.2294 },
+  { office: "Ram Garh SO", pin: "231213", lat: 24.6647, lon: 83.2412 },
+  { office: "Rajpur SO", pin: "231215", lat: 24.716, lon: 82.922 },
+  { office: "Robertsganj HO", pin: "231216", lat: 24.6878, lon: 83.0656 },
+  { office: "Renukoot SO", pin: "231217", lat: 24.2143, lon: 83.0353 },
+  { office: "Renusagar SO", pin: "231218", lat: 24.1059, lon: 82.5508 },
+  { office: "Obra SO", pin: "231219", lat: 24.4456, lon: 82.9737 },
+  { office: "Beena Project SO", pin: "231220", lat: 24.1564, lon: 82.7952 },
+  { office: "Turra SO", pin: "231221", lat: 24.2035, lon: 83.0205 },
+  { office: "Shaktinagar SO", pin: "231222", lat: 24.0659, lon: 82.685 },
+  { office: "Beej Pur SO", pin: "231223", lat: 24.0296, lon: 82.7906 },
+  { office: "Kakari Project SO", pin: "231224", lat: 24.1057, lon: 82.4657 },
+  { office: "Anpara Tps SO", pin: "231225", lat: 24.2692, lon: 82.9035 },
   { office: "Wyndhamganj SO", pin: "231226", lat: 24.201, lon: 83.394 },
-  { office: "Babhani SO", pin: "231223", lat: 23.945, lon: 83.112 },
-  { office: "Anpara SO", pin: "231225", lat: 24.205, lon: 82.768 },
-  { office: "Bina Project SO", pin: "231220", lat: 24.152, lon: 82.749 },
-  { office: "Shaktinagar SO", pin: "231222", lat: 24.111, lon: 82.695 },
 ];
 
 function learnHaversineKm(lat1, lon1, lat2, lon2) {
@@ -1512,7 +1824,7 @@ function getSmartDistractorOffices(correctOffice, correctPin, count = 3) {
   const targetCoord = findOfficeCoord(correctOffice, correctPin);
 
   const others = getAllUniqueOffices().filter(
-    (o) => o.office.toLowerCase() !== targetKey,
+    (o) => o.office.toLowerCase() !== targetKey
   );
   if (others.length <= count) return learnShuffle(others);
 
@@ -1533,7 +1845,7 @@ function getSmartDistractorOffices(correctOffice, correctPin, count = 3) {
       .sort((a, b) => a.dist - b.dist);
 
     const nearPool = learnShuffle(
-      withDist.slice(0, Math.min(5, withDist.length)),
+      withDist.slice(0, Math.min(5, withDist.length))
     );
     const geoTarget = Math.max(1, count - 1);
     for (let i = 0; i < nearPool.length && chosen.length < geoTarget; i++) {
@@ -1591,14 +1903,14 @@ function renderQuizSetupView() {
   document.querySelectorAll("[data-quiz-mode]").forEach((btn) => {
     btn.classList.toggle(
       "active",
-      btn.getAttribute("data-quiz-mode") === q.mode,
+      btn.getAttribute("data-quiz-mode") === q.mode
     );
   });
 
   document.querySelectorAll("[data-quiz-count]").forEach((btn) => {
     btn.classList.toggle(
       "active",
-      Number(btn.getAttribute("data-quiz-count")) === q.count,
+      Number(btn.getAttribute("data-quiz-count")) === q.count
     );
   });
 
@@ -1606,6 +1918,7 @@ function renderQuizSetupView() {
   document
     .getElementById("quiz-opt-hide-pin-row")
     ?.classList.toggle("hidden", q.mode !== "standard");
+  syncSmartMixTogglesUI();
 }
 
 function selectQuizMode(mode) {
@@ -1679,50 +1992,112 @@ function selectWeightedQuizRecords(pool, targetCount) {
   if (pick.length < targetCount) {
     takeFrom(
       [...dueOrWeak, ...unseen, ...refresher],
-      targetCount - pick.length,
+      targetCount - pick.length
     );
   }
 
   return learnShuffle(pick);
 }
 
-// --- QUESTION GENERATORS FOR ALL 3 MODES ---
-function buildStandardQuestions(basePool, count) {
-  let workingPool = [...basePool];
+// --- QUESTION GENERATORS FOR ALL 3 MODES (WITH SMART MIX) ---
+function buildSmartMixQuizPool(basePool, count, options = {}) {
+  const useSmartMix =
+    isSingleOfficeLearnScope() &&
+    learnState.smartMix &&
+    !learnState.quiz.customPool &&
+    basePool.length > 0;
 
-  // If scoped to a single Delivery Office, mix in ~35% neighboring office addresses
-  // so staff genuinely test boundary discrimination instead of clicking the same SO
-  if (learnState.scope.startsWith("office:") && workingPool.length > 0) {
-    const targetOffice = workingPool[0].Office;
-    const targetPin = workingPool[0].Pin;
-    const neighbors = getSmartDistractorOffices(targetOffice, targetPin, 3).map(
-      (n) => n.office.toLowerCase(),
-    );
-    const neighborRecords = (cachedPostOffices || []).filter((r) =>
-      neighbors.includes(
-        String(r.Office || "")
-          .trim()
-          .toLowerCase(),
-      ),
-    );
-    if (neighborRecords.length > 0) {
-      const primaryCount = Math.ceil(count * 0.65);
-      const neighborCount = Math.max(1, count - primaryCount);
-      const primarySelected = selectWeightedQuizRecords(
-        workingPool,
-        primaryCount,
-      );
-      const neighborSelected = learnShuffle(neighborRecords).slice(
-        0,
-        neighborCount,
-      );
-      workingPool = learnShuffle([...primarySelected, ...neighborSelected]);
-    }
+  if (!useSmartMix) {
+    return selectWeightedQuizRecords(basePool, count).map((rec) => ({
+      record: rec,
+      isTrap: false,
+    }));
   }
 
-  const chosen = selectWeightedQuizRecords(workingPool, count);
-  return chosen.map((rec) => {
-    const distractors = getSmartDistractorOffices(rec.Office, rec.Pin, 3);
+  const targetOffice = learnState.officeScope;
+  const trapPool = getNeighborTrapRecords(
+    targetOffice,
+    learnState.categoryFilter,
+    options
+  );
+
+  if (trapPool.length === 0) {
+    return selectWeightedQuizRecords(basePool, count).map((rec) => ({
+      record: rec,
+      isTrap: false,
+    }));
+  }
+
+  // Keep ~75% target office + ~25% neighbor traps, scaling cleanly for small filtered decks
+  const primaryCap = Math.min(
+    basePool.length,
+    Math.max(1, Math.round(count * 0.75))
+  );
+  const primarySelected = selectWeightedQuizRecords(basePool, primaryCap);
+
+  const proportionalTraps = Math.max(1, Math.round(primarySelected.length / 3));
+  const remainingSlots = Math.max(1, count - primarySelected.length);
+  const trapTarget = Math.min(
+    trapPool.length,
+    proportionalTraps,
+    remainingSlots
+  );
+  const trapSelected = selectWeightedQuizRecords(trapPool, trapTarget);
+
+  const combined = [
+    ...primarySelected.map((record) => ({ record, isTrap: false })),
+    ...trapSelected.map((record) => ({ record, isTrap: true })),
+  ];
+
+  // Spread traps so the user never gets 3 traps back-to-back
+  const shuffled = learnShuffle(combined);
+  for (let i = 2; i < shuffled.length; i++) {
+    if (
+      shuffled[i].isTrap &&
+      shuffled[i - 1].isTrap &&
+      shuffled[i - 2].isTrap
+    ) {
+      const swapIdx = shuffled.findIndex((x, idx) => idx > i && !x.isTrap);
+      if (swapIdx !== -1) {
+        [shuffled[i], shuffled[swapIdx]] = [shuffled[swapIdx], shuffled[i]];
+      }
+    }
+  }
+  return shuffled;
+}
+
+function buildStandardQuestions(basePool, count) {
+  const chosenEntries = buildSmartMixQuizPool(basePool, count);
+  const activeOffice = isSingleOfficeLearnScope()
+    ? learnState.officeScope
+    : null;
+  const activeOfficeLower = activeOffice ? activeOffice.toLowerCase() : "";
+  const activeOfficePin = activeOffice
+    ? String(getLearnOfficeRecords(activeOffice)[0]?.Pin || "").trim()
+    : "";
+
+  return chosenEntries.map(({ record: rec, isTrap }) => {
+    let distractors = getSmartDistractorOffices(rec.Office, rec.Pin, 3);
+
+    // Anti-Tell Rule: on trap questions, always include the target office as a distractor
+    if (
+      isTrap &&
+      activeOffice &&
+      String(rec.Office || "")
+        .trim()
+        .toLowerCase() !== activeOfficeLower
+    ) {
+      const hasTarget = distractors.some(
+        (d) => d.office.toLowerCase() === activeOfficeLower
+      );
+      if (!hasTarget) {
+        distractors = [
+          { office: activeOffice, pin: activeOfficePin },
+          ...distractors.slice(0, 2),
+        ];
+      }
+    }
+
     const options = learnShuffle([
       {
         office: rec.Office,
@@ -1735,18 +2110,21 @@ function buildStandardQuestions(basePool, count) {
         isCorrect: false,
       })),
     ]);
-    return { type: "standard", record: rec, options };
+    return { type: "standard", record: rec, options, isTrap };
   });
 }
 
 function buildPinSniperQuestions(basePool, count) {
   const validPinPool = basePool.filter((r) =>
-    /^\d{6}$/.test(String(r.Pin || "").trim()),
+    /^\d{6}$/.test(String(r.Pin || "").trim())
   );
   if (validPinPool.length === 0) return [];
 
-  const chosen = selectWeightedQuizRecords(validPinPool, count);
-  return chosen.map((rec) => {
+  const chosenEntries = buildSmartMixQuizPool(validPinPool, count, {
+    distinctPin: true,
+  });
+
+  return chosenEntries.map(({ record: rec, isTrap }) => {
     const pinStr = String(rec.Pin).trim();
     return {
       type: "pin",
@@ -1754,6 +2132,7 @@ function buildPinSniperQuestions(basePool, count) {
       pinPrefix: pinStr.slice(0, 3),
       pinSuffix: pinStr.slice(3),
       fullPin: pinStr,
+      isTrap,
     };
   });
 }
@@ -1801,45 +2180,83 @@ function buildIntruderQuestions(basePool, count) {
 
   if (eligibleGroups.length === 0) {
     eligibleGroups = Array.from(byOfficeAll.values()).filter(
-      (g) => g.rows.length >= 3,
+      (g) => g.rows.length >= 3
     );
   }
 
   if (eligibleGroups.length === 0 || byOfficeAll.size < 2) return [];
 
+  // In single-office Smart Mix, ~25% of Spot Intruder rounds flip to a Neighbor SO
+  // with 1 target-office address as the intruder so staff can't just scan for unfamiliar names
+  const useFlippedRounds =
+    isSingleOfficeLearnScope() &&
+    learnState.smartMix &&
+    !learnState.quiz.customPool &&
+    eligibleGroups.length === 1;
+
+  const primaryGroup = eligibleGroups[0];
+  let neighborFlipGroups = [];
+  if (useFlippedRounds) {
+    neighborFlipGroups = getSmartDistractorOffices(
+      primaryGroup.office,
+      primaryGroup.pin,
+      5
+    )
+      .map((n) => byOfficeAll.get(n.office.toLowerCase()))
+      .filter((g) => g && g.rows.length >= 3);
+  }
+
   const questions = [];
   const shuffledGroups = learnShuffle(eligibleGroups);
 
   for (let i = 0; i < count; i++) {
-    const group = shuffledGroups[i % shuffledGroups.length];
+    const isFlippedRound =
+      useFlippedRounds && neighborFlipGroups.length > 0 && i % 4 === 3;
+
+    const group = isFlippedRound
+      ? neighborFlipGroups[
+          Math.floor(Math.random() * neighborFlipGroups.length)
+        ]
+      : shuffledGroups[i % shuffledGroups.length];
+
     const memberSet = new Set(
       (byOfficeAll.get(group.office.toLowerCase())?.rows || group.rows).map(
         (r) =>
           String(r.Address || "")
             .trim()
-            .toLowerCase(),
-      ),
+            .toLowerCase()
+      )
     );
 
     const threeMembers = selectWeightedQuizRecords(group.rows, 3);
     if (threeMembers.length < 3) continue;
 
-    // Pick 1 intruder from geographically closest neighboring office
-    const neighbors = getSmartDistractorOffices(group.office, group.pin, 5);
     let intruderCandidates = [];
-    for (let n = 0; n < neighbors.length; n++) {
-      const nGroup = byOfficeAll.get(neighbors[n].office.toLowerCase());
-      if (!nGroup) continue;
-      const clean = nGroup.rows.filter(
+    if (isFlippedRound) {
+      intruderCandidates = primaryGroup.rows.filter(
         (r) =>
           !memberSet.has(
             String(r.Address || "")
               .trim()
-              .toLowerCase(),
-          ),
+              .toLowerCase()
+          )
       );
-      intruderCandidates = intruderCandidates.concat(clean);
-      if (intruderCandidates.length >= 12) break;
+    } else {
+      const neighbors = getSmartDistractorOffices(group.office, group.pin, 5);
+      for (let n = 0; n < neighbors.length; n++) {
+        const nGroup = byOfficeAll.get(neighbors[n].office.toLowerCase());
+        if (!nGroup) continue;
+        const clean = nGroup.rows.filter(
+          (r) =>
+            !memberSet.has(
+              String(r.Address || "")
+                .trim()
+                .toLowerCase()
+            )
+        );
+        intruderCandidates = intruderCandidates.concat(clean);
+        if (intruderCandidates.length >= 12) break;
+      }
     }
 
     if (intruderCandidates.length === 0) {
@@ -1851,8 +2268,8 @@ function buildIntruderQuestions(basePool, count) {
           !memberSet.has(
             String(r.Address || "")
               .trim()
-              .toLowerCase(),
-          ),
+              .toLowerCase()
+          )
       );
     }
     if (intruderCandidates.length === 0) continue;
@@ -1871,6 +2288,7 @@ function buildIntruderQuestions(basePool, count) {
       targetPin: group.pin,
       record: intruder,
       options,
+      isTrap: isFlippedRound,
     });
   }
 
@@ -1909,7 +2327,7 @@ function startLearnQuiz(customOptions = null) {
   const allOfficesCount = getAllUniqueOffices().length;
   if ((q.mode === "standard" || q.mode === "intruder") && allOfficesCount < 2) {
     return showToast(
-      "⚠️ Add at least 2 Delivery Offices to run this quiz mode.",
+      "⚠️ Add at least 2 Delivery Offices to run this quiz mode."
     );
   }
 
@@ -1925,7 +2343,7 @@ function startLearnQuiz(customOptions = null) {
     questions = buildIntruderQuestions(basePool, q.count);
     if (questions.length === 0) {
       return showToast(
-        "⚠️ Need an office with at least 3 addresses for Spot Intruder.",
+        "⚠️ Need an office with at least 3 addresses for Spot Intruder."
       );
     }
   }
@@ -2018,15 +2436,19 @@ function renderQuizQuestion() {
               onclick="handleStandardAnswer(${idx})"
             >
               <span class="quiz-option-main">
-                <span class="quiz-option-title">🏢 ${escapeHTML(opt.office)}</span>
+                <span class="quiz-option-title">🏢 ${escapeHTML(
+                  opt.office
+                )}</span>
                 ${
                   !q.hidePin && opt.pin
-                    ? `<span class="quiz-option-sub">PIN: ${escapeHTML(opt.pin)}</span>`
+                    ? `<span class="quiz-option-sub">PIN: ${escapeHTML(
+                        opt.pin
+                      )}</span>`
                     : ""
                 }
               </span>
               <span class="quiz-option-icon">›</span>
-            </button>`,
+            </button>`
         )
         .join("");
     }
@@ -2087,10 +2509,12 @@ function renderQuizQuestion() {
               onclick="handleIntruderAnswer(${idx})"
             >
               <span class="quiz-option-main">
-                <span class="quiz-option-title">${escapeHTML(opt.record.Address)}</span>
+                <span class="quiz-option-title">${escapeHTML(
+                  opt.record.Address
+                )}</span>
               </span>
               <span class="quiz-option-icon">›</span>
-            </button>`,
+            </button>`
         )
         .join("");
     }
@@ -2258,7 +2682,7 @@ function handleQuizTimeout() {
     finishQuizAnswer(
       false,
       item.record,
-      `⏱ Time's up! ${item.record.Address} → ${item.record.Office}`,
+      `⏱ Time's up! ${item.record.Address} → ${item.record.Office}`
     );
   } else if (item.type === "pin") {
     const inputEl = document.getElementById("learn-pin-input");
@@ -2271,7 +2695,7 @@ function handleQuizTimeout() {
     finishQuizAnswer(
       false,
       item.record,
-      `⏱ Time's up! Correct PIN for ${item.record.Office} is ${item.fullPin}`,
+      `⏱ Time's up! Correct PIN for ${item.record.Office} is ${item.fullPin}`
     );
   } else if (item.type === "intruder") {
     document
@@ -2287,7 +2711,7 @@ function handleQuizTimeout() {
     finishQuizAnswer(
       false,
       item.record,
-      `⏱ Time's up! Intruder was "${item.record.Address}" → ${item.record.Office}`,
+      `⏱ Time's up! Intruder was "${item.record.Address}" → ${item.record.Office}`
     );
   }
 }
@@ -2299,7 +2723,7 @@ function finishQuizAnswer(isCorrect, targetRecord, noteText) {
 
   const elapsedMs = Math.max(
     200,
-    Math.round(performance.now() - q.questionStartMs),
+    Math.round(performance.now() - q.questionStartMs)
   );
   q.totalMs += elapsedMs;
 
@@ -2323,7 +2747,7 @@ function finishQuizAnswer(isCorrect, targetRecord, noteText) {
     targetRecord?.id,
     isCorrect ? "good" : "again",
     elapsedMs,
-    "quiz",
+    "quiz"
   );
   q.xpEarned += outcome.xpDelta;
 
@@ -2334,7 +2758,9 @@ function finishQuizAnswer(isCorrect, targetRecord, noteText) {
   const nextWrap = document.getElementById("quiz-next-wrap");
   if (noteEl) {
     noteEl.textContent = noteText;
-    noteEl.className = `quiz-feedback-note ${isCorrect ? "is-correct" : "is-wrong"}`;
+    noteEl.className = `quiz-feedback-note ${
+      isCorrect ? "is-correct" : "is-wrong"
+    }`;
   }
   if (nextWrap) nextWrap.classList.remove("hidden");
 
@@ -2380,10 +2806,10 @@ function finishLearnQuiz() {
     acc >= 90
       ? "🏆 Sorting Master!"
       : acc >= 75
-        ? "🎉 Great Sorting!"
-        : acc >= 50
-          ? "👍 Good Practice!"
-          : "💪 Keep Drilling!";
+      ? "🎉 Great Sorting!"
+      : acc >= 50
+      ? "👍 Good Practice!"
+      : "💪 Keep Drilling!";
 
   const setTxt = (id, val) => {
     const el = document.getElementById(id);
@@ -2396,7 +2822,7 @@ function finishLearnQuiz() {
     "quiz-sum-sub",
     `Best streak: ${q.bestStreak}x • ${
       navigator.onLine ? "Syncing to cloud..." : "Saved offline"
-    }`,
+    }`
   );
   setTxt("quiz-sum-acc", `${acc}%`);
   setTxt("quiz-sum-speed", `${avgSec}s`);
@@ -2413,9 +2839,11 @@ function finishLearnQuiz() {
           <div class="mastery-weak-row">
             <div class="mastery-weak-info">
               <strong>${escapeHTML(r.Address)}</strong>
-              <span>🏢 ${escapeHTML(r.Office)} • 📍 ${escapeHTML(r.Pin || "N/A")}</span>
+              <span>🏢 ${escapeHTML(r.Office)} • 📍 ${escapeHTML(
+          r.Pin || "N/A"
+        )}</span>
             </div>
-          </div>`,
+          </div>`
       )
       .join("");
     missedWrap.classList.remove("hidden");
@@ -2474,7 +2902,7 @@ function confirmExitQuiz(afterExitCallback = null) {
     "Exit Quiz?",
     "Your answers so far are saved, but this quiz session will end.",
     "Exit Quiz",
-    doExit,
+    doExit
   );
 }
 
@@ -2565,14 +2993,14 @@ function renderMasteryOfficeList(progOverride = null) {
   if (learnState.masterySortLowest) {
     offices.sort(
       (a, b) =>
-        a.pct - b.pct || b.total - a.total || a.office.localeCompare(b.office),
+        a.pct - b.pct || b.total - a.total || a.office.localeCompare(b.office)
     );
   } else {
     offices.sort(
       (a, b) =>
         b.pct - a.pct ||
         b.mastered - a.mastered ||
-        a.office.localeCompare(b.office),
+        a.office.localeCompare(b.office)
     );
   }
 
@@ -2597,12 +3025,14 @@ function renderMasteryOfficeList(progOverride = null) {
       >
         <div class="mastery-office-meta">
           <span>🏢 ${escapeHTML(o.office)}</span>
-          <span class="mastery-office-pct">${o.pct}% (${o.mastered}/${o.total})</span>
+          <span class="mastery-office-pct">${o.pct}% (${o.mastered}/${
+        o.total
+      })</span>
         </div>
         <div class="mastery-bar-track">
           <div class="mastery-bar-fill" style="width: ${o.pct}%"></div>
         </div>
-      </button>`,
+      </button>`
     )
     .join("");
 
@@ -2631,11 +3061,9 @@ function toggleMasteryShowAllOffices() {
 
 function practiceOfficeFromLearn(officeName) {
   if (!officeName) return;
-  learnState.scope = `office:${officeName}`;
-  learnState.fcRecentIds = [];
-  learnState.fcHistory = [];
-  learnState.fcHistoryIndex = -1;
-  learnState.fcCurrentRecord = null;
+  learnState.officeScope = officeName;
+  learnState.categoryFilter = "all";
+  resetLearnFlashcardDeck();
   switchLearnTab("learn");
   showToast(`🎯 Deck set to ${officeName} — flip cards or tap Quiz!`);
 }
@@ -2658,7 +3086,7 @@ function getWeakRecordsSorted(progOverride = null) {
     (a, b) =>
       b.card.misses - a.card.misses ||
       a.card.box - b.card.box ||
-      (b.card.lastSeen || 0) - (a.card.lastSeen || 0),
+      (b.card.lastSeen || 0) - (a.card.lastSeen || 0)
   );
   return weak;
 }
@@ -2684,7 +3112,9 @@ function renderMasteryWeakList(progOverride = null) {
         <div class="mastery-weak-row">
           <div class="mastery-weak-info">
             <strong>${escapeHTML(record.Address)}</strong>
-            <span>🏢 ${escapeHTML(record.Office)} • 📍 ${escapeHTML(record.Pin || "N/A")}</span>
+            <span>🏢 ${escapeHTML(record.Office)} • 📍 ${escapeHTML(
+        record.Pin || "N/A"
+      )}</span>
           </div>
           <span class="mastery-miss-pill">${missText}</span>
         </div>`;
@@ -2706,7 +3136,8 @@ function drillWeakSpotsNow() {
     return showToast("✨ No weak spots to drill!");
   }
 
-  learnState.scope = "weak";
+  learnState.officeScope = "all";
+  learnState.categoryFilter = "weak";
   switchLearnTab("quiz");
   startLearnQuiz({
     mode: "standard",
@@ -2749,16 +3180,28 @@ function renderLearningLeaderboardRows(rows, isOfflineCache = false) {
       return `
         <div
           class="learn-lb-row ${isMe ? "is-me" : ""}"
-          onclick="if (typeof openUserProfileModal === 'function') openUserProfileModal('${escapeForOnclick(row.user_id)}', '${escapeForOnclick(name)}')"
+          onclick="if (typeof openUserProfileModal === 'function') openUserProfileModal('${escapeForOnclick(
+            row.user_id
+          )}', '${escapeForOnclick(name)}')"
           style="cursor: pointer;"
           title="Tap to view profile"
         >
-          <span class="learn-lb-rank ${idx < 3 ? "is-top" : ""}">${rankBadge}</span>
+          <span class="learn-lb-rank ${
+            idx < 3 ? "is-top" : ""
+          }">${rankBadge}</span>
           <div class="learn-lb-info">
             <strong>
               ${escapeHTML(name)}
-              ${isMe ? `<span class="member-you-badge" style="margin-left:4px;">You</span>` : ""}
-              ${row.is_admin ? `<span class="member-admin-badge" style="margin-left:4px;">Admin</span>` : ""}
+              ${
+                isMe
+                  ? `<span class="member-you-badge" style="margin-left:4px;">You</span>`
+                  : ""
+              }
+              ${
+                row.is_admin
+                  ? `<span class="member-admin-badge" style="margin-left:4px;">Admin</span>`
+                  : ""
+              }
             </strong>
             <span>${escapeHTML(desig)} • ${acc}% acc • 🔥 ${streak}d</span>
           </div>
@@ -2779,7 +3222,7 @@ async function loadLearningLeaderboard(forceRefresh = false) {
   if (!learnLeaderboardMemCache.rows) {
     try {
       const saved = JSON.parse(
-        localStorage.getItem(LEARN_LEADERBOARD_CACHE_KEY),
+        localStorage.getItem(LEARN_LEADERBOARD_CACHE_KEY)
       );
       if (saved && Array.isArray(saved.rows)) {
         learnLeaderboardMemCache = saved;
@@ -2790,7 +3233,7 @@ async function loadLearningLeaderboard(forceRefresh = false) {
   if (Array.isArray(learnLeaderboardMemCache.rows)) {
     renderLearningLeaderboardRows(
       learnLeaderboardMemCache.rows,
-      !navigator.onLine,
+      !navigator.onLine
     );
   } else if (navigator.onLine) {
     listEl.innerHTML = `
@@ -2821,7 +3264,7 @@ async function loadLearningLeaderboard(forceRefresh = false) {
       "get_learning_leaderboard",
       {
         p_limit: 25,
-      },
+      }
     );
     if (error) throw error;
 
@@ -2830,7 +3273,7 @@ async function loadLearningLeaderboard(forceRefresh = false) {
     try {
       localStorage.setItem(
         LEARN_LEADERBOARD_CACHE_KEY,
-        JSON.stringify(learnLeaderboardMemCache),
+        JSON.stringify(learnLeaderboardMemCache)
       );
     } catch (_) {}
 
@@ -2853,7 +3296,7 @@ async function toggleLeaderboardOptIn(enabled) {
     prog.leaderboardOptIn
       ? "🏆 Joined the Division Leaderboard!"
       : "🙈 Hidden from Division Leaderboard",
-    prog.leaderboardOptIn ? "success" : "info",
+    prog.leaderboardOptIn ? "success" : "info"
   );
 
   if (navigator.onLine) {
@@ -2892,7 +3335,7 @@ function confirmResetLearnProgress() {
         await pushLearningProgressToCloud();
         if (keepOptIn) loadLearningLeaderboard(true);
       }
-    },
+    }
   );
 }
 
@@ -2903,12 +3346,10 @@ function practiceOfficeFromDirectory(officeName) {
     closeAllDirectoryActionTrays();
   }
 
-  learnState.scope = `office:${officeName}`;
+  learnState.officeScope = officeName;
+  learnState.categoryFilter = "all";
   learnState.activeTab = "learn";
-  learnState.fcCurrentRecord = null;
-  learnState.fcRecentIds = [];
-  learnState.fcHistory = [];
-  learnState.fcHistoryIndex = -1;
+  resetLearnFlashcardDeck();
 
   if (typeof switchDashboardView === "function") {
     switchDashboardView("learn");
@@ -2978,7 +3419,7 @@ function bindFlashcardSwipeGestures() {
     const canPrev = learnState.fcHistoryIndex > 0;
     const canNext =
       learnState.fcHistoryIndex < learnState.fcHistory.length - 1 ||
-      getFilteredLearnRecords().length > 1;
+      canAdvanceLearnDeck();
     const isBlockedEdge = (dx > 0 && !canPrev) || (dx < 0 && !canNext);
 
     if (isBlockedEdge) {
@@ -3038,7 +3479,7 @@ function bindFlashcardSwipeGestures() {
     const canPrev = learnState.fcHistoryIndex > 0;
     const canNext =
       learnState.fcHistoryIndex < learnState.fcHistory.length - 1 ||
-      getFilteredLearnRecords().length > 1;
+      canAdvanceLearnDeck();
 
     if (triggered && finalDx < 0) {
       if (canNext) {

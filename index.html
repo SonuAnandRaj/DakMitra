@@ -3653,6 +3653,22 @@
           <div id="learn-panel-cards" class="learn-tab-panel">
             <!-- Mastery Overview Card -->
             <div class="dm-surface learn-overview-card">
+              <div
+                id="learn-overview-scope-row"
+                class="learn-overview-scope-row hidden"
+              >
+                <span id="learn-overview-scope-label" class="learn-scope-pill">
+                  🏢 All Offices
+                </span>
+                <button
+                  type="button"
+                  class="learn-scope-reset-btn"
+                  onclick="setLearnOfficeScope('all')"
+                >
+                  All Offices
+                </button>
+              </div>
+
               <div class="learn-overview-top">
                 <div class="learn-ring-wrap">
                   <svg class="learn-ring-svg" viewBox="0 0 100 100">
@@ -3721,23 +3737,42 @@
               </div>
             </div>
 
-            <!-- Horizontal Office & Category Filter Chips -->
+            <!-- 2-Tier Filter Bar: Row 1 (Offices) + Row 2 (Categories) + Row 3 (Smart Mix) -->
             <div class="dir-filter-bar learn-filter-bar">
               <div
                 id="learn-filter-chips"
                 class="dir-filter-chips"
                 role="group"
-                aria-label="Filter study deck"
+                aria-label="Select Delivery Office"
               ></div>
-              <div id="learn-scope-summary" class="dir-filter-summary hidden">
-                <span id="learn-scope-summary-text"></span>
-                <button
-                  type="button"
-                  class="dir-filter-reset-btn"
-                  onclick="setLearnScope('all')"
+
+              <div
+                id="learn-category-chips"
+                class="dir-filter-chips"
+                role="group"
+                aria-label="Filter addresses by category"
+              ></div>
+
+              <div
+                id="learn-smart-mix-bar"
+                class="dir-filter-summary learn-smart-mix-bar hidden"
+              >
+                <div class="learn-smart-mix-info">
+                  <strong>🔀 Smart Mix</strong>
+                  <span id="learn-smart-mix-sub">~25% neighbor traps</span>
+                </div>
+                <label
+                  class="dm-toggle-switch learn-mini-toggle"
+                  title="Mix ~25% neighboring office addresses to prevent auto-piloting"
                 >
-                  All Offices
-                </button>
+                  <input
+                    type="checkbox"
+                    id="learn-opt-smart-mix"
+                    checked
+                    onchange="toggleLearnSmartMix(this.checked)"
+                  />
+                  <span class="dm-toggle-slider"></span>
+                </label>
               </div>
             </div>
 
@@ -3872,14 +3907,24 @@
                   </div>
                 </div>
 
-                <!-- Deck Scope Chips (Synced with Learn) -->
+                <!-- Deck Scope Chips (Synced with Learn: Offices + Categories) -->
                 <div class="quiz-setup-section">
-                  <span class="appr-filter-label">Study Scope</span>
+                  <span class="appr-filter-label">Delivery Office</span>
                   <div
                     id="quiz-filter-chips"
                     class="dir-filter-chips"
                     role="group"
-                    aria-label="Quiz scope"
+                    aria-label="Quiz office scope"
+                  ></div>
+
+                  <span class="appr-filter-label" style="margin-top: 10px">
+                    Address Category
+                  </span>
+                  <div
+                    id="quiz-category-chips"
+                    class="dir-filter-chips"
+                    role="group"
+                    aria-label="Quiz address category"
                   ></div>
                 </div>
 
@@ -3916,6 +3961,31 @@
 
                 <!-- Quiz Options -->
                 <div class="quiz-toggles-wrap">
+                  <div
+                    class="dm-toggle-row hidden"
+                    id="quiz-opt-smart-mix-row"
+                    style="margin-bottom: 10px"
+                  >
+                    <div>
+                      <strong class="learn-toggle-title"
+                        >🔀 Smart Mix (Neighbor Traps)</strong
+                      >
+                      <span class="learn-toggle-sub"
+                        >Mix ~25% nearby office cards so every answer
+                        counts</span
+                      >
+                    </div>
+                    <label class="dm-toggle-switch">
+                      <input
+                        type="checkbox"
+                        id="quiz-opt-smart-mix"
+                        checked
+                        onchange="toggleLearnSmartMix(this.checked)"
+                      />
+                      <span class="dm-toggle-slider"></span>
+                    </label>
+                  </div>
+
                   <div class="dm-toggle-row" style="margin-bottom: 10px">
                     <div>
                       <strong class="learn-toggle-title"
