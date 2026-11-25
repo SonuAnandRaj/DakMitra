@@ -9,6 +9,7 @@ VS code to generate four small files
 New-Item -ItemType Directory -Force -Path ai_upload | Out-Null
 
 -------------
+
 if (-not (Test-Path ai_upload)) { New-Item -ItemType Directory -Path ai_upload | Out-Null }
 
 # 1. HTML + Config + Edge Functions + Service Worker (+ any .sql if present)
@@ -28,17 +29,3 @@ VS code to generate one big file
 
 Get-ChildItem -Recurse -Include *.html,*.css,*.js,*.json | Where-Object { $_.FullName -notmatch '\\(node_modules|\.git)\\' } | ForEach-Object { "`n// ===== FILE: $($_.FullName.Replace((Get-Location).Path + '\', '')) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content dakmitra_bundle.txt -Encoding UTF8 
 -----------------
-
-if (-not (Test-Path ai_upload)) { New-Item -ItemType Directory -Path ai_upload | Out-Null }
-
-# 1. HTML + Config + Edge Functions + Service Worker (+ any .sql if present)
-Get-ChildItem -File -Recurse -Include *.html,*.json,*.ts,*.sql,sw.js | Where-Object { $_.FullName -notmatch '\\(node_modules|\.git|ai_upload)\\' } | Sort-Object Name | ForEach-Object { "`n// ===== FILE: $($_.Name) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-1-html-config.txt -Encoding UTF8
-
-# 2. All CSS (includes 01-base-layout.css, 02-components.css, 03-views.css, 04-learn.css)
-Get-ChildItem css -File -Recurse -Include *.css | Sort-Object Name | ForEach-Object { "`n/* ===== FILE: $($_.Name) ===== */`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-2-css.txt -Encoding UTF8
-
-# 3. JS Core (01 to 05)
-Get-ChildItem js -File -Recurse -Include 01-*.js,02-*.js,03-*.js,04-*.js,05-*.js | Sort-Object Name | ForEach-Object { "`n// ===== FILE: $($_.Name) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-3-js-core.txt -Encoding UTF8
-
-# 4. JS Features (06 to 12, including 11-feedback.js & 12-learn-quiz.js)
-Get-ChildItem js -File -Recurse -Include 06-*.js,07-*.js,08-*.js,09-*.js,10-*.js,11-*.js,12-*.js | Sort-Object Name | ForEach-Object { "`n// ===== FILE: $($_.Name) =====`n" + (Get-Content $_.FullName -Raw) } | Set-Content ai_upload\bundle-4-js-features.txt -Encoding UTF8
