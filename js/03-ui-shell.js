@@ -285,6 +285,7 @@ function switchDashboardView(viewId) {
   } else if (viewId === "learn") {
     if (typeof renderLearnView === "function") renderLearnView();
   } else if (viewId === "superadmin") {
+    superadminHeroController.setCollapsed(false, true);
     if (typeof renderSuperadminView === "function") renderSuperadminView();
   }
 
@@ -1143,6 +1144,15 @@ const feedbackHeroController = createCollapsibleHero(
     document.getElementById("feedback-search-input")?.blur();
   },
   { collapseAccum: 140, minScrollTop: 100 }
+);
+
+const superadminHeroController = createCollapsibleHero(
+  "superadmin-display-area",
+  "superadmin-hero-collapse-wrap",
+  () => {
+    document.getElementById("sa-users-search")?.blur();
+    document.getElementById("sa-db-search")?.blur();
+  }
 );
 
 function setSearchHeroCollapsed(shouldCollapse, instant = false) {

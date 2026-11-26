@@ -58,6 +58,12 @@ function switchSuperadminTab(tab) {
       ?.classList.toggle("hidden", t !== tab);
   });
 
+  if (typeof superadminHeroController !== "undefined") {
+    superadminHeroController.setCollapsed(false, true);
+  }
+  const scrollArea = document.getElementById("superadmin-display-area");
+  if (scrollArea) scrollArea.scrollTop = 0;
+
   if (tab === "controls") {
     fetchAndApplyAppConfig().then(syncSuperadminControlsUI);
   } else if (tab === "users") {

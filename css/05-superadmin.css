@@ -4,21 +4,37 @@
    ========================================================= */
 
 #view-superadmin.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
   height: calc(
-    100dvh - 105px - env(safe-area-inset-top, 0px) -
+    100dvh - 130px - env(safe-area-inset-top, 0px) -
       env(safe-area-inset-bottom, 0px)
   );
   min-height: 360px;
+}
+
+#view-superadmin #superadmin-display-area {
+  flex: 1;
+  min-height: 180px;
+  max-height: none !important;
+  margin-bottom: 5px;
+  transition: none;
   overflow-y: auto;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  overscroll-behavior-y: contain;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 2px 2px calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 body.keyboard-open #view-superadmin.active {
   height: calc(var(--vvh, 100dvh) - 88px - env(safe-area-inset-top, 0px));
   min-height: 0;
+}
+
+body.keyboard-open #view-superadmin #superadmin-display-area {
   padding-bottom: 16px;
 }
 
