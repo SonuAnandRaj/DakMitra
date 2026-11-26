@@ -1492,3 +1492,216 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     input.setAttribute("enterkeyhint", isLast ? "done" : "next");
   });
 })();
+
+// --- CHAIN UPWARD SCROLL FROM TOP OF INNER SCROLLERS TO OUTER SCROLL (SLOW & SMOOTH) ---
+(function initInnerToOuterTopScrollChain() {
+  // Adjust these 3 values to fine-tune speed (lower = slower)
+  const WHEEL_SPEED = 0.3; // 30% of normal mouse wheel speed
+  const TOUCH_SPEED = 0.4; // 40% of finger drag speed on phone
+  const SMOOTH_FACTOR = 0.1; // Easing speed per frame (0.06 = very slow glide, 0.2 = snappier)
+
+  const anim = {
+    el: null,
+    currentTop: 0,
+    targetTop: 0,
+    rafId: null,
+  };
+
+  function stopAnim() {
+    if (anim.rafId) {
+      cancelAnimationFrame(anim.rafId);
+      anim.rafId = null;
+    }
+    anim.el = null;
+  }
+
+  function stepAnim() {
+    if (!anim.el) {
+      stopAnim();
+      return;
+    }
+
+    const diff = anim.targetTop - anim.currentTop;
+    if (Math.abs(diff) < 0.5) {
+      anim.currentTop = anim.targetTop;
+      anim.el.scrollTop = Math.round(anim.targetTop);
+      stopAnim();
+      return;
+    }
+
+    anim.currentTop += diff * SMOOTH_FACTOR;
+    anim.el.scrollTop = anim.currentTop;
+    anim.rafId = requestAnimationFrame(stepAnim);
+  }
+
+  function nudgeOuterScrollUp(outerEl, negativeDelta) {
+    if (!outerEl || negativeDelta >= 0) return;
+
+    if (anim.el !== outerEl || !anim.rafId) {
+      stopAnim();
+      anim.el = outerEl;
+      anim.currentTop = outerEl.scrollTop;
+      anim.targetTop = outerEl.scrollTop;
+    }
+
+    anim.targetTop = Math.max(0, anim.targetTop + negativeDelta);
+
+    if (!anim.rafId) {
+      anim.rafId = requestAnimationFrame(stepAnim);
+    }
+  }
+
+  const isVerticallyScrollable = (el) => {
+    if (!el || el === document.body || el === document.documentElement) {
+      return false;
+    }
+    const style = getComputedStyle(el);
+    return (
+      (style.overflowY === "auto" || style.overflowY === "scroll") &&
+      el.scrollHeight > el.clientHeight + 1
+    );
+  };
+
+  function findInnerScrollable(target) {
+    let el = target instanceof Element ? target : target?.parentElement;
+    while (el && el !== document.body && el !== document.documentElement) {
+      if (isVerticallyScrollable(el)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function findOuterScrollableUp(innerEl) {
+    let el = innerEl ? innerEl.parentElement : null;
+    while (el && el !== document.body && el !== document.documentElement) {
+      if (isVerticallyScrollable(el) && el.scrollTop > 0) {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    const docScroller = document.scrollingElement || document.documentElement;
+    if (docScroller && docScroller.scrollTop > 0) {
+      return docScroller;
+    }
+    return null;
+  }
+
+  function isBlockedContext(target) {
+    if (document.documentElement.classList.contains("dm-scroll-locked")) {
+      return true;
+    }
+    if (
+      target instanceof Element &&
+      target.closest(
+        ".modal-overlay.show, .sidebar.open, #crop-stage, #lightbox-stage"
+      )
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  // 1. Desktop wheel / trackpad
+  document.addEventListener(
+    "wheel",
+    (e) => {
+      if (e.deltaY > 0) {
+        stopAnim(); // Stop immediately if user reverses downward
+        return;
+      }
+      if (e.deltaY === 0 || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      if (isBlockedContext(e.target)) return;
+
+      const innerEl = findInnerScrollable(e.target);
+      if (!innerEl) return;
+
+      const deltaY =
+        e.deltaMode === 1
+          ? e.deltaY * 32
+          : e.deltaMode === 2
+          ? e.deltaY * window.innerHeight
+          : e.deltaY;
+
+      if (innerEl.scrollTop + deltaY > 0) return;
+
+      const outerEl = findOuterScrollableUp(innerEl);
+      if (!outerEl) return;
+
+      const remainder = innerEl.scrollTop + deltaY;
+      e.preventDefault();
+      if (innerEl.scrollTop > 0) innerEl.scrollTop = 0;
+
+      // Cap single wheel notch so big jumps stay slow and controlled
+      const dampedStep = Math.max(-40, remainder * WHEEL_SPEED);
+      nudgeOuterScrollUp(outerEl, dampedStep);
+    },
+    { passive: false }
+  );
+
+  // 2. Mobile touch (finger pulls down = scrolling up)
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let lastTouchY = 0;
+  let activeInner = null;
+  let gestureAxis = null;
+
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      stopAnim();
+      if (e.touches.length !== 1 || isBlockedContext(e.target)) {
+        activeInner = null;
+        gestureAxis = null;
+        return;
+      }
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      lastTouchY = touchStartY;
+      activeInner = findInnerScrollable(e.target);
+      gestureAxis = null;
+    },
+    { passive: true }
+  );
+
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!activeInner || e.touches.length !== 1) return;
+      if (isBlockedContext(e.target)) return;
+
+      const currX = e.touches[0].clientX;
+      const currY = e.touches[0].clientY;
+      const dy = currY - lastTouchY;
+      lastTouchY = currY;
+
+      if (gestureAxis === null) {
+        const totalDx = Math.abs(currX - touchStartX);
+        const totalDy = Math.abs(currY - touchStartY);
+        if (totalDx < 5 && totalDy < 5) return;
+        gestureAxis = totalDx > totalDy ? "x" : "y";
+      }
+      if (gestureAxis !== "y") return;
+      if (dy < 0) {
+        stopAnim();
+        return;
+      }
+      if (dy === 0 || activeInner.scrollTop > 1) return;
+
+      const outerEl = findOuterScrollableUp(activeInner);
+      if (!outerEl) return;
+
+      if (e.cancelable) e.preventDefault();
+      if (activeInner.scrollTop > 0) activeInner.scrollTop = 0;
+
+      nudgeOuterScrollUp(outerEl, -dy * TOUCH_SPEED);
+    },
+    { passive: false }
+  );
+
+  const resetTouch = () => {
+    activeInner = null;
+    gestureAxis = null;
+  };
+  document.addEventListener("touchend", resetTouch, { passive: true });
+  document.addEventListener("touchcancel", resetTouch, { passive: true });
+})();
