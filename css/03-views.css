@@ -4992,6 +4992,32 @@ table.data-table.dir-table tbody tr:nth-child(even) td {
   background-color: var(--stripe-bg);
 }
 
+table.data-table.dir-table tbody tr.dir-table-row {
+  cursor: pointer;
+}
+
+table.data-table.dir-table tbody tr.dir-table-row:hover td {
+  background-color: rgba(79, 70, 229, 0.05);
+  color: var(--primary);
+}
+
+[data-theme="dark"] table.data-table.dir-table tbody tr.dir-table-row:hover td {
+  background-color: rgba(129, 140, 248, 0.09);
+}
+
+table.data-table.dir-table tbody tr.dir-table-row.selected-chip td {
+  background-color: rgba(79, 70, 229, 0.11) !important;
+  color: var(--primary);
+}
+
+[data-theme="dark"]
+  table.data-table.dir-table
+  tbody
+  tr.dir-table-row.selected-chip
+  td {
+  background-color: rgba(129, 140, 248, 0.16) !important;
+}
+
 /* --- COLORED FLOATING PILL BAR BUTTONS (MATCHING DIRECTORY OFFICE CARD ACTIONS) --- */
 .directory-floating-bar .toolbar-btn[class*="pill-btn-"] {
   transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease,

@@ -742,11 +742,15 @@ function renderDirectoryBatch() {
             : escapeHTML(data.pin);
 
         return `
-          <tr id="${safeId}">
-            <td>🏢 ${officeTitleHtml}</td>
-            <td>📍 ${pinDisplayHtml}</td>
-            <td><span class="dir-office-count-pill">${countLabel}</span></td>
-          </tr>`;
+            <tr id="${safeId}"
+                class="dir-table-row"
+                onclick="openDirectoryOfficeActions(this)"
+                data-office="${escapeHTML(data.office)}"
+                data-pin="${escapeHTML(data.pin || "")}">
+              <td>🏢 ${officeTitleHtml}</td>
+              <td>📍 ${pinDisplayHtml}</td>
+              <td><span class="dir-office-count-pill">${countLabel}</span></td>
+            </tr>`;
       })
       .join("");
 
@@ -1123,10 +1127,11 @@ function closeAllDirectoryActionTrays() {
   const bar = document.getElementById("directory-floating-bar");
   if (bar) {
     bar.classList.remove("open");
+    bar.removeAttribute("data-open-office");
   }
   document
     .querySelectorAll(
-      ".directory-address-chip.selected-chip, .list-item.selected-chip"
+      ".directory-address-chip.selected-chip, .list-item.selected-chip, .dir-table-row.selected-chip"
     )
     .forEach((c) => c.classList.remove("selected-chip"));
 }
@@ -1175,7 +1180,6 @@ function openDirectoryChipActions(chipEl) {
 
   const favorites = getSafeStorage(FAV_KEY);
   const isFav = favorites.some((f) => String(f.id) === String(recordId));
-  const favStyle = getFavoriteBtnStyles(isFav, false);
 
   const officeType = detectOfficeType(address);
   const infoBtnHtml = officeType
@@ -1236,7 +1240,11 @@ function openDirectoryChipActions(chipEl) {
       </div>
     `;
 
-  const rect = chipEl.getBoundingClientRect();
+  positionAndOpenFloatingBar(chipEl, bar);
+}
+
+function positionAndOpenFloatingBar(anchorEl, bar) {
+  const rect = anchorEl.getBoundingClientRect();
   const barWidth = bar.offsetWidth;
   const barHeight = bar.offsetHeight;
   const margin = 12;
@@ -1259,9 +1267,53 @@ function openDirectoryChipActions(chipEl) {
   bar.style.left = `${left}px`;
   bar.style.top = `${top}px`;
 
-  chipEl.classList.add("selected-chip");
+  anchorEl.classList.add("selected-chip");
   bar.classList.add("open");
   if (navigator.vibrate) navigator.vibrate(30);
+}
+
+function openDirectoryOfficeActions(rowEl) {
+  if (!rowEl) return;
+  const bar = document.getElementById("directory-floating-bar");
+  if (!bar) return;
+
+  const office = rowEl.getAttribute("data-office") || "";
+  const pin = rowEl.getAttribute("data-pin") || "";
+  if (!office) return;
+
+  const isSameAlreadyOpen =
+    bar.classList.contains("open") &&
+    (rowEl.classList.contains("selected-chip") ||
+      bar.getAttribute("data-open-office") === office);
+
+  closeAllDirectoryActionTrays();
+  if (isSameAlreadyOpen) return;
+
+  bar.removeAttribute("data-open-record-id");
+  bar.removeAttribute("data-open-address");
+  bar.setAttribute("data-open-office", office);
+
+  const safeOfficeJs = escapeForOnclick(office);
+  const safePinJs = escapeForOnclick(pin);
+  const safeOfficeHtml = escapeHTML(office);
+  const staffCount =
+    typeof getOfficeStaffCount === "function" ? getOfficeStaffCount(office) : 0;
+  const staffTitle =
+    staffCount > 0
+      ? `Office Staff Details (${staffCount} saved)`
+      : `Add Staff Details for ${safeOfficeHtml}`;
+
+  bar.innerHTML = `
+        <div class="card-actions">
+          <button onclick="event.stopPropagation(); showParentOfficeDetailsModal('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-staff" title="${staffTitle}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Staff</button>
+          <button onclick="event.stopPropagation(); practiceOfficeFromDirectory('${safeOfficeJs}')" class="toolbar-btn pill-btn-history" title="Practice ${safeOfficeHtml} in Learn &amp; Quiz"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"></path></svg> Learn</button>
+          <button onclick="event.stopPropagation(); quickPriorityForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-priority" title="Manage priority addresses in ${safeOfficeHtml}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Priority</button>
+          <button onclick="event.stopPropagation(); quickAddForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-edit" title="Add multiple addresses to ${safeOfficeHtml}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add</button>
+          <button onclick="event.stopPropagation(); quickDeleteForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-delete" title="Delete multiple addresses from ${safeOfficeHtml}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
+        </div>
+      `;
+
+  positionAndOpenFloatingBar(rowEl, bar);
 }
 
 // First tap outside closes the open options; second tap opens a new address
@@ -1276,7 +1328,9 @@ document.addEventListener(
 
     if (e.target.closest(".card-priority-btn, .table-priority-btn")) return;
 
-    if (e.target.closest(".directory-address-chip, .list-item")) {
+    if (
+      e.target.closest(".directory-address-chip, .list-item, .dir-table-row")
+    ) {
       e.stopPropagation();
       e.preventDefault();
     }
