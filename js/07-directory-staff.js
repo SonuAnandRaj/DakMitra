@@ -1183,7 +1183,7 @@ function openDirectoryChipActions(chipEl) {
         address
       )}', '${escapeForOnclick(
         office
-      )}')" class="toolbar-btn info-i-btn" title="View ${officeType} Staff Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10.2" stroke-width="2"></circle><line x1="12" y1="11.2" x2="12" y2="17.6" stroke-width="2.8"></line><circle cx="12" cy="7" r="1.45" fill="currentColor" stroke="none"></circle></svg></button>`
+      )}')" class="toolbar-btn info-i-btn pill-btn-staff" title="View ${officeType} Staff Details" aria-label="View ${officeType} Staff Details"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></button>`
     : "";
 
   const liveRecord = cachedPostOffices.find(
@@ -1196,7 +1196,7 @@ function openDirectoryChipActions(chipEl) {
     recordId && !isAutoTopOffice
       ? `<button onclick="event.stopPropagation(); toggleRecordPriority('${escapeForOnclick(
           recordId
-        )}', this)" class="toolbar-btn priority-bolt-btn ${
+        )}', this)" class="toolbar-btn priority-bolt-btn pill-btn-priority ${
           isPriority ? "is-active" : ""
         }" title="${
           isPriority
@@ -1213,26 +1213,26 @@ function openDirectoryChipActions(chipEl) {
         ${priorityBtnHtml}
         <button onclick="event.stopPropagation(); viewHistory('${escapeForOnclick(
           recordId
-        )}')" class="toolbar-btn" style="background: var(--input-bg);">🕒 History</button>
+        )}')" class="toolbar-btn pill-btn-history"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> History</button>
         <button onclick="event.stopPropagation(); toggleFavorite('${escapeForOnclick(
           recordId
         )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
     office
-  )}', '${escapeForOnclick(
-    pin
-  )}', this)" class="toolbar-btn" title="Personal Favorite (saved only on this device)" style="${
-    favStyle.style
-  }">${favStyle.icon}</button>
+  )}', '${escapeForOnclick(pin)}', this)" class="toolbar-btn pill-btn-fav ${
+    isFav ? "is-active" : ""
+  }" title="Personal Favorite (saved only on this device)">${
+    isFav ? `${ICON_STAR_FILLED} Saved` : `${ICON_STAR_OUTLINE} Save`
+  }</button>
         <button onclick="event.stopPropagation(); updateRecord('${escapeForOnclick(
           recordId
         )}', '${escapeForOnclick(address)}', '${escapeForOnclick(
     office
   )}', '${escapeForOnclick(
     pin
-  )}')" class="toolbar-btn" style="background: var(--input-bg);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Edit</button>
+  )}')" class="toolbar-btn pill-btn-edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Edit</button>
         <button onclick="event.stopPropagation(); deleteRecord('${escapeForOnclick(
           recordId
-        )}')" class="toolbar-btn" style="background: #fee2e2; color: #b91c1c;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
+        )}')" class="toolbar-btn pill-btn-delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
       </div>
     `;
 

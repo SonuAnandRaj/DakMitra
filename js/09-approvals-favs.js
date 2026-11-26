@@ -20,12 +20,16 @@ function toggleFavorite(id, address, office, pin, btnElement) {
   renderFavorites();
 
   if (btnElement) {
-    if (isFavNow) {
-      btnElement.innerHTML = `${ICON_STAR_FILLED} Saved`;
+    btnElement.innerHTML = isFavNow
+      ? `${ICON_STAR_FILLED} Saved`
+      : `${ICON_STAR_OUTLINE} Save`;
+
+    if (btnElement.classList.contains("pill-btn-fav")) {
+      btnElement.classList.toggle("is-active", isFavNow);
+    } else if (isFavNow) {
       btnElement.style.color = "#f59e0b";
       btnElement.style.backgroundColor = "rgba(245, 158, 11, 0.1)";
     } else {
-      btnElement.innerHTML = `${ICON_STAR_OUTLINE} Save`;
       btnElement.style.color = "var(--text-light)";
       btnElement.style.backgroundColor = "var(--input-bg)";
     }
