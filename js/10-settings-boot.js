@@ -37,6 +37,7 @@ function clearAppCache() {
       localStorage.removeItem("dakmitra_default_view");
       localStorage.removeItem("dakmitra_offline_db");
       localStorage.removeItem(OFFICE_STAFF_CACHE_KEY);
+      localStorage.removeItem("dakmitra_sync_meta");
       cachedOfficeStaff = [];
       officeStaffByKeyMap.clear();
       localStorage.removeItem("dakmitra_members_cache");

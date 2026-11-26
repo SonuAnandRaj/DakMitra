@@ -1332,16 +1332,18 @@ function renderResults(isLoadMore = false, silent = false) {
   if (currentFilteredData.length === 0) {
     const rawQuery = document.getElementById("search-input").value.trim();
 
-    // If query matched a parent Delivery Office (HO/SO), show its card cleanly instead of auto-triggering AI
-    if (matchedDeliveryOffices.length > 0) {
-      clearTimeout(aiSearchDebounceTimer);
-      if (aiActiveAbortController) {
-        aiActiveAbortController.abort();
-        aiActiveAbortController = null;
-      }
+    clearTimeout(aiSearchDebounceTimer);
+    aiLatestRequestId++;
+    if (aiActiveAbortController) {
+      aiActiveAbortController.abort();
+      aiActiveAbortController = null;
+    }
+    document.getElementById("force-ai-search-btn")?.classList.remove("loading");
 
+    // If query matched a parent Delivery Office (HO/SO), show its card with manual Ask AI option
+    if (matchedDeliveryOffices.length > 0) {
       let html = officeCardsHtml;
-      if (rawQuery.length >= 2) {
+      if (rawQuery.length >= 3) {
         html += `
           <div class="ask-ai-bottom-box" id="ask-ai-footer-box">
             <div class="ask-ai-bottom-text">
@@ -1364,28 +1366,37 @@ function renderResults(isLoadMore = false, silent = false) {
       return;
     }
 
-    displayArea.innerHTML = `
-        <div class="ai-fallback-banner">
-          <div class="ai-fallback-banner-icon">⚠️</div>
-          <div class="ai-fallback-banner-text">
-            <strong>No Match in Local Database</strong>
-            <span>
-              "${escapeHTML(
-                rawQuery
-              )}" is not listed in DakMitra's verified records.
-              ${
-                rawQuery.length >= 3
-                  ? "Showing <b>AI-estimated postal routing</b> below—please verify before sorting."
-                  : "Type at least 3 letters to trigger Online AI Postal Estimation."
-              }
-            </span>
-          </div>
-        </div>
-        <div id="ai-search-results-container"></div>`;
+    const emptyMessageHtml = rawQuery
+      ? `No match found in local database for "<b>${escapeHTML(rawQuery)}</b>".`
+      : `No matching records found for the active filters.`;
 
-    if (rawQuery.length >= 3) {
-      scheduleAutoAiSearch(rawQuery);
-    }
+    const askAiBottomHtml =
+      rawQuery.length >= 3
+        ? `
+          <div class="ask-ai-bottom-box" id="ask-ai-footer-box">
+            <div class="ask-ai-bottom-text">
+              Not in DakMitra's local records. Want an online AI estimate?
+            </div>
+            <button
+              type="button"
+              class="ask-ai-bottom-btn"
+              onclick="triggerInlineAiBelowResults('${escapeForOnclick(
+                rawQuery
+              )}')"
+            >
+              ✨ Ask AI for "${escapeHTML(rawQuery)}"
+            </button>
+          </div>
+          <div id="ai-search-results-container"></div>`
+        : "";
+
+    displayArea.innerHTML = `
+        <ul class="list-container" style="margin: 0; list-style: none;">
+          <li class="list-empty" style="margin: 4px 0;">
+            <span>🔍 ${emptyMessageHtml}</span>
+          </li>
+        </ul>
+        ${askAiBottomHtml}`;
     return;
   }
 

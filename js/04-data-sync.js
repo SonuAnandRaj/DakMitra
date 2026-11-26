@@ -54,12 +54,56 @@ function loadOfficeStaffFromCache() {
   return false;
 }
 
+const SYNC_META_CACHE_KEY = "dakmitra_sync_meta";
+const POST_OFFICE_SELECT_COLUMNS =
+  "id, Address, Office, Pin, priority, bpm_name, bpm_contact, abpm_name, abpm_contact, spm_name, spm_contact, pm_name, pm_contact, pa_list, mts_list";
+const OFFICE_STAFF_SELECT_COLUMNS =
+  "id, office_name, office_key, office_type, pm_name, pm_contact, spm_name, spm_contact, pa_list, mts_list";
+
+let lastServerSyncCheckAt = 0;
+let _syncInFlightPromise = null;
+
+function getLocalSyncMeta() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SYNC_META_CACHE_KEY));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveLocalSyncMeta(meta) {
+  try {
+    localStorage.setItem(SYNC_META_CACHE_KEY, JSON.stringify(meta));
+  } catch (_) {}
+}
+
+async function fetchServerSyncMeta() {
+  if (!navigator.onLine || !supabaseClient) return null;
+  try {
+    const { data, error } = await supabaseClient
+      .from("sync_meta")
+      .select("table_name, version");
+    if (error || !Array.isArray(data)) return null;
+
+    const map = {};
+    data.forEach((row) => {
+      if (row && row.table_name) {
+        map[row.table_name] = Number(row.version);
+      }
+    });
+    return map;
+  } catch (_) {
+    return null;
+  }
+}
+
 async function fetchOfficeStaffBackground() {
   if (!navigator.onLine || !supabaseClient) return false;
   try {
     const { data, error } = await supabaseClient
       .from("office_staff")
-      .select("*")
+      .select(OFFICE_STAFF_SELECT_COLUMNS)
       .order("office_name", { ascending: true });
 
     if (error) throw error;
@@ -84,7 +128,6 @@ async function fetchOfficeStaffBackground() {
     return false;
   }
 }
-
 function upsertLocalOfficeStaff(row) {
   if (!row) return;
   const key = row.office_key || normalizeOfficeKey(row.office_name);
@@ -170,7 +213,7 @@ async function fetchAllPostOffices(forceSync = false) {
         const runInBg =
           window.requestIdleCallback || ((cb) => setTimeout(cb, 300));
         runInBg(() => {
-          fetchFromServerBackground();
+          fetchFromServerBackground(false);
           if (navigator.onLine) initRealtimeSync();
         });
         return true;
@@ -180,10 +223,10 @@ async function fetchAllPostOffices(forceSync = false) {
     }
   }
 
-  return await fetchFromServerBackground();
+  return await fetchFromServerBackground(forceSync);
 }
 
-async function fetchFromServerBackground() {
+async function fetchFromServerBackground(force = false) {
   if (!navigator.onLine) {
     console.log("Offline mode: Skipping background sync.");
     if (!cachedPostOffices || cachedPostOffices.length === 0) {
@@ -197,49 +240,103 @@ async function fetchFromServerBackground() {
   if (!supabaseClient) initSupabaseClient();
   if (!supabaseClient) return false;
 
-  try {
-    let allRows = [];
-    let from = 0;
-    const batchSize = 1000;
-
-    while (true) {
-      const { data, error } = await supabaseClient
-        .from("post_offices")
-        .select("*")
-        .eq("is_deleted", false)
-        .order("id", { ascending: true })
-        .range(from, from + batchSize - 1);
-
-      if (error) throw error;
-      if (!data || data.length === 0) break;
-
-      allRows = allRows.concat(data);
-      if (data.length < batchSize) break;
-      from += batchSize;
-    }
-
-    if (allRows.length === 0 && cachedPostOffices.length > 0) {
-      const { data: sessionData } = await supabaseClient.auth.getSession();
-      if (!sessionData?.session) {
-        console.warn("Skipping empty DB overwrite: no active session.");
-        return false;
-      }
-    }
-
-    const newJson = JSON.stringify(allRows);
-    const oldJson = localStorage.getItem("dakmitra_offline_db");
-
-    if (newJson !== oldJson) {
-      cachedPostOffices = allRows;
-      localStorage.setItem("dakmitra_offline_db", newJson);
-      initializeSearchAndRender(true);
-    }
-    await fetchOfficeStaffBackground();
-    return true;
-  } catch (error) {
-    console.error("Background sync failed:", error);
-    return false;
+  if (!force && _syncInFlightPromise) {
+    return _syncInFlightPromise;
   }
+
+  const runSync = async () => {
+    try {
+      const localMeta = getLocalSyncMeta();
+      const serverMeta = await fetchServerSyncMeta();
+
+      const hasLocalPoCache =
+        Boolean(localStorage.getItem("dakmitra_offline_db")) &&
+        cachedPostOffices.length > 0;
+      const hasLocalStaffCache =
+        localStorage.getItem(OFFICE_STAFF_CACHE_KEY) !== null;
+
+      const needPostOffices =
+        force ||
+        !hasLocalPoCache ||
+        !serverMeta ||
+        serverMeta.post_offices === undefined ||
+        localMeta.post_offices !== serverMeta.post_offices;
+
+      const needOfficeStaff =
+        force ||
+        !hasLocalStaffCache ||
+        !serverMeta ||
+        serverMeta.office_staff === undefined ||
+        localMeta.office_staff !== serverMeta.office_staff;
+
+      const updatedMeta = { ...localMeta };
+
+      if (needPostOffices) {
+        let allRows = [];
+        let from = 0;
+        const batchSize = 1000;
+
+        while (true) {
+          const { data, error } = await supabaseClient
+            .from("post_offices")
+            .select(POST_OFFICE_SELECT_COLUMNS)
+            .eq("is_deleted", false)
+            .order("id", { ascending: true })
+            .range(from, from + batchSize - 1);
+
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+
+          allRows = allRows.concat(data);
+          if (data.length < batchSize) break;
+          from += batchSize;
+        }
+
+        if (allRows.length === 0 && cachedPostOffices.length > 0) {
+          const { data: sessionData } = await supabaseClient.auth.getSession();
+          if (!sessionData?.session) {
+            console.warn("Skipping empty DB overwrite: no active session.");
+            return false;
+          }
+        }
+
+        const newJson = JSON.stringify(allRows);
+        const oldJson = localStorage.getItem("dakmitra_offline_db");
+
+        if (newJson !== oldJson) {
+          cachedPostOffices = allRows;
+          localStorage.setItem("dakmitra_offline_db", newJson);
+          initializeSearchAndRender(true);
+        }
+
+        if (serverMeta && serverMeta.post_offices !== undefined) {
+          updatedMeta.post_offices = serverMeta.post_offices;
+        }
+      }
+
+      if (needOfficeStaff) {
+        const staffOk = await fetchOfficeStaffBackground();
+        if (staffOk && serverMeta && serverMeta.office_staff !== undefined) {
+          updatedMeta.office_staff = serverMeta.office_staff;
+        }
+      }
+
+      if (serverMeta) {
+        saveLocalSyncMeta(updatedMeta);
+      }
+
+      lastServerSyncCheckAt = Date.now();
+      return true;
+    } catch (error) {
+      console.error("Background sync failed:", error);
+      return false;
+    } finally {
+      _syncInFlightPromise = null;
+    }
+  };
+
+  _syncInFlightPromise = runSync();
+  return _syncInFlightPromise;
 }
 
 // --- SMART 3-DIGIT PIN SUFFIX OFFICE INDEX ---
@@ -883,15 +980,27 @@ function initRealtimeSync() {
     .subscribe((status) => {
       if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
         teardownRealtimeSync();
-        setTimeout(() => {
-          initRealtimeSync();
-          fetchFromServerBackground();
-        }, 3000);
+        if (document.visibilityState === "visible" && navigator.onLine) {
+          setTimeout(() => {
+            if (document.visibilityState === "visible" && navigator.onLine) {
+              initRealtimeSync();
+              fetchFromServerBackground(false);
+            }
+          }, 3000);
+        }
       }
     });
 }
 
+let realtimePauseTimer = null;
+let realtimePausedAt = 0;
+const REALTIME_BG_PAUSE_MS = 90 * 1000; // Pause idle Realtime after 90s in background
+const VISIBILITY_SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5-minute cooldown when Realtime stayed live
+const LONG_PAUSE_HYDRATE_MS = 15 * 60 * 1000; // Re-verify session/device lock after 15+ min away
+
 function teardownRealtimeSync() {
+  clearTimeout(realtimePauseTimer);
+  realtimePauseTimer = null;
   if (realtimeChannel && supabaseClient) {
     supabaseClient.removeChannel(realtimeChannel);
     realtimeChannel = null;
@@ -1059,19 +1168,57 @@ window.addEventListener("online", () => {
 });
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && navigator.onLine) {
-    if (wasOffline || !supabaseClient || !realtimeChannel) {
+  if (document.visibilityState === "hidden") {
+    if (realtimeChannel && !realtimePauseTimer) {
+      realtimePauseTimer = setTimeout(() => {
+        realtimePauseTimer = null;
+        if (document.visibilityState === "hidden" && realtimeChannel) {
+          teardownRealtimeSync();
+          realtimePausedAt = Date.now();
+        }
+      }, REALTIME_BG_PAUSE_MS);
+    }
+    return;
+  }
+
+  // Tab / PWA became visible again
+  clearTimeout(realtimePauseTimer);
+  realtimePauseTimer = null;
+
+  if (!navigator.onLine) return;
+
+  const isLoggedIn = !document
+    .getElementById("dashboard-view")
+    ?.classList.contains("hidden");
+  if (!isLoggedIn) return;
+
+  if (wasOffline || !supabaseClient) {
+    realtimePausedAt = 0;
+    hydrateOnlineState(1);
+    return;
+  }
+
+  if (!realtimeChannel) {
+    const pausedDuration = realtimePausedAt ? Date.now() - realtimePausedAt : 0;
+    realtimePausedAt = 0;
+
+    if (pausedDuration >= LONG_PAUSE_HYDRATE_MS) {
       hydrateOnlineState(1);
     } else {
-      const isLoggedIn = !document
-        .getElementById("dashboard-view")
-        ?.classList.contains("hidden");
-      if (isLoggedIn) {
-        fetchFromServerBackground();
-        if (typeof fetchAndApplyAppConfig === "function") {
-          fetchAndApplyAppConfig();
-        }
+      initRealtimeSync();
+      fetchFromServerBackground(false);
+      if (typeof fetchAndApplyAppConfig === "function") {
+        fetchAndApplyAppConfig();
       }
+    }
+    return;
+  }
+
+  // Realtime stayed connected — skip redundant checks within the 5-minute cooldown
+  if (Date.now() - lastServerSyncCheckAt >= VISIBILITY_SYNC_COOLDOWN_MS) {
+    fetchFromServerBackground(false);
+    if (typeof fetchAndApplyAppConfig === "function") {
+      fetchAndApplyAppConfig();
     }
   }
 });
