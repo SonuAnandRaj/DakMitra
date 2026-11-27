@@ -1430,8 +1430,12 @@ function renderResults(isLoadMore = false, silent = false) {
         const officeHtml = highlightText(row.Office, result.matches, "Office");
         const PinHtml = highlightText(row.Pin, result.matches, "Pin");
         const isPriority = Number(row.priority) >= 1;
+        const isUnverified = isUnverifiedRecord(row);
         const officeType = detectOfficeType(row.Address);
         const isAutoTopOffice = officeType === "HO" || officeType === "SO";
+        const unverifiedBadgeHtml = isUnverified
+          ? `<span class="unverified-pill" title="Bulk uploaded — not yet verified">Unverified</span>`
+          : "";
 
         const priorityToggleHtml = !isAutoTopOffice
           ? `<button
@@ -1456,19 +1460,38 @@ function renderResults(isLoadMore = false, silent = false) {
             </button>`
           : "";
 
+        const verifyToggleHtml = isUnverified
+          ? `<button
+              type="button"
+              class="card-verify-btn"
+              onclick="event.stopPropagation(); verifySingleRecord('${escapeForOnclick(
+                row.id
+              )}')"
+              title="Mark as Verified (Shared with all staff)"
+              aria-label="Verify Address"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </button>`
+          : "";
+
+        const sideActionsHtml =
+          priorityToggleHtml || verifyToggleHtml
+            ? `<div class="search-card-side-actions">${priorityToggleHtml}${verifyToggleHtml}</div>`
+            : "";
+
         html += `
-            <li class="list-item"
-                onclick="openDirectoryChipActions(this)"
-                data-record-id="${escapeHTML(row.id)}"
-                data-address="${escapeHTML(row.Address)}"
-                data-office="${escapeHTML(row.Office)}"
-                data-pin="${escapeHTML(row.Pin || "")}"
-                style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
-                <div style="width: 100%;">
-                  <div class="search-card-top">
-                    <div class="office-title">${addressHtml}</div>
-                    ${priorityToggleHtml}
-                  </div>
+          <li class="list-item${isUnverified ? " is-unverified" : ""}"
+              onclick="openDirectoryChipActions(this)"
+              data-record-id="${escapeHTML(row.id)}"
+              data-address="${escapeHTML(row.Address)}"
+              data-office="${escapeHTML(row.Office)}"
+              data-pin="${escapeHTML(row.Pin || "")}"
+              style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <div class="search-card-layout">
+                <div class="search-card-main">
+                  <div class="office-title">${addressHtml}${unverifiedBadgeHtml}</div>
                   <div class="sub-office">
                     <span class="badge badge-primary" style="cursor: pointer; transition: 0.2s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(
                       row.Office
@@ -1480,6 +1503,8 @@ function renderResults(isLoadMore = false, silent = false) {
         }</span>
                   </div>
                 </div>
+                ${sideActionsHtml}
+              </div>
             </li>`;
       });
     html += `</ul>`;
@@ -1508,8 +1533,12 @@ function renderResults(isLoadMore = false, silent = false) {
         const officeHtml = highlightText(row.Office, result.matches, "Office");
         const PinHtml = highlightText(row.Pin, result.matches, "Pin");
         const isPriority = Number(row.priority) >= 1;
+        const isUnverified = isUnverifiedRecord(row);
         const officeType = detectOfficeType(row.Address);
         const isAutoTopOffice = officeType === "HO" || officeType === "SO";
+        const tableUnverifiedHtml = isUnverified
+          ? `<span class="unverified-pill" title="Bulk uploaded — not yet verified">Unverified</span>`
+          : "";
 
         const tablePriorityBtn = !isAutoTopOffice
           ? `<button
@@ -1533,6 +1562,27 @@ function renderResults(isLoadMore = false, silent = false) {
             </button>`
           : "";
 
+        const tableVerifyBtn = isUnverified
+          ? `<button
+              type="button"
+              class="table-verify-btn"
+              onclick="event.stopPropagation(); verifySingleRecord('${escapeForOnclick(
+                row.id
+              )}')"
+              title="Mark as Verified (Shared)"
+              aria-label="Verify Address"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </button>`
+          : "";
+
+        const tableActionsHtml =
+          tablePriorityBtn || tableVerifyBtn
+            ? `<div class="table-row-actions">${tablePriorityBtn}${tableVerifyBtn}</div>`
+            : "";
+
         html += `<tr class="list-item"
                       onclick="openDirectoryChipActions(this)"
                       data-record-id="${escapeHTML(row.id)}"
@@ -1541,8 +1591,8 @@ function renderResults(isLoadMore = false, silent = false) {
                       data-pin="${escapeHTML(row.Pin || "")}">
                       <td>
                         <div class="table-addr-cell">
-                          <span>${addressHtml}</span>
-                          ${tablePriorityBtn}
+                          <span>${addressHtml}${tableUnverifiedHtml}</span>
+                          ${tableActionsHtml}
                         </div>
                       </td>
                       <td style="cursor: pointer; color: var(--primary);" ondblclick="event.stopPropagation(); goToDirectoryOffice('${escapeForOnclick(

@@ -3,7 +3,7 @@
 // =========================================================
 
 // --- DIRECTORY RENDERING, FULL SEARCH & UNIVERSAL FILTERING ---
-const DIRECTORY_FILTER_TYPES = ["office", "priority", "regular"];
+const DIRECTORY_FILTER_TYPES = ["office", "priority", "regular", "unverified"];
 let directoryActiveFilters = new Set();
 let directoryActiveCleanQuery = "";
 let directoryActiveSmartOfficeFilter = null;
@@ -66,17 +66,21 @@ function getDirectoryItemFlags(item) {
       ? item.officeType
       : detectOfficeType(typeof item === "object" ? item.Address : item);
   const isOffice = Boolean(officeType);
-  const isPriority = typeof item === "object" && Number(item.priority) >= 1;
-  const isRegular = !isOffice && !isPriority;
-  return { officeType, isOffice, isPriority, isRegular };
+  const prio = typeof item === "object" ? Number(item.priority) : 0;
+  const isPriority = prio >= 1;
+  const isUnverified = !isOffice && prio === -1;
+  const isRegular = !isOffice && !isPriority && !isUnverified;
+  return { officeType, isOffice, isPriority, isUnverified, isRegular };
 }
 
 function matchesDirectoryUniversalFilter(item) {
   if (directoryActiveFilters.size === 0) return true;
-  const { isOffice, isPriority, isRegular } = getDirectoryItemFlags(item);
+  const { isOffice, isPriority, isUnverified, isRegular } =
+    getDirectoryItemFlags(item);
   if (directoryActiveFilters.has("office") && isOffice) return true;
   if (directoryActiveFilters.has("priority") && isPriority) return true;
   if (directoryActiveFilters.has("regular") && isRegular) return true;
+  if (directoryActiveFilters.has("unverified") && isUnverified) return true;
   return false;
 }
 
@@ -355,13 +359,25 @@ function groupSearchResultsForDirectory(outcome) {
       if (pinMatch) group.pinMatches.push(pinMatch);
     }
 
+    const rowOfficeType = detectOfficeType(row.Address);
+    const rawRowPrio = Number(row.priority);
+    const normRowPrio = rowOfficeType
+      ? rawRowPrio >= 1
+        ? 1
+        : 0
+      : rawRowPrio >= 1
+      ? 1
+      : rawRowPrio === -1
+      ? -1
+      : 0;
+
     group.addresses.push({
       id: row.id,
       Address: row.Address || "",
       Office: group.office,
       Pin: row.Pin || "",
-      officeType: detectOfficeType(row.Address),
-      priority: Number(row.priority) >= 1 ? 1 : 0,
+      officeType: rowOfficeType,
+      priority: normRowPrio,
       effectivePriority: getEffectivePriority(row),
       matches: rowMatches,
     });
@@ -394,17 +410,18 @@ function updateDirectoryFilterUI(searchMatchedOffices, filteredOffices) {
   let officeCount = 0;
   let priorityCount = 0;
   let regularCount = 0;
+  let unverifiedCount = 0;
 
   searchMatchedOffices.forEach((group) => {
     const list = Array.isArray(group.addresses) ? group.addresses : [];
     for (let i = 0; i < list.length; i++) {
       allCount++;
-      const { isOffice, isPriority, isRegular } = getDirectoryItemFlags(
-        list[i]
-      );
+      const { isOffice, isPriority, isRegular, isUnverified } =
+        getDirectoryItemFlags(list[i]);
       if (isOffice) officeCount++;
       if (isPriority) priorityCount++;
       if (isRegular) regularCount++;
+      if (isUnverified) unverifiedCount++;
     }
   });
 
@@ -417,6 +434,7 @@ function updateDirectoryFilterUI(searchMatchedOffices, filteredOffices) {
   setTxt("dir-count-office", officeCount);
   setTxt("dir-count-priority", priorityCount);
   setTxt("dir-count-regular", regularCount);
+  setTxt("dir-count-unverified", unverifiedCount);
 
   const isAll = directoryActiveFilters.size === 0;
   document.getElementById("dir-chip-all")?.classList.toggle("active", isAll);
@@ -429,6 +447,9 @@ function updateDirectoryFilterUI(searchMatchedOffices, filteredOffices) {
   document
     .getElementById("dir-chip-regular")
     ?.classList.toggle("active", directoryActiveFilters.has("regular"));
+  document
+    .getElementById("dir-chip-unverified")
+    ?.classList.toggle("active", directoryActiveFilters.has("unverified"));
 
   const summaryEl = document.getElementById("dir-filter-summary");
   const summaryTextEl = document.getElementById("dir-filter-summary-text");
@@ -948,6 +969,14 @@ function renderDirectoryBatch() {
         )}" data-pin="${escapeHTML(
           pinVal || ""
         )}" title="Priority Address (Shared) • Tap for options">⚡ ${addressDisplayHtml}</span>`;
+      } else if (typeof item === "object" && Number(item.priority) === -1) {
+        html += `<span class="directory-address-chip unverified-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
+          recordId
+        )}" data-address="${escapeHTML(addressText)}" data-office="${escapeHTML(
+          officeName
+        )}" data-pin="${escapeHTML(
+          pinVal || ""
+        )}" title="Unverified bulk entry • Tap to verify or edit">${addressDisplayHtml}</span>`;
       } else {
         html += `<span class="directory-address-chip" onclick="openDirectoryChipActions(this)" data-record-id="${escapeHTML(
           recordId
@@ -1194,7 +1223,15 @@ function openDirectoryChipActions(chipEl) {
     (r) => String(r.id) === String(recordId)
   );
   const isPriority = Number(liveRecord?.priority) >= 1;
+  const isUnverified = isUnverifiedRecord(liveRecord);
   const isAutoTopOffice = officeType === "HO" || officeType === "SO";
+
+  const verifyBtnHtml =
+    recordId && isUnverified
+      ? `<button onclick="event.stopPropagation(); verifySingleRecord('${escapeForOnclick(
+          recordId
+        )}')" class="toolbar-btn pill-btn-verify" title="Mark this address as Verified for all staff">✓ Verify</button>`
+      : "";
 
   const priorityBtnHtml =
     recordId && !isAutoTopOffice
@@ -1212,9 +1249,10 @@ function openDirectoryChipActions(chipEl) {
       : "";
 
   bar.innerHTML = `
-      <div class="card-actions">
-        ${infoBtnHtml}
-        ${priorityBtnHtml}
+        <div class="card-actions">
+          ${infoBtnHtml}
+          ${verifyBtnHtml}
+          ${priorityBtnHtml}
         <button onclick="event.stopPropagation(); viewHistory('${escapeForOnclick(
           recordId
         )}')" class="toolbar-btn pill-btn-history"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> History</button>
@@ -1326,7 +1364,12 @@ document.addEventListener(
 
     closeAllDirectoryActionTrays();
 
-    if (e.target.closest(".card-priority-btn, .table-priority-btn")) return;
+    if (
+      e.target.closest(
+        ".card-priority-btn, .table-priority-btn, .card-verify-btn, .table-verify-btn"
+      )
+    )
+      return;
 
     if (
       e.target.closest(".directory-address-chip, .list-item, .dir-table-row")
@@ -2019,6 +2062,8 @@ function quickAddForOffice(officeName, pinNumber) {
   const saveBtnContent = document.getElementById("quick-add-save-btn-content");
 
   if (textarea) textarea.value = "";
+  const descInput = document.getElementById("quick-add-batch-description");
+  if (descInput) descInput.value = "";
   saveBtn.classList.remove("is-loading", "is-success");
   saveBtn.disabled = false;
   setQuickAddPriority(1, true);
@@ -2114,20 +2159,33 @@ async function submitQuickAddModal() {
       <span>Saving...</span>
     `;
 
-  const payloads = addresses.map((addr) => ({
-    action_type: "ADD",
-    proposed_data: {
-      Address: addr,
-      Office: activeQuickAddOffice.office,
-      Pin: activeQuickAddOffice.pin || null,
-      priority: activeQuickAddPriority,
-    },
-    requested_by: session.user.id,
-  }));
-
+  const batchDesc =
+    document.getElementById("quick-add-batch-description")?.value.trim() || "";
   const prioText = activeQuickAddPriority === 1 ? "Priority " : "";
 
   try {
+    const batch = await createUploadBatchRecord({
+      uploadType: "quick_add",
+      description: batchDesc,
+      targetOffice: activeQuickAddOffice.office,
+      rowCount: addresses.length,
+      userId: session.user.id,
+    });
+
+    const payloads = addresses.map((addr) => ({
+      action_type: "ADD",
+      proposed_data: {
+        Address: addr,
+        Office: activeQuickAddOffice.office,
+        Pin: activeQuickAddOffice.pin || null,
+        priority: activeQuickAddPriority,
+        upload_method: "quick_add",
+        batch_id: batch.id,
+        ...(batch.description ? { batch_description: batch.description } : {}),
+      },
+      requested_by: session.user.id,
+    }));
+
     if (isCurrentUserAdmin) {
       const { error } = await supabaseClient.rpc("admin_direct_submit", {
         request_payloads: payloads,
@@ -2148,7 +2206,7 @@ async function submitQuickAddModal() {
       showToast(
         `✨ Added ${addresses.length} ${prioText}${
           addresses.length === 1 ? "address" : "addresses"
-        } to ${activeQuickAddOffice.office}!`
+        } (${batch.id})!`
       );
     } else {
       const { error } = await supabaseClient
@@ -2169,7 +2227,7 @@ async function submitQuickAddModal() {
       showToast(
         `✅ ${addresses.length} ${prioText}${
           addresses.length === 1 ? "address" : "addresses"
-        } submitted for approval!`
+        } submitted (${batch.id})!`
       );
     }
 
@@ -2217,10 +2275,12 @@ function getTextMatchedQuickDeleteItems() {
 
 function matchesQuickDeleteCategoryFilter(item) {
   if (activeQuickDeleteFilters.size === 0) return true;
-  const { isOffice, isPriority, isRegular } = getDirectoryItemFlags(item);
+  const { isOffice, isPriority, isUnverified, isRegular } =
+    getDirectoryItemFlags(item);
   if (activeQuickDeleteFilters.has("office") && isOffice) return true;
   if (activeQuickDeleteFilters.has("priority") && isPriority) return true;
   if (activeQuickDeleteFilters.has("regular") && isRegular) return true;
+  if (activeQuickDeleteFilters.has("unverified") && isUnverified) return true;
   return false;
 }
 
@@ -2278,15 +2338,16 @@ function updateQuickDeleteFilterUI(textMatchedItems) {
   let officeCount = 0;
   let priorityCount = 0;
   let regularCount = 0;
+  let unverifiedCount = 0;
 
   for (let i = 0; i < textMatchedItems.length; i++) {
     allCount++;
-    const { isOffice, isPriority, isRegular } = getDirectoryItemFlags(
-      textMatchedItems[i]
-    );
+    const { isOffice, isPriority, isRegular, isUnverified } =
+      getDirectoryItemFlags(textMatchedItems[i]);
     if (isOffice) officeCount++;
     if (isPriority) priorityCount++;
     if (isRegular) regularCount++;
+    if (isUnverified) unverifiedCount++;
   }
 
   const setTxt = (id, val) => {
@@ -2298,6 +2359,7 @@ function updateQuickDeleteFilterUI(textMatchedItems) {
   setTxt("qd-count-office", officeCount);
   setTxt("qd-count-priority", priorityCount);
   setTxt("qd-count-regular", regularCount);
+  setTxt("qd-count-unverified", unverifiedCount);
 
   const isAll = activeQuickDeleteFilters.size === 0;
   document.getElementById("qd-chip-all")?.classList.toggle("active", isAll);
@@ -2312,6 +2374,7 @@ function updateQuickDeleteFilterUI(textMatchedItems) {
   syncChip("qd-chip-office", "office", officeCount);
   syncChip("qd-chip-priority", "priority", priorityCount);
   syncChip("qd-chip-regular", "regular", regularCount);
+  syncChip("qd-chip-unverified", "unverified", unverifiedCount);
 }
 
 function quickDeleteForOffice(officeName, pinNumber) {
@@ -2404,11 +2467,14 @@ function renderQuickDeleteChips() {
       .map((item) => {
         const idStr = String(item.id);
         const isSelected = activeQuickDeleteSelectedIds.has(idStr);
-        const { isOffice, isPriority } = getDirectoryItemFlags(item);
+        const { isOffice, isPriority, isUnverified } =
+          getDirectoryItemFlags(item);
         const typeCls = isOffice
           ? "is-office-item"
           : isPriority
           ? "is-priority-item"
+          : isUnverified
+          ? "is-unverified-item"
           : "";
         const label = isOffice
           ? `📮 ${escapeHTML(item.Address)}${isPriority ? " ⚡" : ""}`
@@ -2761,6 +2827,59 @@ async function executeQuickDeleteModal() {
   }
 }
 
+// --- 1-TAP SILENT VERIFY (OPTIMISTIC UI + ROLLBACK) ---
+async function verifySingleRecord(recordId) {
+  if (!navigator.onLine) {
+    showOfflineToast("Connect to internet to verify this address.", true);
+    return;
+  }
+
+  const idx = cachedPostOffices.findIndex(
+    (r) => String(r.id) === String(recordId)
+  );
+  if (idx === -1) return;
+
+  const prevPriority = Number(cachedPostOffices[idx].priority);
+  if (prevPriority !== -1) {
+    closeAllDirectoryActionTrays();
+    return;
+  }
+
+  cachedPostOffices[idx].priority = 0;
+  updateSearchIndexRow(cachedPostOffices[idx]);
+  persistPostOfficeCache();
+
+  closeAllDirectoryActionTrays();
+  refreshSearchInPlace();
+  refreshDirectoryInPlace();
+  if (typeof onLearnDatabaseUpdated === "function") onLearnDatabaseUpdated();
+  if (typeof highlightUpdatedRecord === "function") {
+    highlightUpdatedRecord(recordId);
+  }
+  showToast("✅ Address marked as Verified", "success");
+
+  try {
+    await ensureSupabaseReady();
+    const { error } = await supabaseClient.rpc("verify_post_office_addresses", {
+      target_ids: [Number(recordId)],
+    });
+    if (error) throw error;
+  } catch (err) {
+    const rollbackRow = cachedPostOffices.find(
+      (r) => String(r.id) === String(recordId)
+    );
+    if (rollbackRow) {
+      rollbackRow.priority = prevPriority;
+      updateSearchIndexRow(rollbackRow);
+      persistPostOfficeCache();
+    }
+    refreshSearchInPlace();
+    refreshDirectoryInPlace();
+    if (typeof onLearnDatabaseUpdated === "function") onLearnDatabaseUpdated();
+    alert("Failed to verify address: " + err.message);
+  }
+}
+
 // --- 1-TAP SHARED PRIORITY TOGGLE (OPTIMISTIC UI + ROLLBACK) ---
 async function toggleRecordPriority(recordId, btnEl) {
   if (!navigator.onLine) {
@@ -2773,7 +2892,8 @@ async function toggleRecordPriority(recordId, btnEl) {
   );
   if (idx === -1) return;
 
-  const prevPriority = Number(cachedPostOffices[idx].priority) >= 1 ? 1 : 0;
+  const rawPrev = Number(cachedPostOffices[idx].priority);
+  const prevPriority = rawPrev >= 1 ? 1 : rawPrev === -1 ? -1 : 0;
   const nextPriority = prevPriority === 1 ? 0 : 1;
 
   // Optimistic local update
@@ -2793,6 +2913,7 @@ async function toggleRecordPriority(recordId, btnEl) {
   closeAllDirectoryActionTrays();
   refreshSearchInPlace();
   refreshDirectoryInPlace();
+  if (typeof onLearnDatabaseUpdated === "function") onLearnDatabaseUpdated();
   if (typeof highlightUpdatedRecord === "function") {
     highlightUpdatedRecord(recordId);
   }
@@ -2824,6 +2945,7 @@ async function toggleRecordPriority(recordId, btnEl) {
     }
     refreshSearchInPlace();
     refreshDirectoryInPlace();
+    if (typeof onLearnDatabaseUpdated === "function") onLearnDatabaseUpdated();
     alert("Failed to update priority: " + err.message);
   }
 }
@@ -3097,6 +3219,7 @@ async function saveQuickPriorityModal() {
     persistPostOfficeCache();
     refreshSearchInPlace();
     refreshDirectoryInPlace();
+    if (typeof onLearnDatabaseUpdated === "function") onLearnDatabaseUpdated();
 
     if (typeof updatedCount === "number" && updatedCount !== totalChanges) {
       showToast(

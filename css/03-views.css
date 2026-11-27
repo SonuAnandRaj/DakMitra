@@ -5820,3 +5820,225 @@ body.keyboard-open #view-upload #upload-display-area {
   justify-content: center;
   flex-shrink: 0;
 }
+
+/* =========================================================
+   UNVERIFIED TIER (-1) & BATCH TRACKING STYLES
+   ========================================================= */
+
+/* Unverified Filter Chip (Directory & Quick-Delete) */
+.dir-filter-chip.is-unverified.active {
+  background: rgba(100, 116, 139, 0.16);
+  color: #475569;
+  border-color: #64748b;
+  box-shadow: 0 4px 12px -4px rgba(100, 116, 139, 0.28);
+}
+
+[data-theme="dark"] .dir-filter-chip.is-unverified.active {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  border-color: #94a3b8;
+}
+
+.dir-filter-chip.is-unverified.active .dir-chip-count {
+  background: #64748b;
+  color: #ffffff;
+}
+
+/* Search List Card & Table Row — Unverified Indicator */
+#view-search li.list-item.is-unverified {
+  border-style: dashed;
+  border-color: rgba(100, 116, 139, 0.38);
+}
+
+#view-search li.list-item.is-unverified::before {
+  background: linear-gradient(180deg, #94a3b8 0%, #64748b 100%);
+  opacity: 0.45;
+}
+
+.unverified-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  background: rgba(100, 116, 139, 0.12);
+  border: 1px dashed rgba(100, 116, 139, 0.42);
+  vertical-align: middle;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .unverified-pill {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.15);
+  border-color: rgba(148, 163, 184, 0.36);
+}
+
+/* Directory & Quick-Delete Chips — Unverified Style */
+.directory-address-chip.unverified-address-chip,
+.delete-select-chip.is-unverified-item:not(.selected) {
+  border-style: dashed;
+  border-color: rgba(100, 116, 139, 0.45);
+  color: var(--text-light);
+}
+
+/* Floating Action Bar — 1-Tap Verify Button */
+.directory-floating-bar .toolbar-btn.pill-btn-verify {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #047857 !important;
+  border: 1px solid rgba(16, 185, 129, 0.38) !important;
+}
+
+[data-theme="dark"] .directory-floating-bar .toolbar-btn.pill-btn-verify {
+  background: rgba(52, 211, 153, 0.18) !important;
+  color: #34d399 !important;
+  border-color: rgba(52, 211, 153, 0.4) !important;
+}
+
+.directory-floating-bar .toolbar-btn.pill-btn-verify:hover {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #10b981 !important;
+}
+
+/* Upload Batch Badge & Note Box (Record History & Approvals) */
+.dm-batch-id-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: rgba(79, 70, 229, 0.1);
+  color: var(--primary);
+  border: 1px solid rgba(79, 70, 229, 0.24);
+  margin-left: 4px;
+}
+
+[data-theme="dark"] .dm-batch-id-pill {
+  background: rgba(129, 140, 248, 0.16);
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+.dm-batch-note {
+  margin-top: 5px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* Search Card Right-Column Stacked Actions (Priority + Verify) */
+.search-card-layout {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.search-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-card-main .office-title {
+  margin-bottom: 8px;
+  padding-top: 2px;
+}
+
+.search-card-side-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+
+.search-card-side-actions .card-priority-btn {
+  margin-top: 0;
+}
+
+/* Verify Icon Button (Matches .card-priority-btn) */
+.card-verify-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 11px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.18s var(--dm-ease-spring), background 0.2s ease,
+    color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="dark"] .card-verify-btn {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.34);
+}
+
+.card-verify-btn:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  box-shadow: 0 4px 10px -3px rgba(16, 185, 129, 0.4);
+}
+
+.card-verify-btn:active {
+  transform: scale(0.86);
+}
+
+/* Table View Stacked Priority + Verify Buttons */
+.table-row-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.table-verify-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.16s ease, background 0.2s ease, color 0.2s ease;
+}
+
+[data-theme="dark"] .table-verify-btn {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.34);
+}
+
+.table-verify-btn:hover {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+.table-verify-btn:active {
+  transform: scale(0.86);
+}

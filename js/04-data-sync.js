@@ -417,6 +417,7 @@ function createSearchMeta(row) {
   const offRaw = String(row.Office || "").trim();
   const officeType = detectOfficeType(addrRaw);
   const isPriority = Number(row.priority) >= 1;
+  const isUnverified = isUnverifiedRecord(row);
   const effectivePriority = getEffectivePriority(row);
   const recentActivityTs = Math.max(
     parseTimestampMs(row.inserted_at),
@@ -446,6 +447,7 @@ function createSearchMeta(row) {
   return {
     officeType,
     isPriority,
+    isUnverified,
     effectivePriority,
     recentActivityTs,
     numericId,
@@ -622,13 +624,25 @@ function buildDirectoryGroupedData() {
       };
     }
 
+    const rawPrio = Number(row.priority);
+    const officeType = detectOfficeType(row.Address);
+    const normalizedPrio = officeType
+      ? rawPrio >= 1
+        ? 1
+        : 0
+      : rawPrio >= 1
+      ? 1
+      : rawPrio === -1
+      ? -1
+      : 0;
+
     grouped[officeKey].addresses.push({
       id: row.id,
       Address: row.Address || "",
       Office: grouped[officeKey].office,
       Pin: row.Pin || "",
-      officeType: detectOfficeType(row.Address),
-      priority: Number(row.priority) >= 1 ? 1 : 0,
+      officeType,
+      priority: normalizedPrio,
       effectivePriority: getEffectivePriority(row),
     });
   });
@@ -750,6 +764,14 @@ function upsertLocalPostOffice(row) {
     const nextRow = { ...prevRow, ...row };
     if (coreAddressChanged && !("address_updated_at" in row)) {
       nextRow.address_updated_at = new Date().toISOString();
+    }
+    if (
+      (coreAddressChanged &&
+        !("priority" in row) &&
+        Number(prevRow.priority) === -1) ||
+      (detectOfficeType(nextRow.Address) && Number(nextRow.priority) === -1)
+    ) {
+      nextRow.priority = 0;
     }
     cachedPostOffices[idx] = nextRow;
     updateSearchIndexRow(cachedPostOffices[idx]);

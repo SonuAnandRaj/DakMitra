@@ -415,21 +415,82 @@ function stripPostalSuffixes(text) {
     .trim();
 }
 
+function isUnverifiedRecord(row) {
+  if (!row) return false;
+  if (detectOfficeType(row.Address)) return false;
+  return Number(row.priority) === -1;
+}
+
 /**
  * Effective Priority Tiers (higher = ranks first):
- * 4 = HO / SO (Automatic top)
- * 3 = BO + manually marked Frequent (breaks ties between same-name BOs)
- * 2 = BO (Automatic above regular villages)
- * 1 = Non-BO village manually marked Frequent / Important
- * 0 = Normal scattered village
+ * 5 = HO / SO (Automatic top, always verified)
+ * 4 = BO + manually marked Priority (breaks ties between same-name BOs)
+ * 3 = BO (Automatic above regular villages, always verified)
+ * 2 = Non-BO village manually marked Priority (always verified)
+ * 1 = Verified Regular village (priority = 0)
+ * 0 = Unverified Regular village (priority = -1)
  */
 function getEffectivePriority(row) {
   if (!row) return 0;
   const officeType = detectOfficeType(row.Address);
-  const isPriority = Number(row.priority) >= 1;
-  if (officeType === "HO" || officeType === "SO") return 4;
-  if (officeType === "BO") return isPriority ? 3 : 2;
-  return isPriority ? 1 : 0;
+  const prio = Number(row.priority);
+  if (officeType === "HO" || officeType === "SO") return 5;
+  if (officeType === "BO") return prio >= 1 ? 4 : 3;
+  if (prio >= 1) return 2;
+  if (prio === -1) return 0;
+  return 1;
+}
+
+function generateUploadBatchId(uploadType = "bulk_same_office") {
+  const prefix =
+    uploadType === "excel_bulk"
+      ? "EXL"
+      : uploadType === "quick_add"
+      ? "QAD"
+      : "BLK";
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  let rand = "";
+  if (window.crypto && window.crypto.getRandomValues) {
+    const bytes = new Uint8Array(2);
+    window.crypto.getRandomValues(bytes);
+    rand = Array.from(bytes, (b) => b.toString(16).padStart(2, "0"))
+      .join("")
+      .toUpperCase();
+  } else {
+    rand = Math.random().toString(36).slice(2, 6).toUpperCase().padEnd(4, "X");
+  }
+  return `${prefix}-${y}${m}${d}-${rand}`;
+}
+
+async function createUploadBatchRecord({
+  uploadType,
+  description = "",
+  fileName = null,
+  targetOffice = null,
+  rowCount = 0,
+  userId,
+}) {
+  const cleanDesc =
+    String(description || "")
+      .trim()
+      .slice(0, 160) || null;
+  const batchId = generateUploadBatchId(uploadType);
+
+  const { error } = await supabaseClient.from("upload_batches").insert({
+    id: batchId,
+    upload_type: uploadType,
+    description: cleanDesc,
+    file_name: fileName || null,
+    target_office: targetOffice || null,
+    row_count: Math.max(0, Number(rowCount) || 0),
+    created_by: userId,
+  });
+
+  if (error) throw error;
+  return { id: batchId, description: cleanDesc };
 }
 
 // --- SHARED BULK ADDRESS PARSER & LIVE DUPLICATE PREVIEW ---

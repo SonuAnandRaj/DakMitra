@@ -218,13 +218,16 @@ function isWeakLearnCard(card) {
   return card.misses >= 2 || (card.misses >= 1 && card.box === 0);
 }
 
+function getLearnEligibleRecords() {
+  if (!Array.isArray(cachedPostOffices)) return [];
+  return cachedPostOffices.filter((r) => !isUnverifiedRecord(r));
+}
+
 function computeLearnSummaryMetrics(prog = null, recordsOverride = null) {
   const p = prog || getLearnProgress();
   const records = Array.isArray(recordsOverride)
     ? recordsOverride
-    : Array.isArray(cachedPostOffices)
-    ? cachedPostOffices
-    : [];
+    : getLearnEligibleRecords();
   const totalAddresses = records.length;
 
   let masteredCount = 0;
@@ -603,7 +606,7 @@ function isSingleOfficeLearnScope() {
 function getLearnOfficeRecords(officeOverride = null) {
   const targetOffice =
     officeOverride !== null ? officeOverride : learnState.officeScope || "all";
-  const records = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  const records = getLearnEligibleRecords();
   if (!targetOffice || targetOffice === "all") return records;
 
   const targetLower = String(targetOffice).trim().toLowerCase();
@@ -683,7 +686,7 @@ function renderLearnFilterChips() {
     document.getElementById("quiz-category-chips"),
   ].filter(Boolean);
 
-  const allRecords = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  const allRecords = getLearnEligibleRecords();
   const prog = getLearnProgress();
 
   // Row 1: All Offices + every Delivery Office sorted A-Z
@@ -979,7 +982,7 @@ function getNeighborTrapRecords(targetOffice, category = "all", options = {}) {
   const targetLower = String(targetOffice || "")
     .trim()
     .toLowerCase();
-  const allRows = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  const allRows = getLearnEligibleRecords();
   if (!targetLower || allRows.length === 0) return [];
 
   const targetRows = getLearnOfficeRecords(targetOffice);
@@ -2175,7 +2178,7 @@ function buildPinSniperQuestions(basePool, count) {
 }
 
 function buildIntruderQuestions(basePool, count) {
-  const allRows = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  const allRows = getLearnEligibleRecords();
 
   // Group ALL records by office for accurate membership & intruder verification
   const byOfficeAll = new Map();
@@ -2991,7 +2994,7 @@ function renderMasteryOfficeList(progOverride = null) {
   if (!listEl) return;
 
   const prog = progOverride || getLearnProgress();
-  const records = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  const records = getLearnEligibleRecords();
 
   if (records.length === 0) {
     listEl.innerHTML = `<div class="list-empty" style="margin:0; padding:20px;">No database records loaded yet.</div>`;
@@ -3108,7 +3111,7 @@ function practiceOfficeFromLearn(officeName) {
 // --- TRICKY ADDRESSES (WEAK SPOTS) ---
 function getWeakRecordsSorted(progOverride = null) {
   const prog = progOverride || getLearnProgress();
-  const records = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  const records = getLearnEligibleRecords();
   const weak = [];
 
   for (let i = 0; i < records.length; i++) {

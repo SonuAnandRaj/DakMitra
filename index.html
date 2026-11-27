@@ -2439,6 +2439,16 @@
                 <span>Regular</span>
                 <span class="dir-chip-count" id="dir-count-regular">0</span>
               </button>
+              <button
+                type="button"
+                id="dir-chip-unverified"
+                class="dir-filter-chip is-unverified"
+                onclick="toggleDirectoryFilterChip('unverified')"
+                title="Show unverified bulk-uploaded addresses"
+              >
+                <span>⚠️ Unverified</span>
+                <span class="dir-chip-count" id="dir-count-unverified">0</span>
+              </button>
             </div>
 
             <div class="dir-toolbar-row">
@@ -3239,6 +3249,19 @@
                   </div>
                 </div>
 
+                <div class="input-group" style="margin-bottom: 12px">
+                  <label for="bulk-batch-description"
+                    >Batch Description (Optional)</label
+                  >
+                  <input
+                    type="text"
+                    id="bulk-batch-description"
+                    maxlength="160"
+                    placeholder="e.g. Beat list from Postman Ramesh"
+                    autocomplete="off"
+                  />
+                </div>
+
                 <div class="input-group" style="margin-bottom: 8px">
                   <label for="bulk-addresses-input">Addresses</label>
                   <div class="upload-hint-pills">
@@ -3454,6 +3477,44 @@
                   >
                     ✕
                   </button>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 12px">
+                  <label for="excel-batch-description"
+                    >Batch Description (Optional)</label
+                  >
+                  <input
+                    type="text"
+                    id="excel-batch-description"
+                    maxlength="160"
+                    placeholder="e.g. Mirzapur division raw Excel sheet"
+                    autocomplete="off"
+                  />
+                </div>
+
+                <div class="dm-toggle-row" style="margin-bottom: 14px">
+                  <div>
+                    <strong
+                      style="
+                        display: block;
+                        font-size: 13.5px;
+                        color: var(--text);
+                      "
+                    >
+                      Mark Regular Rows as Verified
+                    </strong>
+                    <span style="font-size: 11.5px; color: var(--text-light)">
+                      Off = regular rows upload as Unverified (-1); Offices
+                      &amp; Priority always stay Verified
+                    </span>
+                  </div>
+                  <label
+                    class="dm-toggle-switch"
+                    title="Verify regular rows on upload"
+                  >
+                    <input type="checkbox" id="excel-mark-verified" />
+                    <span class="dm-toggle-slider"></span>
+                  </label>
                 </div>
 
                 <button
@@ -5978,6 +6039,19 @@
         </div>
 
         <div class="input-group edit-modal-field" style="margin-bottom: 10px">
+          <label for="quick-add-batch-description"
+            >Batch Description (Optional)</label
+          >
+          <input
+            type="text"
+            id="quick-add-batch-description"
+            maxlength="160"
+            placeholder="e.g. Verified beat list from BO"
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="input-group edit-modal-field" style="margin-bottom: 10px">
           <label>Addresses (one per line, commas, or two spaces)</label>
           <textarea
             id="quick-add-addresses-input"
@@ -6211,6 +6285,16 @@
             >
               <span>Regular</span>
               <span class="dir-chip-count" id="qd-count-regular">0</span>
+            </button>
+            <button
+              type="button"
+              id="qd-chip-unverified"
+              class="dir-filter-chip is-unverified"
+              onpointerdown="event.preventDefault()"
+              onclick="toggleQuickDeleteFilterChip('unverified')"
+            >
+              <span>⚠️ Unverified</span>
+              <span class="dir-chip-count" id="qd-count-unverified">0</span>
             </button>
           </div>
         </div>

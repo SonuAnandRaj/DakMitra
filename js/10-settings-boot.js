@@ -354,6 +354,7 @@ async function exportFullTableToExcel(includeDeleted = true) {
       Office: row.Office,
       Pin: row.Pin ?? "",
       Priority: Number(row.priority) >= 1 ? 1 : 0,
+      Verification: isUnverifiedRecord(row) ? "Unverified" : "Verified",
       Status: "Active (Cached)",
     }));
     const ws = XLSX.utils.json_to_sheet(formattedRows);
@@ -379,7 +380,7 @@ async function exportFullTableToExcel(includeDeleted = true) {
     while (true) {
       let query = supabaseClient
         .from("post_offices")
-        .select("Address, Office, Pin, priority, is_deleted")
+        .select("Address, Office, Pin, priority, is_deleted, batch_id")
         .order("Office", { ascending: true })
         .range(from, from + batchSize - 1);
 
@@ -406,6 +407,8 @@ async function exportFullTableToExcel(includeDeleted = true) {
       Office: row.Office,
       Pin: row.Pin ?? "",
       Priority: Number(row.priority) >= 1 ? 1 : 0,
+      Verification: isUnverifiedRecord(row) ? "Unverified" : "Verified",
+      BatchID: row.batch_id || "",
       Status: row.is_deleted ? "Deleted" : "Active",
     }));
 
@@ -415,6 +418,8 @@ async function exportFullTableToExcel(includeDeleted = true) {
       { wch: 22 },
       { wch: 12 },
       { wch: 10 },
+      { wch: 13 },
+      { wch: 20 },
       { wch: 12 },
     ];
 

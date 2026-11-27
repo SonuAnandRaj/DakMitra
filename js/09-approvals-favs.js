@@ -1257,8 +1257,21 @@ function buildApprovalCardHTML(req, searchQuery) {
     const addOffLabel = String(addOff).trim() || "Unknown";
     const addPinLabel = String(addPin).trim() || "N/A";
 
+    const batchIdBadge = prop.batch_id
+      ? `<span class="dm-batch-id-pill" style="margin-bottom: 8px;">${highlightApprovalText(
+          prop.batch_id,
+          searchQuery
+        )}</span>`
+      : "";
+    const batchDescHtml = prop.batch_description
+      ? `<div class="dm-batch-note" style="margin-top: 6px;">📝 ${highlightApprovalText(
+          prop.batch_description,
+          searchQuery
+        )}</div>`
+      : "";
+
     changesHtml = `
-      <div>${badge}${prioBadge}</div>
+      <div>${badge}${prioBadge}${batchIdBadge}</div>
       <div style="margin-bottom: 4px;"><b>${highlightApprovalText(
         prop.Address || prop.address || "Unknown",
         searchQuery
@@ -1277,6 +1290,7 @@ function buildApprovalCardHTML(req, searchQuery) {
         "",
         highlightApprovalText(addPinLabel, searchQuery)
       )}</div>
+      ${batchDescHtml}
     `;
   } else if (req.action_type === "EDIT") {
     const badge = `<span class="badge" style="background:#fef9c3;color:#854d0e; padding: 4px 8px; font-size: 12px; margin-bottom: 8px;">✏️ EDIT</span>`;

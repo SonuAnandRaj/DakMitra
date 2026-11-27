@@ -309,11 +309,14 @@ async function viewHistory(postOfficeId) {
       return;
     }
 
-    // Collect all unique user IDs and resolve via SECURITY DEFINER RPC (RLS-safe)
+    // Collect unique user IDs and upload batch IDs
     const userIdsToFetch = new Set();
+    const batchIdsToFetch = new Set();
     data.forEach((log) => {
       if (log.changed_by) userIdsToFetch.add(log.changed_by);
       if (log.approved_by) userIdsToFetch.add(log.approved_by);
+      const bId = log.new_data?.batch_id || log.old_data?.batch_id;
+      if (bId) batchIdsToFetch.add(String(bId));
     });
 
     const profilesMap = {};
@@ -328,6 +331,21 @@ async function viewHistory(postOfficeId) {
       if (Array.isArray(profileData)) {
         profileData.forEach((p) => {
           profilesMap[p.id] = p;
+        });
+      }
+    }
+
+    const batchesMap = {};
+    if (batchIdsToFetch.size > 0) {
+      const { data: batchData } = await supabaseClient
+        .from("upload_batches")
+        .select(
+          "id, upload_type, description, file_name, target_office, row_count"
+        )
+        .in("id", Array.from(batchIdsToFetch));
+      if (Array.isArray(batchData)) {
+        batchData.forEach((b) => {
+          batchesMap[b.id] = b;
         });
       }
     }
@@ -480,20 +498,70 @@ async function viewHistory(postOfficeId) {
         `;
       }
 
+      const uploadMethod = log.new_data?.upload_method || "manual";
+      const batchId =
+        log.action === "INSERT" ? log.new_data?.batch_id || null : null;
+      const batchInfo = batchId ? batchesMap[batchId] || null : null;
       const isBulkExcelUpload =
-        log.action === "INSERT" && log.new_data?.upload_method === "excel_bulk";
+        log.action === "INSERT" && uploadMethod === "excel_bulk";
+      const isManualBulkUpload =
+        log.action === "INSERT" &&
+        (uploadMethod === "bulk_same_office" || uploadMethod === "quick_add");
+
+      const batchPillHtml = batchId
+        ? `<span class="dm-batch-id-pill">${escapeHTML(batchId)}</span>`
+        : "";
+      const batchMetaParts = [];
+      if (batchInfo?.file_name) {
+        batchMetaParts.push(`📄 ${escapeHTML(batchInfo.file_name)}`);
+      }
+      if (batchInfo?.row_count > 0) {
+        batchMetaParts.push(
+          `${batchInfo.row_count} ${batchInfo.row_count === 1 ? "row" : "rows"}`
+        );
+      }
+      const batchDetailsHtml =
+        batchInfo?.description || batchMetaParts.length > 0
+          ? `<div class="dm-batch-note">
+               ${
+                 batchInfo?.description
+                   ? `<div>📝 ${escapeHTML(batchInfo.description)}</div>`
+                   : ""
+               }
+               ${
+                 batchMetaParts.length > 0
+                   ? `<div style="font-size: 11px; color: var(--text-light); margin-top: ${
+                       batchInfo?.description ? "3px" : "0"
+                     };">${batchMetaParts.join(" • ")}</div>`
+                   : ""
+               }
+             </div>`
+          : "";
+
+      const bulkTypeLabel =
+        uploadMethod === "quick_add"
+          ? "⚡ Added via Directory Quick-Add"
+          : "⚡ Added via Bulk Same-Office Upload";
 
       const attributionHtml = isBulkExcelUpload
         ? `<div style="font-size: 12px; color: var(--success-text); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
-             📊 <b>Added via Excel Bulk Upload</b> by Admin ${requesterLink} (${escapeHTML(
+             <div>📊 <b>Added via Excel Bulk Upload</b>${batchPillHtml}</div>
+             <div style="color: var(--text-light); margin-top: 3px;">By Admin ${requesterLink} (${escapeHTML(
             requesterId
-          )})
+          )})</div>
+             ${batchDetailsHtml}
            </div>`
         : `<div style="font-size: 12px; color: var(--text-light); margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--border);">
+             ${
+               isManualBulkUpload || batchId
+                 ? `<div style="color: var(--primary); margin-bottom: 4px;"><b>${bulkTypeLabel}</b>${batchPillHtml}</div>`
+                 : ""
+             }
              <div>👤 Requested by: ${requesterLink} (${escapeHTML(
             requesterId
           )})</div>
              ${approverHtml}
+             ${batchDetailsHtml}
            </div>`;
 
       html += `
@@ -951,30 +1019,43 @@ async function submitBulkSameOffice() {
     return alert("Your session has expired. Please sign in again.");
   }
 
-  const payloads = addresses.map((addr) => ({
-    action_type: "ADD",
-    proposed_data: {
-      Address: addr,
-      Office: office,
-      Pin: pin || null,
-      priority: bulkAddPriority,
-    },
-    requested_by: session.user.id,
-  }));
-
+  const batchDesc =
+    document.getElementById("bulk-batch-description")?.value.trim() || "";
   const prioText = bulkAddPriority === 1 ? "Priority " : "";
   const btn = document.getElementById("submit-bulk-btn");
   delete btn.dataset.originalHtml;
   setButtonState(btn, "loading", `Submitting ${addresses.length}...`);
 
   try {
+    const batch = await createUploadBatchRecord({
+      uploadType: "bulk_same_office",
+      description: batchDesc,
+      targetOffice: office,
+      rowCount: addresses.length,
+      userId: session.user.id,
+    });
+
+    const payloads = addresses.map((addr) => ({
+      action_type: "ADD",
+      proposed_data: {
+        Address: addr,
+        Office: office,
+        Pin: pin || null,
+        priority: bulkAddPriority,
+        upload_method: "bulk_same_office",
+        batch_id: batch.id,
+        ...(batch.description ? { batch_description: batch.description } : {}),
+      },
+      requested_by: session.user.id,
+    }));
+
     if (isCurrentUserAdmin) {
       const { error } = await supabaseClient.rpc("admin_direct_submit", {
         request_payloads: payloads,
       });
       if (error) throw error;
       showToast(
-        `✅ Admin: Added ${addresses.length} ${prioText}addresses to ${office}!`
+        `✅ Admin: Added ${addresses.length} ${prioText}addresses (${batch.id})!`
       );
       await fetchAllPostOffices(true);
     } else {
@@ -983,13 +1064,15 @@ async function submitBulkSameOffice() {
         .insert(payloads);
       if (error) throw error;
       showToast(
-        `✅ ${addresses.length} ${prioText}addresses submitted for approval!`
+        `✅ ${addresses.length} ${prioText}addresses submitted (${batch.id})!`
       );
     }
 
     invalidateApprovalsCache();
     setBulkPriority(1, true);
     clearBulkAddresses();
+    const descEl = document.getElementById("bulk-batch-description");
+    if (descEl) descEl.value = "";
 
     switchDashboardView("search");
   } catch (err) {
@@ -1298,6 +1381,12 @@ async function uploadExcel() {
         return alert("Your session has expired. Please sign in again.");
       }
 
+      const markVerified = Boolean(
+        document.getElementById("excel-mark-verified")?.checked
+      );
+      const batchDesc =
+        document.getElementById("excel-batch-description")?.value.trim() || "";
+
       const formattedData = [];
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i];
@@ -1309,14 +1398,22 @@ async function uploadExcel() {
         const rawPrio = String(row["Priority"] ?? "")
           .trim()
           .toLowerCase();
-        const priorityVal =
+        const isHighPrio =
           rawPrio === "1" ||
           rawPrio === "high" ||
           rawPrio === "frequent" ||
           rawPrio === "yes" ||
-          rawPrio === "true"
-            ? 1
-            : 0;
+          rawPrio === "true";
+        const isOfficeRow = Boolean(detectOfficeType(address));
+
+        let priorityVal;
+        if (isHighPrio) {
+          priorityVal = 1;
+        } else if (isOfficeRow || rawPrio === "verified" || markVerified) {
+          priorityVal = 0;
+        } else {
+          priorityVal = -1;
+        }
 
         const pinStr = String(row["Pin"] ?? "").trim();
         const parsedPin = pinStr ? parseInt(pinStr, 10) || null : null;
@@ -1339,6 +1436,18 @@ async function uploadExcel() {
         setButtonState(uploadBtn, "idle");
         return;
       }
+
+      const batch = await createUploadBatchRecord({
+        uploadType: "excel_bulk",
+        description: batchDesc,
+        fileName: file.name || null,
+        rowCount: formattedData.length,
+        userId: session.user.id,
+      });
+
+      formattedData.forEach((r) => {
+        r.batch_id = batch.id;
+      });
 
       const CHUNK_SIZE = 500;
       let uploadedCount = 0;
@@ -1365,9 +1474,13 @@ async function uploadExcel() {
       }
 
       setButtonState(uploadBtn, "success", "Uploaded!");
-      showToast(`✅ Uploaded ${uploadedCount} rows from Excel!`);
+      showToast(`✅ Uploaded ${uploadedCount} rows (${batch.id})!`);
       fileInput.value = "";
       clearExcelFileSelection();
+      const excelDescEl = document.getElementById("excel-batch-description");
+      if (excelDescEl) excelDescEl.value = "";
+      const verifyChkEl = document.getElementById("excel-mark-verified");
+      if (verifyChkEl) verifyChkEl.checked = false;
       await fetchAllPostOffices(true);
       setTimeout(() => {
         setButtonState(uploadBtn, "idle");
