@@ -154,10 +154,10 @@ async function handleAuth() {
         await supabaseClient.auth.signOut();
       }
       splashScreen.classList.add("hidden-splash");
-      showToast("⏳ Account created! Waiting for Superadmin approval.");
+      showToast("⏳ Account created! Waiting for the admin approval.");
       switchTab("signin");
       showAlert(
-        "Registration successful! Your account must be approved by the Superadmin before you can sign in.",
+        "Registration successful! Your account must be approved by the admin before you can sign in.",
         "success"
       );
       return;
@@ -284,13 +284,13 @@ function getAccountBlockReason(profileData, isSuper = false) {
     : "";
 
   if (status === "PENDING") {
-    return "Account Pending Approval: Please wait for the Superadmin to approve your account.";
+    return "Account Pending Approval: Please wait for the admin to approve your account.";
   }
   if (status === "REJECTED") {
     return `Registration Rejected.${note}`;
   }
   if (status === "SUSPENDED") {
-    return `Account Suspended by Superadmin.${note}`;
+    return `Account Suspended by the admin.${note}`;
   }
   return null;
 }
@@ -309,7 +309,7 @@ function getDeviceLockMismatchReason(profileData, isSuper = false) {
   if (isSuper) return null; // Keeps Superadmin accessible across dev & mobile
   const localDeviceId = localStorage.getItem("dakmitra_device_id");
   if (!profileData?.device_id) {
-    return "Session Ended: Your device lock was reset by Superadmin. Please sign in again.";
+    return "Session Ended: Your device lock was reset by the admin. Please sign in again.";
   }
   if (!localDeviceId || profileData.device_id !== localDeviceId) {
     return "Session Ended: Account is registered on another device.";
@@ -1616,9 +1616,7 @@ function renderMembersListUI() {
             <div class="member-name-row">
               <span class="member-name">${escapeHTML(name)}</span>
               ${
-                m.is_superadmin
-                  ? `<span class="member-admin-badge">👑 Superadmin</span>`
-                  : m.is_admin
+                m.is_admin
                   ? `<span class="member-admin-badge">Admin</span>`
                   : ""
               }
@@ -1762,9 +1760,7 @@ function renderUserProfileModalContent(profile, isOfflineBasic = false) {
           ${escapeHTML(name)}
         </h3>
         ${
-          profile.is_superadmin
-            ? `<span class="member-admin-badge">👑 Superadmin</span>`
-            : profile.is_admin
+          profile.is_admin
             ? `<span class="member-admin-badge">🛡️ Admin</span>`
             : ""
         }

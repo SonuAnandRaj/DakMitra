@@ -2074,10 +2074,7 @@ function prefillUploadFromAi(address, office, pin) {
 // --- COPY & CSV EXPORT ---
 function copyResults() {
   if (!canCopyResults()) {
-    return showToast(
-      "🚫 Copying results is disabled by Superadmin.",
-      "warning"
-    );
+    return showToast("🚫 Copying results is disabled by the admin.", "warning");
   }
   if (!currentFilteredData.length) return showToast("No data to copy!");
   const text = currentFilteredData
@@ -2093,7 +2090,7 @@ function copyResults() {
 
 function exportCSV() {
   if (!canExportCSV()) {
-    return showToast("🚫 CSV export is disabled by Superadmin.", "warning");
+    return showToast("🚫 CSV export is disabled by the admin.", "warning");
   }
   if (!currentFilteredData.length) return showToast("No data to export!");
 

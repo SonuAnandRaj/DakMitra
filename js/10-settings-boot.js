@@ -285,10 +285,7 @@ async function exportFullTableToExcel(includeDeleted = true) {
     await fetchAndApplyAppConfig();
   }
   if (!canExportExcel()) {
-    return showToast(
-      "🚫 Database export is disabled by Superadmin.",
-      "warning"
-    );
+    return showToast("🚫 Database export is disabled by the admin.", "warning");
   }
   try {
     await ensureXLSXLoaded();
