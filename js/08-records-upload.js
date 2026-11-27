@@ -811,8 +811,8 @@ function syncUploadAdminUI() {
   if (roleBanner) {
     roleBanner.classList.toggle("is-admin", canExcel);
     roleBanner.innerHTML = canExcel
-      ? `<span>🛡️</span><span><strong>Admin Mode:</strong> Records publish directly to the live database.</span>`
-      : `<span>📝</span><span>Submissions go to <strong>Approvals</strong> for colleague review before publishing.</span>`;
+      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg><span><strong>Admin Mode:</strong> Records publish directly to the live database.</span>`
+      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg><span>Submissions go to <strong>Approvals</strong> for colleague review before publishing.</span>`;
   }
 
   if (!canExcel && currentUploadTab === "excel") {
@@ -903,8 +903,6 @@ function updateBulkAddressPreview() {
         : `${actionVerb} ${addresses.length} ${
             addresses.length === 1 ? "Address" : "Addresses"
           }${bulkAddPriority === 1 ? " (Priority)" : ""}`;
-    submitBtn.classList.toggle("dm-btn-amber-soft", bulkAddPriority === 1);
-    submitBtn.classList.toggle("dm-btn-primary-soft", bulkAddPriority !== 1);
     submitBtn.innerHTML = `${iconSvg}<span>${escapeHTML(label)}</span>`;
   }
 }

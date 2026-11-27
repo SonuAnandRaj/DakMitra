@@ -216,14 +216,13 @@
   left: 155%;
 }
 
-/* 1. Primary CTA — Solid Brand Gradient */
+/* 1. Primary CTA — Solid Brand Indigo Gradient (No Orange Flash) */
 .dm-btn-primary {
   border-color: transparent;
-  background: var(--dm-gradient-btn);
-  background-size: 200% 200%;
+  background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
   color: #ffffff;
-  box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.52),
-    inset 0 1px 0 rgba(255, 255, 255, 0.26);
+  box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
 .dm-btn-primary::after,
@@ -233,12 +232,33 @@
 
 .dm-btn-primary:hover {
   transform: translateY(-2px);
-  background-position: 100% 50%;
-  box-shadow: 0 12px 24px -6px rgba(79, 70, 229, 0.65),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  filter: brightness(1.06);
+  box-shadow: 0 12px 24px -6px rgba(79, 70, 229, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
-/* 2. High-Impact Danger CTA — Solid Crimson-Orange Gradient */
+/* 2. Success / Export CTA — Solid Emerald Gradient */
+.dm-btn-success {
+  border-color: transparent;
+  background: linear-gradient(135deg, #10b981 0%, #059669 55%, #047857 100%);
+  background-size: 200% 200%;
+  color: #ffffff;
+  box-shadow: 0 8px 20px -6px rgba(16, 185, 129, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.dm-btn-success::after {
+  animation: btnShine 4.2s infinite ease-in-out;
+}
+
+.dm-btn-success:hover {
+  transform: translateY(-2px);
+  background-position: 100% 50%;
+  box-shadow: 0 12px 24px -6px rgba(16, 185, 129, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+/* 3. High-Impact Danger CTA — Solid Crimson Gradient */
 .dm-btn-danger {
   border-color: transparent;
   background: var(--dm-gradient-danger);
@@ -255,201 +275,86 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.28);
 }
 
-/* 3. Neutral Secondary — Crisp Surface Tint */
+/* 4. Neutral Secondary — Crisp Opaque Elevated Surface */
 .dm-btn-secondary {
-  background: linear-gradient(
-    180deg,
-    var(--card-bg) 0%,
-    var(--btn-secondary) 100%
-  );
+  background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
   color: var(--text);
-  border-color: var(--dm-border-tint);
-  box-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px -4px rgba(15, 23, 42, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 [data-theme="dark"] .dm-btn-secondary {
-  background: linear-gradient(
-    180deg,
-    rgba(31, 41, 55, 0.95) 0%,
-    rgba(17, 24, 39, 0.95) 100%
-  );
-  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, #1f2937 0%, #161f2e 100%);
+  color: var(--text);
+  border-color: #374151;
+  box-shadow: 0 6px 14px -4px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .dm-btn-secondary:hover {
   border-color: var(--primary);
   color: var(--primary);
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px -6px rgba(79, 70, 229, 0.24);
+  box-shadow: 0 8px 18px -6px rgba(79, 70, 229, 0.25);
 }
 
-/* 4. Semantic Soft-Glass — Primary / Sync & Submit (Indigo) */
-.dm-btn-primary-soft {
-  background: linear-gradient(
-    135deg,
-    rgba(79, 70, 229, 0.13) 0%,
-    rgba(99, 102, 241, 0.07) 100%
-  );
-  color: #4338ca;
-  border-color: rgba(79, 70, 229, 0.3);
-  box-shadow: 0 4px 14px -6px rgba(79, 70, 229, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
-}
-
-[data-theme="dark"] .dm-btn-primary-soft {
-  background: linear-gradient(
-    135deg,
-    rgba(129, 140, 248, 0.18) 0%,
-    rgba(79, 70, 229, 0.14) 100%
-  );
-  color: #a5b4fc;
-  border-color: rgba(129, 140, 248, 0.36);
-  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.dm-btn-primary-soft:hover {
-  background: var(--dm-gradient-btn);
-  background-size: 200% 200%;
-  background-position: 100% 50%;
-  color: #ffffff;
-  border-color: transparent;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px -6px rgba(79, 70, 229, 0.52);
-}
-
-/* 4b. Semantic Soft-Glass — Security / Priority (Warm Amber) */
-.dm-btn-amber-soft {
-  background: linear-gradient(
-    135deg,
-    rgba(245, 158, 11, 0.15) 0%,
-    rgba(217, 119, 6, 0.08) 100%
-  );
-  color: #b45309;
-  border-color: rgba(245, 158, 11, 0.36);
-  box-shadow: 0 4px 14px -6px rgba(245, 158, 11, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
-}
-
-[data-theme="dark"] .dm-btn-amber-soft {
-  background: linear-gradient(
-    135deg,
-    rgba(251, 191, 36, 0.17) 0%,
-    rgba(180, 83, 9, 0.22) 100%
-  );
-  color: #fcd34d;
-  border-color: rgba(251, 191, 36, 0.36);
-  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.dm-btn-amber-soft:hover {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #ffffff;
-  border-color: transparent;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px -6px rgba(245, 158, 11, 0.5);
-}
-
-/* 4c. Semantic Soft-Glass — Info / Utility (Sky Blue) */
-.dm-btn-info-soft {
-  background: linear-gradient(
-    135deg,
-    rgba(14, 165, 233, 0.13) 0%,
-    rgba(2, 132, 199, 0.07) 100%
-  );
-  color: #0369a1;
-  border-color: rgba(14, 165, 233, 0.32);
-  box-shadow: 0 4px 14px -6px rgba(14, 165, 233, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
-}
-
-[data-theme="dark"] .dm-btn-info-soft {
-  background: linear-gradient(
-    135deg,
-    rgba(56, 189, 248, 0.16) 0%,
-    rgba(2, 132, 199, 0.14) 100%
-  );
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.34);
-  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.dm-btn-info-soft:hover {
-  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-  color: #ffffff;
-  border-color: transparent;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px -6px rgba(14, 165, 233, 0.48);
-}
-
-/* 5. Semantic Soft-Glass — Success / Export (Emerald) */
-.dm-btn-success-soft {
-  background: linear-gradient(
-    135deg,
-    rgba(16, 185, 129, 0.14) 0%,
-    rgba(5, 150, 105, 0.08) 100%
-  );
-  color: #047857;
-  border-color: rgba(16, 185, 129, 0.34);
-  box-shadow: 0 4px 14px -6px rgba(16, 185, 129, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
-}
-
-[data-theme="dark"] .dm-btn-success-soft {
-  background: linear-gradient(
-    135deg,
-    rgba(16, 185, 129, 0.18) 0%,
-    rgba(6, 78, 59, 0.4) 100%
-  );
-  color: #34d399;
-  border-color: rgba(52, 211, 153, 0.35);
-  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-.dm-btn-success-soft:hover {
-  background: var(--dm-gradient-success);
-  color: #ffffff;
-  border-color: transparent;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px -6px rgba(16, 185, 129, 0.5);
-}
-
-/* 6. Semantic Soft-Glass — Danger / Reset (Rose-Crimson) */
+/* 5. Soft Danger (Used on compact inline actions in Approvals / Learn / Superadmin) */
 .dm-btn-danger-soft {
-  background: linear-gradient(
-    135deg,
-    rgba(239, 68, 68, 0.12) 0%,
-    rgba(249, 115, 22, 0.08) 100%
-  );
+  background: rgba(239, 68, 68, 0.12);
   color: #dc2626;
-  border-color: rgba(239, 68, 68, 0.3);
-  box-shadow: 0 4px 14px -6px rgba(239, 68, 68, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  border-color: rgba(239, 68, 68, 0.28);
 }
 
 [data-theme="dark"] .dm-btn-danger-soft {
-  background: linear-gradient(
-    135deg,
-    rgba(239, 68, 68, 0.18) 0%,
-    rgba(153, 27, 27, 0.32) 100%
-  );
+  background: rgba(239, 68, 68, 0.18);
   color: #fca5a5;
-  border-color: rgba(248, 113, 113, 0.35);
-  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-color: rgba(248, 113, 113, 0.34);
 }
 
 .dm-btn-danger-soft:hover {
   background: var(--dm-gradient-danger);
   color: #ffffff;
   border-color: transparent;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px -6px rgba(239, 68, 68, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -6px rgba(239, 68, 68, 0.45);
+}
+
+/* 5b. Translucent Compact Actions (Sync & Excel in Settings) */
+.dm-btn-primary-soft {
+  background: rgba(79, 70, 229, 0.11);
+  color: var(--primary);
+  border-color: rgba(79, 70, 229, 0.28);
+}
+
+[data-theme="dark"] .dm-btn-primary-soft {
+  background: rgba(129, 140, 248, 0.16);
+  color: #a5b4fc;
+  border-color: rgba(129, 140, 248, 0.34);
+}
+
+.dm-btn-primary-soft:hover {
+  background: rgba(79, 70, 229, 0.18);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.dm-btn-success-soft {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="dark"] .dm-btn-success-soft {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.34);
+}
+
+.dm-btn-success-soft:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  transform: translateY(-1px);
 }
 
 /* Function-Matched Icon Micro-Animations */

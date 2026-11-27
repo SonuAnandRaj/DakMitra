@@ -2745,7 +2745,7 @@
                 <button
                   type="button"
                   id="clear-cache-btn"
-                  class="dm-btn dm-btn-danger-soft dm-btn-full"
+                  class="dm-btn dm-btn-danger dm-btn-full"
                   onclick="clearAppCache()"
                 >
                   <svg
@@ -2814,7 +2814,7 @@
               <button
                 type="button"
                 id="register-passkey-btn"
-                class="dm-btn dm-btn-amber-soft dm-btn-full"
+                class="dm-btn dm-btn-primary dm-btn-full"
                 style="margin-top: 6px"
                 onclick="registerDevicePasskey()"
               >
@@ -2884,7 +2884,7 @@
               <button
                 type="button"
                 id="check-updates-btn"
-                class="dm-btn dm-btn-info-soft dm-btn-full"
+                class="dm-btn dm-btn-primary dm-btn-full"
                 onclick="checkForAppUpdate()"
               >
                 <svg
@@ -2966,7 +2966,24 @@
           >
             <!-- Role Context Strip -->
             <div id="upload-role-banner" class="upload-role-banner">
-              <span>📝</span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                style="flex-shrink: 0"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                ></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
               <span>
                 Submissions go to <strong>Approvals</strong> for colleague
                 review before publishing.
@@ -3007,7 +3024,7 @@
                 <div class="upload-actions-row">
                   <button
                     type="button"
-                    class="dm-btn dm-btn-info-soft"
+                    class="dm-btn dm-btn-secondary"
                     style="flex: 0.45"
                     onclick="addInputRow()"
                   >
@@ -3027,7 +3044,7 @@
                   </button>
                   <button
                     type="button"
-                    class="dm-btn dm-btn-primary-soft"
+                    class="dm-btn dm-btn-primary"
                     style="flex: 1"
                     id="submit-multiple-btn"
                     onclick="submitMultipleRecords()"
@@ -3268,7 +3285,7 @@
                 <div style="margin-top: 18px">
                   <button
                     type="button"
-                    class="dm-btn dm-btn-amber-soft dm-btn-full"
+                    class="dm-btn dm-btn-primary dm-btn-full"
                     id="submit-bulk-btn"
                     onclick="submitBulkSameOffice()"
                   >
@@ -3324,11 +3341,42 @@
                   </div>
                 </div>
 
-                <span
-                  class="appr-filter-label"
-                  style="display: block; margin-bottom: 6px"
-                  >Expected Sheet Columns</span
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 8px;
+                    margin-bottom: 6px;
+                  "
                 >
+                  <span class="appr-filter-label" style="margin: 0"
+                    >Expected Sheet Columns</span
+                  >
+                  <button
+                    type="button"
+                    class="dm-btn dm-btn-secondary dm-btn-sm"
+                    onclick="downloadSampleExcel()"
+                    title="Download sample Excel template"
+                  >
+                    <svg
+                      class="dm-icon-down"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                      ></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Sample</span>
+                  </button>
+                </div>
                 <div class="upload-hint-pills" style="margin-bottom: 16px">
                   <span class="upload-hint-pill is-required">Address *</span>
                   <span class="upload-hint-pill is-required">Office *</span>
@@ -3410,7 +3458,7 @@
 
                 <button
                   type="button"
-                  class="dm-btn dm-btn-primary-soft dm-btn-full"
+                  class="dm-btn dm-btn-primary dm-btn-full"
                   id="upload-excel-btn"
                   onclick="uploadExcel()"
                 >
@@ -3428,28 +3476,6 @@
                     <line x1="12" y1="3" x2="12" y2="15"></line>
                   </svg>
                   <span>Upload to Database</span>
-                </button>
-
-                <button
-                  type="button"
-                  class="dm-btn dm-btn-success-soft dm-btn-full"
-                  style="margin-top: 10px"
-                  onclick="downloadSampleExcel()"
-                >
-                  <svg
-                    class="dm-icon-down"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2.2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  <span>Download Sample Excel Template</span>
                 </button>
               </div>
             </div>
