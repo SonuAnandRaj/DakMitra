@@ -27,15 +27,43 @@ function switchTab(mode) {
   }
 }
 
-function showAlert(message, type = "error") {
+function switchToSignUpFromAlert() {
+  switchTab("signup");
+  setTimeout(() => {
+    const nameInput = document.getElementById("signup-name");
+    if (nameInput) {
+      nameInput.focus();
+      nameInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, 80);
+}
+
+function showAlert(message, type = "error", action = null) {
   const box = document.getElementById("alert-box");
+  if (!box) return;
   box.className = `alert ${type}`;
-  box.textContent = message;
+  box.textContent = "";
+
+  const textEl = document.createElement("div");
+  textEl.textContent = message;
+  box.appendChild(textEl);
+
+  if (action && action.label && typeof action.onClick === "function") {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "dm-btn dm-btn-primary dm-btn-sm";
+    btn.style.marginTop = "10px";
+    btn.textContent = action.label;
+    btn.addEventListener("click", action.onClick);
+    box.appendChild(btn);
+  }
+
   if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
 }
 
 function hideAlert() {
   const box = document.getElementById("alert-box");
+  if (!box) return;
   box.className = "alert";
   box.textContent = "";
 }
@@ -106,6 +134,8 @@ async function handleAuth() {
   const password = document.getElementById("password").value.trim();
   if (!email || !password)
     return showAlert("Please fill in all required fields.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return showAlert("Please enter a valid email address.");
 
   const splashScreen = document.getElementById("splash-screen");
   showSplashScreen();
@@ -181,6 +211,54 @@ async function handleAuth() {
       });
 
     if (authError) {
+      const isInvalidCreds =
+        authError.code === "invalid_credentials" ||
+        /invalid login credentials/i.test(authError.message || "");
+
+      if (isInvalidCreds && !isNetworkError(authError)) {
+        let accountExists = null;
+        try {
+          const { data, error: checkErr } = await supabaseClient.rpc(
+            "check_login_account_exists",
+            { p_email: email }
+          );
+          if (!checkErr && typeof data === "boolean") {
+            accountExists = data;
+          }
+        } catch (_) {}
+
+        if (accountExists === false) {
+          reportAuthAlert(
+            "LOGIN_FAILED",
+            email,
+            "No account found (not signed up yet)",
+            "signin"
+          );
+          splashScreen.classList.add("hidden-splash");
+          return showAlert(
+            "No account found for this email. Please create an account first to sign in.",
+            "error",
+            {
+              label: "Create Account →",
+              onClick: switchToSignUpFromAlert,
+            }
+          );
+        }
+
+        if (accountExists === true) {
+          reportAuthAlert(
+            "LOGIN_FAILED",
+            email,
+            "Incorrect password",
+            "signin"
+          );
+          splashScreen.classList.add("hidden-splash");
+          return showAlert(
+            "Incorrect password. Please try again or contact the admin to reset your password."
+          );
+        }
+      }
+
       reportAuthAlert("LOGIN_FAILED", email, authError.message, "signin");
       splashScreen.classList.add("hidden-splash");
       return showAlert(authError.message);

@@ -462,12 +462,16 @@ function bootAppInstantly() {
         document.getElementById("stat-offices").textContent = new Set(
           cachedPostOffices.map((o) => o.Office)
         ).size;
+        const defaultComparator =
+          typeof compareByRecentActivity === "function"
+            ? compareByRecentActivity
+            : compareByPriorityOnly;
         currentFilteredData = cachedPostOffices
           .map((item) => ({
             item,
             matches: [],
           }))
-          .sort((a, b) => compareByPriorityOnly(a.item, b.item));
+          .sort((a, b) => defaultComparator(a.item, b.item));
         renderResults(false);
         if (typeof updateSidebarLearnBadge === "function") {
           updateSidebarLearnBadge();

@@ -56,7 +56,7 @@ function loadOfficeStaffFromCache() {
 
 const SYNC_META_CACHE_KEY = "dakmitra_sync_meta";
 const POST_OFFICE_SELECT_COLUMNS =
-  "id, Address, Office, Pin, priority, bpm_name, bpm_contact, abpm_name, abpm_contact, spm_name, spm_contact, pm_name, pm_contact, pa_list, mts_list";
+  "id, Address, Office, Pin, priority, inserted_at, address_updated_at, bpm_name, bpm_contact, abpm_name, abpm_contact, spm_name, spm_contact, pm_name, pm_contact, pa_list, mts_list";
 const OFFICE_STAFF_SELECT_COLUMNS =
   "id, office_name, office_key, office_type, pm_name, pm_contact, spm_name, spm_contact, pa_list, mts_list";
 
@@ -249,9 +249,17 @@ async function fetchFromServerBackground(force = false) {
       const localMeta = getLocalSyncMeta();
       const serverMeta = await fetchServerSyncMeta();
 
+      const hasPoTimestamps =
+        cachedPostOffices.length > 0 &&
+        cachedPostOffices.every(
+          (row) =>
+            row &&
+            Object.prototype.hasOwnProperty.call(row, "inserted_at") &&
+            Object.prototype.hasOwnProperty.call(row, "address_updated_at")
+        );
+
       const hasLocalPoCache =
-        Boolean(localStorage.getItem("dakmitra_offline_db")) &&
-        cachedPostOffices.length > 0;
+        Boolean(localStorage.getItem("dakmitra_offline_db")) && hasPoTimestamps;
       const hasLocalStaffCache =
         localStorage.getItem(OFFICE_STAFF_CACHE_KEY) !== null;
 
@@ -398,12 +406,26 @@ function getCachedFuseInstance(filterVal, isNumericSearch) {
 // --- PRECOMPUTED SEARCH & PRIORITY INDEX (ZERO-LAG MOBILE RANKING) ---
 let searchIndexMap = new Map();
 
+function parseTimestampMs(val) {
+  if (!val) return 0;
+  const ms = Date.parse(val);
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 function createSearchMeta(row) {
   const addrRaw = String(row.Address || "").trim();
   const offRaw = String(row.Office || "").trim();
   const officeType = detectOfficeType(addrRaw);
   const isPriority = Number(row.priority) >= 1;
   const effectivePriority = getEffectivePriority(row);
+  const recentActivityTs = Math.max(
+    parseTimestampMs(row.inserted_at),
+    parseTimestampMs(row.address_updated_at)
+  );
+  const numericId =
+    row.id !== undefined && row.id !== null && row.id !== ""
+      ? Number(row.id)
+      : NaN;
 
   const addrCore = stripPostalSuffixes(addrRaw);
   const addrWords = addrCore ? addrCore.split(" ") : [];
@@ -425,6 +447,8 @@ function createSearchMeta(row) {
     officeType,
     isPriority,
     effectivePriority,
+    recentActivityTs,
+    numericId,
     addrLower: addrRaw.toLowerCase(),
     addrCore,
     addrWords,
@@ -475,6 +499,22 @@ function compareByPriorityOnly(aRow, bRow) {
   const prioDiff =
     (bMeta?.effectivePriority || 0) - (aMeta?.effectivePriority || 0);
   if (prioDiff !== 0) return prioDiff;
+  return (aMeta?.addrLower || "").localeCompare(bMeta?.addrLower || "");
+}
+
+function compareByRecentActivity(aRow, bRow) {
+  const aMeta = getSearchMeta(aRow);
+  const bMeta = getSearchMeta(bRow);
+  const timeDiff =
+    (bMeta?.recentActivityTs || 0) - (aMeta?.recentActivityTs || 0);
+  if (timeDiff !== 0) return timeDiff;
+
+  const aId = aMeta?.numericId;
+  const bId = bMeta?.numericId;
+  if (Number.isFinite(aId) && Number.isFinite(bId) && aId !== bId) {
+    return bId - aId;
+  }
+
   return (aMeta?.addrLower || "").localeCompare(bMeta?.addrLower || "");
 }
 
@@ -702,11 +742,26 @@ function upsertLocalPostOffice(row) {
     if (isRowDataUnchanged(cachedPostOffices[idx], row)) {
       return;
     }
-    cachedPostOffices[idx] = { ...cachedPostOffices[idx], ...row };
+    const prevRow = cachedPostOffices[idx];
+    const coreAddressChanged =
+      ("Address" in row && row.Address !== prevRow.Address) ||
+      ("Office" in row && row.Office !== prevRow.Office) ||
+      ("Pin" in row && String(row.Pin ?? "") !== String(prevRow.Pin ?? ""));
+    const nextRow = { ...prevRow, ...row };
+    if (coreAddressChanged && !("address_updated_at" in row)) {
+      nextRow.address_updated_at = new Date().toISOString();
+    }
+    cachedPostOffices[idx] = nextRow;
     updateSearchIndexRow(cachedPostOffices[idx]);
   } else {
-    cachedPostOffices.push(row);
-    updateSearchIndexRow(row);
+    const newRow = {
+      ...row,
+      inserted_at: row.inserted_at ?? new Date().toISOString(),
+      address_updated_at:
+        "address_updated_at" in row ? row.address_updated_at : null,
+    };
+    cachedPostOffices.push(newRow);
+    updateSearchIndexRow(newRow);
   }
 
   if (

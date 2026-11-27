@@ -675,6 +675,7 @@ function runPostalSearchEngine({
   filterVal = "all",
   filterOffice = "",
   filterPin = "",
+  sortDefaultByRecent = false,
 }) {
   const trimmedInput = String(rawInput || "").trim();
   const officeFilterLower = String(filterOffice || "")
@@ -696,9 +697,13 @@ function runPostalSearchEngine({
   );
 
   if (!hasAnyCriteria) {
+    const defaultComparator =
+      sortDefaultByRecent && typeof compareByRecentActivity === "function"
+        ? compareByRecentActivity
+        : compareByPriorityOnly;
     const allSorted = (cachedPostOffices || [])
       .map((item) => ({ item, matches: [] }))
-      .sort((a, b) => compareByPriorityOnly(a.item, b.item));
+      .sort((a, b) => defaultComparator(a.item, b.item));
     return {
       results: allSorted,
       cleanQuery: "",
@@ -848,6 +853,7 @@ function triggerSearch(hidePanels = false, options = {}) {
     filterVal,
     filterOffice,
     filterPin,
+    sortDefaultByRecent: true,
   });
 
   window.activeCleanSearchQuery = outcome.cleanQuery;
