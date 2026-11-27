@@ -1982,23 +1982,24 @@ function setQuickAddPriority(val, silent = false) {
 
 function getQuickAddBtnDefaultHTML(count = 0) {
   const baseLabel = isCurrentUserAdmin ? "Add" : "Submit";
-  const prioPrefix = activeQuickAddPriority === 1 ? "⚡ " : "";
   const label =
     count > 0
-      ? `${prioPrefix}${baseLabel} ${count} ${
-          count === 1 ? "Address" : "Addresses"
-        }`
-      : `${prioPrefix}${baseLabel} Addresses`;
-  return `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-        <polyline points="7 3 7 8 15 8"></polyline>
-      </svg>
-      <span>${label}</span>
-    `;
-}
+      ? `${baseLabel} ${count} ${count === 1 ? "Address" : "Addresses"}`
+      : `${baseLabel} Addresses`;
 
+  const iconSvg =
+    activeQuickAddPriority === 1
+      ? `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+         </svg>`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+           <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+           <polyline points="17 21 17 13 7 13 7 21"></polyline>
+           <polyline points="7 3 7 8 15 8"></polyline>
+         </svg>`;
+
+  return `${iconSvg}<span>${label}</span>`;
+}
 function quickAddForOffice(officeName, pinNumber) {
   closeAllDirectoryActionTrays();
 
