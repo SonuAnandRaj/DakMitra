@@ -3,14 +3,55 @@
 // =========================================================
 
 // --- SETTINGS & PREFERENCES ---
+function syncSettingsViewSwitchUI(mode) {
+  const isTable = mode === "table";
+  document
+    .getElementById("settings-view-list-btn")
+    ?.classList.toggle("active", !isTable);
+  document
+    .getElementById("settings-view-table-btn")
+    ?.classList.toggle("active", isTable);
+  document
+    .getElementById("settings-default-view-switch")
+    ?.classList.toggle("is-table", isTable);
+}
+
+function updateSettingsStatusUI() {
+  const rows = Array.isArray(cachedPostOffices) ? cachedPostOffices : [];
+  const addrEl = document.getElementById("settings-stat-addresses");
+  const offEl = document.getElementById("settings-stat-offices");
+  const pillEl = document.getElementById("settings-network-pill");
+
+  if (addrEl) addrEl.textContent = String(rows.length);
+  if (offEl) {
+    offEl.textContent = String(
+      new Set(rows.map((o) => o.Office).filter(Boolean)).size
+    );
+  }
+  if (pillEl) {
+    const online = navigator.onLine;
+    pillEl.textContent = online ? "Online" : "Offline";
+    pillEl.classList.toggle("is-offline", !online);
+  }
+  if (typeof syncSettingsThemeUI === "function") {
+    syncSettingsThemeUI(localStorage.getItem("app-theme") || "system");
+  }
+}
+
+window.addEventListener("online", updateSettingsStatusUI);
+window.addEventListener("offline", updateSettingsStatusUI);
+
 function saveDefaultView(mode) {
   localStorage.setItem("dakmitra_default_view", mode);
+  syncSettingsViewSwitchUI(mode);
   setViewMode(mode);
   showToast("👁️ Default view saved!");
 }
 
 function saveExportMode(mode) {
   localStorage.setItem("dakmitra_export_mode", mode);
+  const toggle = document.getElementById("export-mode-toggle");
+  if (toggle) toggle.checked = mode !== "hide";
   applyExportMode(mode);
   showToast("⚙️ Export button preference saved!");
 }
@@ -90,6 +131,7 @@ async function syncDatabase() {
   if (success) {
     setButtonState(syncBtn, "success", "Synced");
     showToast("🔄 Database synced successfully!");
+    updateSettingsStatusUI();
     invalidateApprovalsCache();
     setTimeout(() => setButtonState(syncBtn, "idle"), 1800);
   } else {
@@ -133,6 +175,7 @@ function applyAdminUI() {
     adminOnlyExcelCard.style.display =
       isCurrentUserAdmin || isCurrentUserSuperadmin ? "block" : "none";
   }
+  if (typeof syncUploadAdminUI === "function") syncUploadAdminUI();
 
   const superadminNav = document.getElementById("nav-superadmin");
   if (superadminNav) {
@@ -178,17 +221,17 @@ function applyAppConfigUI() {
     csvBtn.style.display = canExportCSV() ? "" : "none";
   }
 
-  const exportModeSelect = document.getElementById("export-mode-select");
-  if (exportModeSelect?.parentElement) {
-    exportModeSelect.parentElement.style.display =
+  const exportModeRow = document.getElementById("settings-export-mode-row");
+  if (exportModeRow) {
+    exportModeRow.style.display =
       canCopyResults() || canExportCSV() ? "flex" : "none";
   }
   applyExportMode(localStorage.getItem("dakmitra_export_mode") || "show");
 
   // Enforce Full Database Excel export row visibility (Superadmin always allowed)
-  const excelBtn = document.getElementById("export-excel-btn");
-  if (excelBtn?.parentElement) {
-    excelBtn.parentElement.style.display = canExportExcel() ? "flex" : "none";
+  const exportExcelRow = document.getElementById("settings-export-excel-row");
+  if (exportExcelRow) {
+    exportExcelRow.style.display = canExportExcel() ? "flex" : "none";
   }
 
   // Global Announcement Banner
@@ -395,15 +438,15 @@ async function exportFullTableToExcel(includeDeleted = true) {
 // --- RESTORE SAVED DISPLAY PREFERENCES ---
 (function initSavedPreferences() {
   const savedView = localStorage.getItem("dakmitra_default_view") || "list";
-  const defaultViewSelect = document.getElementById("default-view-select");
-  if (defaultViewSelect) defaultViewSelect.value = savedView;
+  syncSettingsViewSwitchUI(savedView);
   setViewMode(savedView, false);
 
   const savedExportMode =
     localStorage.getItem("dakmitra_export_mode") || "show";
-  const exportModeSelect = document.getElementById("export-mode-select");
-  if (exportModeSelect) exportModeSelect.value = savedExportMode;
+  const exportToggle = document.getElementById("export-mode-toggle");
+  if (exportToggle) exportToggle.checked = savedExportMode !== "hide";
   applyExportMode(savedExportMode);
+  updateSettingsStatusUI();
 })();
 
 // --- 0ms INSTANT BOOT & SESSION SYNC ---

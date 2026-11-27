@@ -525,39 +525,173 @@ async function viewHistory(postOfficeId) {
 }
 
 // --- MANUAL ENTRY ROWS ---
-function getManualEntryRowHTML(showLabels = false) {
+function getManualEntryRowHTML(rowNumber = 1) {
   return `
     <div class="manual-entry-row">
-      <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-        ${showLabels ? "<label>Address</label>" : ""}
-        <input type="search" class="manual-address" placeholder="Address" autocomplete="off" />
+      <div class="manual-row-head">
+        <span class="manual-row-badge">Record #${rowNumber}</span>
+        <button
+          type="button"
+          class="dm-close-btn"
+          style="width: 28px; height: 28px; font-size: 12px;"
+          onclick="removeManualEntryRow(this)"
+          title="Remove row"
+          aria-label="Remove row"
+        >✕</button>
       </div>
-      <div class="input-group" style="flex: 1; margin-bottom: 0; text-align: left;">
-        ${showLabels ? "<label>Office</label>" : ""}
-        <div class="autocomplete-wrapper">
-          <input type="search" class="manual-office" placeholder="Search & Select Office..." autocomplete="off" oninput="handleOfficeInput(this)" onfocus="handleOfficeInput(this)" onblur="scheduleCloseDropdowns(200)" style="padding-right: 40px; width: 100%;" />
-          <button type="button" class="clear-btn hidden" onpointerdown="event.preventDefault()" style="position: absolute; right: 6px; top: 6px; width: 36px; height: 36px; padding: 0; margin: 0; z-index: 2;" onclick="clearOfficeInput(this)" title="Clear Office">✕</button>
-          <div class="autocomplete-dropdown"></div>
+
+      <div class="manual-row-grid">
+        <div class="input-group" style="text-align: left;">
+          <label>Address</label>
+          <div class="profile-input-wrapper">
+            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <input
+              type="search"
+              class="manual-address"
+              placeholder="Village, Mohalla, or BO"
+              autocomplete="off"
+              oninput="updateManualSubmitCount()"
+            />
+          </div>
+        </div>
+
+        <div class="input-group" style="text-align: left;">
+          <label>Delivery Office</label>
+          <div class="autocomplete-wrapper">
+            <div class="profile-input-wrapper">
+              <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                <path d="M9 22v-4h6v4"></path>
+                <path d="M8 6h.01"></path>
+                <path d="M16 6h.01"></path>
+                <path d="M12 6h.01"></path>
+                <path d="M12 10h.01"></path>
+              </svg>
+              <input
+                type="search"
+                class="manual-office"
+                placeholder="Search & Select Office..."
+                autocomplete="off"
+                oninput="handleOfficeInput(this)"
+                onfocus="handleOfficeInput(this)"
+                onblur="scheduleCloseDropdowns(200)"
+                style="padding-right: 40px; width: 100%;"
+              />
+              <button
+                type="button"
+                class="clear-btn hidden"
+                onpointerdown="event.preventDefault()"
+                style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; padding: 0; margin: 0; z-index: 2;"
+                onclick="clearOfficeInput(this)"
+                title="Clear Office"
+              >✕</button>
+            </div>
+            <div class="autocomplete-dropdown"></div>
+          </div>
+        </div>
+
+        <div class="input-group" style="text-align: left;">
+          <label>PIN Code</label>
+          <div class="profile-input-wrapper">
+            <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <input
+              type="search"
+              inputmode="numeric"
+              class="manual-Pin"
+              placeholder="e.g. 231305"
+              autocomplete="off"
+            />
+          </div>
         </div>
       </div>
-      <div class="input-group" style="flex: 0.7; margin-bottom: 0; text-align: left;">
-        ${showLabels ? "<label>Pin</label>" : ""}
-        <input type="search" inputmode="numeric" class="manual-Pin" placeholder="e.g. 231305" autocomplete="off" />
-      </div>
-      <button type="button" class="btn" style="width: auto; background: var(--border); color: var(--text); padding: 14px;" onclick="this.parentElement.remove()" title="Remove row">✕</button>
     </div>
   `;
 }
 
+function renumberManualRows() {
+  const rows = document.querySelectorAll(
+    "#manual-entries-container .manual-entry-row"
+  );
+  rows.forEach((row, idx) => {
+    const badge = row.querySelector(".manual-row-badge");
+    if (badge) badge.textContent = `Record #${idx + 1}`;
+  });
+  updateManualSubmitCount();
+}
+
+function removeManualEntryRow(btnEl) {
+  const container = document.getElementById("manual-entries-container");
+  const row = btnEl?.closest(".manual-entry-row");
+  if (!container || !row) return;
+
+  const allRows = container.querySelectorAll(".manual-entry-row");
+  if (allRows.length <= 1) {
+    const addr = row.querySelector(".manual-address");
+    const off = row.querySelector(".manual-office");
+    const pin = row.querySelector(".manual-Pin");
+    const clearBtn = row.querySelector(".clear-btn");
+    if (addr) addr.value = "";
+    if (off) off.value = "";
+    if (pin) pin.value = "";
+    if (clearBtn) clearBtn.classList.add("hidden");
+    updateManualSubmitCount();
+    showToast("🧹 Row cleared", "info");
+    return;
+  }
+
+  row.remove();
+  renumberManualRows();
+}
+
+function updateManualSubmitCount() {
+  const btn = document.getElementById("submit-multiple-btn");
+  if (
+    !btn ||
+    btn.classList.contains("is-loading") ||
+    btn.classList.contains("is-success")
+  ) {
+    return;
+  }
+
+  const rows = document.querySelectorAll(
+    "#manual-entries-container .manual-entry-row"
+  );
+  let readyCount = 0;
+  rows.forEach((row) => {
+    const a = row.querySelector(".manual-address")?.value.trim();
+    const o = row.querySelector(".manual-office")?.value.trim();
+    if (a && o) readyCount++;
+  });
+
+  const actionVerb = isCurrentUserAdmin ? "Add" : "Submit";
+  btn.textContent =
+    readyCount > 0
+      ? `${actionVerb} ${readyCount} ${readyCount === 1 ? "Record" : "Records"}`
+      : `${actionVerb} All`;
+}
+
 (function initManualEntries() {
   const container = document.getElementById("manual-entries-container");
-  if (container) container.innerHTML = getManualEntryRowHTML(true);
+  if (container) {
+    container.innerHTML = getManualEntryRowHTML(1);
+    updateManualSubmitCount();
+  }
 })();
 
 function addInputRow() {
-  document
-    .getElementById("manual-entries-container")
-    .insertAdjacentHTML("beforeend", getManualEntryRowHTML(false));
+  const container = document.getElementById("manual-entries-container");
+  if (!container) return;
+  const nextNum = container.querySelectorAll(".manual-entry-row").length + 1;
+  container.insertAdjacentHTML("beforeend", getManualEntryRowHTML(nextNum));
+  const lastRow = container.lastElementChild;
+  lastRow?.querySelector(".manual-address")?.focus();
+  updateManualSubmitCount();
 }
 
 async function submitMultipleRecords() {
@@ -611,6 +745,7 @@ async function submitMultipleRecords() {
   }
 
   const btn = document.getElementById("submit-multiple-btn");
+  delete btn.dataset.originalHtml;
   setButtonState(btn, "loading", "Submitting...");
 
   try {
@@ -631,13 +766,14 @@ async function submitMultipleRecords() {
 
     invalidateApprovalsCache();
     document.getElementById("manual-entries-container").innerHTML =
-      getManualEntryRowHTML(true);
+      getManualEntryRowHTML(1);
     switchDashboardView("search");
   } catch (err) {
     alert("Error submitting request: " + err.message);
   }
 
   setButtonState(btn, "idle");
+  updateManualSubmitCount();
 }
 
 // --- BULK SAME OFFICE UPLOAD TAB ---
@@ -656,25 +792,66 @@ function setBulkPriority(val, silent = false) {
   updateBulkAddressPreview();
 }
 
-function switchManualUploadTab(tab) {
-  const rowsTab = document.getElementById("tab-manual-rows");
-  const bulkTab = document.getElementById("tab-manual-bulk");
-  const rowsPanel = document.getElementById("manual-panel-rows");
-  const bulkPanel = document.getElementById("manual-panel-bulk");
+let currentUploadTab = "rows";
 
-  if (tab === "bulk") {
-    rowsTab?.classList.remove("active");
-    bulkTab?.classList.add("active");
-    rowsPanel?.classList.add("hidden");
-    bulkPanel?.classList.remove("hidden");
-  } else {
-    bulkTab?.classList.remove("active");
-    rowsTab?.classList.add("active");
-    bulkPanel?.classList.add("hidden");
-    rowsPanel?.classList.remove("hidden");
+function syncUploadAdminUI() {
+  const canExcel = Boolean(isCurrentUserAdmin || isCurrentUserSuperadmin);
+  const tabsWrap = document.getElementById("upload-segmented-tabs");
+  const excelTabBtn = document.getElementById("tab-manual-excel");
+  const roleBanner = document.getElementById("upload-role-banner");
+
+  if (excelTabBtn) excelTabBtn.classList.toggle("hidden", !canExcel);
+  if (tabsWrap) tabsWrap.classList.toggle("has-excel-tab", canExcel);
+
+  if (roleBanner) {
+    roleBanner.classList.toggle("is-admin", canExcel);
+    roleBanner.innerHTML = canExcel
+      ? `<span>🛡️</span><span><strong>Admin Mode:</strong> Records publish directly to the live database.</span>`
+      : `<span>📝</span><span>Submissions go to <strong>Approvals</strong> for colleague review before publishing.</span>`;
   }
+
+  if (!canExcel && currentUploadTab === "excel") {
+    currentUploadTab = "rows";
+  }
+  switchManualUploadTab(currentUploadTab, true);
+  updateManualSubmitCount();
 }
 
+function switchManualUploadTab(tab, silent = false) {
+  const canExcel = Boolean(isCurrentUserAdmin || isCurrentUserSuperadmin);
+  const nextTab =
+    tab === "excel" && canExcel ? "excel" : tab === "bulk" ? "bulk" : "rows";
+  currentUploadTab = nextTab;
+
+  const tabsWrap = document.getElementById("upload-segmented-tabs");
+  if (tabsWrap) {
+    tabsWrap.classList.toggle("is-tab-1", nextTab === "bulk");
+    tabsWrap.classList.toggle("is-tab-2", nextTab === "excel");
+  }
+
+  [
+    ["rows", "tab-manual-rows", "manual-panel-rows"],
+    ["bulk", "tab-manual-bulk", "manual-panel-bulk"],
+    ["excel", "tab-manual-excel", "manual-panel-excel"],
+  ].forEach(([key, btnId, panelId]) => {
+    const isActive = key === nextTab;
+    const btn = document.getElementById(btnId);
+    if (btn) {
+      btn.classList.toggle("active", isActive);
+      btn.setAttribute("aria-selected", isActive ? "true" : "false");
+    }
+    document.getElementById(panelId)?.classList.toggle("hidden", !isActive);
+  });
+
+  if (!silent) {
+    closeAllDropdowns();
+    const area = document.getElementById("upload-display-area");
+    if (area) area.scrollTop = 0;
+    if (typeof uploadHeroController !== "undefined") {
+      uploadHeroController.setCollapsed(false, true);
+    }
+  }
+}
 function clearBulkOffice() {
   const offInput = document.getElementById("bulk-office-input");
   const pinInput = document.getElementById("bulk-pin-input");
@@ -912,6 +1089,7 @@ function pickOfficeOption(itemEl, office, pin, mode) {
     if (input) input.value = office;
     if (pinInput && pin) pinInput.value = pin;
     if (clearBtn) clearBtn.classList.remove("hidden");
+    updateManualSubmitCount();
   } else if (mode === "bulk") {
     const input = document.getElementById("bulk-office-input");
     const pinInput = document.getElementById("bulk-pin-input");
@@ -963,6 +1141,7 @@ function handleOfficeInput(inputElement) {
       .querySelector(".manual-Pin"),
     mode: "manual",
   });
+  updateManualSubmitCount();
 }
 
 function clearOfficeInput(btnElement) {
@@ -1035,6 +1214,44 @@ function selectDirectoryOfficeFilter(officeName) {
 }
 
 // --- EXCEL BULK UPLOAD & TEMPLATE ---
+
+function handleExcelFileSelect(event) {
+  const file = event?.target?.files?.[0];
+  if (!file) {
+    clearExcelFileSelection();
+    return;
+  }
+
+  const ext = (file.name.split(".").pop() || "").toUpperCase();
+  if (ext !== "XLSX" && ext !== "XLS") {
+    clearExcelFileSelection();
+    return showToast("⚠️ Please select an .xlsx or .xls file.", "warning");
+  }
+
+  const sizeText =
+    file.size >= 1024 * 1024
+      ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+      : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+
+  const extEl = document.getElementById("excel-file-ext");
+  const nameEl = document.getElementById("excel-file-name");
+  const metaEl = document.getElementById("excel-file-meta");
+
+  if (extEl) extEl.textContent = ext;
+  if (nameEl) nameEl.textContent = file.name;
+  if (metaEl) metaEl.textContent = `${sizeText} • Ready to upload`;
+
+  document.getElementById("excel-dropzone-btn")?.classList.add("hidden");
+  document.getElementById("excel-file-preview")?.classList.remove("hidden");
+}
+
+function clearExcelFileSelection() {
+  const fileInput = document.getElementById("excel-file");
+  if (fileInput) fileInput.value = "";
+  document.getElementById("excel-file-preview")?.classList.add("hidden");
+  document.getElementById("excel-dropzone-btn")?.classList.remove("hidden");
+}
+
 async function uploadExcel() {
   if (!(await ensureOnline("Connect to internet to save changes."))) return;
   await ensureXLSXLoaded();
@@ -1138,6 +1355,7 @@ async function uploadExcel() {
       setButtonState(uploadBtn, "success", "Uploaded!");
       showToast(`✅ Uploaded ${uploadedCount} rows from Excel!`);
       fileInput.value = "";
+      clearExcelFileSelection();
       await fetchAllPostOffices(true);
       setTimeout(() => {
         setButtonState(uploadBtn, "idle");

@@ -2066,15 +2066,20 @@ function prefillUploadFromAi(address, office, pin) {
   const container = document.getElementById("manual-entries-container");
   const safePin = !pin || pin === "N/A" ? "" : pin;
 
-  container.innerHTML = getManualEntryRowHTML(true);
+  container.innerHTML = getManualEntryRowHTML(1);
   const firstRow = container.querySelector(".manual-entry-row");
   if (firstRow) {
     firstRow.querySelector(".manual-address").value = address;
     firstRow.querySelector(".manual-office").value = office;
     firstRow.querySelector(".manual-Pin").value = safePin;
+    firstRow.querySelector(".clear-btn")?.classList.toggle("hidden", !office);
   }
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  showToast("✨ Pre-filled! Tap Submit All to send for approval.");
+  if (typeof updateManualSubmitCount === "function") {
+    updateManualSubmitCount();
+  }
+  const uploadArea = document.getElementById("upload-display-area");
+  if (uploadArea) uploadArea.scrollTop = 0;
+  showToast("✨ Pre-filled! Tap Submit to send for approval.");
 }
 
 // --- COPY & CSV EXPORT ---

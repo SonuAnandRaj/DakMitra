@@ -346,6 +346,82 @@
   opacity: 0.7;
 }
 
+/* --- GLOBAL AUTO-CLEAR INPUT BUTTONS --- */
+.dm-clear-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.dm-clear-wrap > input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Preserve side-by-side flex layout in Office Staff CRUD modal */
+.staff-edit-inputs > .dm-clear-wrap {
+  flex: 1 1 130px;
+  width: auto;
+}
+
+.staff-edit-inputs .dm-clear-wrap > input {
+  flex: none;
+  width: 100%;
+}
+
+/* Reserve right padding only while an overlay clear button is visible */
+.profile-input-wrapper > input.dm-has-clear-visible,
+.dm-clear-wrap > input.dm-has-clear-visible {
+  padding-right: 38px !important;
+}
+
+/* Inline clear button (reuses .clear-btn inside .search-input-wrapper) */
+.clear-btn.dm-auto-clear-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.clear-btn.dm-auto-clear-btn:active {
+  transform: scale(0.92);
+}
+
+/* Overlay clear button (inside .profile-input-wrapper or .dm-clear-wrap) */
+.clear-btn.dm-auto-clear-abs {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+}
+
+.clear-btn.dm-auto-clear-abs:hover {
+  transform: translateY(-50%) scale(1.08);
+}
+
+.clear-btn.dm-auto-clear-abs:active {
+  transform: translateY(-50%) scale(0.92);
+}
+
+/* Match the -1px focus lift of .profile-input-wrapper inputs */
+.profile-input-wrapper:focus-within > .clear-btn.dm-auto-clear-abs {
+  transform: translateY(calc(-50% - 1px));
+}
+
+.profile-input-wrapper:focus-within > .clear-btn.dm-auto-clear-abs:hover {
+  transform: translateY(calc(-50% - 1px)) scale(1.08);
+}
+
+.profile-input-wrapper:focus-within > .clear-btn.dm-auto-clear-abs:active {
+  transform: translateY(calc(-50% - 1px)) scale(0.92);
+}
+
 .alert {
   padding: 12px 16px;
   border-radius: 12px;

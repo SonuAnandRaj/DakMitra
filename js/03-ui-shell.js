@@ -88,6 +88,25 @@ async function checkForAppUpdate() {
 initAppVersion();
 
 // --- THEME LOGIC (Exact System Bar & Notch Color Match) ---
+function syncSettingsThemeUI(themePref) {
+  const mode =
+    themePref === "light" || themePref === "dark" ? themePref : "system";
+  const tabsEl = document.getElementById("settings-theme-tabs");
+  if (tabsEl) {
+    tabsEl.classList.toggle("is-tab-1", mode === "dark");
+    tabsEl.classList.toggle("is-tab-2", mode === "system");
+  }
+  document
+    .getElementById("theme-opt-light")
+    ?.classList.toggle("active", mode === "light");
+  document
+    .getElementById("theme-opt-dark")
+    ?.classList.toggle("active", mode === "dark");
+  document
+    .getElementById("theme-opt-system")
+    ?.classList.toggle("active", mode === "system");
+}
+
 function applyTheme(theme) {
   let isDark = false;
   if (theme === "system") {
@@ -109,6 +128,7 @@ function applyTheme(theme) {
   if (metaTheme) {
     metaTheme.setAttribute("content", bgColor);
   }
+  syncSettingsThemeUI(theme);
 }
 
 function toggleTheme() {
@@ -119,6 +139,14 @@ function toggleTheme() {
 
 const savedTheme = localStorage.getItem("app-theme") || "system";
 applyTheme(savedTheme);
+
+window
+  .matchMedia("(prefers-color-scheme: dark)")
+  .addEventListener("change", () => {
+    if ((localStorage.getItem("app-theme") || "system") === "system") {
+      applyTheme("system");
+    }
+  });
 
 // --- PWA INSTALLATION & AUTO-UPDATE ---
 if ("serviceWorker" in navigator) {
@@ -287,6 +315,14 @@ function switchDashboardView(viewId) {
   } else if (viewId === "superadmin") {
     superadminHeroController.setCollapsed(false, true);
     if (typeof renderSuperadminView === "function") renderSuperadminView();
+  } else if (viewId === "settings") {
+    settingsHeroController.setCollapsed(false, true);
+    if (typeof updateSettingsStatusUI === "function") updateSettingsStatusUI();
+  } else if (viewId === "upload") {
+    uploadHeroController.setCollapsed(false, true);
+    if (typeof syncUploadAdminUI === "function") syncUploadAdminUI();
+    if (typeof updateManualSubmitCount === "function")
+      updateManualSubmitCount();
   }
 
   closeSidebar();
@@ -1155,6 +1191,22 @@ const superadminHeroController = createCollapsibleHero(
   }
 );
 
+const settingsHeroController = createCollapsibleHero(
+  "settings-display-area",
+  "settings-hero-collapse-wrap",
+  null,
+  { collapseAccum: 110, minScrollTop: 70 }
+);
+
+const uploadHeroController = createCollapsibleHero(
+  "upload-display-area",
+  "upload-hero-collapse-wrap",
+  () => {
+    closeAllDropdowns();
+  },
+  { collapseAccum: 110, minScrollTop: 70 }
+);
+
 function setSearchHeroCollapsed(shouldCollapse, instant = false) {
   searchHeroController.setCollapsed(shouldCollapse, instant);
 }
@@ -1714,4 +1766,195 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
   };
   document.addEventListener("touchend", resetTouch, { passive: true });
   document.addEventListener("touchcancel", resetTouch, { passive: true });
+})();
+
+// --- GLOBAL AUTO-CLEAR (✕) BUTTONS FOR ALL ELIGIBLE INPUTS ---
+(function initGlobalInputClearButtons() {
+  const EXCLUDED_TYPES = new Set([
+    "password",
+    "hidden",
+    "checkbox",
+    "radio",
+    "file",
+    "range",
+    "button",
+    "submit",
+    "reset",
+    "color",
+    "date",
+    "datetime-local",
+    "month",
+    "week",
+    "time",
+    "image",
+  ]);
+
+  const EXCLUDED_IDS = new Set(["learn-pin-input", "sa-input-vote-threshold"]);
+
+  const clearMetaMap = new WeakMap();
+
+  function isExcludedInput(input) {
+    if (!input || input.tagName !== "INPUT") return true;
+    if (input.hasAttribute("data-no-clear")) return true;
+    if (input.id && EXCLUDED_IDS.has(input.id)) return true;
+    const type = (input.type || "text").toLowerCase();
+    return EXCLUDED_TYPES.has(type);
+  }
+
+  function isSearchOrFilterInput(input) {
+    if (input.closest(".search-input-wrapper")) return true;
+    const id = (input.id || "").toLowerCase();
+    return id.includes("search") || id.includes("filter");
+  }
+
+  function syncInputClearButton(input) {
+    const meta = clearMetaMap.get(input);
+    if (!meta) return;
+
+    const blocked = isExcludedInput(input) || input.disabled || input.readOnly;
+    const hasValue = input.value.length > 0;
+    const isFocused = document.activeElement === input;
+    const shouldShow =
+      !blocked && hasValue && (meta.alwaysWhenFilled || isFocused);
+
+    meta.btn.classList.toggle("hidden", !shouldShow);
+    if (meta.usesOverlayPadding) {
+      input.classList.toggle("dm-has-clear-visible", shouldShow);
+    }
+  }
+
+  function enhanceInput(input) {
+    if (!input || clearMetaMap.has(input)) return;
+    if (isExcludedInput(input)) return;
+
+    const parent = input.parentElement;
+    if (!parent) return;
+
+    // Skip inputs that already have a dedicated custom .clear-btn
+    if (parent.querySelector(":scope > .clear-btn:not(.dm-auto-clear-btn)")) {
+      return;
+    }
+
+    const inSearchWrap = parent.classList.contains("search-input-wrapper");
+    const inProfileWrap = parent.classList.contains("profile-input-wrapper");
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = inSearchWrap
+      ? "clear-btn dm-auto-clear-btn hidden"
+      : "clear-btn dm-auto-clear-btn dm-auto-clear-abs hidden";
+    btn.tabIndex = -1;
+    btn.title = "Clear";
+    btn.setAttribute("aria-label", "Clear input");
+    btn.textContent = "✕";
+
+    const keepFocus = (e) => e.preventDefault();
+    btn.addEventListener("pointerdown", keepFocus);
+    btn.addEventListener("mousedown", keepFocus);
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (input.disabled || input.readOnly) return;
+
+      input.value = "";
+      try {
+        input.focus({ preventScroll: true });
+      } catch (_) {
+        input.focus();
+      }
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      syncInputClearButton(input);
+    });
+
+    if (inSearchWrap || inProfileWrap) {
+      input.insertAdjacentElement("afterend", btn);
+    } else {
+      const wrap = document.createElement("div");
+      wrap.className = "dm-clear-wrap";
+
+      // Preserve flex sizing for inline flex inputs (e.g. #sa-cms-banner-text)
+      if (input.style.flex) {
+        wrap.style.flex = input.style.flex;
+        wrap.style.width = "auto";
+        input.style.flex = "";
+      }
+      if (input.style.minWidth) {
+        wrap.style.minWidth = input.style.minWidth;
+        input.style.minWidth = "";
+      }
+
+      parent.insertBefore(wrap, input);
+      wrap.appendChild(input);
+      wrap.appendChild(btn);
+    }
+
+    clearMetaMap.set(input, {
+      btn,
+      alwaysWhenFilled: isSearchOrFilterInput(input),
+      usesOverlayPadding: !inSearchWrap,
+    });
+
+    syncInputClearButton(input);
+  }
+
+  function scanTree(root) {
+    if (!root || root.nodeType !== 1) return;
+    if (root.tagName === "INPUT") {
+      enhanceInput(root);
+      return;
+    }
+    root.querySelectorAll("input").forEach(enhanceInput);
+  }
+
+  function syncInputsInside(container) {
+    if (!container) return;
+    container.querySelectorAll("input").forEach(syncInputClearButton);
+  }
+
+  // Initial scan for all static inputs
+  scanTree(document.body);
+
+  // Delegated listeners for typing, focus, blur & programmatic changes
+  document.addEventListener("input", (e) => syncInputClearButton(e.target));
+  document.addEventListener("change", (e) => syncInputClearButton(e.target));
+  document.addEventListener("focusin", (e) => {
+    if (e.target?.tagName === "INPUT") {
+      enhanceInput(e.target);
+      syncInputClearButton(e.target);
+    }
+  });
+  document.addEventListener("focusout", (e) => {
+    if (e.target?.tagName === "INPUT") {
+      syncInputClearButton(e.target);
+    }
+  });
+
+  // Auto-wire dynamically created inputs (+ Add Row, Office Staff CRUD, Superadmin DB modal)
+  const domObserver = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.type === "childList" && m.addedNodes.length > 0) {
+        m.addedNodes.forEach(scanTree);
+      }
+    }
+  });
+  domObserver.observe(document.body, { childList: true, subtree: true });
+
+  // Re-sync inputs when modals open (handles programmatic clears & password-type reuse)
+  const modalSyncObserver = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (
+        m.type === "attributes" &&
+        m.target.classList?.contains("modal-overlay") &&
+        m.target.classList.contains("show")
+      ) {
+        syncInputsInside(m.target);
+      }
+    }
+  });
+  document.querySelectorAll(".modal-overlay").forEach((modal) => {
+    modalSyncObserver.observe(modal, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  });
 })();

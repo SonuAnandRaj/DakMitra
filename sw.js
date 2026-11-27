@@ -1,4 +1,9 @@
-const CACHE_NAME = "po-directory-v54";
+const CACHE_NAME = "po-directory-v56";
+
+const IS_LOCAL_DEV =
+  self.location.hostname === "localhost" ||
+  self.location.hostname === "127.0.0.1" ||
+  self.location.hostname === "[::1]";
 
 const LOCAL_ASSETS = [
   "./",
@@ -83,59 +88,69 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // CACHE-FIRST (STALE-WHILE-REVALIDATE) for navigation & index.html
-  // Launches instantly in standalone mode even on slow internet, updates in background
-  if (
+  const reqUrl = new URL(event.request.url);
+  const isSameOrigin = reqUrl.origin === self.location.origin;
+  const isNavigation =
     event.request.mode === "navigate" ||
-    event.request.url.endsWith("index.html")
-  ) {
-    event.respondWith(
-      caches.open(CACHE_NAME).then(async (cache) => {
-        const cached = await cache.match("./index.html", {
-          ignoreSearch: true,
-        });
+    reqUrl.pathname.endsWith("/index.html") ||
+    reqUrl.pathname === "/index.html";
 
-        const networkFetch = fetch("./index.html", { cache: "no-cache" })
-          .then((networkResponse) => {
-            if (
-              networkResponse &&
+  const cacheKey = isNavigation ? "./index.html" : event.request;
+  const fetchInput = isNavigation
+    ? "./index.html"
+    : isSameOrigin
+    ? event.request.url
+    : event.request;
+  const fetchInit =
+    isNavigation || isSameOrigin ? { cache: "no-cache" } : undefined;
+
+  let cacheWritePromise = Promise.resolve();
+
+  const networkFetch = fetch(fetchInput, fetchInit)
+    .then((networkResponse) => {
+      const isCacheable = isNavigation
+        ? Boolean(
+            networkResponse &&
               networkResponse.status === 200 &&
               !networkResponse.redirected
-            ) {
-              cache.put("./index.html", networkResponse.clone());
-            }
-            return networkResponse;
-          })
-          .catch(() => null);
+          )
+        : Boolean(
+            networkResponse &&
+              (networkResponse.status === 200 ||
+                (isPublicAvatar && networkResponse.type === "opaque"))
+          );
 
-        // Return cached shell immediately; only wait for network on very first visit
-        return cached || networkFetch;
+      if (isCacheable) {
+        const responseToCache = networkResponse.clone();
+        cacheWritePromise = caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.put(cacheKey, responseToCache))
+          .catch(() => {});
+      }
+      return networkResponse;
+    })
+    .catch(() => null);
+
+  event.waitUntil(networkFetch.then(() => cacheWritePromise));
+
+  // Local dev (localhost / 127.0.0.1): Network-First for local files, Cache fallback when offline
+  if (IS_LOCAL_DEV && (isNavigation || isSameOrigin)) {
+    event.respondWith(
+      networkFetch.then((networkResponse) => {
+        if (networkResponse) return networkResponse;
+        return caches
+          .open(CACHE_NAME)
+          .then((cache) => cache.match(cacheKey, { ignoreSearch: true }));
       })
     );
     return;
   }
 
-  // STALE-WHILE-REVALIDATE for static assets (CSS, JS, manifest, icons, CDN libraries, fonts)
+  // Production (GitHub Pages) & cross-origin assets: 0ms Cache-First + background revalidation (SWR)
   event.respondWith(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache
-        .match(event.request, { ignoreSearch: true })
-        .then((cachedResponse) => {
-          const networkFetch = fetch(event.request)
-            .then((networkResponse) => {
-              if (
-                networkResponse &&
-                (networkResponse.status === 200 ||
-                  (isPublicAvatar && networkResponse.type === "opaque"))
-              ) {
-                cache.put(event.request, networkResponse.clone());
-              }
-              return networkResponse;
-            })
-            .catch(() => null);
-
-          return cachedResponse || networkFetch;
-        })
-    )
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.match(cacheKey, { ignoreSearch: true }))
+      .then((cachedResponse) => cachedResponse || networkFetch)
   );
 });

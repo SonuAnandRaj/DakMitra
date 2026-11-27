@@ -2495,532 +2495,815 @@
 
         <!-- SETTINGS VIEW -->
         <section id="view-settings" class="view-section">
-          <div class="search-hero" style="text-align: center">
-            <h2>Settings</h2>
-          </div>
-
-          <!-- Display Settings -->
           <div
-            class="upload-card dm-surface"
-            style="margin-bottom: 24px; text-align: left"
+            class="search-hero-collapse-wrap"
+            id="settings-hero-collapse-wrap"
           >
-            <h3 style="margin-bottom: 16px; color: var(--primary)">Display</h3>
-
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 16px;
-              "
-            >
-              <div>
-                <strong style="display: block; color: var(--text)"
-                  >Dark Mode</strong
-                >
-                <span style="font-size: 13px; color: var(--text-light)"
-                  >Switch between light and dark themes</span
-                >
+            <div class="search-hero-collapse-inner">
+              <div class="search-hero settings-hero">
+                <h2>Settings</h2>
+                <p>
+                  Customize appearance, offline storage, and device security.
+                </p>
               </div>
-              <button
-                class="dm-btn dm-btn-secondary dm-btn-sm"
-                onclick="toggleTheme()"
-              >
-                Toggle
-              </button>
-            </div>
-
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 16px;
-              "
-            >
-              <div>
-                <strong style="display: block; color: var(--text)"
-                  >Default View</strong
-                >
-                <span style="font-size: 13px; color: var(--text-light)"
-                  >Choose your preferred layout</span
-                >
-              </div>
-              <select
-                id="default-view-select"
-                onchange="saveDefaultView(this.value)"
-                style="
-                  padding: 8px;
-                  border-radius: 8px;
-                  background: var(--input-bg);
-                  color: var(--text);
-                  border: 1px solid var(--border);
-                "
-              >
-                <option value="list">List View</option>
-                <option value="table">Table View</option>
-              </select>
-            </div>
-
-            <!-- Export Buttons Mode Setting -->
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-              "
-            >
-              <div>
-                <strong style="display: block; color: var(--text)"
-                  >Export Buttons</strong
-                >
-                <span style="font-size: 13px; color: var(--text-light)"
-                  >Show Copy and CSV options</span
-                >
-              </div>
-              <select
-                id="export-mode-select"
-                onchange="saveExportMode(this.value)"
-                style="
-                  padding: 8px;
-                  border-radius: 8px;
-                  background: var(--input-bg);
-                  color: var(--text);
-                  border: 1px solid var(--border);
-                "
-              >
-                <option value="show">Show</option>
-                <option value="hide">Hide</option>
-              </select>
             </div>
           </div>
 
-          <!-- Data Management Settings -->
-          <div class="upload-card dm-surface" style="text-align: left">
-            <h3 style="margin-bottom: 16px; color: var(--primary)">
-              Data Management
-            </h3>
+          <div
+            id="settings-display-area"
+            class="results-container-scroll expanded"
+          >
+            <!-- Display & Appearance Card -->
+            <div class="dm-surface settings-card">
+              <div class="dm-header" style="margin-bottom: 14px">
+                <div class="dm-header-left">
+                  <div class="dm-icon-badge">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="5"></circle>
+                      <line x1="12" y1="1" x2="12" y2="3"></line>
+                      <line x1="12" y1="21" x2="12" y2="23"></line>
+                      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                      <line x1="1" y1="12" x2="3" y2="12"></line>
+                      <line x1="21" y1="12" x2="23" y2="12"></line>
+                      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title">Appearance &amp; Layout</h3>
+                    <span class="settings-card-sub"
+                      >Theme and default Search preferences</span
+                    >
+                  </div>
+                </div>
+              </div>
 
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 16px;
-              "
-            >
-              <div>
-                <strong style="display: block; color: var(--text)"
-                  >Export Database</strong
+              <!-- 3-Way Sliding Theme Picker -->
+              <div class="settings-row settings-row-stack">
+                <div class="settings-row-info">
+                  <strong>App Theme</strong>
+                  <span
+                    >Light, OLED Dark, or match your phone automatically</span
+                  >
+                </div>
+                <div
+                  class="auth-segmented-tabs settings-theme-tabs"
+                  id="settings-theme-tabs"
+                  role="group"
+                  aria-label="App theme"
                 >
-                <span style="font-size: 13px; color: var(--text-light)"
-                  >Download entire database as Excel file</span
+                  <div class="auth-tab-slider" aria-hidden="true"></div>
+                  <button
+                    type="button"
+                    class="tab-btn"
+                    id="theme-opt-light"
+                    onclick="applyTheme('light')"
+                  >
+                    ☀️ Light
+                  </button>
+                  <button
+                    type="button"
+                    class="tab-btn"
+                    id="theme-opt-dark"
+                    onclick="applyTheme('dark')"
+                  >
+                    🌙 Dark
+                  </button>
+                  <button
+                    type="button"
+                    class="tab-btn"
+                    id="theme-opt-system"
+                    onclick="applyTheme('system')"
+                  >
+                    📱 Auto
+                  </button>
+                </div>
+              </div>
+
+              <!-- Default Search Layout -->
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <strong>Default Search Layout</strong>
+                  <span>Start Search in Cards or Table view</span>
+                </div>
+                <div class="view-mode-switch" id="settings-default-view-switch">
+                  <div class="view-mode-slider" aria-hidden="true"></div>
+                  <button
+                    type="button"
+                    class="toolbar-btn active"
+                    id="settings-view-list-btn"
+                    onclick="saveDefaultView('list')"
+                  >
+                    List
+                  </button>
+                  <button
+                    type="button"
+                    class="toolbar-btn"
+                    id="settings-view-table-btn"
+                    onclick="saveDefaultView('table')"
+                  >
+                    Table
+                  </button>
+                </div>
+              </div>
+
+              <!-- Export Toolbar Toggle -->
+              <div class="settings-row" id="settings-export-mode-row">
+                <div class="settings-row-info">
+                  <strong>Search Export Buttons</strong>
+                  <span>Show Copy &amp; CSV buttons in Search toolbar</span>
+                </div>
+                <label
+                  class="dm-toggle-switch"
+                  title="Toggle Copy and CSV buttons"
+                >
+                  <input
+                    type="checkbox"
+                    id="export-mode-toggle"
+                    checked
+                    onchange="saveExportMode(this.checked ? 'show' : 'hide')"
+                  />
+                  <span class="dm-toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Offline Data & Sync Card -->
+            <div class="dm-surface settings-card">
+              <div class="dm-header" style="margin-bottom: 14px">
+                <div class="dm-header-left">
+                  <div class="dm-icon-badge">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title">Data &amp; Offline Sync</h3>
+                    <span class="settings-card-sub"
+                      >Local cache stored on this device</span
+                    >
+                  </div>
+                </div>
+                <span class="settings-status-pill" id="settings-network-pill"
+                  >Online</span
                 >
               </div>
+
+              <div class="settings-stats-strip">
+                <div class="settings-stat-tile">
+                  <span>Cached Addresses</span>
+                  <strong id="settings-stat-addresses">0</strong>
+                </div>
+                <div class="settings-stat-tile">
+                  <span>Delivery Offices</span>
+                  <strong id="settings-stat-offices">0</strong>
+                </div>
+              </div>
+
+              <div class="settings-row">
+                <div class="settings-row-info">
+                  <strong>Sync Database</strong>
+                  <span
+                    >Fetch latest records &amp; office staff from server</span
+                  >
+                </div>
+                <button
+                  type="button"
+                  id="sync-db-btn"
+                  class="dm-btn dm-btn-primary dm-btn-sm"
+                  onclick="syncDatabase()"
+                >
+                  🔄 Sync
+                </button>
+              </div>
+
+              <div class="settings-row" id="settings-export-excel-row">
+                <div class="settings-row-info">
+                  <strong>Export Database</strong>
+                  <span>Download entire database as an Excel file</span>
+                </div>
+                <button
+                  type="button"
+                  id="export-excel-btn"
+                  class="dm-btn dm-btn-sm settings-btn-export"
+                  onclick="exportFullTableToExcel()"
+                >
+                  📥 Excel
+                </button>
+              </div>
+
+              <div style="margin-top: 14px">
+                <button
+                  type="button"
+                  class="dm-btn dm-btn-danger-soft dm-btn-full"
+                  onclick="clearAppCache()"
+                >
+                  🗑️ Clear App Cache
+                </button>
+              </div>
+            </div>
+
+            <!-- Device Security Card -->
+            <div class="dm-surface settings-card">
+              <div class="dm-header" style="margin-bottom: 14px">
+                <div class="dm-header-left">
+                  <div class="dm-icon-badge">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                      ></path>
+                      <rect x="9" y="11" width="6" height="5" rx="1"></rect>
+                      <path d="M10 11V9a2 2 0 0 1 4 0v2"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title">Device Security</h3>
+                    <span class="settings-card-sub"
+                      >Biometric passkey for faster sign-in</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-row" style="padding-top: 2px">
+                <div class="settings-row-info">
+                  <strong>Hardware Passkey</strong>
+                  <span
+                    >Bind this account to this phone's fingerprint or Face
+                    ID</span
+                  >
+                </div>
+              </div>
+
               <button
                 type="button"
-                id="export-excel-btn"
-                class="dm-btn dm-btn-secondary dm-btn-sm"
-                style="
-                  background: var(--success-bg);
-                  color: var(--success-text);
-                  border-color: var(--success-border);
-                "
-                onclick="exportFullTableToExcel()"
+                class="dm-btn dm-btn-primary dm-btn-full"
+                style="margin-top: 6px"
+                onclick="registerDevicePasskey()"
               >
-                Export
+                🔒 Lock to This Device
               </button>
             </div>
 
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 16px;
-              "
-            >
-              <div>
-                <strong style="display: block; color: var(--text)"
-                  >Sync Database</strong
-                >
-                <span style="font-size: 13px; color: var(--text-light)"
-                  >Fetch latest data from server</span
-                >
+            <!-- App Information Card -->
+            <div class="dm-surface settings-card">
+              <div class="dm-header" style="margin-bottom: 14px">
+                <div class="dm-header-left">
+                  <div class="dm-icon-badge">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="12" y1="16" x2="12" y2="12"></line>
+                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title">App Information</h3>
+                    <span class="settings-card-sub"
+                      >Installed DakMitra PWA build</span
+                    >
+                  </div>
+                </div>
               </div>
+
+              <div class="settings-meta-grid">
+                <div class="settings-stat-tile">
+                  <span>App Version</span>
+                  <strong data-app-version>v1.0.0</strong>
+                </div>
+                <div class="settings-stat-tile">
+                  <span>Build Number</span>
+                  <strong id="app-build-code">#100</strong>
+                </div>
+              </div>
+
               <button
-                id="sync-db-btn"
-                class="dm-btn dm-btn-primary dm-btn-sm"
-                onclick="syncDatabase()"
+                type="button"
+                class="dm-btn dm-btn-secondary dm-btn-full"
+                onclick="checkForAppUpdate()"
               >
-                Sync
+                🔄 Check for App Updates
               </button>
             </div>
-            <hr
-              style="
-                border: 0;
-                border-top: 1px solid var(--border);
-                margin: 16px 0;
-              "
-            />
-
-            <button
-              class="dm-btn dm-btn-danger-soft dm-btn-full"
-              onclick="clearAppCache()"
-            >
-              🗑️ Clear App Cache
-            </button>
-          </div>
-          <!-- Data Management Settings Card in Settings View -->
-          <div
-            class="upload-card dm-surface"
-            style="text-align: left; margin-top: 24px"
-          >
-            <h3 style="margin-bottom: 16px; color: var(--primary)">
-              Device Security
-            </h3>
-
-            <div style="margin-bottom: 16px">
-              <strong style="display: block; color: var(--text)"
-                >Hardware Lock</strong
-              >
-              <span style="font-size: 13px; color: var(--text-light)"
-                >Bind this account to this specific phone's fingerprint or Face
-                ID</span
-              >
-            </div>
-
-            <button
-              class="dm-btn dm-btn-primary dm-btn-full"
-              onclick="registerDevicePasskey()"
-            >
-              🔒 Lock to This Device
-            </button>
-          </div>
-
-          <!-- App Information Card in Settings View -->
-          <div
-            class="upload-card dm-surface"
-            style="text-align: left; margin-top: 24px"
-          >
-            <h3 style="margin-bottom: 16px; color: var(--primary)">
-              App Information
-            </h3>
-
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 12px;
-              "
-            >
-              <div>
-                <strong style="display: block; color: var(--text)"
-                  >App Version</strong
-                >
-                <span style="font-size: 13px; color: var(--text-light)"
-                  >Current installed build</span
-                >
-              </div>
-              <span
-                class="badge badge-primary"
-                style="margin: 0; font-size: 13px"
-                data-app-version
-                >v1.0.0</span
-              >
-            </div>
-
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 16px;
-              "
-            >
-              <div>
-                <strong style="display: block; color: var(--text)"
-                  >Build Number</strong
-                >
-                <span style="font-size: 13px; color: var(--text-light)"
-                  >Release package code</span
-                >
-              </div>
-              <span
-                style="
-                  font-size: 13px;
-                  font-weight: 700;
-                  color: var(--text-light);
-                "
-                id="app-build-code"
-                >100</span
-              >
-            </div>
-
-            <button
-              type="button"
-              class="dm-btn dm-btn-secondary dm-btn-full"
-              onclick="checkForAppUpdate()"
-            >
-              🔄 Check for App Updates
-            </button>
           </div>
         </section>
         <!-- UPLOAD VIEW (Hidden by default) -->
         <section id="view-upload" class="view-section">
-          <!-- NEW: Consistent Top Header -->
-          <div class="search-hero" style="text-align: center">
-            <h2 style="margin-bottom: 8px">Upload Data</h2>
-            <p style="color: var(--text-light); font-size: 14px">
-              Add new records manually or update the master database via Excel.
-            </p>
+          <div class="search-hero-collapse-wrap" id="upload-hero-collapse-wrap">
+            <div class="search-hero-collapse-inner">
+              <div class="search-hero upload-hero">
+                <h2>Upload Data</h2>
+                <p>Add new postal addresses manually, in bulk, or via Excel.</p>
+              </div>
+            </div>
           </div>
 
-          <!-- Manual Data Entry Card -->
-          <div class="upload-card dm-surface" style="margin-bottom: 24px">
-            <h2 style="font-size: 22px; font-weight: 700">
-              Add Records Manually
-            </h2>
-
-            <!-- Mode Switcher Tabs -->
+          <!-- Pinned Adaptive Mode Switcher (2 tabs for Staff, 3 tabs for Admins) -->
+          <div class="upload-pinned-tabs">
             <div
-              class="tabs"
-              style="
-                margin: 16px 0 20px;
-                border-bottom: 1px solid var(--border);
-                background: transparent;
-              "
+              class="auth-segmented-tabs upload-segmented-tabs"
+              id="upload-segmented-tabs"
+              role="tablist"
+              aria-label="Upload mode"
             >
+              <div class="auth-tab-slider" aria-hidden="true"></div>
               <button
                 type="button"
                 class="tab-btn active"
                 id="tab-manual-rows"
+                role="tab"
+                aria-selected="true"
                 onclick="switchManualUploadTab('rows')"
               >
-                Standard Rows
+                📝 Rows
               </button>
               <button
                 type="button"
                 class="tab-btn"
                 id="tab-manual-bulk"
+                role="tab"
+                aria-selected="false"
                 onclick="switchManualUploadTab('bulk')"
               >
-                Same Office (Bulk)
+                ⚡ Bulk
+              </button>
+              <button
+                type="button"
+                class="tab-btn hidden"
+                id="tab-manual-excel"
+                role="tab"
+                aria-selected="false"
+                onclick="switchManualUploadTab('excel')"
+              >
+                📊 Excel
               </button>
             </div>
+          </div>
 
-            <!-- TAB 1: Standard Rows (Existing Flow) -->
-            <div id="manual-panel-rows">
-              <div id="manual-entries-container"></div>
-
-              <div style="display: flex; gap: 12px; margin-top: 20px">
-                <button
-                  type="button"
-                  class="dm-btn dm-btn-secondary"
-                  style="flex: 0.45"
-                  onclick="addInputRow()"
-                >
-                  + Add Row
-                </button>
-                <button
-                  type="button"
-                  class="dm-btn dm-btn-primary"
-                  style="flex: 1"
-                  id="submit-multiple-btn"
-                  onclick="submitMultipleRecords()"
-                >
-                  Submit All
-                </button>
-              </div>
+          <div
+            id="upload-display-area"
+            class="results-container-scroll expanded"
+          >
+            <!-- Role Context Strip -->
+            <div id="upload-role-banner" class="upload-role-banner">
+              <span>📝</span>
+              <span>
+                Submissions go to <strong>Approvals</strong> for colleague
+                review before publishing.
+              </span>
             </div>
 
-            <!-- TAB 2: Bulk Same Office -->
-            <div id="manual-panel-bulk" class="hidden" style="text-align: left">
-              <div style="display: flex; gap: 10px; flex-wrap: wrap">
-                <div
-                  class="input-group"
-                  style="flex: 1 1 200px; margin-bottom: 14px"
-                >
-                  <label>Office</label>
-                  <div class="autocomplete-wrapper">
-                    <input
-                      type="search"
-                      id="bulk-office-input"
-                      placeholder="Search & Select Office..."
-                      autocomplete="off"
-                      oninput="handleBulkOfficeInput(this)"
-                      onfocus="handleBulkOfficeInput(this)"
-                      onblur="scheduleCloseDropdowns(200)"
-                      style="padding-right: 40px; width: 100%"
-                    />
-                    <button
-                      type="button"
-                      id="bulk-office-clear"
-                      class="clear-btn hidden"
-                      onpointerdown="event.preventDefault()"
-                      style="
-                        position: absolute;
-                        right: 6px;
-                        top: 6px;
-                        width: 36px;
-                        height: 36px;
-                        padding: 0;
-                        margin: 0;
-                        z-index: 2;
-                      "
-                      onclick="clearBulkOffice()"
-                      title="Clear Office"
-                    >
-                      ✕
-                    </button>
-                    <div
-                      id="bulk-office-dropdown"
-                      class="autocomplete-dropdown"
-                    ></div>
+            <!-- TAB 1: STANDARD ROWS -->
+            <div id="manual-panel-rows">
+              <div class="dm-surface upload-panel-card">
+                <div class="dm-header" style="margin-bottom: 16px">
+                  <div class="dm-header-left">
+                    <div class="dm-icon-badge">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 class="settings-card-title">Add Records Manually</h3>
+                      <span class="settings-card-sub"
+                        >Add one or more addresses across any offices</span
+                      >
+                    </div>
                   </div>
                 </div>
 
-                <div
-                  class="input-group"
-                  style="flex: 0.6 1 120px; margin-bottom: 14px"
-                >
-                  <label>Pin</label>
-                  <input
-                    type="search"
-                    inputmode="numeric"
-                    id="bulk-pin-input"
-                    placeholder="e.g. 231501"
-                    autocomplete="off"
-                  />
-                </div>
-              </div>
+                <div id="manual-entries-container"></div>
 
-              <!-- Add As (Regular / Priority Batch Switch) -->
-              <div
-                class="dir-filter-bar qd-filter-bar"
-                style="flex-direction: row; align-items: center; gap: 10px"
-              >
-                <span class="appr-filter-label" style="white-space: nowrap">
-                  Add as:
-                </span>
-                <div
-                  class="dir-filter-chips"
-                  role="group"
-                  aria-label="Set priority for bulk addresses"
-                >
+                <div class="upload-actions-row">
                   <button
                     type="button"
-                    id="bulk-prio-priority"
-                    class="dir-filter-chip is-priority active"
-                    style="padding: 5px 12px"
-                    onpointerdown="event.preventDefault()"
-                    onclick="setBulkPriority(1)"
+                    class="dm-btn dm-btn-secondary"
+                    style="flex: 0.45"
+                    onclick="addInputRow()"
                   >
-                    <span>⚡ Priority</span>
+                    + Add Row
                   </button>
                   <button
                     type="button"
-                    id="bulk-prio-regular"
-                    class="dir-filter-chip is-regular"
-                    style="padding: 5px 12px"
-                    onpointerdown="event.preventDefault()"
-                    onclick="setBulkPriority(0)"
+                    class="dm-btn dm-btn-primary"
+                    style="flex: 1"
+                    id="submit-multiple-btn"
+                    onclick="submitMultipleRecords()"
                   >
-                    <span>Regular</span>
+                    Submit All
                   </button>
                 </div>
               </div>
+            </div>
 
-              <div class="input-group" style="margin-bottom: 8px">
-                <label>Addresses (one per line, commas, or two spaces)</label>
-                <textarea
-                  id="bulk-addresses-input"
-                  class="bulk-textarea"
-                  placeholder="Example:&#10;Nauha&#10;Lapsi, Khutaha Maunas&#10;&#10;Or separate with two spaces: Nauha  Lapsi  Khutaha Maunas"
-                  oninput="updateBulkAddressPreview()"
-                ></textarea>
-              </div>
+            <!-- TAB 2: BULK SAME OFFICE -->
+            <div id="manual-panel-bulk" class="hidden">
+              <div class="dm-surface upload-panel-card">
+                <div class="dm-header" style="margin-bottom: 16px">
+                  <div class="dm-header-left">
+                    <div class="dm-icon-badge">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polygon
+                          points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                        ></polygon>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 class="settings-card-title">
+                        Bulk Add — Same Office
+                      </h3>
+                      <span class="settings-card-sub"
+                        >Paste multiple villages under one Delivery Office</span
+                      >
+                    </div>
+                  </div>
+                </div>
 
-              <!-- Live Preview Chips -->
-              <div id="bulk-preview-box" class="bulk-preview-box hidden">
-                <div
-                  style="
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 8px;
-                  "
-                >
-                  <strong
-                    id="bulk-preview-count"
-                    style="font-size: 13px; color: var(--primary)"
+                <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                  <div
+                    class="input-group"
+                    style="flex: 1 1 200px; margin-bottom: 14px"
                   >
-                    0 addresses ready
-                  </strong>
+                    <label for="bulk-office-input">Delivery Office</label>
+                    <div class="autocomplete-wrapper">
+                      <div class="profile-input-wrapper">
+                        <svg
+                          class="field-icon"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        >
+                          <rect
+                            x="4"
+                            y="2"
+                            width="16"
+                            height="20"
+                            rx="2"
+                            ry="2"
+                          ></rect>
+                          <path d="M9 22v-4h6v4"></path>
+                          <path d="M8 6h.01"></path>
+                          <path d="M16 6h.01"></path>
+                          <path d="M12 6h.01"></path>
+                          <path d="M12 10h.01"></path>
+                        </svg>
+                        <input
+                          type="search"
+                          id="bulk-office-input"
+                          placeholder="Search &amp; Select Office..."
+                          autocomplete="off"
+                          oninput="handleBulkOfficeInput(this)"
+                          onfocus="handleBulkOfficeInput(this)"
+                          onblur="scheduleCloseDropdowns(200)"
+                          style="padding-right: 40px; width: 100%"
+                        />
+                        <button
+                          type="button"
+                          id="bulk-office-clear"
+                          class="clear-btn hidden"
+                          onpointerdown="event.preventDefault()"
+                          style="
+                            position: absolute;
+                            right: 6px;
+                            top: 50%;
+                            transform: translateY(-50%);
+                            width: 34px;
+                            height: 34px;
+                            padding: 0;
+                            margin: 0;
+                            z-index: 2;
+                          "
+                          onclick="clearBulkOffice()"
+                          title="Clear Office"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div
+                        id="bulk-office-dropdown"
+                        class="autocomplete-dropdown"
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div
+                    class="input-group"
+                    style="flex: 0.6 1 130px; margin-bottom: 14px"
+                  >
+                    <label for="bulk-pin-input">PIN Code</label>
+                    <div class="profile-input-wrapper">
+                      <svg
+                        class="field-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"
+                        ></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                      </svg>
+                      <input
+                        type="search"
+                        inputmode="numeric"
+                        id="bulk-pin-input"
+                        placeholder="e.g. 231501"
+                        autocomplete="off"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add As (Priority / Regular Batch Switch) -->
+                <div
+                  class="dir-filter-bar qd-filter-bar"
+                  style="flex-direction: row; align-items: center; gap: 10px"
+                >
+                  <span class="appr-filter-label" style="white-space: nowrap">
+                    Add as:
+                  </span>
+                  <div
+                    class="dir-filter-chips"
+                    role="group"
+                    aria-label="Set priority for bulk addresses"
+                  >
+                    <button
+                      type="button"
+                      id="bulk-prio-priority"
+                      class="dir-filter-chip is-priority active"
+                      style="padding: 5px 12px"
+                      onpointerdown="event.preventDefault()"
+                      onclick="setBulkPriority(1)"
+                    >
+                      <span>⚡ Priority</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="bulk-prio-regular"
+                      class="dir-filter-chip is-regular"
+                      style="padding: 5px 12px"
+                      onpointerdown="event.preventDefault()"
+                      onclick="setBulkPriority(0)"
+                    >
+                      <span>Regular</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="input-group" style="margin-bottom: 8px">
+                  <label for="bulk-addresses-input">Addresses</label>
+                  <div class="upload-hint-pills">
+                    <span class="upload-hint-pill">↵ New line</span>
+                    <span class="upload-hint-pill">, Comma</span>
+                    <span class="upload-hint-pill">␣␣ Two spaces</span>
+                  </div>
+                  <textarea
+                    id="bulk-addresses-input"
+                    class="bulk-textarea"
+                    placeholder="Example:&#10;Nauha&#10;Lapsi, Khutaha Maunas&#10;&#10;Or separate with two spaces: Nauha  Lapsi  Khutaha Maunas"
+                    oninput="updateBulkAddressPreview()"
+                  ></textarea>
+                </div>
+
+                <!-- Live Preview Chips -->
+                <div id="bulk-preview-box" class="bulk-preview-box hidden">
+                  <div
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                      gap: 8px;
+                    "
+                  >
+                    <strong
+                      id="bulk-preview-count"
+                      style="font-size: 13px; color: var(--primary)"
+                    >
+                      0 addresses ready
+                    </strong>
+                    <button
+                      type="button"
+                      class="toolbar-btn"
+                      style="color: #ef4444; padding: 4px 8px"
+                      onclick="clearBulkAddresses()"
+                    >
+                      Clear List
+                    </button>
+                  </div>
+                  <div id="bulk-preview-chips" class="bulk-preview-chips"></div>
+                </div>
+
+                <div style="margin-top: 18px">
                   <button
                     type="button"
-                    class="toolbar-btn"
-                    style="color: #ef4444; padding: 4px 8px"
-                    onclick="clearBulkAddresses()"
+                    class="dm-btn dm-btn-primary dm-btn-full"
+                    id="submit-bulk-btn"
+                    onclick="submitBulkSameOffice()"
                   >
-                    Clear List
+                    ⚡ Submit All as Priority
                   </button>
                 </div>
-                <div id="bulk-preview-chips" class="bulk-preview-chips"></div>
               </div>
+            </div>
 
-              <div style="display: flex; gap: 12px; margin-top: 20px">
+            <!-- TAB 3: ADMIN EXCEL UPLOAD -->
+            <div id="manual-panel-excel" class="hidden">
+              <div class="dm-surface upload-panel-card" id="admin-excel-upload">
+                <div class="dm-header" style="margin-bottom: 14px">
+                  <div class="dm-header-left">
+                    <div class="dm-icon-badge">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.1"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                        ></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="8" y1="13" x2="16" y2="13"></line>
+                        <line x1="8" y1="17" x2="16" y2="17"></line>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 class="settings-card-title">Excel Bulk Upload</h3>
+                      <span class="settings-card-sub"
+                        >Import rows directly into the master database</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <span
+                  class="appr-filter-label"
+                  style="display: block; margin-bottom: 6px"
+                  >Expected Sheet Columns</span
+                >
+                <div class="upload-hint-pills" style="margin-bottom: 16px">
+                  <span class="upload-hint-pill is-required">Address *</span>
+                  <span class="upload-hint-pill is-required">Office *</span>
+                  <span class="upload-hint-pill is-required">Pin *</span>
+                  <span class="upload-hint-pill">Priority (optional)</span>
+                </div>
+
+                <input
+                  type="file"
+                  id="excel-file"
+                  accept=".xlsx, .xls"
+                  class="hidden"
+                  onchange="handleExcelFileSelect(event)"
+                />
+
+                <button
+                  type="button"
+                  id="excel-dropzone-btn"
+                  class="feedback-upload-dropzone upload-excel-dropzone"
+                  onclick="document.getElementById('excel-file').click()"
+                >
+                  <div class="upload-excel-icon">
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                      ></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                  </div>
+                  <strong>Tap to choose an Excel file</strong>
+                  <span>Supports .xlsx and .xls spreadsheets</span>
+                </button>
+
+                <div
+                  id="excel-file-preview"
+                  class="feedback-preview-row upload-excel-preview hidden"
+                >
+                  <div class="upload-excel-file-badge" id="excel-file-ext">
+                    XLSX
+                  </div>
+                  <div style="flex: 1; min-width: 0">
+                    <strong
+                      id="excel-file-name"
+                      style="
+                        display: block;
+                        font-size: 13.5px;
+                        color: var(--text);
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                      "
+                      >file.xlsx</strong
+                    >
+                    <span
+                      id="excel-file-meta"
+                      style="font-size: 11.5px; color: var(--text-light)"
+                      >Ready to upload</span
+                    >
+                  </div>
+                  <button
+                    type="button"
+                    class="dm-close-btn"
+                    onclick="clearExcelFileSelection()"
+                    title="Remove selected file"
+                  >
+                    ✕
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   class="dm-btn dm-btn-primary dm-btn-full"
-                  id="submit-bulk-btn"
-                  onclick="submitBulkSameOffice()"
+                  id="upload-excel-btn"
+                  onclick="uploadExcel()"
                 >
-                  ⚡ Submit All as Priority
+                  ⬆️ Upload to Database
+                </button>
+
+                <button
+                  type="button"
+                  class="dm-btn dm-btn-secondary dm-btn-full"
+                  style="margin-top: 10px"
+                  onclick="downloadSampleExcel()"
+                >
+                  📥 Download Sample Excel Template
                 </button>
               </div>
-            </div>
-          </div>
-          <div class="upload-card dm-surface" id="admin-excel-upload">
-            <h2 style="font-size: 22px; font-weight: 700">Excel Upload</h2>
-            <p>
-              Update the master database. Select an Excel file (.xlsx, .xls).<br />Ensure
-              the columns are exactly named <strong>Address</strong>,
-              <strong>Office</strong>, and <strong>Pin</strong>.
-            </p>
-            <div class="file-upload-wrapper">
-              <input type="file" id="excel-file" accept=".xlsx, .xls" />
-              <button
-                type="button"
-                class="dm-btn dm-btn-primary dm-btn-full"
-                id="upload-excel-btn"
-                onclick="uploadExcel()"
-              >
-                Upload to Database
-              </button>
-              <p
-                style="
-                  font-size: 13px;
-                  margin-top: 16px;
-                  color: var(--text-light);
-                "
-              >
-                Need a template?
-                <a
-                  href="#"
-                  onclick="
-                    downloadSampleExcel();
-                    return false;
-                  "
-                  style="
-                    color: var(--primary);
-                    font-weight: 600;
-                    text-decoration: none;
-                  "
-                  >Download Sample Excel File</a
-                >
-              </p>
             </div>
           </div>
         </section>
