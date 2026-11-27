@@ -419,7 +419,7 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 .sidebar-header {
-  padding: calc(24px + env(safe-area-inset-top)) 20px 24px;
+  padding: calc(18px + env(safe-area-inset-top)) 20px 16px;
   background: linear-gradient(to bottom, var(--stripe-bg), transparent);
   border-bottom: 1px solid var(--border);
 }
@@ -430,7 +430,7 @@ input[type="search"]::-webkit-search-results-decoration {
   gap: 16px;
   cursor: pointer;
   padding: 8px;
-  margin: -8px -8px 16px -8px;
+  margin: -8px -8px 12px -8px;
   border-radius: 16px;
   transition: background 0.2s ease, transform 0.1s ease;
 }
@@ -513,18 +513,18 @@ input[type="search"]::-webkit-search-results-decoration {
 .sidebar-stats-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .stat-box {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px 4px;
+  border-radius: 12px;
+  padding: 8px 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   box-shadow: var(--shadow-sm);
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -539,8 +539,8 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 .stat-icon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -570,50 +570,50 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 .stat-details strong {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--text);
   line-height: 1.1;
 }
 
 .stat-details span {
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 700;
   color: var(--text-light);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
 .sidebar-nav {
-  padding: 10px 12px;
+  padding: 12px 12px;
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .sidebar-menu-item {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 15px;
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px 15px;
   background: transparent;
   border: none;
-  font-size: 14.5px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-light);
-  border-radius: 14px;
+  border-radius: 15px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
 }
 
 .sidebar-menu-item svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
 }
