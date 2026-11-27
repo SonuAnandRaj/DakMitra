@@ -31,6 +31,13 @@ jobs:
         uses: actions/checkout@v7
       - name: Setup Pages
         uses: actions/configure-pages@v6
+      - name: Auto-stamp SW cache & build number
+        run: |
+          BUILD_NUM="${{ github.run_number }}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          sed -i -E "s|^const CACHE_NAME = [\"'][^\"']+[\"'];|const CACHE_NAME = \"po-directory-b${BUILD_NUM}-${SHORT_SHA}\";|" sw.js
+          sed -i -E "s|^const APP_BUILD_CODE = [\"'][^\"']+[\"'];|const APP_BUILD_CODE = \"${BUILD_NUM}\";|" js/01-config.js
+          echo "Stamped CACHE_NAME=po-directory-b${BUILD_NUM}-${SHORT_SHA}, APP_BUILD_CODE=${BUILD_NUM}"
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
