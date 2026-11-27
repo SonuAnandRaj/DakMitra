@@ -588,6 +588,58 @@
             <span>Favorites</span>
           </button>
 
+          <!-- LEARN & QUIZ BUTTON -->
+          <button
+            class="sidebar-menu-item"
+            id="nav-learn"
+            onclick="switchDashboardView('learn')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+              <path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"></path>
+            </svg>
+            <span>Learn &amp; Quiz</span>
+            <span
+              id="sidebar-learn-badge"
+              class="sidebar-count-pill hidden"
+              title="Division Mastery"
+              >0%</span
+            >
+          </button>
+
+          <!-- SUPERADMIN CONSOLE BUTTON (Superadmin Only) -->
+          <button
+            class="sidebar-menu-item hidden"
+            id="nav-superadmin"
+            onclick="switchDashboardView('superadmin')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <path d="M9 12l2 2 4-4"></path>
+            </svg>
+            <span>Superadmin</span>
+            <span
+              id="sidebar-superadmin-badge"
+              class="sidebar-count-pill hidden"
+              title="Pending user approvals"
+              >0</span
+            >
+          </button>
+
           <!-- NEW SETTINGS BUTTON START -->
           <button
             class="sidebar-menu-item"
@@ -694,32 +746,6 @@
             <span>Directory</span>
           </button>
 
-          <!-- LEARN & QUIZ BUTTON -->
-          <button
-            class="sidebar-menu-item"
-            id="nav-learn"
-            onclick="switchDashboardView('learn')"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-              <path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"></path>
-            </svg>
-            <span>Learn &amp; Quiz</span>
-            <span
-              id="sidebar-learn-badge"
-              class="sidebar-count-pill hidden"
-              title="Division Mastery"
-              >0%</span
-            >
-          </button>
-
           <!-- HELP & GUIDE BUTTON -->
           <button
             class="sidebar-menu-item"
@@ -766,32 +792,6 @@
               id="sidebar-feedback-badge"
               class="sidebar-count-pill hidden"
               title="Open tickets"
-              >0</span
-            >
-          </button>
-
-          <!-- SUPERADMIN CONSOLE BUTTON (Superadmin Only) -->
-          <button
-            class="sidebar-menu-item hidden"
-            id="nav-superadmin"
-            onclick="switchDashboardView('superadmin')"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-              <path d="M9 12l2 2 4-4"></path>
-            </svg>
-            <span>Superadmin</span>
-            <span
-              id="sidebar-superadmin-badge"
-              class="sidebar-count-pill hidden"
-              title="Pending user approvals"
               >0</span
             >
           </button>
