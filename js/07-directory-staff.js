@@ -1247,7 +1247,7 @@ function openDirectoryChipActions(chipEl) {
         address
       )}', '${escapeForOnclick(
         office
-      )}')" class="toolbar-btn info-i-btn pill-btn-staff" title="View ${officeType} Staff Details" aria-label="View ${officeType} Staff Details"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></button>`
+      )}')" class="toolbar-btn pill-btn-staff" title="View ${officeType} Staff Details" aria-label="View ${officeType} Staff Details"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Staff</button>`
     : "";
 
   const liveRecord = cachedPostOffices.find(
@@ -1261,14 +1261,14 @@ function openDirectoryChipActions(chipEl) {
     recordId && isUnverified
       ? `<button onclick="event.stopPropagation(); verifySingleRecord('${escapeForOnclick(
           recordId
-        )}')" class="toolbar-btn pill-btn-verify" title="Mark this address as Verified for all staff">✓ Verify</button>`
+        )}')" class="toolbar-btn pill-btn-verify" title="Mark this address as Verified for all staff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Verify</button>`
       : "";
 
   const priorityBtnHtml =
     recordId && !isAutoTopOffice
       ? `<button onclick="event.stopPropagation(); toggleRecordPriority('${escapeForOnclick(
           recordId
-        )}', this)" class="toolbar-btn priority-bolt-btn pill-btn-priority ${
+        )}', this)" class="toolbar-btn pill-btn-priority ${
           isPriority ? "is-active" : ""
         }" title="${
           isPriority
@@ -1276,7 +1276,7 @@ function openDirectoryChipActions(chipEl) {
             : "Mark as Priority (Shared with all staff)"
         }" aria-label="Toggle Shared Priority"><svg width="16" height="16" viewBox="0 0 24 24" fill="${
           isPriority ? "currentColor" : "none"
-        }" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></button>`
+        }" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Priority</button>`
       : "";
 
   bar.innerHTML = `
@@ -1377,7 +1377,7 @@ function openDirectoryOfficeActions(rowEl) {
           <button onclick="event.stopPropagation(); showParentOfficeDetailsModal('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-staff" title="${staffTitle}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Staff</button>
           <button onclick="event.stopPropagation(); practiceOfficeFromDirectory('${safeOfficeJs}')" class="toolbar-btn pill-btn-history" title="Practice ${safeOfficeHtml} in Learn &amp; Quiz"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"></path></svg> Learn</button>
           <button onclick="event.stopPropagation(); quickPriorityForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-priority" title="Manage priority addresses in ${safeOfficeHtml}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Priority</button>
-          <button onclick="event.stopPropagation(); quickVerifyForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-verify" title="Bulk verify unverified addresses in ${safeOfficeHtml}">✓ Verify</button>
+          <button onclick="event.stopPropagation(); quickVerifyForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-verify" title="Bulk verify unverified addresses in ${safeOfficeHtml}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Verify</button>
           <button onclick="event.stopPropagation(); quickAddForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-edit" title="Add multiple addresses to ${safeOfficeHtml}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add</button>
           <button onclick="event.stopPropagation(); quickDeleteForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-delete" title="Delete multiple addresses from ${safeOfficeHtml}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
         </div>
