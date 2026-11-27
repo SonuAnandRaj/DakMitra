@@ -40,6 +40,64 @@ function hideAlert() {
   box.textContent = "";
 }
 
+// --- SUPERADMIN AUTH & LOCKOUT ALERT REPORTER ---
+function isPasskeyUserCancel(err) {
+  const name = String(err?.name || "");
+  const msg = String(err?.message || err || "").toLowerCase();
+  return (
+    name === "NotAllowedError" ||
+    name === "AbortError" ||
+    msg.includes("notallowederror") ||
+    msg.includes("cancel") ||
+    msg.includes("aborted") ||
+    msg.includes("timed out")
+  );
+}
+
+async function reportAuthAlert(
+  eventType,
+  email,
+  errorMessage,
+  source = "signin"
+) {
+  try {
+    if (!navigator.onLine) return;
+    if (typeof isNetworkError === "function" && isNetworkError(errorMessage)) {
+      return;
+    }
+    if (!supabaseClient && typeof initSupabaseClient === "function") {
+      initSupabaseClient();
+    }
+    if (!supabaseClient) return;
+
+    const meta =
+      typeof collectFeedbackDeviceMeta === "function"
+        ? collectFeedbackDeviceMeta()
+        : {
+            app_version:
+              typeof APP_VERSION !== "undefined" ? `v${APP_VERSION}` : "",
+            viewport: `${window.innerWidth}x${window.innerHeight}`,
+            ua_short: String(navigator.userAgent || "").slice(0, 160),
+          };
+
+    const rpcCall = supabaseClient.rpc("report_auth_alert", {
+      p_event_type: eventType,
+      p_email: email ? String(email).trim() : null,
+      p_error_message: String(errorMessage || "Authentication error").slice(
+        0,
+        300
+      ),
+      p_source: source,
+      p_device_meta: meta,
+    });
+
+    await Promise.race([
+      rpcCall,
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+    ]);
+  } catch (_) {}
+}
+
 // --- AUTHENTICATION & DEVICE REGISTRATION ---
 async function handleAuth() {
   await ensureSupabaseReady();
@@ -81,6 +139,7 @@ async function handleAuth() {
       });
 
     if (authError) {
+      reportAuthAlert("SIGNUP_FAILED", email, authError.message, "signup");
       splashScreen.classList.add("hidden-splash");
       return showAlert(authError.message);
     }
@@ -122,6 +181,7 @@ async function handleAuth() {
       });
 
     if (authError) {
+      reportAuthAlert("LOGIN_FAILED", email, authError.message, "signin");
       splashScreen.classList.add("hidden-splash");
       return showAlert(authError.message);
     }
@@ -135,6 +195,12 @@ async function handleAuth() {
       .single();
 
     if (profileError) {
+      await reportAuthAlert(
+        "PROFILE_ERROR",
+        authData.user?.email || email,
+        profileError.message || "Error checking account profile.",
+        "signin"
+      );
       await supabaseClient.auth.signOut();
       splashScreen.classList.add("hidden-splash");
       return showAlert("Error checking account profile.");
@@ -147,7 +213,11 @@ async function handleAuth() {
 
     const blockedMsg = getAccountBlockReason(profileData, isSuper);
     if (blockedMsg) {
-      await forceLogoutBlockedUser(blockedMsg);
+      await forceLogoutBlockedUser(blockedMsg, {
+        eventType: "ACCOUNT_BLOCKED",
+        email: authData.user?.email || email,
+        source: "signin",
+      });
       splashScreen.classList.add("hidden-splash");
       return;
     }
@@ -158,7 +228,11 @@ async function handleAuth() {
       isSuper
     );
     if (!devCheck.ok) {
-      await forceLogoutBlockedUser(devCheck.reason);
+      await forceLogoutBlockedUser(devCheck.reason, {
+        eventType: "DEVICE_LOCKED",
+        email: authData.user?.email || email,
+        source: "signin",
+      });
       splashScreen.classList.add("hidden-splash");
       return;
     }
@@ -309,7 +383,16 @@ function clearSessionCachesAndState() {
   }
 }
 
-async function forceLogoutBlockedUser(reasonMsg) {
+async function forceLogoutBlockedUser(reasonMsg, alertMeta = null) {
+  if (alertMeta && alertMeta.eventType) {
+    await reportAuthAlert(
+      alertMeta.eventType,
+      alertMeta.email || null,
+      reasonMsg,
+      alertMeta.source || "session"
+    );
+  }
+
   try {
     teardownRealtimeSync();
     if (supabaseClient) await supabaseClient.auth.signOut();
@@ -378,6 +461,12 @@ async function signInWithDevice() {
       .single();
 
     if (profileError) {
+      await reportAuthAlert(
+        "PROFILE_ERROR",
+        user.email,
+        profileError.message || "Error checking account profile.",
+        "passkey"
+      );
       await supabaseClient.auth.signOut();
       splashScreen.classList.add("hidden-splash");
       return showAlert("Error checking account profile.");
@@ -390,7 +479,11 @@ async function signInWithDevice() {
 
     const blockedMsg = getAccountBlockReason(profileData, isSuper);
     if (blockedMsg) {
-      await forceLogoutBlockedUser(blockedMsg);
+      await forceLogoutBlockedUser(blockedMsg, {
+        eventType: "ACCOUNT_BLOCKED",
+        email: user.email,
+        source: "passkey",
+      });
       splashScreen.classList.add("hidden-splash");
       return;
     }
@@ -401,7 +494,11 @@ async function signInWithDevice() {
       isSuper
     );
     if (!devCheck.ok) {
-      await forceLogoutBlockedUser(devCheck.reason);
+      await forceLogoutBlockedUser(devCheck.reason, {
+        eventType: "DEVICE_LOCKED",
+        email: user.email,
+        source: "passkey",
+      });
       splashScreen.classList.add("hidden-splash");
       return;
     }
@@ -419,6 +516,15 @@ async function signInWithDevice() {
     showToast("🔓 Verified by Device");
     checkUserSession();
   } catch (err) {
+    if (!isPasskeyUserCancel(err)) {
+      const typedEmail = document.getElementById("email")?.value.trim() || null;
+      reportAuthAlert(
+        "PASSKEY_FAILED",
+        typedEmail,
+        err?.message || "Device authentication failed.",
+        "passkey"
+      );
+    }
     splashScreen.classList.add("hidden-splash");
     showAlert("Device authentication failed. Try again.");
   }

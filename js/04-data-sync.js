@@ -822,6 +822,7 @@ function refreshDirectoryInPlace() {
 
 // --- SUPABASE REALTIME SYNC ---
 let realtimeChannel = null;
+let superadminAlertsChannel = null;
 
 function initRealtimeSync() {
   if (!supabaseClient || realtimeChannel) return;
@@ -965,7 +966,17 @@ function initRealtimeSync() {
             (blocked || devMismatch) &&
             typeof forceLogoutBlockedUser === "function"
           ) {
-            forceLogoutBlockedUser(blocked || devMismatch);
+            const shouldAlert = Boolean(devMismatch && payload.new.device_id);
+            forceLogoutBlockedUser(
+              blocked || devMismatch,
+              shouldAlert
+                ? {
+                    eventType: "SESSION_LOCKED",
+                    email: payload.new.email || null,
+                    source: "realtime",
+                  }
+                : null
+            );
             return;
           }
         }
@@ -990,6 +1001,7 @@ function initRealtimeSync() {
         }
       }
     });
+  initSuperadminAlertsRealtime();
 }
 
 let realtimePauseTimer = null;
@@ -998,12 +1010,47 @@ const REALTIME_BG_PAUSE_MS = 90 * 1000; // Pause idle Realtime after 90s in back
 const VISIBILITY_SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5-minute cooldown when Realtime stayed live
 const LONG_PAUSE_HYDRATE_MS = 15 * 60 * 1000; // Re-verify session/device lock after 15+ min away
 
+function initSuperadminAlertsRealtime() {
+  if (
+    !isCurrentUserSuperadmin ||
+    !supabaseClient ||
+    superadminAlertsChannel ||
+    !navigator.onLine
+  ) {
+    return;
+  }
+
+  superadminAlertsChannel = supabaseClient
+    .channel("dakmitra-superadmin-alerts")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "auth_alerts" },
+      (payload) => {
+        if (typeof handleSuperadminAlertRealtimeEvent === "function") {
+          handleSuperadminAlertRealtimeEvent(payload);
+        }
+      }
+    )
+    .subscribe((status) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        if (superadminAlertsChannel && supabaseClient) {
+          supabaseClient.removeChannel(superadminAlertsChannel);
+          superadminAlertsChannel = null;
+        }
+      }
+    });
+}
+
 function teardownRealtimeSync() {
   clearTimeout(realtimePauseTimer);
   realtimePauseTimer = null;
   if (realtimeChannel && supabaseClient) {
     supabaseClient.removeChannel(realtimeChannel);
     realtimeChannel = null;
+  }
+  if (superadminAlertsChannel && supabaseClient) {
+    supabaseClient.removeChannel(superadminAlertsChannel);
+    superadminAlertsChannel = null;
   }
 }
 
@@ -1093,7 +1140,20 @@ async function hydrateOnlineState(attempt = 1) {
         (blocked || devMismatch) &&
         typeof forceLogoutBlockedUser === "function"
       ) {
-        await forceLogoutBlockedUser(blocked || devMismatch);
+        const alertMeta = blocked
+          ? {
+              eventType: "ACCOUNT_BLOCKED",
+              email: session.user.email,
+              source: "reconnect",
+            }
+          : profileData.device_id
+          ? {
+              eventType: "SESSION_LOCKED",
+              email: session.user.email,
+              source: "reconnect",
+            }
+          : null;
+        await forceLogoutBlockedUser(blocked || devMismatch, alertMeta);
         return;
       }
     }
@@ -1119,6 +1179,16 @@ async function hydrateOnlineState(attempt = 1) {
       client.realtime.setAuth(session.access_token);
     }
     initRealtimeSync();
+
+    initRealtimeSync();
+    if (isCurrentUserSuperadmin) {
+      if (typeof refreshSuperadminAlertsBadge === "function") {
+        refreshSuperadminAlertsBadge();
+      }
+      if (typeof refreshSuperadminPendingBadge === "function") {
+        refreshSuperadminPendingBadge();
+      }
+    }
 
     invalidateApprovalsCache();
 
@@ -1206,6 +1276,12 @@ document.addEventListener("visibilitychange", () => {
       hydrateOnlineState(1);
     } else {
       initRealtimeSync();
+      if (
+        isCurrentUserSuperadmin &&
+        typeof refreshSuperadminAlertsBadge === "function"
+      ) {
+        refreshSuperadminAlertsBadge();
+      }
       fetchFromServerBackground(false);
       if (typeof fetchAndApplyAppConfig === "function") {
         fetchAndApplyAppConfig();

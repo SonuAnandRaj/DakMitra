@@ -139,6 +139,11 @@ function applyAdminUI() {
     superadminNav.classList.toggle("hidden", !isCurrentUserSuperadmin);
   }
 
+  const topAlertsBtn = document.getElementById("top-alerts-btn");
+  if (topAlertsBtn) {
+    topAlertsBtn.classList.toggle("hidden", !isCurrentUserSuperadmin);
+  }
+
   applyAppConfigUI();
 }
 
@@ -569,7 +574,20 @@ async function checkUserSession() {
             (blocked || devMismatch) &&
             typeof forceLogoutBlockedUser === "function"
           ) {
-            await forceLogoutBlockedUser(blocked || devMismatch);
+            const alertMeta = blocked
+              ? {
+                  eventType: "ACCOUNT_BLOCKED",
+                  email: userEmail,
+                  source: "session_boot",
+                }
+              : prof.device_id
+              ? {
+                  eventType: "SESSION_LOCKED",
+                  email: userEmail,
+                  source: "session_boot",
+                }
+              : null;
+            await forceLogoutBlockedUser(blocked || devMismatch, alertMeta);
             return;
           }
         }
@@ -592,11 +610,16 @@ async function checkUserSession() {
         localStorage.setItem("dakmitra_cached_profile", JSON.stringify(merged));
         if (prof) renderUserProfileUI(merged, userEmail);
 
-        if (
-          isCurrentUserSuperadmin &&
-          typeof refreshSuperadminPendingBadge === "function"
-        ) {
-          refreshSuperadminPendingBadge();
+        if (isCurrentUserSuperadmin) {
+          if (typeof refreshSuperadminPendingBadge === "function") {
+            refreshSuperadminPendingBadge();
+          }
+          if (typeof refreshSuperadminAlertsBadge === "function") {
+            refreshSuperadminAlertsBadge();
+          }
+          if (typeof initSuperadminAlertsRealtime === "function") {
+            initSuperadminAlertsRealtime();
+          }
         }
       });
 

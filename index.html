@@ -378,6 +378,28 @@
 
         <!-- RIGHT SIDE ICONS (Only Theme Toggle remains) -->
         <div style="display: flex; gap: 4px; align-items: center">
+          <button
+            type="button"
+            id="top-alerts-btn"
+            class="theme-toggle-btn sa-bell-btn hidden"
+            onclick="openSuperadminAlerts()"
+            title="Auth &amp; Lockout Alerts"
+            aria-label="Open Superadmin Auth Alerts"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span id="top-alerts-badge" class="sa-bell-badge hidden">0</span>
+          </button>
+
           <!-- Animated Theme Toggle -->
           <button
             class="theme-toggle-btn"
@@ -4443,6 +4465,15 @@
               </button>
               <button
                 type="button"
+                id="sa-tab-alerts"
+                class="dir-filter-chip is-danger"
+                onclick="switchSuperadminTab('alerts')"
+              >
+                <span>🔔 Alerts</span>
+                <span class="dir-chip-count" id="sa-alerts-count-pill">0</span>
+              </button>
+              <button
+                type="button"
                 id="sa-tab-database"
                 class="dir-filter-chip is-priority"
                 onclick="switchSuperadminTab('database')"
@@ -4799,6 +4830,66 @@
                 </button>
               </div>
               <div id="sa-audit-list"></div>
+            </div>
+            <!-- TAB 5: AUTH & LOCKOUT ALERTS -->
+            <div id="sa-panel-alerts" class="sa-panel hidden">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  gap: 8px;
+                  flex-wrap: wrap;
+                  margin-bottom: 10px;
+                "
+              >
+                <div class="dir-filter-chips" style="padding: 0">
+                  <button
+                    type="button"
+                    class="dir-filter-chip is-danger active"
+                    data-sa-afilter="open"
+                    onclick="setSuperadminAlertFilter('open')"
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    class="dir-filter-chip is-regular"
+                    data-sa-afilter="resolved"
+                    onclick="setSuperadminAlertFilter('resolved')"
+                  >
+                    Resolved
+                  </button>
+                  <button
+                    type="button"
+                    class="dir-filter-chip"
+                    data-sa-afilter="all"
+                    onclick="setSuperadminAlertFilter('all')"
+                  >
+                    All
+                  </button>
+                </div>
+
+                <div style="display: flex; gap: 6px; margin-left: auto">
+                  <button
+                    type="button"
+                    id="sa-alerts-resolve-all-btn"
+                    class="dm-btn dm-btn-secondary dm-btn-sm hidden"
+                    onclick="saResolveAllAuthAlerts()"
+                  >
+                    ✓ Resolve All
+                  </button>
+                  <button
+                    type="button"
+                    class="dm-btn dm-btn-secondary dm-btn-sm"
+                    onclick="loadSuperadminAlerts(true)"
+                    title="Refresh Alerts"
+                  >
+                    🔄
+                  </button>
+                </div>
+              </div>
+              <div id="sa-alerts-list"></div>
             </div>
           </div>
         </section>

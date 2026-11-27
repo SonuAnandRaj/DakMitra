@@ -1,11 +1,15 @@
 // =========================================================
 // 13-SUPERADMIN.JS — Superadmin Controls, Users, DB Explorer & Audit
 // =========================================================
-
 const saState = {
   activeTab: "controls",
   users: [],
   userFilter: "all",
+  alerts: [],
+  alertFilter: "open",
+  openAlertsCount: 0,
+  alertRefreshTimer: null,
+  alertNotifiedAttempts: new Map(),
   schema: [],
   dbTable: "",
   dbRows: [],
@@ -21,9 +25,14 @@ const saState = {
 
 function resetSuperadminState() {
   clearTimeout(saState.dbSearchTimer);
+  clearTimeout(saState.alertRefreshTimer);
   saState.activeTab = "controls";
   saState.users = [];
   saState.userFilter = "all";
+  saState.alerts = [];
+  saState.alertFilter = "open";
+  saState.openAlertsCount = 0;
+  saState.alertNotifiedAttempts.clear();
   saState.schema = [];
   saState.dbTable = "";
   saState.dbRows = [];
@@ -34,6 +43,9 @@ function resetSuperadminState() {
   saState.dbModalRow = null;
   document.getElementById("sidebar-superadmin-badge")?.classList.add("hidden");
   document.getElementById("nav-superadmin")?.classList.add("hidden");
+  document.getElementById("top-alerts-btn")?.classList.add("hidden");
+  document.getElementById("top-alerts-btn")?.classList.remove("has-unread");
+  document.getElementById("top-alerts-badge")?.classList.add("hidden");
 }
 
 // --- ENTRY & TAB SWITCHING ---
@@ -49,7 +61,7 @@ function renderSuperadminView() {
 
 function switchSuperadminTab(tab) {
   saState.activeTab = tab;
-  ["controls", "users", "database", "audit"].forEach((t) => {
+  ["controls", "users", "alerts", "database", "audit"].forEach((t) => {
     document
       .getElementById(`sa-tab-${t}`)
       ?.classList.toggle("active", t === tab);
@@ -68,6 +80,8 @@ function switchSuperadminTab(tab) {
     fetchAndApplyAppConfig().then(syncSuperadminControlsUI);
   } else if (tab === "users") {
     loadSuperadminUsers();
+  } else if (tab === "alerts") {
+    loadSuperadminAlerts(true);
   } else if (tab === "database") {
     initSuperadminDbExplorer();
   } else if (tab === "audit") {
@@ -519,10 +533,6 @@ function openSuperadminUserModal({
 
   document.getElementById("sa-user-modal-overlay").classList.add("show");
   setTimeout(() => input.focus(), 100);
-}
-
-function closeSuperadminUserModal() {
-  document.getElementById("sa-user-modal-overlay")?.classList.remove("show");
 }
 
 function saPromptUserStatus(userId, status, name) {
@@ -1147,5 +1157,363 @@ async function loadSuperadminAuditLogs() {
     listEl.innerHTML = `<div class="list-empty" style="color:#ef4444;">${escapeHTML(
       err.message
     )}</div>`;
+  }
+}
+
+// --- TAB 5: AUTH & LOCKOUT ALERTS ---
+const SA_ALERT_EVENT_META = {
+  DEVICE_LOCKED: { label: "🔒 Device Lockout", critical: true },
+  SESSION_LOCKED: { label: "⚠️ Session Locked Out", critical: true },
+  ACCOUNT_BLOCKED: { label: "🚫 Blocked Account", critical: true },
+  PROFILE_ERROR: { label: "⚠️ Profile Error", critical: true },
+  LOGIN_FAILED: { label: "❌ Login Failed", critical: false },
+  PASSKEY_FAILED: { label: "🔑 Passkey Failed", critical: false },
+  SIGNUP_FAILED: { label: "📝 Sign-Up Error", critical: false },
+};
+
+function openSuperadminAlerts() {
+  if (!isCurrentUserSuperadmin) return;
+  saState.activeTab = "alerts";
+  switchDashboardView("superadmin");
+}
+
+function updateSuperadminAlertsBadge(count) {
+  const safeCount = Math.max(0, Number(count || 0));
+  saState.openAlertsCount = safeCount;
+
+  const bellBtn = document.getElementById("top-alerts-btn");
+  const bellBadge = document.getElementById("top-alerts-badge");
+  const tabPill = document.getElementById("sa-alerts-count-pill");
+  const resolveAllBtn = document.getElementById("sa-alerts-resolve-all-btn");
+
+  if (bellBtn) bellBtn.classList.toggle("has-unread", safeCount > 0);
+  if (bellBadge) {
+    bellBadge.textContent = safeCount > 99 ? "99+" : String(safeCount);
+    bellBadge.classList.toggle("hidden", safeCount === 0);
+  }
+  if (tabPill) tabPill.textContent = String(safeCount);
+  if (resolveAllBtn) {
+    resolveAllBtn.classList.toggle(
+      "hidden",
+      safeCount === 0 || saState.alertFilter === "resolved"
+    );
+  }
+}
+
+async function refreshSuperadminAlertsBadge() {
+  if (!isCurrentUserSuperadmin || !navigator.onLine || !supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient.rpc(
+      "superadmin_get_auth_alerts_count"
+    );
+    if (!error) updateSuperadminAlertsBadge(Number(data || 0));
+  } catch (_) {}
+}
+
+function handleSuperadminAlertRealtimeEvent(payload) {
+  if (!isCurrentUserSuperadmin) return;
+
+  const eventType = payload?.eventType;
+  const row = payload?.new;
+
+  refreshSuperadminAlertsBadge();
+
+  if (row && row.is_resolved === false) {
+    const meta = SA_ALERT_EVENT_META[row.event_type] || {
+      label: "🔔 Auth Alert",
+      critical: false,
+    };
+    const who = row.user_name || row.email || "Unknown user";
+    const attempts = Number(row.attempt_count || 1);
+    const shortErr = String(row.error_message || "").slice(0, 70);
+
+    if (eventType === "INSERT") {
+      saState.alertNotifiedAttempts.set(row.id, attempts);
+      showToast(
+        `${meta.label}: ${who}${shortErr ? ` — ${shortErr}` : ""}`,
+        meta.critical ? "error" : "warning"
+      );
+    } else if (
+      eventType === "UPDATE" &&
+      attempts >= 5 &&
+      attempts % 5 === 0 &&
+      saState.alertNotifiedAttempts.get(row.id) !== attempts
+    ) {
+      saState.alertNotifiedAttempts.set(row.id, attempts);
+      showToast(
+        `🚨 ${attempts} repeated failures: ${who} (${meta.label})`,
+        "error"
+      );
+    }
+  }
+
+  if (
+    document.getElementById("view-superadmin")?.classList.contains("active") &&
+    saState.activeTab === "alerts"
+  ) {
+    clearTimeout(saState.alertRefreshTimer);
+    saState.alertRefreshTimer = setTimeout(() => {
+      loadSuperadminAlerts(true);
+    }, 250);
+  }
+}
+
+function setSuperadminAlertFilter(filter) {
+  saState.alertFilter = filter;
+  document.querySelectorAll("[data-sa-afilter]").forEach((btn) => {
+    btn.classList.toggle(
+      "active",
+      btn.getAttribute("data-sa-afilter") === filter
+    );
+  });
+  updateSuperadminAlertsBadge(saState.openAlertsCount);
+  loadSuperadminAlerts(true);
+}
+
+async function loadSuperadminAlerts(force = false) {
+  const listEl = document.getElementById("sa-alerts-list");
+  if (!listEl) return;
+  if (!force && saState.alerts.length > 0) {
+    renderSuperadminAlertsList();
+    return;
+  }
+  if (!(await ensureOnline("Connect to internet to view alerts."))) return;
+
+  listEl.innerHTML = `<div class="skeleton-card"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div>`;
+  try {
+    await ensureSupabaseReady();
+    const { data, error } = await supabaseClient.rpc(
+      "superadmin_get_auth_alerts",
+      {
+        p_filter: saState.alertFilter,
+        p_limit: 50,
+        p_offset: 0,
+      }
+    );
+    if (error) throw error;
+    saState.alerts = Array.isArray(data) ? data : [];
+    renderSuperadminAlertsList();
+    refreshSuperadminAlertsBadge();
+  } catch (err) {
+    listEl.innerHTML = `<div class="list-empty" style="color:#ef4444;">${escapeHTML(
+      err.message
+    )}</div>`;
+  }
+}
+
+function renderSuperadminAlertsList() {
+  const listEl = document.getElementById("sa-alerts-list");
+  if (!listEl) return;
+
+  if (saState.alerts.length === 0) {
+    const emptyMsg =
+      saState.alertFilter === "open"
+        ? "🎉 No open auth or lockout alerts."
+        : "No alerts found in this view.";
+    listEl.innerHTML = `<div class="list-empty">${emptyMsg}</div>`;
+    return;
+  }
+
+  listEl.innerHTML = saState.alerts
+    .map((a) => {
+      const meta = SA_ALERT_EVENT_META[a.event_type] || {
+        label: a.event_type,
+        critical: false,
+      };
+      const isEscalated = Number(a.attempt_count || 1) >= 5;
+      const cardTone = a.is_resolved
+        ? ""
+        : meta.critical || isEscalated
+        ? "is-critical"
+        : "is-warning";
+
+      const dt = new Date(a.last_seen_at || a.created_at).toLocaleString(
+        "en-IN",
+        { dateStyle: "medium", timeStyle: "short" }
+      );
+      const who = a.user_name || a.email || "Unknown Email";
+      const subParts = [];
+      if (a.user_name && a.email) subParts.push(a.email);
+      if (a.employee_id) subParts.push(`🆔 ${a.employee_id}`);
+      if (a.designation) subParts.push(a.designation);
+      if (a.source) subParts.push(`via ${a.source}`);
+
+      const m =
+        a.device_meta && typeof a.device_meta === "object"
+          ? a.device_meta
+          : null;
+      const devLine = m
+        ? [
+            m.app_version,
+            m.viewport,
+            m.standalone ? "Installed PWA" : "Browser",
+          ]
+            .filter(Boolean)
+            .join(" • ")
+        : "";
+
+      const attemptsBadge =
+        Number(a.attempt_count || 1) > 1
+          ? `<span class="badge" style="margin:0; font-size:11px; ${
+              isEscalated
+                ? "background:#fee2e2;color:#b91c1c;"
+                : "background:rgba(245,158,11,0.16);color:#b45309;"
+            }">${isEscalated ? "🚨" : "🔁"} ${a.attempt_count} attempts</span>`
+          : "";
+
+      const aid = escapeForOnclick(a.id);
+      const uid = a.user_id ? escapeForOnclick(a.user_id) : "";
+      const uname = escapeForOnclick(who);
+
+      let actionsHtml = "";
+      if (a.user_id && !a.is_target_superadmin) {
+        if (a.has_device_lock) {
+          actionsHtml += `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="saAlertResetDevice('${aid}', '${uid}', '${uname}')">📱 Reset Device</button>`;
+        }
+        if (
+          a.current_approval_status &&
+          a.current_approval_status !== "APPROVED"
+        ) {
+          actionsHtml += `<button class="dm-btn dm-btn-primary dm-btn-sm" onclick="saAlertApproveUser('${aid}', '${uid}')">✅ Approve</button>`;
+        }
+        actionsHtml += `<button class="dm-btn dm-btn-secondary dm-btn-sm" onclick="saPromptPasswordReset('${uid}', '${uname}')">🔑 Reset PW</button>`;
+      }
+      if (!a.is_resolved) {
+        actionsHtml += `<button class="dm-btn dm-btn-secondary dm-btn-sm" onclick="saResolveAuthAlert('${aid}')">✓ Resolve</button>`;
+      }
+
+      return `
+        <div class="sa-user-card sa-alert-card ${cardTone}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <span class="badge" style="margin:0; font-size:11px; ${
+                meta.critical
+                  ? "background:#fee2e2;color:#b91c1c;"
+                  : "background:rgba(245,158,11,0.16);color:#b45309;"
+              }">${escapeHTML(meta.label)}</span>
+              ${attemptsBadge}
+              ${
+                a.is_resolved
+                  ? `<span class="badge" style="margin:0; font-size:11px; background:var(--success-bg); color:var(--success-text);">✅ Resolved</span>`
+                  : ""
+              }
+            </div>
+            <span style="font-size:11px; color:var(--text-light);">${dt}</span>
+          </div>
+
+          <div style="font-size:14.5px; font-weight:800; color:var(--text); margin-top:8px;">
+            ${escapeHTML(who)}
+          </div>
+          ${
+            subParts.length
+              ? `<div style="font-size:12px; color:var(--text-light); margin-top:2px;">${escapeHTML(
+                  subParts.join(" • ")
+                )}</div>`
+              : ""
+          }
+          ${
+            devLine
+              ? `<div style="font-size:11.5px; color:var(--text-light); margin-top:2px;">📱 ${escapeHTML(
+                  devLine
+                )}</div>`
+              : ""
+          }
+
+          <div class="sa-alert-err">${escapeHTML(a.error_message)}</div>
+
+          ${
+            actionsHtml
+              ? `<div class="sa-user-actions">${actionsHtml}</div>`
+              : ""
+          }
+        </div>`;
+    })
+    .join("");
+}
+
+async function saResolveAuthAlert(alertId, silent = false) {
+  if (!(await ensureOnline("Connect to internet to resolve alert."))) return;
+  try {
+    await ensureSupabaseReady();
+    const { error } = await supabaseClient.rpc(
+      "superadmin_resolve_auth_alert",
+      {
+        p_alert_id: alertId,
+      }
+    );
+    if (error) throw error;
+    if (!silent) showToast("✅ Alert resolved.", "success");
+    await loadSuperadminAlerts(true);
+  } catch (err) {
+    showToast("❌ " + err.message, "error");
+  }
+}
+
+function saResolveAllAuthAlerts() {
+  showCustomConfirm(
+    "Resolve All Open Alerts?",
+    "Mark all open auth and lockout alerts as resolved?",
+    "Resolve All",
+    async () => {
+      if (!(await ensureOnline("Connect to internet to resolve alerts.")))
+        return;
+      try {
+        await ensureSupabaseReady();
+        const { error } = await supabaseClient.rpc(
+          "superadmin_resolve_auth_alert",
+          { p_resolve_all: true }
+        );
+        if (error) throw error;
+        showToast("✅ All alerts resolved.", "success");
+        await loadSuperadminAlerts(true);
+      } catch (err) {
+        showToast("❌ " + err.message, "error");
+      }
+    }
+  );
+}
+
+function saAlertResetDevice(alertId, userId, name) {
+  showCustomConfirm(
+    "Reset Device Lock?",
+    `Allow ${name} to sign in on a new phone/browser and mark their alerts resolved?`,
+    "Reset Device",
+    async () => {
+      if (!(await ensureOnline("Connect to internet to reset device."))) return;
+      try {
+        await ensureSupabaseReady();
+        const { error } = await supabaseClient.rpc(
+          "superadmin_reset_device_lock",
+          { p_target_user_id: userId }
+        );
+        if (error) throw error;
+        await supabaseClient.rpc("superadmin_resolve_auth_alert", {
+          p_user_id: userId,
+        });
+        showToast("📱 Device lock cleared & alert resolved!", "success");
+        await loadSuperadminAlerts(true);
+      } catch (err) {
+        showToast("❌ " + err.message, "error");
+      }
+    }
+  );
+}
+
+async function saAlertApproveUser(alertId, userId) {
+  try {
+    showToast("⏳ Approving user...", "info");
+    await invokeSuperadminAuthOp({
+      action: "approve_and_verify",
+      targetUserId: userId,
+      makeAdmin: false,
+    });
+    await supabaseClient.rpc("superadmin_resolve_auth_alert", {
+      p_user_id: userId,
+    });
+    showToast("✅ User approved & alert resolved!", "success");
+    await loadSuperadminAlerts(true);
+    refreshSuperadminPendingBadge();
+  } catch (err) {
+    showToast("❌ " + err.message, "error");
   }
 }
