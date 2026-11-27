@@ -5218,15 +5218,25 @@ body.keyboard-open
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.dir-toolbar-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+  min-width: 0;
 }
 
 .dir-table-totals {
   font-size: 12px;
   font-weight: 700;
   color: var(--text-light);
+  white-space: nowrap;
 }
-
 #view-directory #directory-display-area {
   overflow-x: hidden;
 }

@@ -451,39 +451,6 @@ function updateDirectoryFilterUI(searchMatchedOffices, filteredOffices) {
     .getElementById("dir-chip-unverified")
     ?.classList.toggle("active", directoryActiveFilters.has("unverified"));
 
-  const summaryEl = document.getElementById("dir-filter-summary");
-  const summaryTextEl = document.getElementById("dir-filter-summary-text");
-  const resetBtn = summaryEl?.querySelector(".dir-filter-reset-btn");
-  const hasSearch = hasActiveDirectorySearch();
-
-  if (summaryEl && summaryTextEl) {
-    if (isAll && !hasSearch) {
-      summaryEl.classList.add("hidden");
-      summaryTextEl.textContent = "";
-    } else {
-      const matchedOffices = filteredOffices.length;
-      const matchedAddresses = filteredOffices.reduce(
-        (sum, g) => sum + (g.addresses ? g.addresses.length : 0),
-        0
-      );
-      summaryTextEl.textContent = `Showing ${matchedOffices} ${
-        matchedOffices === 1 ? "office" : "offices"
-      } • ${matchedAddresses} ${
-        matchedAddresses === 1 ? "address" : "addresses"
-      }`;
-      if (resetBtn) {
-        if (!isAll) {
-          resetBtn.textContent = "Reset";
-          resetBtn.onclick = resetDirectoryUniversalFilters;
-        } else {
-          resetBtn.textContent = "Clear";
-          resetBtn.onclick = resetAllDirectorySearchAndFilters;
-        }
-      }
-      summaryEl.classList.remove("hidden");
-    }
-  }
-
   const totalsEl = document.getElementById("dir-table-totals");
   if (totalsEl) {
     const offCount = filteredOffices.length;
@@ -494,6 +461,24 @@ function updateDirectoryFilterUI(searchMatchedOffices, filteredOffices) {
     totalsEl.textContent = `${offCount} ${
       offCount === 1 ? "office" : "offices"
     } • ${addrCount} ${addrCount === 1 ? "addr" : "addrs"}`;
+  }
+
+  const resetBtn = document.getElementById("dir-filter-reset-btn");
+  const hasSearch = hasActiveDirectorySearch();
+
+  if (resetBtn) {
+    if (isAll && !hasSearch) {
+      resetBtn.classList.add("hidden");
+    } else {
+      if (!isAll) {
+        resetBtn.textContent = "Reset";
+        resetBtn.onclick = resetDirectoryUniversalFilters;
+      } else {
+        resetBtn.textContent = "Clear";
+        resetBtn.onclick = resetAllDirectorySearchAndFilters;
+      }
+      resetBtn.classList.remove("hidden");
+    }
   }
 }
 

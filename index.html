@@ -2471,20 +2471,18 @@
                   Table
                 </button>
               </div>
-              <span id="dir-table-totals" class="dir-table-totals"></span>
+              <div class="dir-toolbar-meta">
+                <span id="dir-table-totals" class="dir-table-totals"></span>
+                <button
+                  type="button"
+                  id="dir-filter-reset-btn"
+                  class="dir-filter-reset-btn hidden"
+                  onclick="resetDirectoryUniversalFilters()"
+                >
+                  Reset
+                </button>
+              </div>
             </div>
-
-            <div id="dir-filter-summary" class="dir-filter-summary hidden">
-              <span id="dir-filter-summary-text"></span>
-              <button
-                type="button"
-                class="dir-filter-reset-btn"
-                onclick="resetDirectoryUniversalFilters()"
-              >
-                Reset
-              </button>
-            </div>
-          </div>
 
           <div
             class="results-container-scroll expanded"
