@@ -501,12 +501,19 @@ async function signOutApp() {
 
 // --- DEVICE PASSKEYS ---
 async function registerDevicePasskey() {
-  await ensureSupabaseReady();
+  if (!(await ensureOnline("Connect to internet to lock this device."))) return;
+
+  const btn = document.getElementById("register-passkey-btn");
+  setButtonState(btn, "loading", "Verifying Device...");
+
   try {
     const { error } = await supabaseClient.auth.registerPasskey();
     if (error) throw error;
+    setButtonState(btn, "success", "Device Locked!");
     showToast("✅ Device successfully registered!");
+    setTimeout(() => setButtonState(btn, "idle"), 2000);
   } catch (err) {
+    setButtonState(btn, "idle");
     showCustomAlert(
       "Passkey Failed",
       "Passkey registration failed: " + err.message,

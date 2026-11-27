@@ -5525,21 +5525,6 @@ body.keyboard-open #view-upload #upload-display-area {
   border-color: rgba(251, 191, 36, 0.35);
 }
 
-.settings-btn-export {
-  background: var(--success-bg);
-  color: var(--success-text);
-  border: 1px solid var(--success-border);
-}
-
-.settings-btn-export:hover {
-  filter: brightness(0.95);
-  transform: translateY(-1px);
-}
-
-[data-theme="dark"] .settings-btn-export:hover {
-  filter: brightness(1.12);
-}
-
 /* --- UPLOAD PINNED SWITCHER, ROLE BANNER & PANELS --- */
 .upload-pinned-tabs {
   flex-shrink: 0;

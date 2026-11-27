@@ -58,10 +58,15 @@ function initAppVersion() {
 async function checkForAppUpdate() {
   if (!(await ensureOnline("Connect to internet to check for updates.")))
     return;
-  showToast("🔍 Checking for updates...");
+
+  const btn = document.getElementById("check-updates-btn");
+  setButtonState(btn, "loading", "Checking...");
 
   if (!("serviceWorker" in navigator)) {
-    return showToast(`✅ DakMitra v${APP_VERSION} is up to date!`);
+    setButtonState(btn, "success", "Up to Date");
+    showToast(`✅ DakMitra v${APP_VERSION} is up to date!`);
+    setTimeout(() => setButtonState(btn, "idle"), 1800);
+    return;
   }
 
   try {
@@ -76,11 +81,16 @@ async function checkForAppUpdate() {
     }
 
     if (foundUpdate) {
+      setButtonState(btn, "loading", "Installing...");
       showToast("⬇️ New update found — installing now...", "info");
+      setTimeout(() => setButtonState(btn, "idle"), 4500);
     } else {
+      setButtonState(btn, "success", "Up to Date");
       showToast(`✅ DakMitra v${APP_VERSION} is up to date!`);
+      setTimeout(() => setButtonState(btn, "idle"), 1800);
     }
   } catch (err) {
+    setButtonState(btn, "idle");
     showToast("⚠️ Could not check for updates right now.", "warning");
   }
 }

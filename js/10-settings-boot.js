@@ -106,6 +106,11 @@ function clearAppCache() {
 
       loadSearchHistory();
       invalidateApprovalsCache();
+      const clearBtn = document.getElementById("clear-cache-btn");
+      if (clearBtn) {
+        setButtonState(clearBtn, "success", "Cache Cleared!");
+        setTimeout(() => setButtonState(clearBtn, "idle"), 1600);
+      }
 
       if (navigator.onLine) {
         showToast("🧹 Cache cleared! Refreshing offline copy...");
@@ -362,11 +367,8 @@ async function exportFullTableToExcel(includeDeleted = true) {
     return exportCachedFallback();
   }
 
-  const originalText = btn ? btn.textContent : "Export";
-  if (btn) {
-    btn.textContent = "Exporting...";
-    btn.disabled = true;
-  }
+  let exportedOk = false;
+  setButtonState(btn, "loading", "Exporting...");
   showToast("⏳ Preparing Excel export...");
 
   try {
@@ -420,7 +422,10 @@ async function exportFullTableToExcel(includeDeleted = true) {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Post Offices");
     XLSX.writeFile(workbook, "DakMitra_Database_With_History.xlsx");
 
+    exportedOk = true;
+    setButtonState(btn, "success", "Exported!");
     showToast(`📥 Exported ${formattedRows.length} rows to Excel!`);
+    setTimeout(() => setButtonState(btn, "idle"), 1800);
   } catch (err) {
     if (isNetworkError(err)) {
       exportCachedFallback();
@@ -428,9 +433,8 @@ async function exportFullTableToExcel(includeDeleted = true) {
       alert("Excel export failed: " + err.message);
     }
   } finally {
-    if (btn) {
-      btn.textContent = originalText;
-      btn.disabled = false;
+    if (!exportedOk) {
+      setButtonState(btn, "idle");
     }
   }
 }

@@ -649,6 +649,10 @@ function removeManualEntryRow(btnEl) {
   renumberManualRows();
 }
 
+const UPLOAD_ICON_UP_SVG = `<svg class="dm-icon-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>`;
+
+const UPLOAD_ICON_BOLT_SVG = `<svg class="dm-icon-pop" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`;
+
 function updateManualSubmitCount() {
   const btn = document.getElementById("submit-multiple-btn");
   if (
@@ -670,10 +674,11 @@ function updateManualSubmitCount() {
   });
 
   const actionVerb = isCurrentUserAdmin ? "Add" : "Submit";
-  btn.textContent =
+  const label =
     readyCount > 0
       ? `${actionVerb} ${readyCount} ${readyCount === 1 ? "Record" : "Records"}`
       : `${actionVerb} All`;
+  btn.innerHTML = `${UPLOAD_ICON_UP_SVG}<span>${escapeHTML(label)}</span>`;
 }
 
 (function initManualEntries() {
@@ -815,6 +820,7 @@ function syncUploadAdminUI() {
   }
   switchManualUploadTab(currentUploadTab, true);
   updateManualSubmitCount();
+  updateBulkAddressPreview();
 }
 
 function switchManualUploadTab(tab, silent = false) {
@@ -881,18 +887,25 @@ function updateBulkAddressPreview() {
     removeFnName: "removeBulkAddressAt",
   });
 
-  if (submitBtn) {
-    if (addresses.length === 0) {
-      submitBtn.textContent =
-        bulkAddPriority === 1
-          ? "⚡ Submit All as Priority"
-          : "Submit All Addresses";
-    } else {
-      const prioPrefix = bulkAddPriority === 1 ? "⚡ " : "";
-      submitBtn.textContent = `${prioPrefix}Submit ${addresses.length} ${
-        addresses.length === 1 ? "Address" : "Addresses"
-      }`;
-    }
+  if (
+    submitBtn &&
+    !submitBtn.classList.contains("is-loading") &&
+    !submitBtn.classList.contains("is-success")
+  ) {
+    const actionVerb = isCurrentUserAdmin ? "Add" : "Submit";
+    const iconSvg =
+      bulkAddPriority === 1 ? UPLOAD_ICON_BOLT_SVG : UPLOAD_ICON_UP_SVG;
+    const label =
+      addresses.length === 0
+        ? bulkAddPriority === 1
+          ? `${actionVerb} All as Priority`
+          : `${actionVerb} All Addresses`
+        : `${actionVerb} ${addresses.length} ${
+            addresses.length === 1 ? "Address" : "Addresses"
+          }${bulkAddPriority === 1 ? " (Priority)" : ""}`;
+    submitBtn.classList.toggle("dm-btn-amber-soft", bulkAddPriority === 1);
+    submitBtn.classList.toggle("dm-btn-primary-soft", bulkAddPriority !== 1);
+    submitBtn.innerHTML = `${iconSvg}<span>${escapeHTML(label)}</span>`;
   }
 }
 
@@ -953,6 +966,7 @@ async function submitBulkSameOffice() {
 
   const prioText = bulkAddPriority === 1 ? "Priority " : "";
   const btn = document.getElementById("submit-bulk-btn");
+  delete btn.dataset.originalHtml;
   setButtonState(btn, "loading", `Submitting ${addresses.length}...`);
 
   try {
