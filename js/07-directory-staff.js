@@ -833,6 +833,21 @@ function renderDirectoryBatch() {
         ? `Office Staff Details (${parentStaffCount} saved)`
         : `Add Staff Details for ${escapeHTML(data.office)}`;
 
+    const canonicalGroup =
+      typeof directoryGroupByKeyMap !== "undefined"
+        ? directoryGroupByKeyMap.get(data.office.toLowerCase())
+        : null;
+    const allOfficeItems = canonicalGroup?.addresses || addressList;
+    const unverifiedCount = allOfficeItems.filter(
+      (item) => getDirectoryItemFlags(item).isUnverified
+    ).length;
+    const verifyBtnTitle =
+      unverifiedCount > 0
+        ? `Verify ${unverifiedCount} unverified ${
+            unverifiedCount === 1 ? "address" : "addresses"
+          } in ${escapeHTML(data.office)}`
+        : `All addresses in ${escapeHTML(data.office)} are verified`;
+
     html += `
         <div class="directory-card" id="${safeId}">
           <div class="directory-card-header">
@@ -893,6 +908,22 @@ function renderDirectoryBatch() {
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                class="dir-quick-verify-btn ${
+                  unverifiedCount === 0 ? "is-all-verified" : ""
+                }"
+                onclick="quickVerifyForOffice('${escapeForOnclick(
+                  data.office
+                )}', '${escapeForOnclick(data.pin)}')"
+                title="${verifyBtnTitle}"
+                aria-label="${verifyBtnTitle}"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </button>
 
@@ -1346,6 +1377,7 @@ function openDirectoryOfficeActions(rowEl) {
           <button onclick="event.stopPropagation(); showParentOfficeDetailsModal('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-staff" title="${staffTitle}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Staff</button>
           <button onclick="event.stopPropagation(); practiceOfficeFromDirectory('${safeOfficeJs}')" class="toolbar-btn pill-btn-history" title="Practice ${safeOfficeHtml} in Learn &amp; Quiz"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"></path></svg> Learn</button>
           <button onclick="event.stopPropagation(); quickPriorityForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-priority" title="Manage priority addresses in ${safeOfficeHtml}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Priority</button>
+          <button onclick="event.stopPropagation(); quickVerifyForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-verify" title="Bulk verify unverified addresses in ${safeOfficeHtml}">✓ Verify</button>
           <button onclick="event.stopPropagation(); quickAddForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-edit" title="Add multiple addresses to ${safeOfficeHtml}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add</button>
           <button onclick="event.stopPropagation(); quickDeleteForOffice('${safeOfficeJs}', '${safePinJs}')" class="toolbar-btn pill-btn-delete" title="Delete multiple addresses from ${safeOfficeHtml}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg> Delete</button>
         </div>
@@ -2248,6 +2280,7 @@ let activeQuickDeleteItems = [];
 let activeQuickDeleteSelectedIds = new Set();
 let activeQuickDeleteFilters = new Set();
 let isQuickDeleteTrayExpanded = false;
+let quickDeleteShowAll = false;
 
 function getQuickDeleteBtnDefaultHTML(count = 0) {
   const baseLabel = isCurrentUserAdmin ? "Delete" : "Request Delete";
@@ -2261,12 +2294,54 @@ function getQuickDeleteBtnDefaultHTML(count = 0) {
     `;
 }
 
+function getBaseQuickDeleteItems() {
+  if (quickDeleteShowAll) return activeQuickDeleteItems;
+  return activeQuickDeleteItems.filter(
+    (item) => getDirectoryItemFlags(item).isUnverified
+  );
+}
+
+function toggleQuickDeleteShowAll() {
+  quickDeleteShowAll = !quickDeleteShowAll;
+  activeQuickDeleteFilters.clear();
+
+  // Safety lock: deselect any verified addresses when hiding them again
+  if (!quickDeleteShowAll && activeQuickDeleteSelectedIds.size > 0) {
+    const unverifiedIds = new Set(
+      getBaseQuickDeleteItems().map((item) => String(item.id))
+    );
+    let removedVerified = 0;
+    Array.from(activeQuickDeleteSelectedIds).forEach((idStr) => {
+      if (!unverifiedIds.has(idStr)) {
+        activeQuickDeleteSelectedIds.delete(idStr);
+        removedVerified++;
+      }
+    });
+    if (removedVerified > 0) {
+      showToast(
+        `🛡️ Deselected ${removedVerified} verified ${
+          removedVerified === 1 ? "address" : "addresses"
+        }`,
+        "info"
+      );
+    }
+  }
+
+  if (navigator.vibrate) navigator.vibrate(18);
+  const chipsContainer = document.getElementById(
+    "quick-delete-chips-container"
+  );
+  if (chipsContainer) chipsContainer.scrollTop = 0;
+  renderQuickDeleteChips();
+}
+
 function getTextMatchedQuickDeleteItems() {
+  const baseItems = getBaseQuickDeleteItems();
   const q = (document.getElementById("quick-delete-filter-input")?.value || "")
     .trim()
     .toLowerCase();
-  if (!q) return activeQuickDeleteItems;
-  return activeQuickDeleteItems.filter((item) =>
+  if (!q) return baseItems;
+  return baseItems.filter((item) =>
     String(item.Address || "")
       .toLowerCase()
       .includes(q)
@@ -2375,6 +2450,20 @@ function updateQuickDeleteFilterUI(textMatchedItems) {
   syncChip("qd-chip-priority", "priority", priorityCount);
   syncChip("qd-chip-regular", "regular", regularCount);
   syncChip("qd-chip-unverified", "unverified", unverifiedCount);
+
+  document
+    .getElementById("quick-delete-category-bar")
+    ?.classList.toggle("hidden", !quickDeleteShowAll);
+
+  const showAllBtn = document.getElementById("quick-delete-show-all-btn");
+  if (showAllBtn) {
+    const hasVerified = activeQuickDeleteItems.some(
+      (item) => !getDirectoryItemFlags(item).isUnverified
+    );
+    showAllBtn.classList.toggle("hidden", !hasVerified && !quickDeleteShowAll);
+    showAllBtn.textContent = quickDeleteShowAll ? "Hide Verified" : "Show All";
+    showAllBtn.style.color = quickDeleteShowAll ? "#d97706" : "var(--primary)";
+  }
 }
 
 function quickDeleteForOffice(officeName, pinNumber) {
@@ -2389,6 +2478,7 @@ function quickDeleteForOffice(officeName, pinNumber) {
   activeQuickDeleteSelectedIds = new Set();
   activeQuickDeleteFilters.clear();
   isQuickDeleteTrayExpanded = false;
+  quickDeleteShowAll = false;
 
   const targetLower = activeQuickDeleteOffice.office.trim().toLowerCase();
   activeQuickDeleteItems = (cachedPostOffices || [])
@@ -2437,6 +2527,7 @@ function closeQuickDeleteModal() {
   const catChips = document.getElementById("quick-delete-category-chips");
   activeQuickDeleteFilters.clear();
   isQuickDeleteTrayExpanded = false;
+  quickDeleteShowAll = false;
   overlay?.classList.remove("show");
   if (chipsContainer) chipsContainer.scrollTop = 0;
   if (catChips) catChips.scrollLeft = 0;
@@ -2452,15 +2543,29 @@ function renderQuickDeleteChips() {
   const visibleItems = getFilteredQuickDeleteItems(textMatched);
 
   if (visibleItems.length === 0) {
-    const showResetBtn = activeQuickDeleteFilters.size > 0;
+    const hasText =
+      (document.getElementById("quick-delete-filter-input")?.value || "").trim()
+        .length > 0;
+    let emptyMsg = "No matching addresses found.";
+    let actionBtnHtml = "";
+
+    if (!quickDeleteShowAll) {
+      emptyMsg = hasText
+        ? "No matching unverified addresses."
+        : "✅ All addresses in this office are verified.";
+      if (activeQuickDeleteItems.length > 0) {
+        actionBtnHtml = `<button type="button" class="dir-filter-reset-btn" onpointerdown="event.preventDefault()" onclick="toggleQuickDeleteShowAll()">${
+          hasText ? "Search All Addresses" : "Show All Addresses"
+        }</button>`;
+      }
+    } else if (activeQuickDeleteFilters.size > 0) {
+      actionBtnHtml = `<button type="button" class="dir-filter-reset-btn" onpointerdown="event.preventDefault()" onclick="toggleQuickDeleteFilterChip('all')">Show All</button>`;
+    }
+
     container.innerHTML = `
       <div style="width: 100%; text-align: center; padding: 18px 8px; font-size: 13px; color: var(--text-light); display: flex; flex-direction: column; align-items: center; gap: 8px;">
-        <span>No matching addresses found.</span>
-        ${
-          showResetBtn
-            ? `<button type="button" class="dir-filter-reset-btn" onpointerdown="event.preventDefault()" onclick="toggleQuickDeleteFilterChip('all')">Show All</button>`
-            : ""
-        }
+        <span>${emptyMsg}</span>
+        ${actionBtnHtml}
       </div>`;
   } else {
     container.innerHTML = visibleItems
@@ -2646,10 +2751,13 @@ function updateQuickDeleteUI(visibleItemsOverride = null) {
     "quick-delete-submit-btn-content"
   );
 
+  const totalBase = getBaseQuickDeleteItems().length;
   if (countEl) {
     countEl.textContent = isFiltered
       ? `${count} selected • ${visibleItems.length} shown`
-      : `${count} of ${activeQuickDeleteItems.length} selected`;
+      : quickDeleteShowAll
+      ? `${count} of ${totalBase} selected`
+      : `${count} of ${totalBase} unverified`;
     countEl.style.color = count > 0 ? "#ef4444" : "var(--text-light)";
   }
 
@@ -2689,11 +2797,13 @@ function confirmQuickDeleteModal() {
 
   let officeCount = 0;
   let priorityCount = 0;
+  let verifiedRegularCount = 0;
   activeQuickDeleteItems.forEach((item) => {
     if (!activeQuickDeleteSelectedIds.has(String(item.id))) return;
-    const { isOffice, isPriority } = getDirectoryItemFlags(item);
+    const { isOffice, isPriority, isRegular } = getDirectoryItemFlags(item);
     if (isOffice) officeCount++;
     else if (isPriority) priorityCount++;
+    else if (isRegular) verifiedRegularCount++;
   });
 
   const warnParts = [];
@@ -2706,6 +2816,13 @@ function confirmQuickDeleteModal() {
     warnParts.push(
       `${priorityCount} Priority ${
         priorityCount === 1 ? "address" : "addresses"
+      }`
+    );
+  }
+  if (verifiedRegularCount > 0) {
+    warnParts.push(
+      `${verifiedRegularCount} Verified ${
+        verifiedRegularCount === 1 ? "address" : "addresses"
       }`
     );
   }
@@ -2955,7 +3072,8 @@ let activeQuickPriorityOffice = { office: "", pin: "" };
 let activeQuickPriorityItems = [];
 let activeQuickPriorityInitial = new Set();
 let activeQuickPriorityDraft = new Set();
-let quickPriorityNonBoOnly = false;
+let activeQuickPriorityFilters = new Set();
+let quickPriorityShowAll = false;
 
 function getQuickPriorityDelta() {
   const promoteIds = [];
@@ -2993,6 +3111,136 @@ function getQuickPrioritySaveBtnHTML(changeCount = 0) {
     `;
 }
 
+function getBaseQuickPriorityItems() {
+  if (quickPriorityShowAll) return activeQuickPriorityItems;
+  return activeQuickPriorityItems.filter(
+    (item) => getDirectoryItemFlags(item).isRegular
+  );
+}
+
+function getTextMatchedQuickPriorityItems() {
+  const baseItems = getBaseQuickPriorityItems();
+  const q = (
+    document.getElementById("quick-priority-filter-input")?.value || ""
+  )
+    .trim()
+    .toLowerCase();
+  if (!q) return baseItems;
+  return baseItems.filter((item) =>
+    String(item.Address || "")
+      .toLowerCase()
+      .includes(q)
+  );
+}
+
+function matchesQuickPriorityCategoryFilter(item) {
+  if (activeQuickPriorityFilters.size === 0) return true;
+  const { isOffice, isPriority, isUnverified, isRegular } =
+    getDirectoryItemFlags(item);
+  if (activeQuickPriorityFilters.has("office") && isOffice) return true;
+  if (activeQuickPriorityFilters.has("priority") && isPriority) return true;
+  if (activeQuickPriorityFilters.has("regular") && isRegular) return true;
+  if (activeQuickPriorityFilters.has("unverified") && isUnverified) return true;
+  return false;
+}
+
+function toggleQuickPriorityShowAll() {
+  quickPriorityShowAll = !quickPriorityShowAll;
+  activeQuickPriorityFilters.clear();
+
+  if (navigator.vibrate) navigator.vibrate(18);
+  const chipsContainer = document.getElementById(
+    "quick-priority-chips-container"
+  );
+  if (chipsContainer) chipsContainer.scrollTop = 0;
+  renderQuickPriorityChips();
+}
+
+function toggleQuickPriorityFilterChip(type) {
+  if (type === "all") {
+    activeQuickPriorityFilters.clear();
+  } else if (DIRECTORY_FILTER_TYPES.includes(type)) {
+    if (activeQuickPriorityFilters.has(type)) {
+      activeQuickPriorityFilters.delete(type);
+    } else {
+      activeQuickPriorityFilters.add(type);
+    }
+    if (activeQuickPriorityFilters.size === DIRECTORY_FILTER_TYPES.length) {
+      activeQuickPriorityFilters.clear();
+    }
+  }
+
+  if (navigator.vibrate) navigator.vibrate(18);
+  const chipsContainer = document.getElementById(
+    "quick-priority-chips-container"
+  );
+  if (chipsContainer) chipsContainer.scrollTop = 0;
+  renderQuickPriorityChips();
+}
+
+function updateQuickPriorityFilterUI(textMatchedItems) {
+  let allCount = 0;
+  let officeCount = 0;
+  let priorityCount = 0;
+  let regularCount = 0;
+  let unverifiedCount = 0;
+
+  for (let i = 0; i < textMatchedItems.length; i++) {
+    allCount++;
+    const { isOffice, isPriority, isRegular, isUnverified } =
+      getDirectoryItemFlags(textMatchedItems[i]);
+    if (isOffice) officeCount++;
+    if (isPriority) priorityCount++;
+    if (isRegular) regularCount++;
+    if (isUnverified) unverifiedCount++;
+  }
+
+  const setTxt = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  setTxt("qp-count-all", allCount);
+  setTxt("qp-count-office", officeCount);
+  setTxt("qp-count-priority", priorityCount);
+  setTxt("qp-count-regular", regularCount);
+  setTxt("qp-count-unverified", unverifiedCount);
+
+  const isAll = activeQuickPriorityFilters.size === 0;
+  document.getElementById("qp-chip-all")?.classList.toggle("active", isAll);
+
+  const syncChip = (id, key, count) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle("active", activeQuickPriorityFilters.has(key));
+    el.classList.toggle("is-empty", count === 0);
+  };
+
+  syncChip("qp-chip-office", "office", officeCount);
+  syncChip("qp-chip-priority", "priority", priorityCount);
+  syncChip("qp-chip-regular", "regular", regularCount);
+  syncChip("qp-chip-unverified", "unverified", unverifiedCount);
+
+  document
+    .getElementById("quick-priority-category-bar")
+    ?.classList.toggle("hidden", !quickPriorityShowAll);
+
+  const showAllBtn = document.getElementById("quick-priority-show-all-btn");
+  if (showAllBtn) {
+    const hasNonRegular = activeQuickPriorityItems.some(
+      (item) => !getDirectoryItemFlags(item).isRegular
+    );
+    showAllBtn.classList.toggle(
+      "hidden",
+      !hasNonRegular && !quickPriorityShowAll
+    );
+    showAllBtn.textContent = quickPriorityShowAll ? "Regular Only" : "Show All";
+    showAllBtn.style.color = quickPriorityShowAll
+      ? "#d97706"
+      : "var(--primary)";
+  }
+}
+
 function quickPriorityForOffice(officeName, pinNumber) {
   closeAllDirectoryActionTrays();
 
@@ -3002,7 +3250,8 @@ function quickPriorityForOffice(officeName, pinNumber) {
     office: officeName || "",
     pin: cleanPin,
   };
-  quickPriorityNonBoOnly = false;
+  activeQuickPriorityFilters.clear();
+  quickPriorityShowAll = false;
 
   const targetLower = activeQuickPriorityOffice.office.trim().toLowerCase();
   activeQuickPriorityItems = (cachedPostOffices || [])
@@ -3029,6 +3278,9 @@ function quickPriorityForOffice(officeName, pinNumber) {
   const filterInput = document.getElementById("quick-priority-filter-input");
   if (filterInput) filterInput.value = "";
 
+  const catChips = document.getElementById("quick-priority-category-chips");
+  if (catChips) catChips.scrollLeft = 0;
+
   const saveBtn = document.getElementById("quick-priority-save-btn");
   saveBtn.classList.remove("is-loading", "is-success");
 
@@ -3048,41 +3300,52 @@ function closeQuickPriorityModal() {
   const chipsContainer = document.getElementById(
     "quick-priority-chips-container"
   );
+  const catChips = document.getElementById("quick-priority-category-chips");
+  activeQuickPriorityFilters.clear();
+  quickPriorityShowAll = false;
   overlay?.classList.remove("show");
   if (chipsContainer) chipsContainer.scrollTop = 0;
+  if (catChips) catChips.scrollLeft = 0;
   if (overlay) overlay.scrollTop = 0;
-}
-
-function toggleQuickPriorityNonBoOnly() {
-  quickPriorityNonBoOnly = !quickPriorityNonBoOnly;
-  renderQuickPriorityChips();
 }
 
 function renderQuickPriorityChips() {
   const container = document.getElementById("quick-priority-chips-container");
   if (!container) return;
 
-  const q = (
-    document.getElementById("quick-priority-filter-input")?.value || ""
-  )
-    .trim()
-    .toLowerCase();
-
-  const visibleItems = activeQuickPriorityItems.filter((item) => {
-    const ot = detectOfficeType(item.Address);
-    if (quickPriorityNonBoOnly && ot) return false;
-    if (
-      q &&
-      !String(item.Address || "")
-        .toLowerCase()
-        .includes(q)
-    )
-      return false;
-    return true;
-  });
+  const textMatched = getTextMatchedQuickPriorityItems();
+  updateQuickPriorityFilterUI(textMatched);
+  const visibleItems =
+    activeQuickPriorityFilters.size === 0
+      ? textMatched
+      : textMatched.filter(matchesQuickPriorityCategoryFilter);
 
   if (visibleItems.length === 0) {
-    container.innerHTML = `<div style="width: 100%; text-align: center; padding: 18px 8px; font-size: 13px; color: var(--text-light);">No matching addresses found.</div>`;
+    const hasText =
+      (
+        document.getElementById("quick-priority-filter-input")?.value || ""
+      ).trim().length > 0;
+    let emptyMsg = "No matching addresses found.";
+    let actionBtnHtml = "";
+
+    if (!quickPriorityShowAll) {
+      emptyMsg = hasText
+        ? "No matching regular addresses."
+        : "No regular addresses left in this office.";
+      if (activeQuickPriorityItems.length > 0) {
+        actionBtnHtml = `<button type="button" class="dir-filter-reset-btn" onpointerdown="event.preventDefault()" onclick="toggleQuickPriorityShowAll()">${
+          hasText ? "Search All Addresses" : "Show All Addresses"
+        }</button>`;
+      }
+    } else if (activeQuickPriorityFilters.size > 0) {
+      actionBtnHtml = `<button type="button" class="dir-filter-reset-btn" onpointerdown="event.preventDefault()" onclick="toggleQuickPriorityFilterChip('all')">Show All</button>`;
+    }
+
+    container.innerHTML = `
+      <div style="width: 100%; text-align: center; padding: 18px 8px; font-size: 13px; color: var(--text-light); display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <span>${emptyMsg}</span>
+        ${actionBtnHtml}
+      </div>`;
   } else {
     container.innerHTML = visibleItems
       .map((item) => {
@@ -3090,6 +3353,7 @@ function renderQuickPriorityChips() {
         const ot = detectOfficeType(item.Address);
         const isAutoTop = ot === "HO" || ot === "SO";
         const isSelected = activeQuickPriorityDraft.has(idStr);
+        const isUnverified = isUnverifiedRecord(item);
 
         if (isAutoTop) {
           return `
@@ -3100,16 +3364,22 @@ function renderQuickPriorityChips() {
         }
 
         return `
-  <button
-    type="button"
-    class="priority-select-chip ${isSelected ? "selected" : ""}"
-    onpointerdown="event.preventDefault()"
-    onclick="toggleQuickPriorityItem('${escapeForOnclick(idStr)}', this)"
-  >
-    <span>${isSelected ? "⚡" : ot === "BO" ? "📮" : "•"}</span>
-    <span>${escapeHTML(item.Address)}</span>
-    ${ot === "BO" ? `<span class="priority-chip-tag">Office</span>` : ""}
-  </button>`;
+          <button
+            type="button"
+            class="priority-select-chip ${
+              isUnverified ? "is-unverified-item" : ""
+            } ${isSelected ? "selected" : ""}"
+            onpointerdown="event.preventDefault()"
+            onclick="toggleQuickPriorityItem('${escapeForOnclick(
+              idStr
+            )}', this)"
+          >
+            <span>${isSelected ? "⚡" : ot === "BO" ? "📮" : "•"}</span>
+            <span>${escapeHTML(item.Address)}</span>
+            ${
+              ot === "BO" ? `<span class="priority-chip-tag">Office</span>` : ""
+            }
+          </button>`;
       })
       .join("");
   }
@@ -3139,7 +3409,6 @@ function toggleQuickPriorityItem(idStr, chipEl) {
 
 function updateQuickPriorityUI() {
   const countEl = document.getElementById("quick-priority-count");
-  const hideBoBtn = document.getElementById("quick-priority-hide-bo-btn");
   const saveBtn = document.getElementById("quick-priority-save-btn");
   const saveBtnContent = document.getElementById(
     "quick-priority-save-btn-content"
@@ -3151,12 +3420,6 @@ function updateQuickPriorityUI() {
     countEl.textContent = `${activeQuickPriorityDraft.size} marked Priority`;
     countEl.style.color =
       activeQuickPriorityDraft.size > 0 ? "#d97706" : "var(--text-light)";
-  }
-
-  if (hideBoBtn) {
-    hideBoBtn.textContent = quickPriorityNonBoOnly
-      ? "Show All"
-      : "Hide Offices";
   }
 
   if (
@@ -3252,5 +3515,287 @@ async function saveQuickPriorityModal() {
     saveBtn.disabled = false;
     saveBtnContent.innerHTML = getQuickPrioritySaveBtnHTML(totalChanges);
     alert("Error updating priorities: " + err.message);
+  }
+}
+
+// --- DIRECTORY BULK VERIFY ADDRESSES MODAL ---
+let activeQuickVerifyOffice = { office: "", pin: "" };
+let activeQuickVerifyItems = [];
+let activeQuickVerifySelectedIds = new Set();
+
+function getQuickVerifySaveBtnHTML(count = 0) {
+  const label = count > 0 ? `Verify (${count})` : "Verify Selected";
+  return `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>${label}</span>
+    `;
+}
+
+function getFilteredQuickVerifyItems() {
+  const q = (document.getElementById("quick-verify-filter-input")?.value || "")
+    .trim()
+    .toLowerCase();
+  if (!q) return activeQuickVerifyItems;
+  return activeQuickVerifyItems.filter((item) =>
+    String(item.Address || "")
+      .toLowerCase()
+      .includes(q)
+  );
+}
+
+function quickVerifyForOffice(officeName, pinNumber) {
+  closeAllDirectoryActionTrays();
+
+  const cleanPin =
+    pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
+  activeQuickVerifyOffice = {
+    office: officeName || "",
+    pin: cleanPin,
+  };
+  activeQuickVerifySelectedIds = new Set();
+
+  const targetLower = activeQuickVerifyOffice.office.trim().toLowerCase();
+  activeQuickVerifyItems = (cachedPostOffices || [])
+    .filter(
+      (r) =>
+        String(r.Office || "")
+          .trim()
+          .toLowerCase() === targetLower && isUnverifiedRecord(r)
+    )
+    .sort((a, b) =>
+      String(a.Address || "").localeCompare(String(b.Address || ""))
+    );
+
+  if (activeQuickVerifyItems.length === 0) {
+    showToast(
+      `✅ All addresses in ${activeQuickVerifyOffice.office} are already verified!`,
+      "success"
+    );
+    return;
+  }
+
+  document.getElementById("quick-verify-subtitle").textContent = `🏢 ${
+    activeQuickVerifyOffice.office
+  }${cleanPin ? ` • 📍 ${cleanPin}` : ""}`;
+
+  const filterInput = document.getElementById("quick-verify-filter-input");
+  if (filterInput) filterInput.value = "";
+
+  const saveBtn = document.getElementById("quick-verify-save-btn");
+  saveBtn.classList.remove("is-loading", "is-success");
+
+  renderQuickVerifyChips();
+
+  const overlay = document.getElementById("quick-verify-modal-overlay");
+  const chipsContainer = document.getElementById(
+    "quick-verify-chips-container"
+  );
+  overlay.classList.add("show");
+  if (chipsContainer) chipsContainer.scrollTop = 0;
+  overlay.scrollTop = 0;
+}
+
+function closeQuickVerifyModal() {
+  const overlay = document.getElementById("quick-verify-modal-overlay");
+  const chipsContainer = document.getElementById(
+    "quick-verify-chips-container"
+  );
+  overlay?.classList.remove("show");
+  if (chipsContainer) chipsContainer.scrollTop = 0;
+  if (overlay) overlay.scrollTop = 0;
+}
+
+function renderQuickVerifyChips() {
+  const container = document.getElementById("quick-verify-chips-container");
+  if (!container) return;
+
+  const visibleItems = getFilteredQuickVerifyItems();
+
+  if (visibleItems.length === 0) {
+    container.innerHTML = `<div style="width: 100%; text-align: center; padding: 18px 8px; font-size: 13px; color: var(--text-light);">No matching unverified addresses found.</div>`;
+  } else {
+    container.innerHTML = visibleItems
+      .map((item) => {
+        const idStr = String(item.id);
+        const isSelected = activeQuickVerifySelectedIds.has(idStr);
+        return `
+          <button
+            type="button"
+            class="verify-select-chip ${isSelected ? "selected" : ""}"
+            onpointerdown="event.preventDefault()"
+            onclick="toggleQuickVerifyItem('${escapeForOnclick(idStr)}', this)"
+          >
+            <span class="verify-chip-check">${isSelected ? "✓" : ""}</span>
+            <span>${escapeHTML(item.Address)}</span>
+          </button>`;
+      })
+      .join("");
+  }
+
+  updateQuickVerifyUI(visibleItems);
+}
+
+function toggleQuickVerifyItem(idStr, chipEl) {
+  if (activeQuickVerifySelectedIds.has(idStr)) {
+    activeQuickVerifySelectedIds.delete(idStr);
+    chipEl?.classList.remove("selected");
+    const chk = chipEl?.querySelector(".verify-chip-check");
+    if (chk) chk.textContent = "";
+  } else {
+    activeQuickVerifySelectedIds.add(idStr);
+    chipEl?.classList.add("selected");
+    const chk = chipEl?.querySelector(".verify-chip-check");
+    if (chk) chk.textContent = "✓";
+  }
+
+  if (navigator.vibrate) navigator.vibrate(20);
+  updateQuickVerifyUI();
+}
+
+function toggleSelectAllQuickVerify() {
+  const visibleItems = getFilteredQuickVerifyItems();
+  if (visibleItems.length === 0) return;
+
+  const allVisibleSelected = visibleItems.every((item) =>
+    activeQuickVerifySelectedIds.has(String(item.id))
+  );
+
+  visibleItems.forEach((item) => {
+    const idStr = String(item.id);
+    if (allVisibleSelected) activeQuickVerifySelectedIds.delete(idStr);
+    else activeQuickVerifySelectedIds.add(idStr);
+  });
+
+  if (navigator.vibrate) navigator.vibrate(18);
+  renderQuickVerifyChips();
+}
+
+function updateQuickVerifyUI(visibleItemsOverride = null) {
+  const count = activeQuickVerifySelectedIds.size;
+  const visibleItems = visibleItemsOverride || getFilteredQuickVerifyItems();
+  const hasFilter =
+    (document.getElementById("quick-verify-filter-input")?.value || "").trim()
+      .length > 0;
+
+  const countEl = document.getElementById("quick-verify-count");
+  const selectAllBtn = document.getElementById("quick-verify-select-all-btn");
+  const saveBtn = document.getElementById("quick-verify-save-btn");
+  const saveBtnContent = document.getElementById(
+    "quick-verify-save-btn-content"
+  );
+
+  if (countEl) {
+    countEl.textContent = hasFilter
+      ? `${count} selected • ${visibleItems.length} shown`
+      : `${count} of ${activeQuickVerifyItems.length} unverified selected`;
+    countEl.style.color = count > 0 ? "#059669" : "var(--text-light)";
+  }
+
+  const allVisibleSelected =
+    visibleItems.length > 0 &&
+    visibleItems.every((item) =>
+      activeQuickVerifySelectedIds.has(String(item.id))
+    );
+  if (selectAllBtn) {
+    selectAllBtn.disabled = visibleItems.length === 0;
+    if (hasFilter) {
+      selectAllBtn.textContent = allVisibleSelected
+        ? "Deselect Shown"
+        : `Select Shown (${visibleItems.length})`;
+    } else {
+      selectAllBtn.textContent = allVisibleSelected
+        ? "Deselect All"
+        : "Select All";
+    }
+  }
+
+  if (
+    saveBtn &&
+    !saveBtn.classList.contains("is-loading") &&
+    !saveBtn.classList.contains("is-success")
+  ) {
+    saveBtn.disabled = count === 0;
+    saveBtnContent.innerHTML = getQuickVerifySaveBtnHTML(count);
+  }
+}
+
+async function saveQuickVerifyModal() {
+  const idsToVerify = Array.from(activeQuickVerifySelectedIds);
+  if (idsToVerify.length === 0) return;
+
+  const saveBtn = document.getElementById("quick-verify-save-btn");
+  const saveBtnContent = document.getElementById(
+    "quick-verify-save-btn-content"
+  );
+
+  saveBtn.classList.add("is-loading");
+  saveBtn.disabled = true;
+  saveBtnContent.innerHTML = `<div class="btn-spinner"></div><span>Verifying...</span>`;
+
+  if (!(await ensureOnline("Connect to internet to verify addresses."))) {
+    saveBtn.classList.remove("is-loading");
+    saveBtn.disabled = false;
+    saveBtnContent.innerHTML = getQuickVerifySaveBtnHTML(idsToVerify.length);
+    return;
+  }
+
+  try {
+    const numericIds = idsToVerify.map(Number);
+    const { data: updatedCount, error } = await supabaseClient.rpc(
+      "verify_post_office_addresses",
+      { target_ids: numericIds }
+    );
+    if (error) throw error;
+
+    const verifySet = new Set(idsToVerify.map(String));
+    cachedPostOffices.forEach((row) => {
+      if (verifySet.has(String(row.id)) && Number(row.priority) === -1) {
+        row.priority = 0;
+        updateSearchIndexRow(row);
+      }
+    });
+
+    persistPostOfficeCache();
+    refreshSearchInPlace();
+    refreshDirectoryInPlace();
+    if (typeof onLearnDatabaseUpdated === "function") onLearnDatabaseUpdated();
+
+    if (
+      typeof updatedCount === "number" &&
+      updatedCount !== idsToVerify.length
+    ) {
+      showToast(
+        `✅ Verified ${updatedCount} of ${idsToVerify.length}. Syncing latest state...`,
+        "success"
+      );
+      await fetchAllPostOffices(true);
+    } else {
+      showToast(
+        `✅ Verified ${idsToVerify.length} ${
+          idsToVerify.length === 1 ? "address" : "addresses"
+        } in ${activeQuickVerifyOffice.office}!`,
+        "success"
+      );
+    }
+
+    saveBtn.classList.remove("is-loading");
+    saveBtn.classList.add("is-success");
+    saveBtnContent.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <polyline class="checkmark-path" points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>Verified!</span>
+    `;
+
+    setTimeout(() => {
+      closeQuickVerifyModal();
+    }, 600);
+  } catch (err) {
+    saveBtn.classList.remove("is-loading", "is-success");
+    saveBtn.disabled = false;
+    saveBtnContent.innerHTML = getQuickVerifySaveBtnHTML(idsToVerify.length);
+    alert("Error verifying addresses: " + err.message);
   }
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = "po-directory-v59";
+const CACHE_NAME = "po-directory-v60";
 
 const IS_LOCAL_DEV =
   self.location.hostname === "localhost" ||

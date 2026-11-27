@@ -501,6 +501,11 @@ function switchDashboardView(viewId) {
         ) {
           closeQuickPriorityModal();
         } else if (
+          topModal.id === "quick-verify-modal-overlay" &&
+          window.closeQuickVerifyModal
+        ) {
+          closeQuickVerifyModal();
+        } else if (
           topModal.id === "feedback-admin-modal-overlay" &&
           window.closeFeedbackAdminModal
         ) {
