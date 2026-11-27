@@ -142,7 +142,21 @@ async function ensureOnline(
 }
 
 // --- SEMANTIC FROSTED-GLASS TOASTS ---
+
 let toastTimer = null;
+let toastRafId = null;
+let toastClickBound = false;
+
+function hideToast() {
+  clearTimeout(toastTimer);
+  toastTimer = null;
+  if (toastRafId !== null) {
+    cancelAnimationFrame(toastRafId);
+    toastRafId = null;
+  }
+  const toastEl = document.getElementById("toast");
+  if (toastEl) toastEl.classList.remove("show");
+}
 
 function detectToastType(message) {
   const msg = String(message || "");
@@ -173,14 +187,28 @@ function detectToastType(message) {
 function showToast(message, type = null) {
   const toastEl = document.getElementById("toast");
   if (!toastEl) return;
+
+  if (!toastClickBound) {
+    toastClickBound = true;
+    toastEl.addEventListener("click", hideToast);
+  }
+
   clearTimeout(toastTimer);
+  toastTimer = null;
+  if (toastRafId !== null) {
+    cancelAnimationFrame(toastRafId);
+    toastRafId = null;
+  }
 
   const resolvedType = type || detectToastType(message);
   toastEl.className = `toast toast-${resolvedType}`;
   toastEl.textContent = message;
 
-  requestAnimationFrame(() => toastEl.classList.add("show"));
-  toastTimer = setTimeout(() => toastEl.classList.remove("show"), 3000);
+  toastRafId = requestAnimationFrame(() => {
+    toastRafId = null;
+    toastEl.classList.add("show");
+    toastTimer = setTimeout(hideToast, 3000);
+  });
 
   if (navigator.vibrate) {
     navigator.vibrate(resolvedType === "error" ? [40, 40, 40] : 50);
