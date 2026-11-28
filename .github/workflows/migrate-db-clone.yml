@@ -66,28 +66,43 @@ jobs:
 
           psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -f /tmp/public_schema.sql
 
-      - name: Clone auth.users & auth.identities safely
+        - name: Clone auth.users & auth.identities safely
         env:
-          OLD_DB_URL: ${{ secrets.OLD_DB_URL }}
-          NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
+        OLD_DB_URL: ${{ secrets.OLD_DB_URL }}
+        NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
         run: |
-          set -e
-          pg_dump "$OLD_DB_URL" \
-            --table=auth.users \
-            --table=auth.identities \
-            --data-only \
-            --inserts \
-            --rows-per-insert=100 \
-            --no-owner \
-            --no-privileges \
-            -f /tmp/auth_data.sql
+            set -e
+            pg_dump "$OLD_DB_URL" \
+                --table=auth.users \
+                --table=auth.identities \
+                --data-only \
+                --inserts \
+                --rows-per-insert=100 \
+                --no-owner \
+                --no-privileges \
+                -f /tmp/auth_data.sql
 
-          sed -i '/^SET /d' /tmp/auth_data.sql
-          {
-            echo "SET session_replication_role = 'replica';"
-            cat /tmp/auth_data.sql
-            echo "SET session_replication_role = 'origin';"
-          } | psql "$NEW_DB_URL" -v ON_ERROR_STOP=1
+            python3 - <<'PY'
+            with open("/tmp/auth_data.sql", "r", encoding="utf-8") as f:
+                sql = f.read()
+
+            lines = []
+            for line in sql.splitlines():
+                if line.startswith("SET "):
+                    continue
+                if line.endswith(";"):
+                    line = line[:-1] + " ON CONFLICT DO NOTHING;"
+                lines.append(line)
+
+            with open("/tmp/auth_data.sql", "w", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+            PY
+
+            {
+                echo "SET session_replication_role = 'replica';"
+                cat /tmp/auth_data.sql
+                echo "SET session_replication_role = 'origin';"
+            } | psql "$NEW_DB_URL" -v ON_ERROR_STOP=1
 
       - name: Clone public table data & sequences
         env:
