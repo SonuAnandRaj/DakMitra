@@ -45,32 +45,28 @@ jobs:
             sed -i '/^CREATE SCHEMA public;/d' /tmp/public_schema.sql
             psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -f /tmp/public_schema.sql
 
-      - name: Clone auth.users & auth.identities safely
-        env:
-          OLD_DB_URL: ${{ secrets.OLD_DB_URL }}
-          NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
-        run: |
-          set -e
-          # Temporarily disable custom trigger on auth.users during initial user restore
-          psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;"
-
-          # Dump auth.users and auth.identities as INSERT statements to preserve IDs, password hashes, and identities cleanly
-          pg_dump "$OLD_DB_URL" \
-            --table=auth.users \
-            --table=auth.identities \
-            --data-only \
-            --inserts \
-            --rows-per-insert=100 \
-            --no-owner \
-            --no-privileges \
-            -f /tmp/auth_data.sql
-
-          # Strip SET session_replication_role / transaction_timeout lines if present so pooler applies cleanly
-          sed -i '/^SET /d' /tmp/auth_data.sql
-          psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "INSERT INTO auth.users SELECT * FROM auth.users WHERE false;" > /dev/null
-          psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -f /tmp/auth_data.sql
-
-          psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created;"
+            - name: Clone auth.users & auth.identities safely
+            env:
+              OLD_DB_URL: ${{ secrets.OLD_DB_URL }}
+              NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
+            run: |
+              set -e
+              pg_dump "$OLD_DB_URL" \
+                --table=auth.users \
+                --table=auth.identities \
+                --data-only \
+                --inserts \
+                --rows-per-insert=100 \
+                --no-owner \
+                --no-privileges \
+                -f /tmp/auth_data.sql
+    
+              sed -i '/^SET /d' /tmp/auth_data.sql
+              {
+                echo "SET session_replication_role = 'replica';"
+                cat /tmp/auth_data.sql
+                echo "SET session_replication_role = 'origin';"
+              } | psql "$NEW_DB_URL" -v ON_ERROR_STOP=1
 
       - name: Clone public table data & sequences
         env:
