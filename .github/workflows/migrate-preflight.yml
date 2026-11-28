@@ -23,9 +23,11 @@ jobs:
           OLD_DB_URL: ${{ secrets.OLD_DB_URL }}
           NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
         run: |
-          echo "=== 1. POSTGRES VERSIONS ==="
-          psql "$OLD_DB_URL" -Atc "SELECT 'FRANCE: ' || version();"
-          psql "$NEW_DB_URL" -Atc "SELECT 'MUMBAI: ' || version();"
+        echo "=== 1. POSTGRES VERSIONS ==="
+        echo "-> Testing OLD_DB_URL (France)..."
+        psql "$OLD_DB_URL" -Atc "SELECT 'FRANCE: ' || version();"
+        echo "-> Testing NEW_DB_URL (Mumbai)..."
+        psql "$NEW_DB_URL" -Atc "SELECT 'MUMBAI: ' || version();"
 
           echo "=== 2. PUBLIC TABLES & EXACT ROW COUNTS (FRANCE) ==="
           psql "$OLD_DB_URL" -c "
