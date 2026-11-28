@@ -10,7 +10,8 @@
 #view-members.active,
 #view-feedback.active,
 #view-settings.active,
-#view-upload.active {
+#view-upload.active,
+#view-help.active {
   display: flex;
   flex-direction: column;
   height: calc(
@@ -41,7 +42,8 @@
 #view-members #members-display-area,
 #view-feedback #feedback-display-area,
 #view-settings #settings-display-area,
-#view-upload #upload-display-area {
+#view-upload #upload-display-area,
+#view-help #help-display-area {
   flex: 1;
   min-height: 180px;
   max-height: none !important;
@@ -1411,11 +1413,13 @@ table.data-table .card-actions {
 
 /* --- DIRECTORY VIEW, CHIPS & FLOATING POPOVER --- */
 .directory-card {
+  position: relative;
+  overflow: hidden;
   background: var(--card-bg);
   border: 1px solid var(--dm-border-tint);
   border-radius: 20px;
   margin-bottom: 16px;
-  padding: 16px;
+  padding: 18px 16px 16px;
   box-shadow: var(--shadow-sm);
   content-visibility: auto;
   contain-intrinsic-size: auto 220px;
@@ -1423,9 +1427,28 @@ table.data-table .card-actions {
     border-color 0.25s ease;
 }
 
+.directory-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--dm-gradient-brand);
+  opacity: 0.78;
+  pointer-events: none;
+  transition: opacity 0.2s ease, height 0.2s ease;
+}
+
 .directory-card:hover {
   transform: translateY(-2px);
+  border-color: var(--primary);
   box-shadow: 0 10px 24px -8px rgba(79, 70, 229, 0.16);
+}
+
+.directory-card:hover::before {
+  opacity: 1;
+  height: 5px;
 }
 
 .directory-card-header {
@@ -3532,7 +3555,8 @@ body.keyboard-open #view-members.active,
 body.keyboard-open #view-feedback.active,
 body.keyboard-open #view-upload.active,
 body.keyboard-open #view-profile.active,
-body.keyboard-open #view-settings.active {
+body.keyboard-open #view-settings.active,
+body.keyboard-open #view-help.active {
   height: calc(var(--vvh, 100dvh) - 88px - env(safe-area-inset-top, 0px));
   min-height: 0;
 }
@@ -5451,45 +5475,50 @@ table.data-table.dir-table tbody tr.dir-table-row.selected-chip td {
    SETTINGS & UPLOAD VIEWS — UNIFIED DAKMITRA POLISH
    ========================================================= */
 
-#view-settings #settings-display-area,
-#view-upload #upload-display-area {
-  overflow-y: auto;
-  overflow-x: hidden;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-  border-radius: 0;
-  padding: 2px 2px calc(96px + env(safe-area-inset-bottom, 0px));
-}
-
-/* Prevent bottom-row autocomplete dropdown from clipping inside Upload scroll container */
-#view-upload #upload-display-area:has(.autocomplete-dropdown.show) {
-  padding-bottom: 220px;
-}
-
-body.keyboard-open #view-settings #settings-display-area,
-body.keyboard-open #view-upload #upload-display-area {
-  padding-bottom: 16px;
-}
-
-.settings-hero,
-.upload-hero {
-  padding: 18px 18px 16px;
-  text-align: center;
-}
-
-.settings-hero h2,
-.upload-hero h2 {
-  font-size: 22px;
-  margin-bottom: 4px;
-}
-
-.settings-hero p,
-.upload-hero p {
-  font-size: 13px;
-  color: var(--text-light);
-  margin: 0;
-}
+   #view-settings #settings-display-area,
+   #view-upload #upload-display-area,
+   #view-help #help-display-area {
+     overflow-y: auto;
+     overflow-x: hidden;
+     border: none;
+     background: transparent;
+     box-shadow: none;
+     border-radius: 0;
+     padding: 2px 2px calc(96px + env(safe-area-inset-bottom, 0px));
+   }
+   
+   /* Prevent bottom-row autocomplete dropdown from clipping inside Upload scroll container */
+   #view-upload #upload-display-area:has(.autocomplete-dropdown.show) {
+     padding-bottom: 220px;
+   }
+   
+   body.keyboard-open #view-settings #settings-display-area,
+   body.keyboard-open #view-upload #upload-display-area,
+   body.keyboard-open #view-help #help-display-area {
+     padding-bottom: 16px;
+   }
+   
+   .settings-hero,
+   .upload-hero,
+   .help-hero {
+     padding: 18px 18px 16px;
+     text-align: center;
+   }
+   
+   .settings-hero h2,
+   .upload-hero h2,
+   .help-hero h2 {
+     font-size: 22px;
+     margin-bottom: 4px;
+   }
+   
+   .settings-hero p,
+   .upload-hero p,
+   .help-hero p {
+     font-size: 13px;
+     color: var(--text-light);
+     margin: 0;
+   }
 
 /* --- SETTINGS CARDS & ROWS --- */
 .settings-card {
@@ -6261,4 +6290,208 @@ body.keyboard-open #view-upload #upload-display-area {
   opacity: 0.55;
   cursor: not-allowed;
   transform: none !important;
+}
+
+/* =========================================================
+   HELP & GUIDE VIEW — UNIFIED DAKMITRA POLISH
+   ========================================================= */
+
+.help-search-wrap {
+  margin-top: 14px;
+  max-width: 440px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.help-search-wrap .search-input-wrapper {
+  padding: 3px 8px;
+  border-radius: 16px;
+}
+
+.help-search-wrap .search-input-wrapper input {
+  padding: 9px 6px;
+  font-size: 14.5px;
+}
+
+.help-card {
+  animation: fadeIn 0.25s var(--dm-ease-smooth);
+}
+
+.help-jump-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(79, 70, 229, 0.1);
+  border: 1px solid rgba(79, 70, 229, 0.24);
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+[data-theme="dark"] .help-jump-btn {
+  background: rgba(129, 140, 248, 0.16);
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+.help-jump-btn:hover {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}
+
+.help-jump-btn:active {
+  transform: scale(0.93);
+}
+
+.help-feature-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.help-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 11px 0;
+}
+
+.help-feature-item + .help-feature-item {
+  border-top: 1px dashed var(--border);
+}
+
+.help-feature-item:first-child {
+  padding-top: 2px;
+}
+
+.help-feature-item:last-child {
+  padding-bottom: 2px;
+}
+
+.help-item-badge {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.help-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.help-item-body strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+  margin-bottom: 2px;
+}
+
+.help-item-body p {
+  font-size: 12.5px;
+  color: var(--text-light);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.help-kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(79, 70, 229, 0.09);
+  border: 1px solid rgba(79, 70, 229, 0.22);
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .help-kbd {
+  background: rgba(129, 140, 248, 0.16);
+  border-color: rgba(129, 140, 248, 0.28);
+}
+
+.help-callout {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  background: rgba(79, 70, 229, 0.06);
+  border: 1px dashed rgba(79, 70, 229, 0.28);
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .help-callout {
+  background: rgba(129, 140, 248, 0.11);
+  border-color: rgba(129, 140, 248, 0.3);
+}
+
+.help-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+@media (min-width: 560px) {
+  .help-compare-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.help-compare-tile {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 13px;
+}
+
+.help-compare-tile strong {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  margin-bottom: 5px;
+}
+
+.help-compare-tile.is-instant strong {
+  color: var(--success-text);
+}
+
+.help-compare-tile.is-review strong {
+  color: var(--primary);
+}
+
+.help-compare-tile ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: var(--text-light);
+  line-height: 1.55;
+}
+
+.help-support-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 18px;
+  margin-bottom: 16px;
+  text-align: left;
 }

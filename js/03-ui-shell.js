@@ -333,6 +333,11 @@ function switchDashboardView(viewId) {
     if (typeof syncUploadAdminUI === "function") syncUploadAdminUI();
     if (typeof updateManualSubmitCount === "function")
       updateManualSubmitCount();
+  } else if (viewId === "help") {
+    helpHeroController.setCollapsed(false, true);
+    if (typeof resetHelpGuideFilters === "function") {
+      resetHelpGuideFilters(true);
+    }
   }
 
   closeSidebar();
@@ -1228,8 +1233,117 @@ const uploadHeroController = createCollapsibleHero(
   { collapseAccum: 110, minScrollTop: 70 }
 );
 
+const helpHeroController = createCollapsibleHero(
+  "help-display-area",
+  "help-hero-collapse-wrap",
+  () => {
+    document.getElementById("help-search-input")?.blur();
+  },
+  { collapseAccum: 110, minScrollTop: 70 }
+);
+
 function setSearchHeroCollapsed(shouldCollapse, instant = false) {
   searchHeroController.setCollapsed(shouldCollapse, instant);
+}
+
+// --- HELP & GUIDE SEARCH & TOPIC CHIPS ---
+let activeHelpCategory = "all";
+
+function setHelpCategory(cat) {
+  const next =
+    !cat || cat === "all" || activeHelpCategory === cat ? "all" : cat;
+  activeHelpCategory = next;
+  if (navigator.vibrate) navigator.vibrate(15);
+  filterHelpGuide(true);
+}
+
+function clearHelpSearch() {
+  const input = document.getElementById("help-search-input");
+  if (input) {
+    input.value = "";
+    input.focus();
+  }
+  document.getElementById("clear-help-search-btn")?.classList.add("hidden");
+  filterHelpGuide(true);
+}
+
+function resetHelpGuideFilters(silent = false) {
+  activeHelpCategory = "all";
+  const input = document.getElementById("help-search-input");
+  if (input) input.value = "";
+  document.getElementById("clear-help-search-btn")?.classList.add("hidden");
+
+  const chipsEl = document.getElementById("help-filter-chips");
+  if (chipsEl) chipsEl.scrollLeft = 0;
+
+  if (!silent && navigator.vibrate) navigator.vibrate(15);
+  filterHelpGuide(true);
+}
+
+function filterHelpGuide(resetScroll = false) {
+  const input = document.getElementById("help-search-input");
+  const clearBtn = document.getElementById("clear-help-search-btn");
+  const rawQuery = input ? input.value : "";
+  const query = rawQuery.trim().toLowerCase();
+  const terms = query ? query.split(/\s+/).filter(Boolean) : [];
+
+  if (clearBtn) clearBtn.classList.toggle("hidden", rawQuery.length === 0);
+
+  document
+    .querySelectorAll("#help-filter-chips [data-help-cat]")
+    .forEach((btn) => {
+      btn.classList.toggle(
+        "active",
+        btn.getAttribute("data-help-cat") === activeHelpCategory
+      );
+    });
+
+  const cards = document.querySelectorAll("#help-display-area .help-card");
+  let visibleCount = 0;
+
+  cards.forEach((card) => {
+    const cat = card.getAttribute("data-help-cat") || "";
+    const catMatch =
+      activeHelpCategory === "all" || cat === activeHelpCategory;
+
+    let textMatch = true;
+    if (terms.length > 0) {
+      const haystack = (
+        (card.getAttribute("data-help-keywords") || "") +
+        " " +
+        (card.textContent || "")
+      ).toLowerCase();
+      textMatch = terms.every((t) => haystack.includes(t));
+    }
+
+    const show = catMatch && textMatch;
+    card.classList.toggle("hidden", !show);
+    if (show) visibleCount++;
+  });
+
+  document
+    .getElementById("help-empty-state")
+    ?.classList.toggle("hidden", visibleCount > 0);
+
+  const summaryEl = document.getElementById("help-filter-summary");
+  const summaryTextEl = document.getElementById("help-filter-summary-text");
+  const isFiltered = activeHelpCategory !== "all" || terms.length > 0;
+
+  if (summaryEl && summaryTextEl) {
+    if (isFiltered) {
+      summaryTextEl.textContent = `Showing ${visibleCount} of ${cards.length} guides`;
+      summaryEl.classList.remove("hidden");
+    } else {
+      summaryEl.classList.add("hidden");
+      summaryTextEl.textContent = "";
+    }
+  }
+
+  const area = document.getElementById("help-display-area");
+  if (resetScroll && area) area.scrollTop = 0;
+  if (visibleCount <= 1) {
+    helpHeroController.setCollapsed(false);
+  }
 }
 
 // --- SWIPE NAVIGATION LOGIC ---
@@ -1499,7 +1613,8 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     if (
       currentInput.id === "members-filter-input" ||
       currentInput.id === "approvals-search-input" ||
-      currentInput.id === "feedback-search-input"
+      currentInput.id === "feedback-search-input" ||
+      currentInput.id === "help-search-input"
     ) {
       currentInput.blur();
       if (
@@ -1550,7 +1665,8 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       input.id === "directory-filter-input" ||
       input.id === "members-filter-input" ||
       input.id === "feedback-search-input" ||
-      input.id === "approvals-search-input"
+      input.id === "approvals-search-input" ||
+      input.id === "help-search-input"
     ) {
       input.setAttribute("enterkeyhint", "search");
       return;

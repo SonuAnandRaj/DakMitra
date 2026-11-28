@@ -3541,200 +3541,793 @@
         </section>
         <!-- HELP VIEW -->
         <section id="view-help" class="view-section">
-          <div class="search-hero" style="text-align: center">
-            <h2 style="margin-bottom: 8px">User Guide</h2>
-            <p style="color: var(--text-light); font-size: 14px">
-              Master the DakMitra app with this quick beginner's guide.
-            </p>
+          <div class="search-hero-collapse-wrap" id="help-hero-collapse-wrap">
+            <div class="search-hero-collapse-inner">
+              <div class="search-hero help-hero">
+                <h2>Help &amp; Guide</h2>
+                <p>Quick reference for every feature in DakMitra.</p>
+
+                <div class="help-search-wrap">
+                  <div class="search-input-wrapper">
+                    <span style="margin-left: 8px; font-size: 15px">🔍</span>
+                    <input
+                      type="search"
+                      id="help-search-input"
+                      placeholder="Search help topics (e.g. PIN, AI, Priority, Quiz)..."
+                      oninput="filterHelpGuide()"
+                      autocomplete="off"
+                    />
+                    <button
+                      type="button"
+                      id="clear-help-search-btn"
+                      class="clear-btn hidden"
+                      onclick="clearHelpSearch()"
+                      title="Clear Search"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div
-            class="results-container-scroll expanded"
-            style="
-              padding: 4px;
-              border: none;
-              box-shadow: none;
-              background: transparent;
-            "
-          >
-            <!-- Guide: Searching -->
+          <!-- Pinned Topic Filter Chips (Stays fixed when hero collapses) -->
+          <div class="dir-filter-bar">
             <div
-              class="upload-card dm-surface"
-              style="text-align: left; margin-bottom: 16px; padding: 24px"
+              id="help-filter-chips"
+              class="dir-filter-chips"
+              role="group"
+              aria-label="Filter help topics"
             >
-              <h3
-                style="
-                  color: var(--primary);
-                  margin-bottom: 12px;
-                  font-size: 18px;
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                "
+              <button
+                type="button"
+                class="dir-filter-chip active"
+                data-help-cat="all"
+                onclick="setHelpCategory('all')"
               >
-                🔍 Searching for Records
-              </h3>
-              <p
-                style="
-                  font-size: 14px;
-                  color: var(--text-light);
-                  margin-bottom: 12px;
-                "
+                <span>All</span>
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip is-office"
+                data-help-cat="search"
+                onclick="setHelpCategory('search')"
               >
-                The main Search tab allows you to instantly find any postal
-                record in the database.
-              </p>
-              <ul
-                style="
-                  font-size: 13px;
-                  color: var(--text);
-                  padding-left: 20px;
-                  line-height: 1.6;
-                "
+                <span>🔍 Search &amp; AI</span>
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip is-office"
+                data-help-cat="directory"
+                onclick="setHelpCategory('directory')"
               >
-                <li style="margin-bottom: 8px">
-                  <strong>Smart Typing:</strong> Type a partial address, and the
-                  app will find the closest matches even if you misspell it
-                  slightly.
-                </li>
-                <li style="margin-bottom: 8px">
-                  <strong>Voice Search:</strong> Tap the red microphone icon
-                  <span style="color: #ef4444">🎙️</span> in the search bar to
-                  simply speak the address or PIN code.
-                </li>
-                <li style="margin-bottom: 8px">
-                  <strong>Filters:</strong> Tap the "⚙️ Search Options" button
-                  to strictly filter results by a specific Office or PIN.
-                </li>
-              </ul>
+                <span>📂 Directory &amp; Staff</span>
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip is-priority"
+                data-help-cat="priority"
+                onclick="setHelpCategory('priority')"
+              >
+                <span>⚡ Priority &amp; Verify</span>
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip is-regular"
+                data-help-cat="approvals"
+                onclick="setHelpCategory('approvals')"
+              >
+                <span>📝 Upload &amp; Approvals</span>
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip is-office"
+                data-help-cat="learn"
+                onclick="setHelpCategory('learn')"
+              >
+                <span>🎓 Learn &amp; Quiz</span>
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip is-regular"
+                data-help-cat="account"
+                onclick="setHelpCategory('account')"
+              >
+                <span>⚙️ Offline &amp; Account</span>
+              </button>
             </div>
 
-            <!-- Guide: Directory & Favorites -->
+            <div id="help-filter-summary" class="dir-filter-summary hidden">
+              <span id="help-filter-summary-text"></span>
+              <button
+                type="button"
+                class="dir-filter-reset-btn"
+                onclick="resetHelpGuideFilters()"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+
+          <div id="help-display-area" class="results-container-scroll expanded">
+            <!-- 1. SEARCH, VOICE & AI -->
             <div
-              class="upload-card dm-surface"
-              style="text-align: left; margin-bottom: 16px; padding: 24px"
+              class="dm-surface settings-card help-card"
+              data-help-cat="search"
+              data-help-keywords="search fuzzy phonetic hindi spelling pin 501 suffix voice mic speak tts ai sparkle online estimate list table copy csv export floating bar delivery office card"
             >
-              <h3
-                style="
-                  color: var(--accent);
-                  margin-bottom: 12px;
-                  font-size: 18px;
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                "
-              >
-                ⭐ Favorites & Directory
-              </h3>
-              <p
-                style="
-                  font-size: 14px;
-                  color: var(--text-light);
-                  margin-bottom: 12px;
-                "
-              >
-                Keep your most important data accessible and organized.
-              </p>
-              <ul
-                style="
-                  font-size: 13px;
-                  color: var(--text);
-                  padding-left: 20px;
-                  line-height: 1.6;
-                "
-              >
-                <li style="margin-bottom: 8px">
-                  <strong>Saving Favorites:</strong> Tap the Star icon next to
-                  any search result to save it. You can view all saved items in
-                  the <em>Favorites</em> tab.
-                </li>
-                <li style="margin-bottom: 8px">
-                  <strong>Using the Directory:</strong> Open the
-                  <em>Directory</em> from the sidebar to view all addresses
-                  grouped neatly by their main Post Office. It is perfect for
-                  getting a bird's-eye view of an area.
-                </li>
-              </ul>
+              <div class="dm-header" style="margin-bottom: 14px">
+                <div class="dm-header-left">
+                  <div class="dm-icon-badge">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title">
+                      Search, Voice &amp; AI Lookup
+                    </h3>
+                    <span class="settings-card-sub"
+                      >Instant offline search with phonetic &amp; PIN
+                      shortcuts</span
+                    >
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="help-jump-btn"
+                  onclick="switchDashboardView('search')"
+                >
+                  Open →
+                </button>
+              </div>
+
+              <div class="help-feature-list">
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🔤</span>
+                  <div class="help-item-body">
+                    <strong>Phonetic &amp; Fuzzy Search</strong>
+                    <p>
+                      Finds villages even with Hindi/English spelling variations
+                      (like <em>Kala / Kalan</em> or <em>Gaon / Gawn</em>) or
+                      minor typos.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">📍</span>
+                  <div class="help-item-body">
+                    <strong>3-Digit PIN Suffix Shortcuts</strong>
+                    <p>
+                      Type <span class="help-kbd">501</span> alone, or combine
+                      with a village like
+                      <span class="help-kbd">Nauha 501</span> or
+                      <span class="help-kbd">Nauha @501</span> to filter
+                      instantly to that Delivery Office.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🏢</span>
+                  <div class="help-item-body">
+                    <strong>Pinned Delivery Office Cards</strong>
+                    <p>
+                      Searching a Sub Office or Head Office pins its summary
+                      card at the top with quick <strong>👥 Staff</strong> and
+                      <strong>📂 Directory</strong> buttons.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🎙️</span>
+                  <div class="help-item-body">
+                    <strong>Voice Search &amp; Spoken Results</strong>
+                    <p>
+                      Tap the microphone icon to speak an address or PIN code.
+                      The top match is read aloud in an Indian accent — tap the
+                      mic again anytime to stop.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">✨</span>
+                  <div class="help-item-body">
+                    <strong>Manual Online AI Estimation</strong>
+                    <p>
+                      If a village isn't in local records, tap the
+                      <strong>✨ sparkle</strong> button (or
+                      <strong>Ask AI</strong> at the bottom) for an online
+                      routing estimate, then pre-fill Upload to propose it.
+                      Always verify AI estimates before sorting.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">⚡</span>
+                  <div class="help-item-body">
+                    <strong>Floating Bar, Views &amp; Export</strong>
+                    <p>
+                      Tap any result to open the Floating Action Bar (Staff,
+                      Verify, Priority, History, Save, Edit, Delete). Double-tap
+                      any Office or PIN badge to jump to Directory. Switch
+                      <strong>List / Table</strong> or use
+                      <strong>Copy / CSV</strong> from the toolbar.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- Guide: Edits & Approvals -->
+            <!-- 2. DIRECTORY & OFFICE STAFF -->
             <div
-              class="upload-card dm-surface"
-              style="text-align: left; margin-bottom: 16px; padding: 24px"
+              class="dm-surface settings-card help-card"
+              data-help-cat="directory"
+              data-help-keywords="directory office cards table bo so ho bpm abpm spm pm pa mts staff contact call phone quick add delete practice"
             >
-              <h3
-                style="
-                  color: var(--primary);
-                  margin-bottom: 12px;
-                  font-size: 18px;
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                "
-              >
-                📝 Editing Data & Approvals
-              </h3>
-              <p
-                style="
-                  font-size: 14px;
-                  color: var(--text-light);
-                  margin-bottom: 12px;
-                "
-              >
-                DakMitra is community-driven. You can suggest corrections to any
-                record.
-              </p>
-              <ul
-                style="
-                  font-size: 13px;
-                  color: var(--text);
-                  padding-left: 20px;
-                  line-height: 1.6;
-                "
-              >
-                <li style="margin-bottom: 8px">
-                  <strong>Proposing an Edit:</strong> Tap on any search result
-                  to expand it, then tap <strong>✎ Edit</strong>. Change the
-                  details and submit.
-                </li>
-                <li style="margin-bottom: 8px">
-                  <strong>The Approval Process:</strong> Your edit won't go live
-                  immediately. It goes to the <em>Approvals</em> tab where other
-                  colleagues must vote "👍 Approve" before the master database
-                  is updated.
-                </li>
-                <li style="margin-bottom: 8px">
-                  <strong>Adding New Records:</strong> Go to the
-                  <em>Upload Data</em> tab to manually type in brand new
-                  addresses that are missing from the database.
-                </li>
-              </ul>
+              <div class="dm-header" style="margin-bottom: 14px">
+                <div class="dm-header-left">
+                  <div class="dm-icon-badge">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title">
+                      Directory &amp; Office Staff
+                    </h3>
+                    <span class="settings-card-sub"
+                      >All addresses grouped by Delivery Office &amp; BO/SO/HO
+                      contacts</span
+                    >
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="help-jump-btn"
+                  onclick="switchDashboardView('directory')"
+                >
+                  Open →
+                </button>
+              </div>
+
+              <div class="help-feature-list">
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🗂️</span>
+                  <div class="help-item-body">
+                    <strong>Cards &amp; Summary Table</strong>
+                    <p>
+                      Browse every Delivery Office with all its villages as
+                      tappable chips, or switch to <strong>Table</strong> view
+                      for a compact office-by-office count.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🔎</span>
+                  <div class="help-item-body">
+                    <strong>Directory Search &amp; Category Chips</strong>
+                    <p>
+                      Search by address, office, PIN, or Voice, and filter
+                      instantly using the pinned
+                      <span class="help-kbd">📮 Offices</span>,
+                      <span class="help-kbd">⚡ Priority</span>,
+                      <span class="help-kbd">Regular</span>, and
+                      <span class="help-kbd">⚠️ Unverified</span> chips.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">👥</span>
+                  <div class="help-item-body">
+                    <strong>BO, SO &amp; HO Staff Contacts</strong>
+                    <p>
+                      Tap the <strong>Staff</strong> button on any Delivery
+                      Office card (or tap a <strong>📮 BO</strong> chip →
+                      <em>Staff</em>) to view, add, or update BPM, ABPM, SPM,
+                      PM, PA, and MTS contacts with 1-tap
+                      <strong>📞 Call</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🧰</span>
+                  <div class="help-item-body">
+                    <strong>6 Office Action Shortcuts</strong>
+                    <p>
+                      Every office header (and Table row menu) gives quick
+                      access to <strong>Staff</strong>,
+                      <strong>Practice</strong> in Learn &amp; Quiz, bulk
+                      <strong>Priority</strong>, bulk <strong>Verify</strong>,
+                      <strong>Quick-Add</strong>, and
+                      <strong>Quick-Delete</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- Guide: Offline Mode -->
+            <!-- 3. PRIORITY, VERIFICATION & FAVORITES -->
             <div
-              class="upload-card dm-surface"
-              style="text-align: left; margin-bottom: 24px; padding: 24px"
+              class="dm-surface settings-card help-card"
+              data-help-cat="priority"
+              data-help-keywords="priority bolt favorite star bookmark verified unverified dashed ranking order top boost"
             >
-              <h3
-                style="
-                  color: var(--success-border);
-                  margin-bottom: 12px;
-                  font-size: 18px;
-                  display: flex;
-                  align-items: center;
-                  gap: 8px;
-                "
+              <div class="dm-header" style="margin-bottom: 14px">
+                <div class="dm-header-left">
+                  <div class="dm-icon-badge">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polygon
+                        points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                      ></polygon>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title">
+                      Priority, Verification &amp; Favorites
+                    </h3>
+                    <span class="settings-card-sub"
+                      >How search ranking, shared boosts &amp; personal
+                      bookmarks work</span
+                    >
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="help-jump-btn"
+                  onclick="switchDashboardView('favorites')"
+                >
+                  Favorites →
+                </button>
+              </div>
+
+              <div class="help-feature-list">
+                <div class="help-feature-item">
+                  <span class="help-item-badge">⚡</span>
+                  <div class="help-item-body">
+                    <strong>Priority (Shared Across All Staff)</strong>
+                    <p>
+                      Tap the <strong>⚡</strong> bolt on any search card,
+                      floating bar, or Directory header to boost frequent
+                      villages higher in search results for everyone.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">⭐</span>
+                  <div class="help-item-body">
+                    <strong>Favorites (Personal to Your Phone)</strong>
+                    <p>
+                      Tap an address → <strong>Save</strong> to bookmark it in
+                      your <em>Favorites</em> list (also reachable via the
+                      <strong>⭐</strong> button on Search). Favorites stay only
+                      on your device.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">✅</span>
+                  <div class="help-item-body">
+                    <strong>Verified vs. Unverified Addresses</strong>
+                    <p>
+                      Bulk Excel uploads start as <strong>Unverified</strong>
+                      (dashed border) and are excluded from Learn &amp; Quiz
+                      until confirmed. Tap <strong>✓</strong> on a card or use
+                      <strong>Bulk Verify</strong> in Directory to verify them
+                      immediately.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="help-callout">
+                <strong>Search Ranking Order:</strong> HO / SO offices → BO
+                offices → <strong>⚡ Priority</strong> villages → Verified
+                regular villages → Unverified entries.
+              </div>
+            </div>
+
+            <!-- 4. UPLOAD, EDIT, APPROVALS & HISTORY -->
+            <div
+              class="dm-surface settings-card help-card"
+              data-help-cat="approvals"
+              data-help-keywords="upload manual rows bulk same office excel edit delete approval vote pending resolved history audit batch id withdraw"
+            >
+              <div class="dm-header" style="margin-bottom: 14px">
+                <div class="dm-header-left">
+                  <div class="dm-icon-badge">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                      ></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="16" y1="13" x2="8" y2="13"></line>
+                      <line x1="16" y1="17" x2="8" y2="17"></line>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title">
+                      Upload, Edits &amp; Approvals
+                    </h3>
+                    <span class="settings-card-sub"
+                      >Add records, propose corrections &amp; track audit
+                      history</span
+                    >
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="help-jump-btn"
+                  onclick="switchDashboardView('approvals')"
+                >
+                  Open →
+                </button>
+              </div>
+
+              <div class="help-feature-list">
+                <div class="help-feature-item">
+                  <span class="help-item-badge">📤</span>
+                  <div class="help-item-body">
+                    <strong>Rows, Bulk Paste &amp; Excel Upload</strong>
+                    <p>
+                      Use <strong>Rows</strong> for mixed offices, or
+                      <strong>Bulk</strong> to paste many villages for one
+                      office (separated by new lines, commas, or two spaces)
+                      with live duplicate warnings and optional batch notes.
+                      Admins also have an <strong>Excel</strong> bulk tab.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">✏️</span>
+                  <div class="help-item-body">
+                    <strong>In-Place Editing &amp; Deletion</strong>
+                    <p>
+                      Tap any address → <strong>Edit</strong> to fix spelling,
+                      office, or PIN using live autocomplete, or tap
+                      <strong>Delete</strong> to remove an outdated entry.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🗳️</span>
+                  <div class="help-item-body">
+                    <strong>Community Approvals &amp; Filters</strong>
+                    <p>
+                      Staff Add/Edit/Delete requests merge automatically once
+                      they reach
+                      <strong data-help-vote-threshold>5</strong> colleague
+                      votes or an Admin approval. Filter Pending/Resolved
+                      requests by text, change type, colleague, date, office,
+                      PIN, or Batch ID — and withdraw your own pending request
+                      anytime.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🕒</span>
+                  <div class="help-item-body">
+                    <strong>Record History &amp; Audit Trail</strong>
+                    <p>
+                      Tap <strong>History</strong> on any record to view every
+                      past edit, approver, and upload Batch ID. Tap any
+                      colleague's name or office link to jump straight to their
+                      profile or Directory card.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="help-compare-grid">
+                <div class="help-compare-tile is-instant">
+                  <strong>⚡ Applies Immediately (All Staff)</strong>
+                  <ul>
+                    <li>BO / SO / HO Staff contacts</li>
+                    <li>1-tap &amp; Bulk Priority (⚡)</li>
+                    <li>1-tap &amp; Bulk Verify (✓)</li>
+                  </ul>
+                </div>
+                <div class="help-compare-tile is-review">
+                  <strong>🗳️ Goes to Approvals (Staff)</strong>
+                  <ul>
+                    <li>Adding new addresses</li>
+                    <li>Editing Address, Office, or PIN</li>
+                    <li>Single or bulk deletions</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. LEARN & QUIZ -->
+            <div
+              class="dm-surface settings-card help-card"
+              data-help-cat="learn"
+              data-help-keywords="learn quiz flashcard spaced repetition leitner smart mix trap pin sniper intruder mastery weak spots streak xp leaderboard"
+            >
+              <div class="dm-header" style="margin-bottom: 14px">
+                <div class="dm-header-left">
+                  <div class="dm-icon-badge">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                      <path
+                        d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"
+                      ></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title">Learn &amp; Quiz</h3>
+                    <span class="settings-card-sub"
+                      >Spaced-repetition flashcards, sorting drills &amp;
+                      mastery</span
+                    >
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="help-jump-btn"
+                  onclick="switchDashboardView('learn')"
+                >
+                  Open →
+                </button>
+              </div>
+
+              <div class="help-feature-list">
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🃏</span>
+                  <div class="help-item-body">
+                    <strong>3D Spaced-Repetition Flashcards</strong>
+                    <p>
+                      Tap a card to flip, swipe left/right to browse, and rate
+                      <strong>Again / Good / Easy</strong>. Cards you miss
+                      return sooner while mastered cards space out up to 21
+                      days.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🔀</span>
+                  <div class="help-item-body">
+                    <strong>Office Scope &amp; Smart Mix Traps</strong>
+                    <p>
+                      Focus on one Delivery Office (or tap the graduation cap
+                      icon on any Directory card). Leave
+                      <strong>Smart Mix</strong> ON to blend ~25% neighboring
+                      office addresses so you never sort on autopilot.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🎯</span>
+                  <div class="help-item-body">
+                    <strong>3 Postal Quiz Modes</strong>
+                    <p>
+                      <strong>Standard Sort</strong> (nearby-office MCQs),
+                      <strong>PIN Sniper</strong> (type the last 3 PIN digits),
+                      and <strong>Spot Intruder</strong> (catch the odd address
+                      out), with optional 10s Rapid-Fire timer and Hard Mode.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🏆</span>
+                  <div class="help-item-body">
+                    <strong>Mastery, Weak Spots &amp; Leaderboard</strong>
+                    <p>
+                      Track office-wise mastery bars, drill missed Weak Spots in
+                      1 tap, sync progress automatically in the background, and
+                      opt in to the Division Leaderboard.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 6. OFFLINE, ACCOUNT, SETTINGS & GESTURES -->
+            <div
+              class="dm-surface settings-card help-card"
+              data-help-cat="account"
+              data-help-keywords="offline cache sync realtime employees colleagues profile photo cropper mobile privacy passkey device lock theme dark light swipe back gesture install pwa settings"
+            >
+              <div class="dm-header" style="margin-bottom: 14px">
+                <div class="dm-header-left">
+                  <div class="dm-icon-badge">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.1"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+                      ></path>
+                      <path d="M9 12l2 2 4-4"></path>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 class="settings-card-title">
+                      Offline Mode, Account &amp; Gestures
+                    </h3>
+                    <span class="settings-card-sub"
+                      >Sync, colleagues directory, passkeys &amp; mobile
+                      tips</span
+                    >
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  class="help-jump-btn"
+                  onclick="switchDashboardView('settings')"
+                >
+                  Settings →
+                </button>
+              </div>
+
+              <div class="help-feature-list">
+                <div class="help-feature-item">
+                  <span class="help-item-badge">📶</span>
+                  <div class="help-item-body">
+                    <strong>Offline-First &amp; Live Sync</strong>
+                    <p>
+                      DakMitra opens instantly from your phone's local cache so
+                      Search, Directory, Favorites, and Learn &amp; Quiz work
+                      without internet. Changes sync automatically when online,
+                      or tap <strong>Sync</strong> in Settings anytime.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🪪</span>
+                  <div class="help-item-body">
+                    <strong>Employees Directory &amp; Profile Privacy</strong>
+                    <p>
+                      Browse colleagues in <strong>Employees</strong> to view
+                      designations and approved edit counts. In
+                      <strong>Profile</strong>, crop your photo and toggle
+                      <strong>Show Mobile to Colleagues</strong> anytime.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">🔐</span>
+                  <div class="help-item-body">
+                    <strong>Single-Device Lock &amp; Passkey</strong>
+                    <p>
+                      Accounts stay locked to your registered device for
+                      security. Register a <strong>Hardware Passkey</strong> in
+                      Settings for instant fingerprint or Face ID sign-in.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="help-feature-item">
+                  <span class="help-item-badge">📱</span>
+                  <div class="help-item-body">
+                    <strong>Themes &amp; Mobile Gestures</strong>
+                    <p>
+                      Switch Light, OLED Dark, or Auto theme; drag right from
+                      your top-left avatar to open the sidebar; swipe firmly
+                      left/right to switch bottom tabs; press Android Back to
+                      close popovers and modals cleanly.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- EMPTY SEARCH STATE -->
+            <div
+              id="help-empty-state"
+              class="list-empty hidden"
+              style="gap: 10px"
+            >
+              <span>No help topics match your search.</span>
+              <button
+                type="button"
+                class="dm-btn dm-btn-secondary dm-btn-sm"
+                onclick="resetHelpGuideFilters()"
               >
-                📶 Working Offline
-              </h3>
-              <p style="font-size: 14px; color: var(--text-light)">
-                DakMitra saves a secure copy of the database directly to your
-                phone. If you lose internet connection while out on delivery or
-                in a remote office, you can still search the database instantly.
-                The app will automatically sync new data the next time you have
-                a stable connection.
-              </p>
+                Reset Search
+              </button>
+            </div>
+
+            <!-- FEEDBACK & SUPPORT CTA CARD -->
+            <div
+              id="help-support-card"
+              class="dm-surface help-support-card"
+            >
+              <div style="flex: 1 1 200px; min-width: 0">
+                <strong
+                  style="
+                    display: block;
+                    font-size: 14.5px;
+                    font-weight: 800;
+                    color: var(--text);
+                    margin-bottom: 2px;
+                  "
+                  >Spotted a bug or have an idea?</strong
+                >
+                <span style="font-size: 12.5px; color: var(--text-light)">
+                  Report issues with a screenshot or upvote colleague
+                  suggestions.
+                </span>
+              </div>
+              <button
+                type="button"
+                class="dm-btn dm-btn-primary dm-btn-sm"
+                onclick="switchDashboardView('feedback')"
+              >
+                💬 Report &amp; Suggest
+              </button>
             </div>
           </div>
         </section>

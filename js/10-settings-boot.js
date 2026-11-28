@@ -211,6 +211,11 @@ function applyAppConfigUI() {
   if (splashTitle) splashTitle.textContent = title;
   if (taglineEl) taglineEl.textContent = tagline;
 
+  const voteThresholdText = String(getCommunityVoteThreshold());
+  document.querySelectorAll("[data-help-vote-threshold]").forEach((el) => {
+    el.textContent = voteThresholdText;
+  });
+
   // Enforce Copy & CSV export visibility (Superadmin always allowed)
   const copyBtn = document.querySelector(
     '#export-toolbar-group button[onclick*="copyResults"]'
