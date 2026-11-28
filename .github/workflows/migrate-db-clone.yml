@@ -86,16 +86,23 @@ jobs:
           with open("/tmp/auth_data.sql", "r", encoding="utf-8") as f:
               sql = f.read()
 
-          lines = []
+          out_lines = []
+          in_insert = False
+
           for line in sql.splitlines():
-              if line.startswith("SET "):
+              stripped = line.lstrip()
+              if stripped.startswith("SET "):
                   continue
-              if line.endswith(";"):
-                  line = line[:-1] + " ON CONFLICT DO NOTHING;"
-              lines.append(line)
+              if stripped.startswith("INSERT INTO "):
+                  in_insert = True
+              if in_insert and line.rstrip().endswith(";"):
+                  idx = line.rfind(";")
+                  line = line[:idx] + " ON CONFLICT DO NOTHING" + line[idx:]
+                  in_insert = False
+              out_lines.append(line)
 
           with open("/tmp/auth_data.sql", "w", encoding="utf-8") as f:
-              f.write("\n".join(lines) + "\n")
+              f.write("\n".join(out_lines) + "\n")
           PY
 
           {
