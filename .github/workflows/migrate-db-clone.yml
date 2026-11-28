@@ -29,42 +29,65 @@ jobs:
           sudo apt-get install -y -qq postgresql-client
           pg_dump --version
 
-          - name: Dump & restore public schema to Mumbai
-          env:
-            OLD_DB_URL: ${{ secrets.OLD_DB_URL }}
-            NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
-          run: |
-            set -e
-            pg_dump "$OLD_DB_URL" \
-              --schema=public \
-              --schema-only \
-              --no-owner \
-              --no-privileges \
-              -f /tmp/public_schema.sql
-  
-            psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "
-              DROP SCHEMA IF EXISTS public CASCADE;
-              CREATE SCHEMA public;
-              GRANT USAGE, CREATE ON SCHEMA public TO postgres, anon, authenticated, service_role;
-            "
-  
-            python3 - <<'PY'
-            with open("/tmp/public_schema.sql", "r", encoding="utf-8") as f:
-                sql = f.read()
-  
-            lines = []
-            for line in sql.splitlines():
-                if line.strip() == "CREATE SCHEMA public;":
-                    continue
-                if line.startswith("CREATE FUNCTION "):
-                    line = "CREATE OR REPLACE FUNCTION " + line[len("CREATE FUNCTION "):]
-                lines.append(line)
-  
-            with open("/tmp/public_schema.sql", "w", encoding="utf-8") as f:
-                f.write("\n".join(lines) + "\n")
-            PY
-  
-            psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -f /tmp/public_schema.sql
+      - name: Dump & restore public schema to Mumbai
+        env:
+          OLD_DB_URL: ${{ secrets.OLD_DB_URL }}
+          NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
+        run: |
+          set -e
+          pg_dump "$OLD_DB_URL" \
+            --schema=public \
+            --schema-only \
+            --no-owner \
+            --no-privileges \
+            -f /tmp/public_schema.sql
+
+          psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "
+            DROP SCHEMA IF EXISTS public CASCADE;
+            CREATE SCHEMA public;
+            GRANT USAGE, CREATE ON SCHEMA public TO postgres, anon, authenticated, service_role;
+          "
+
+          python3 - <<'PY'
+          with open("/tmp/public_schema.sql", "r", encoding="utf-8") as f:
+              sql = f.read()
+
+          lines = []
+          for line in sql.splitlines():
+              if line.strip() == "CREATE SCHEMA public;":
+                  continue
+              if line.startswith("CREATE FUNCTION "):
+                  line = "CREATE OR REPLACE FUNCTION " + line[len("CREATE FUNCTION "):]
+              lines.append(line)
+
+          with open("/tmp/public_schema.sql", "w", encoding="utf-8") as f:
+              f.write("\n".join(lines) + "\n")
+          PY
+
+          psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -f /tmp/public_schema.sql
+
+      - name: Clone auth.users & auth.identities safely
+        env:
+          OLD_DB_URL: ${{ secrets.OLD_DB_URL }}
+          NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
+        run: |
+          set -e
+          pg_dump "$OLD_DB_URL" \
+            --table=auth.users \
+            --table=auth.identities \
+            --data-only \
+            --inserts \
+            --rows-per-insert=100 \
+            --no-owner \
+            --no-privileges \
+            -f /tmp/auth_data.sql
+
+          sed -i '/^SET /d' /tmp/auth_data.sql
+          {
+            echo "SET session_replication_role = 'replica';"
+            cat /tmp/auth_data.sql
+            echo "SET session_replication_role = 'origin';"
+          } | psql "$NEW_DB_URL" -v ON_ERROR_STOP=1
 
       - name: Clone public table data & sequences
         env:
@@ -84,7 +107,6 @@ jobs:
           sed -i '/^SET /d' /tmp/public_data.sql
           psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -f /tmp/public_data.sql
 
-          # Sync all serial/identity sequences in public to max(id)
           psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "
             DO \$\$
             DECLARE
