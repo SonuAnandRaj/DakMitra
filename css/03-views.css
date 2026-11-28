@@ -925,7 +925,7 @@ table.data-table {
 }
 
 table.data-table th {
-  background: rgba(248, 250, 252, 0.85);
+  background: var(--bg);
   padding: 14px 20px;
   font-size: 12px;
   font-weight: 700;
@@ -936,15 +936,9 @@ table.data-table th {
   position: sticky;
   top: 0;
   z-index: 10;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   overflow-wrap: break-word;
   word-wrap: break-word;
   white-space: normal;
-}
-
-[data-theme="dark"] table.data-table th {
-  background: rgba(9, 14, 23, 0.85);
 }
 
 table.data-table td {
@@ -1122,6 +1116,8 @@ table.data-table .card-actions {
 #view-favorites li.list-item {
   padding-left: 22px;
   border-color: var(--dm-border-tint);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 92px;
 }
 
 #view-search li.list-item::before,
@@ -1344,7 +1340,6 @@ table.data-table .card-actions {
 
 .ai-search-bar-btn:not(.loading) svg {
   color: var(--primary);
-  animation: aiSparkleTwinkle 3.6s ease-in-out infinite;
 }
 
 .ai-search-bar-btn.loading {
@@ -1422,6 +1417,8 @@ table.data-table .card-actions {
   margin-bottom: 16px;
   padding: 16px;
   box-shadow: var(--shadow-sm);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
   transition: transform 0.25s var(--dm-ease-smooth), box-shadow 0.25s ease,
     border-color 0.25s ease;
 }
@@ -2650,7 +2647,11 @@ body.keyboard-open .quick-delete-selected-chips.is-expanded {
     transparent
   );
   transform: skewX(-25deg);
-  animation: btnShine 4s infinite ease-in-out;
+  transition: left 0.55s ease;
+}
+
+.btn-save-profile:hover::after {
+  left: 155%;
 }
 
 .btn-save-profile:hover {

@@ -806,14 +806,7 @@ function switchDashboardView(viewId) {
     })[active.length - 1];
   }
 
-  function syncScrollLock() {
-    const hasActiveOverlay = !!getTopActiveOverlay();
-    document.documentElement.classList.toggle(
-      "dm-scroll-locked",
-      hasActiveOverlay
-    );
-    document.body.classList.toggle("dm-scroll-locked", hasActiveOverlay);
-  }
+  let lockListenersAttached = false;
 
   function findScrollableAncestor(target, boundaryEl) {
     let el = target instanceof Element ? target : target?.parentElement;
@@ -845,6 +838,111 @@ function switchDashboardView(viewId) {
     return null;
   }
 
+  function onLockTouchStart(e) {
+    if (e.touches.length === 1) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }
+
+  function onLockTouchMove(e) {
+    const activeOverlay = getTopActiveOverlay();
+    if (!activeOverlay) return;
+
+    if (e.target.closest("#crop-stage, #lightbox-stage")) return;
+    if (e.target.tagName === "INPUT" && e.target.type === "range") return;
+
+    if (!activeOverlay.contains(e.target)) {
+      e.preventDefault();
+      return;
+    }
+
+    if (!e.touches || e.touches.length === 0) return;
+    const deltaX = e.touches[0].clientX - touchStartX;
+    const deltaY = e.touches[0].clientY - touchStartY;
+
+    if (
+      Math.abs(deltaX) > Math.abs(deltaY) &&
+      findHorizontalScrollableAncestor(e.target, activeOverlay)
+    ) {
+      return;
+    }
+
+    if (Math.abs(deltaY) < 8) return;
+
+    const scrollable = findScrollableAncestor(e.target, activeOverlay);
+    if (!scrollable) {
+      e.preventDefault();
+      return;
+    }
+
+    const atTop = scrollable.scrollTop <= 0 && deltaY > 0;
+    const atBottom =
+      scrollable.scrollTop + scrollable.clientHeight >=
+        scrollable.scrollHeight - 1 && deltaY < 0;
+
+    if (atTop || atBottom) {
+      e.preventDefault();
+    }
+  }
+
+  function onLockWheel(e) {
+    const activeOverlay = getTopActiveOverlay();
+    if (!activeOverlay) return;
+
+    if (!activeOverlay.contains(e.target)) {
+      e.preventDefault();
+      return;
+    }
+
+    if (
+      Math.abs(e.deltaX) > Math.abs(e.deltaY) &&
+      findHorizontalScrollableAncestor(e.target, activeOverlay)
+    ) {
+      return;
+    }
+
+    const scrollable = findScrollableAncestor(e.target, activeOverlay);
+    if (!scrollable) {
+      e.preventDefault();
+      return;
+    }
+
+    const atTop = scrollable.scrollTop <= 0 && e.deltaY < 0;
+    const atBottom =
+      scrollable.scrollTop + scrollable.clientHeight >=
+        scrollable.scrollHeight - 1 && e.deltaY > 0;
+
+    if (atTop || atBottom) {
+      e.preventDefault();
+    }
+  }
+
+  function syncScrollLock() {
+    const hasActiveOverlay = !!getTopActiveOverlay();
+    document.documentElement.classList.toggle(
+      "dm-scroll-locked",
+      hasActiveOverlay
+    );
+    document.body.classList.toggle("dm-scroll-locked", hasActiveOverlay);
+
+    if (hasActiveOverlay && !lockListenersAttached) {
+      document.addEventListener("touchstart", onLockTouchStart, {
+        passive: true,
+      });
+      document.addEventListener("touchmove", onLockTouchMove, {
+        passive: false,
+      });
+      document.addEventListener("wheel", onLockWheel, { passive: false });
+      lockListenersAttached = true;
+    } else if (!hasActiveOverlay && lockListenersAttached) {
+      document.removeEventListener("touchstart", onLockTouchStart);
+      document.removeEventListener("touchmove", onLockTouchMove);
+      document.removeEventListener("wheel", onLockWheel);
+      lockListenersAttached = false;
+    }
+  }
+
   const observer = new MutationObserver(syncScrollLock);
   document
     .querySelectorAll(".modal-overlay, .sidebar, .sidebar-overlay")
@@ -855,98 +953,6 @@ function switchDashboardView(viewId) {
       });
     });
   syncScrollLock();
-
-  document.addEventListener(
-    "touchstart",
-    (e) => {
-      if (e.touches.length === 1) {
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-      }
-    },
-    { passive: true }
-  );
-
-  document.addEventListener(
-    "touchmove",
-    (e) => {
-      const activeOverlay = getTopActiveOverlay();
-      if (!activeOverlay) return;
-
-      if (e.target.closest("#crop-stage, #lightbox-stage")) return;
-      if (e.target.tagName === "INPUT" && e.target.type === "range") return;
-
-      if (!activeOverlay.contains(e.target)) {
-        e.preventDefault();
-        return;
-      }
-
-      if (!e.touches || e.touches.length === 0) return;
-      const deltaX = e.touches[0].clientX - touchStartX;
-      const deltaY = e.touches[0].clientY - touchStartY;
-
-      if (
-        Math.abs(deltaX) > Math.abs(deltaY) &&
-        findHorizontalScrollableAncestor(e.target, activeOverlay)
-      ) {
-        return;
-      }
-
-      if (Math.abs(deltaY) < 8) return; // Allow normal taps without cancelling
-
-      const scrollable = findScrollableAncestor(e.target, activeOverlay);
-      if (!scrollable) {
-        e.preventDefault();
-        return;
-      }
-
-      const atTop = scrollable.scrollTop <= 0 && deltaY > 0;
-      const atBottom =
-        scrollable.scrollTop + scrollable.clientHeight >=
-          scrollable.scrollHeight - 1 && deltaY < 0;
-
-      if (atTop || atBottom) {
-        e.preventDefault();
-      }
-    },
-    { passive: false }
-  );
-
-  document.addEventListener(
-    "wheel",
-    (e) => {
-      const activeOverlay = getTopActiveOverlay();
-      if (!activeOverlay) return;
-
-      if (!activeOverlay.contains(e.target)) {
-        e.preventDefault();
-        return;
-      }
-
-      if (
-        Math.abs(e.deltaX) > Math.abs(e.deltaY) &&
-        findHorizontalScrollableAncestor(e.target, activeOverlay)
-      ) {
-        return;
-      }
-
-      const scrollable = findScrollableAncestor(e.target, activeOverlay);
-      if (!scrollable) {
-        e.preventDefault();
-        return;
-      }
-
-      const atTop = scrollable.scrollTop <= 0 && e.deltaY < 0;
-      const atBottom =
-        scrollable.scrollTop + scrollable.clientHeight >=
-          scrollable.scrollHeight - 1 && e.deltaY > 0;
-
-      if (atTop || atBottom) {
-        e.preventDefault();
-      }
-    },
-    { passive: false }
-  );
 })();
 
 // --- ULTRA-SMOOTH COLLAPSIBLE HERO CONTROLLER (Search, Approvals, Directory, Feedback) ---
@@ -1651,7 +1657,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
   function findOuterScrollableUp(innerEl) {
     let el = innerEl ? innerEl.parentElement : null;
     while (el && el !== document.body && el !== document.documentElement) {
-      if (isVerticallyScrollable(el) && el.scrollTop > 0) {
+      if (el.scrollTop > 0 && isVerticallyScrollable(el)) {
         return el;
       }
       el = el.parentElement;
@@ -1678,19 +1684,22 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     return false;
   }
 
-  // 1. Desktop wheel / trackpad
+  // 1. Desktop wheel / trackpad (passive so native scrolling never blocks)
   document.addEventListener(
     "wheel",
     (e) => {
       if (e.deltaY > 0) {
-        stopAnim(); // Stop immediately if user reverses downward
+        stopAnim();
         return;
       }
       if (e.deltaY === 0 || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       if (isBlockedContext(e.target)) return;
 
       const innerEl = findInnerScrollable(e.target);
-      if (!innerEl) return;
+      if (!innerEl || innerEl.scrollTop > 1) return;
+
+      const outerEl = findOuterScrollableUp(innerEl);
+      if (!outerEl) return;
 
       const deltaY =
         e.deltaMode === 1
@@ -1699,23 +1708,13 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
           ? e.deltaY * window.innerHeight
           : e.deltaY;
 
-      if (innerEl.scrollTop + deltaY > 0) return;
-
-      const outerEl = findOuterScrollableUp(innerEl);
-      if (!outerEl) return;
-
-      const remainder = innerEl.scrollTop + deltaY;
-      e.preventDefault();
-      if (innerEl.scrollTop > 0) innerEl.scrollTop = 0;
-
-      // Cap single wheel notch so big jumps stay slow and controlled
-      const dampedStep = Math.max(-40, remainder * WHEEL_SPEED);
+      const dampedStep = Math.max(-40, deltaY * WHEEL_SPEED);
       nudgeOuterScrollUp(outerEl, dampedStep);
     },
-    { passive: false }
+    { passive: true }
   );
 
-  // 2. Mobile touch (finger pulls down = scrolling up)
+  // 2. Mobile touch (passive so Android compositor stays at 60fps)
   let touchStartX = 0;
   let touchStartY = 0;
   let lastTouchY = 0;
@@ -1744,6 +1743,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     "touchmove",
     (e) => {
       if (!activeInner || e.touches.length !== 1) return;
+      if (activeInner.scrollTop > 1) return;
       if (isBlockedContext(e.target)) return;
 
       const currX = e.touches[0].clientX;
@@ -1762,17 +1762,14 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
         stopAnim();
         return;
       }
-      if (dy === 0 || activeInner.scrollTop > 1) return;
+      if (dy === 0) return;
 
       const outerEl = findOuterScrollableUp(activeInner);
       if (!outerEl) return;
 
-      if (e.cancelable) e.preventDefault();
-      if (activeInner.scrollTop > 0) activeInner.scrollTop = 0;
-
       nudgeOuterScrollUp(outerEl, -dy * TOUCH_SPEED);
     },
-    { passive: false }
+    { passive: true }
   );
 
   const resetTouch = () => {
@@ -1944,7 +1941,7 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
     }
   });
 
-  // Auto-wire dynamically created inputs (+ Add Row, Office Staff CRUD, Superadmin DB modal)
+  // Auto-wire dynamically created inputs only inside containers that inject them
   const domObserver = new MutationObserver((mutations) => {
     for (const m of mutations) {
       if (m.type === "childList" && m.addedNodes.length > 0) {
@@ -1952,7 +1949,14 @@ function setSearchHeroCollapsed(shouldCollapse, instant = false) {
       }
     }
   });
-  domObserver.observe(document.body, { childList: true, subtree: true });
+  [
+    "manual-entries-container",
+    "office-modal-body",
+    "sa-db-modal-fields",
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) domObserver.observe(el, { childList: true, subtree: true });
+  });
 
   // Re-sync inputs when modals open (handles programmatic clears & password-type reuse)
   const modalSyncObserver = new MutationObserver((mutations) => {

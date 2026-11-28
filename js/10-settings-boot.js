@@ -508,26 +508,29 @@ function bootAppInstantly() {
     if (cachedDataString) {
       try {
         cachedPostOffices = JSON.parse(cachedDataString);
-        if (typeof buildSearchIndex === "function") buildSearchIndex();
         document.getElementById("stat-addresses").textContent =
           cachedPostOffices.length;
         document.getElementById("stat-offices").textContent = new Set(
           cachedPostOffices.map((o) => o.Office)
         ).size;
-        const defaultComparator =
-          typeof compareByRecentActivity === "function"
-            ? compareByRecentActivity
-            : compareByPriorityOnly;
-        currentFilteredData = cachedPostOffices
-          .map((item) => ({
-            item,
-            matches: [],
-          }))
-          .sort((a, b) => defaultComparator(a.item, b.item));
-        renderResults(false);
-        if (typeof updateSidebarLearnBadge === "function") {
-          updateSidebarLearnBadge();
-        }
+
+        currentFilteredData =
+          typeof getDefaultSortedResults === "function"
+            ? getDefaultSortedResults(true)
+            : cachedPostOffices.map((item) => ({ item, matches: [] }));
+        renderResults(false, false, true);
+
+        const deferBootWork =
+          window.requestIdleCallback || ((cb) => setTimeout(cb, 80));
+        deferBootWork(() => {
+          if (typeof buildPinSuffixIndex === "function") buildPinSuffixIndex();
+          if (typeof warmSearchIndexInBackground === "function") {
+            warmSearchIndexInBackground();
+          }
+          if (typeof updateSidebarLearnBadge === "function") {
+            updateSidebarLearnBadge();
+          }
+        });
       } catch (e) {}
     }
   } else {
@@ -549,10 +552,6 @@ async function checkUserSession() {
   }
 
   initSupabaseClient();
-
-  if (cachedPostOffices.length > 0 && window.Fuse && !fuse) {
-    initializeSearchAndRender();
-  }
 
   let session = null;
   if (supabaseClient) {
@@ -676,16 +675,26 @@ async function checkUserSession() {
         }
       });
 
-      initRealtimeSync();
-      if (typeof refreshFeedbackOpenCount === "function") {
-        refreshFeedbackOpenCount();
-      }
-      if (typeof syncLearningProgressInBackground === "function") {
-        syncLearningProgressInBackground();
-      }
+      const deferBgServices =
+        window.requestIdleCallback || ((cb) => setTimeout(cb, 450));
+      deferBgServices(() => {
+        initRealtimeSync();
+        if (typeof refreshFeedbackOpenCount === "function") {
+          refreshFeedbackOpenCount();
+        }
+        if (typeof syncLearningProgressInBackground === "function") {
+          syncLearningProgressInBackground();
+        }
+      });
     }
 
-    fetchAllPostOffices();
+    if (cachedPostOffices.length === 0) {
+      fetchAllPostOffices();
+    } else {
+      const deferSync =
+        window.requestIdleCallback || ((cb) => setTimeout(cb, 600));
+      deferSync(() => fetchAllPostOffices());
+    }
   } else {
     currentUserId = null;
     isCurrentUserAdmin = false;

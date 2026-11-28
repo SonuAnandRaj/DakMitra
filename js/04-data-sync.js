@@ -203,6 +203,16 @@ function removeLocalOfficeStaff(rowOrId) {
 // --- DATA FETCHING & STATS ---
 async function fetchAllPostOffices(forceSync = false) {
   if (!forceSync) {
+    if (cachedPostOffices && cachedPostOffices.length > 0) {
+      const runInBg =
+        window.requestIdleCallback || ((cb) => setTimeout(cb, 300));
+      runInBg(() => {
+        fetchFromServerBackground(false);
+        if (navigator.onLine) initRealtimeSync();
+      });
+      return true;
+    }
+
     loadOfficeStaffFromCache();
     const cachedDataString = localStorage.getItem("dakmitra_offline_db");
     if (cachedDataString) {
@@ -347,32 +357,89 @@ async function fetchFromServerBackground(force = false) {
   return _syncInFlightPromise;
 }
 
-// --- SMART 3-DIGIT PIN SUFFIX OFFICE INDEX ---
+// --- SMART 3-DIGIT PIN SUFFIX & DELIVERY OFFICE INDEX ---
 let pinSuffixToOfficeMap = new Map();
+let cachedDeliveryOfficesSummary = [];
 window.activeCleanSearchQuery = "";
 window.activeSmartOfficeFilter = null;
 
 function buildPinSuffixIndex() {
   pinSuffixToOfficeMap.clear();
-  if (!cachedPostOffices) return;
+  cachedDeliveryOfficesSummary = [];
+  if (!cachedPostOffices || cachedPostOffices.length === 0) return;
 
-  cachedPostOffices.forEach((row) => {
+  const officesMap = new Map();
+
+  for (let i = 0; i < cachedPostOffices.length; i++) {
+    const row = cachedPostOffices[i];
     const pinStr = String(row.Pin || "").trim();
-    const officeName = String(row.Office || "").trim();
-    if (/^\d{6}$/.test(pinStr) && officeName) {
+    const rawOffice = String(row.Office || "")
+      .trim()
+      .replace(/\s+/g, " ");
+
+    if (/^\d{6}$/.test(pinStr) && rawOffice) {
       const suffix = pinStr.slice(-3);
       if (!pinSuffixToOfficeMap.has(suffix)) {
-        pinSuffixToOfficeMap.set(suffix, officeName);
+        pinSuffixToOfficeMap.set(suffix, rawOffice);
       }
     }
-  });
+
+    if (rawOffice) {
+      const key = normalizeOfficeKey(rawOffice);
+      let entry = officesMap.get(key);
+      if (!entry) {
+        entry = {
+          office: rawOffice,
+          officeLower: rawOffice.toLowerCase(),
+          officeCore: stripPostalSuffixes(rawOffice),
+          officePhonetic: postalPhoneticKey(rawOffice),
+          pin: pinStr,
+          pinLower: pinStr.toLowerCase(),
+          count: 0,
+        };
+        officesMap.set(key, entry);
+      }
+      entry.count++;
+      if (!entry.pin && pinStr) {
+        entry.pin = pinStr;
+        entry.pinLower = pinStr.toLowerCase();
+      }
+    }
+  }
+
+  cachedDeliveryOfficesSummary = Array.from(officesMap.values());
 }
 
-// --- CACHED FUSE.JS INSTANCES (ZERO REBUILD PER KEYSTROKE) ---
+// --- CACHED FUSE.JS INSTANCES & DEFAULT SORTED LISTS ---
 const fuseInstanceCache = new Map();
+let cachedDefaultRecentResults = null;
+let cachedDefaultPriorityResults = null;
+
+function clearDefaultResultsCache() {
+  cachedDefaultRecentResults = null;
+  cachedDefaultPriorityResults = null;
+}
 
 function clearFuseCache() {
   fuseInstanceCache.clear();
+  clearDefaultResultsCache();
+}
+
+function getDefaultSortedResults(sortByRecent = false) {
+  if (sortByRecent) {
+    if (!cachedDefaultRecentResults) {
+      cachedDefaultRecentResults = (cachedPostOffices || [])
+        .map((item) => ({ item, matches: [] }))
+        .sort((a, b) => compareByRecentActivity(a.item, b.item));
+    }
+    return cachedDefaultRecentResults;
+  }
+  if (!cachedDefaultPriorityResults) {
+    cachedDefaultPriorityResults = (cachedPostOffices || [])
+      .map((item) => ({ item, matches: [] }))
+      .sort((a, b) => compareByPriorityOnly(a.item, b.item));
+  }
+  return cachedDefaultPriorityResults;
 }
 
 function getCachedFuseInstance(filterVal, isNumericSearch) {
@@ -392,7 +459,7 @@ function getCachedFuseInstance(filterVal, isNumericSearch) {
     ignoreLocation: isNumericSearch ? true : false,
     location: 0,
     distance: 100,
-    includeMatches: true,
+    includeMatches: false,
     includeScore: true,
     getFn: (obj, path) => {
       const value = obj[path];
@@ -464,16 +531,54 @@ function createSearchMeta(row) {
   };
 }
 
+const _rowRecentTsCache = new WeakMap();
+let _searchIndexWarmSeq = 0;
+
+function getRowRecentTs(row) {
+  if (!row) return 0;
+  let ts = _rowRecentTsCache.get(row);
+  if (ts !== undefined) return ts;
+  ts = Math.max(
+    parseTimestampMs(row.inserted_at),
+    parseTimestampMs(row.address_updated_at)
+  );
+  _rowRecentTsCache.set(row, ts);
+  return ts;
+}
+
+function warmSearchIndexInBackground() {
+  const seq = ++_searchIndexWarmSeq;
+  const rows = cachedPostOffices;
+  if (!rows || rows.length === 0) return;
+
+  let i = 0;
+  const CHUNK_SIZE = 350;
+  const schedule = window.requestIdleCallback
+    ? (fn) => window.requestIdleCallback(fn, { timeout: 120 })
+    : (fn) => setTimeout(fn, 16);
+
+  function step() {
+    if (seq !== _searchIndexWarmSeq || rows !== cachedPostOffices) return;
+    const end = Math.min(i + CHUNK_SIZE, rows.length);
+    for (; i < end; i++) {
+      const row = rows[i];
+      if (row && row.id !== undefined && row.id !== null) {
+        const key = String(row.id);
+        if (!searchIndexMap.has(key)) {
+          searchIndexMap.set(key, createSearchMeta(row));
+        }
+      }
+    }
+    if (i < rows.length) schedule(step);
+  }
+
+  schedule(step);
+}
+
 function buildSearchIndex() {
   clearFuseCache();
   searchIndexMap.clear();
-  if (!cachedPostOffices) return;
-  for (let i = 0; i < cachedPostOffices.length; i++) {
-    const row = cachedPostOffices[i];
-    if (row && row.id !== undefined && row.id !== null) {
-      searchIndexMap.set(String(row.id), createSearchMeta(row));
-    }
-  }
+  warmSearchIndexInBackground();
 }
 
 function updateSearchIndexRow(row) {
@@ -505,19 +610,16 @@ function compareByPriorityOnly(aRow, bRow) {
 }
 
 function compareByRecentActivity(aRow, bRow) {
-  const aMeta = getSearchMeta(aRow);
-  const bMeta = getSearchMeta(bRow);
-  const timeDiff =
-    (bMeta?.recentActivityTs || 0) - (aMeta?.recentActivityTs || 0);
+  const timeDiff = getRowRecentTs(bRow) - getRowRecentTs(aRow);
   if (timeDiff !== 0) return timeDiff;
 
-  const aId = aMeta?.numericId;
-  const bId = bMeta?.numericId;
+  const aId = Number(aRow?.id);
+  const bId = Number(bRow?.id);
   if (Number.isFinite(aId) && Number.isFinite(bId) && aId !== bId) {
     return bId - aId;
   }
 
-  return (aMeta?.addrLower || "").localeCompare(bMeta?.addrLower || "");
+  return String(aRow?.Address || "").localeCompare(String(bRow?.Address || ""));
 }
 
 function parseSmartSearchQuery(
@@ -584,10 +686,7 @@ function initializeSearchAndRender(dataChanged = false) {
   document.getElementById("stat-addresses").textContent = totalRecords;
   document.getElementById("stat-offices").textContent = uniqueOffices;
 
-  if (window.Fuse) {
-    clearFuseCache();
-    fuse = getCachedFuseInstance("address", false);
-  }
+  clearFuseCache();
 
   syncFavoritesWithCache();
 
@@ -854,10 +953,7 @@ function scheduleLocalUiRefresh() {
       ).size;
     }
 
-    if (window.Fuse) {
-      clearFuseCache();
-      fuse = getCachedFuseInstance("address", false);
-    }
+    clearFuseCache();
 
     syncFavoritesWithCache();
     refreshSearchInPlace();
@@ -883,10 +979,14 @@ function refreshSearchInPlace(silent = true) {
 }
 
 function refreshDirectoryInPlace() {
-  buildDirectoryGroupedData();
-
   const dirView = document.getElementById("view-directory");
-  if (!dirView || !dirView.classList.contains("active")) return;
+  if (!dirView || !dirView.classList.contains("active")) {
+    directoryGroupedData = [];
+    directoryGroupByKeyMap.clear();
+    return;
+  }
+
+  buildDirectoryGroupedData();
 
   const pagesToRender = Math.max(1, directoryCurrentPage);
   if (typeof applyDirectoryFilters === "function") {

@@ -104,53 +104,53 @@ self.addEventListener("fetch", (event) => {
   const fetchInit =
     isNavigation || isSameOrigin ? { cache: "no-cache" } : undefined;
 
-  let cacheWritePromise = Promise.resolve();
+  let pendingCacheWrite = Promise.resolve();
 
-  const networkFetch = fetch(fetchInput, fetchInit)
-    .then((networkResponse) => {
-      const isCacheable = isNavigation
-        ? Boolean(
-            networkResponse &&
-              networkResponse.status === 200 &&
-              !networkResponse.redirected
-          )
-        : Boolean(
-            networkResponse &&
-              (networkResponse.status === 200 ||
-                (isPublicAvatar && networkResponse.type === "opaque"))
-          );
+  const fetchAndCache = () =>
+    fetch(fetchInput, fetchInit)
+      .then((networkResponse) => {
+        const isCacheable = isNavigation
+          ? Boolean(
+              networkResponse &&
+                networkResponse.status === 200 &&
+                !networkResponse.redirected
+            )
+          : Boolean(
+              networkResponse &&
+                (networkResponse.status === 200 ||
+                  (isPublicAvatar && networkResponse.type === "opaque"))
+            );
 
-      if (isCacheable) {
-        const responseToCache = networkResponse.clone();
-        cacheWritePromise = caches
-          .open(CACHE_NAME)
-          .then((cache) => cache.put(cacheKey, responseToCache))
-          .catch(() => {});
-      }
-      return networkResponse;
-    })
-    .catch(() => null);
-
-  event.waitUntil(networkFetch.then(() => cacheWritePromise));
+        if (isCacheable) {
+          const responseToCache = networkResponse.clone();
+          pendingCacheWrite = caches
+            .open(CACHE_NAME)
+            .then((cache) => cache.put(cacheKey, responseToCache))
+            .catch(() => {});
+        }
+        return networkResponse;
+      })
+      .catch(() => null);
 
   // Local dev (localhost / 127.0.0.1): Network-First for local files, Cache fallback when offline
   if (IS_LOCAL_DEV && (isNavigation || isSameOrigin)) {
-    event.respondWith(
-      networkFetch.then((networkResponse) => {
-        if (networkResponse) return networkResponse;
-        return caches
-          .open(CACHE_NAME)
-          .then((cache) => cache.match(cacheKey, { ignoreSearch: true }));
-      })
-    );
+    const responsePromise = fetchAndCache().then((networkResponse) => {
+      if (networkResponse) return networkResponse;
+      return caches
+        .open(CACHE_NAME)
+        .then((cache) => cache.match(cacheKey, { ignoreSearch: true }));
+    });
+    event.respondWith(responsePromise);
+    event.waitUntil(responsePromise.then(() => pendingCacheWrite));
     return;
   }
 
-  // Production (GitHub Pages) & cross-origin assets: 0ms Cache-First + background revalidation (SWR)
-  event.respondWith(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.match(cacheKey, { ignoreSearch: true }))
-      .then((cachedResponse) => cachedResponse || networkFetch)
-  );
+  // Production (GitHub Pages) & cross-origin assets: Strict 0ms Cache-First (no redundant boot re-fetches)
+  const responsePromise = caches
+    .open(CACHE_NAME)
+    .then((cache) => cache.match(cacheKey, { ignoreSearch: true }))
+    .then((cachedResponse) => cachedResponse || fetchAndCache());
+
+  event.respondWith(responsePromise);
+  event.waitUntil(responsePromise.then(() => pendingCacheWrite));
 });
