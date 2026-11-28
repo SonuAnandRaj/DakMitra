@@ -452,7 +452,12 @@ function findPhoneticMatchIndices(originalText, qKey) {
   return coreText ? [[0, coreText.length - 1]] : [];
 }
 
-// Evaluates direct word/core match (Pool 0) vs loose fuzzy/mid-word match (Pool 1)
+// Evaluates match strength across 5 pools (0 = strongest, 4 = weakest):
+// Pool 0: Exact core or exact phonetic match (regular village beats prefix-only BO)
+// Pool 1: Strong match (exact 1st word, >=60% 1st-word prefix, or powerful 2nd/later-word match)
+// Pool 2: Standard 1st-word start (incl. 1-letter) or powerful 5+/6+ char mid-word match
+// Pool 3: Standard 2nd/later-word start or unordered multi-word start match
+// Pool 4: Standard mid-word substring or Fuse.js fuzzy typo fallback
 function evaluateFieldMatch(
   rawLower,
   core,
@@ -473,27 +478,94 @@ function evaluateFieldMatch(
       "i"
     );
     return re.test(cleanRaw)
-      ? { pool: 0, tightness: 0 }
-      : { pool: 1, tightness: 9 };
+      ? { pool: 0, tightness: 0, coverage: 1, midPos: 0, startsSameChar: true }
+      : {
+          pool: 4,
+          tightness: 9,
+          coverage: 0,
+          midPos: 1,
+          startsSameChar: false,
+        };
   }
 
-  if (core === qCore) return { pool: 0, tightness: 0 };
-  if (qPhon.length >= 2 && phonetic === qPhon) return { pool: 0, tightness: 1 };
-  if (core.startsWith(qCore + " ")) return { pool: 0, tightness: 2 };
-  if (qCore.length >= 2 && core.startsWith(qCore)) {
-    return { pool: 0, tightness: 3 };
+  const firstWord = words[0] || "";
+  const firstWordPhon = wordPhonetics[0] || "";
+  const qLen = qCore.length;
+  const startsSameChar = Boolean(firstWord && firstWord[0] === qCore[0]);
+
+  // POOL 0: Exact / Perfect Match
+  if (core === qCore) {
+    return { pool: 0, tightness: 0, coverage: 1, midPos: 0, startsSameChar };
+  }
+  if (qPhon.length >= 2 && phonetic === qPhon) {
+    return { pool: 0, tightness: 1, coverage: 1, midPos: 0, startsSameChar };
   }
 
-  if (qWords.length > 0) {
+  // POOL 1: Exact 1st Word / High-Coverage 1st-Word Prefix / Powerful Later-Word Match
+  if (core.startsWith(qCore + " ")) {
+    return {
+      pool: 1,
+      tightness: 0,
+      coverage: qLen / Math.max(1, core.length),
+      midPos: 0,
+      startsSameChar,
+    };
+  }
+
+  if (qWords.length === 1) {
+    // High-coverage 1st-word prefix (e.g. "nauh" -> "Nauha" 80%, "laps" -> "Lapsi" 80%)
+    if (qLen >= 3 && firstWord.startsWith(qCore)) {
+      const cov = qLen / Math.max(1, firstWord.length);
+      if (cov >= 0.6) {
+        return {
+          pool: 1,
+          tightness: 1,
+          coverage: cov,
+          midPos: 0,
+          startsSameChar,
+        };
+      }
+    }
+
+    // Powerful exact or high-coverage match at start of 2nd/later word
+    if (words.length > 1) {
+      let bestLaterCov = 0;
+      let hasPowerfulLaterExact = false;
+
+      for (let i = 1; i < words.length; i++) {
+        const w = words[i];
+        const wp = wordPhonetics[i] || "";
+        if (qLen >= 4 && (w === qCore || (qPhon.length >= 2 && wp === qPhon))) {
+          hasPowerfulLaterExact = true;
+          bestLaterCov = 1;
+          break;
+        }
+        if (qLen >= 5 && w.startsWith(qCore)) {
+          const cov = qLen / Math.max(1, w.length);
+          if (cov >= 0.7 && cov > bestLaterCov) {
+            bestLaterCov = cov;
+          }
+        }
+      }
+
+      if (hasPowerfulLaterExact || bestLaterCov >= 0.7) {
+        return {
+          pool: 1,
+          tightness: hasPowerfulLaterExact ? 2 : 3,
+          coverage: bestLaterCov,
+          midPos: 0,
+          startsSameChar,
+        };
+      }
+    }
+  } else if (qWords.length > 1) {
     let allTokensMatched = true;
     for (let i = 0; i < qWords.length; i++) {
       const qw = qWords[i];
       const qwp = qWordPhons[i] || "";
-      const wordHit = words.some(
-        (w) => w === qw || (qw.length >= 2 && w.startsWith(qw))
-      );
+      const wordHit = words.some((w) => w === qw || w.startsWith(qw));
       const phonHit =
-        qwp.length > 0 &&
+        qwp.length >= 2 &&
         wordPhonetics.some(
           (wp) => wp === qwp || (qwp.length >= 3 && wp.startsWith(qwp))
         );
@@ -502,14 +574,121 @@ function evaluateFieldMatch(
         break;
       }
     }
-    if (allTokensMatched) return { pool: 0, tightness: 4 };
+
+    if (allTokensMatched) {
+      const q0 = qWords[0];
+      const q0p = qWordPhons[0] || "";
+      const startsWithWord0 =
+        firstWord.startsWith(q0) ||
+        (q0p.length >= 2 && firstWordPhon.startsWith(q0p));
+
+      if (startsWithWord0) {
+        return {
+          pool: 1,
+          tightness: core.startsWith(qCore) ? 0 : 2,
+          coverage: qLen / Math.max(1, core.length),
+          midPos: 0,
+          startsSameChar,
+        };
+      }
+      return {
+        pool: 3,
+        tightness: 0,
+        coverage: qLen / Math.max(1, core.length),
+        midPos: 0,
+        startsSameChar,
+      };
+    }
   }
 
-  if (qPhon.length >= 3 && phonetic.startsWith(qPhon)) {
-    return { pool: 0, tightness: 5 };
+  // POOL 2: Standard 1st-Word Start (incl. 1-letter) & Very Powerful Mid-Word Match
+  if (core.startsWith(qCore)) {
+    return {
+      pool: 2,
+      tightness: 0,
+      coverage: qLen / Math.max(1, firstWord.length || core.length),
+      midPos: 0,
+      startsSameChar,
+    };
+  }
+  if (
+    qPhon.length >= 3 &&
+    (firstWordPhon.startsWith(qPhon) || phonetic.startsWith(qPhon))
+  ) {
+    return {
+      pool: 2,
+      tightness: 1,
+      coverage:
+        qPhon.length / Math.max(1, firstWordPhon.length || phonetic.length),
+      midPos: 0,
+      startsSameChar,
+    };
   }
 
-  return { pool: 1, tightness: 9 };
+  if (qLen >= 5) {
+    const coreIdx = core.indexOf(qCore);
+    if (coreIdx > 0) {
+      let bestMidCov = 0;
+      for (let i = 0; i < words.length; i++) {
+        if (words[i].includes(qCore)) {
+          const cov = qLen / Math.max(1, words[i].length);
+          if (cov > bestMidCov) bestMidCov = cov;
+        }
+      }
+      if (bestMidCov >= 0.5 || qLen >= 6) {
+        return {
+          pool: 2,
+          tightness: 2,
+          coverage: bestMidCov || qLen / Math.max(1, core.length),
+          midPos: coreIdx / Math.max(1, core.length),
+          startsSameChar,
+        };
+      }
+    }
+  }
+
+  // POOL 3: Standard 2nd / Later-Word Start (incl. 1-letter)
+  if (qWords.length === 1 && words.length > 1) {
+    for (let i = 1; i < words.length; i++) {
+      if (words[i].startsWith(qCore)) {
+        return {
+          pool: 3,
+          tightness: 0,
+          coverage: qLen / Math.max(1, words[i].length),
+          midPos: 0,
+          startsSameChar,
+        };
+      }
+    }
+    if (qPhon.length >= 3) {
+      for (let i = 1; i < wordPhonetics.length; i++) {
+        const wp = wordPhonetics[i];
+        if (wp === qPhon || wp.startsWith(qPhon)) {
+          return {
+            pool: 3,
+            tightness: 1,
+            coverage: qPhon.length / Math.max(1, wp.length),
+            midPos: 0,
+            startsSameChar,
+          };
+        }
+      }
+    }
+  }
+
+  // POOL 4: Standard Middle-of-Word Substring or Fuse.js Fuzzy Typo Fallback
+  const midIdx = core.indexOf(qCore);
+  const rawIdx = midIdx >= 0 ? midIdx : rawLower.indexOf(qLower);
+  const midPos =
+    rawIdx >= 0 ? rawIdx / Math.max(1, core.length || rawLower.length) : 1;
+
+  return {
+    pool: 4,
+    tightness: rawIdx >= 0 ? 0 : 1,
+    coverage: rawIdx >= 0 ? qLen / Math.max(1, core.length) : 0,
+    midPos,
+    startsSameChar,
+  };
 }
 
 // Helper: Picks matching keys for rare Fuse.js typo hits without computing full match indices
@@ -568,11 +747,16 @@ function runFastTextSearch(
   const rankedMap = new Map();
 
   const scoreTextRow = (meta, fuseScore) => {
-    let bestPool = 1;
+    let bestPool = 4;
+    let bestFieldPenalty = 1;
     let bestTightness = 9;
+    let bestCoverage = 0;
+    let bestMidPos = 1;
+    let bestStartsSameChar = false;
 
     for (let i = 0; i < textKeys.length; i++) {
       const key = textKeys[i];
+      const fieldPenalty = key === "Address" ? 0 : 1;
       const res =
         key === "Address"
           ? evaluateFieldMatch(
@@ -600,20 +784,45 @@ function runFastTextSearch(
               qWordPhons
             );
 
-      if (
+      const isBetter =
         res.pool < bestPool ||
-        (res.pool === bestPool && res.tightness < bestTightness)
-      ) {
+        (res.pool === bestPool && fieldPenalty < bestFieldPenalty) ||
+        (res.pool === bestPool &&
+          fieldPenalty === bestFieldPenalty &&
+          res.tightness < bestTightness) ||
+        (res.pool === bestPool &&
+          fieldPenalty === bestFieldPenalty &&
+          res.tightness === bestTightness &&
+          res.coverage > bestCoverage);
+
+      if (isBetter) {
         bestPool = res.pool;
+        bestFieldPenalty = fieldPenalty;
         bestTightness = res.tightness;
+        bestCoverage = res.coverage;
+        bestMidPos = res.midPos;
+        bestStartsSameChar = Boolean(res.startsSameChar);
       }
+    }
+
+    let adjustedFuseScore = typeof fuseScore === "number" ? fuseScore : 0.25;
+    if (
+      bestPool === 4 &&
+      bestTightness === 1 &&
+      qCore.length >= 2 &&
+      bestStartsSameChar
+    ) {
+      adjustedFuseScore = Math.max(0, adjustedFuseScore - 0.06);
     }
 
     return {
       pool: bestPool,
+      fieldPenalty: bestFieldPenalty,
       tightness: bestTightness,
+      coverage: bestCoverage,
+      midPos: bestMidPos,
       effectivePriority: meta.effectivePriority,
-      fuseScore: typeof fuseScore === "number" ? fuseScore : 0.25,
+      fuseScore: adjustedFuseScore,
       addrLower: meta.addrLower,
     };
   };
@@ -623,7 +832,7 @@ function runFastTextSearch(
     const row = dataset[i];
     const meta = getSearchMeta(row);
     let matches = null;
-    let bestSyntheticScore = 0.25;
+    let bestSyntheticScore = 0.28;
 
     for (let k = 0; k < textKeys.length; k++) {
       const key = textKeys[k];
@@ -635,14 +844,22 @@ function runFastTextSearch(
         key === "Address" ? meta.addrWordPhonetics : meta.officeWordPhonetics;
 
       let hit = false;
-      let hitScore = 0.25;
+      let hitScore = 0.28;
 
-      if (rawLower.includes(qLower)) {
+      const rawIdx = rawLower.indexOf(qLower);
+      if (rawIdx !== -1) {
         hit = true;
-        hitScore = rawLower.startsWith(qLower) ? 0.0 : 0.08;
+        hitScore =
+          rawIdx === 0
+            ? 0.0
+            : 0.12 + 0.16 * (rawIdx / Math.max(1, rawLower.length));
       } else if (qCore.length >= 2 && core.includes(qCore)) {
+        const coreIdx = core.indexOf(qCore);
         hit = true;
-        hitScore = core.startsWith(qCore) ? 0.02 : 0.1;
+        hitScore =
+          coreIdx === 0
+            ? 0.02
+            : 0.14 + 0.14 * (coreIdx / Math.max(1, core.length));
       } else if (
         (qPhon.length >= 2 && fieldPhon === qPhon) ||
         (qPhon.length >= 3 &&
@@ -739,9 +956,9 @@ function runFastTextSearch(
     }
   }
 
-  // Sort:
-  //   Pool 0 (Direct matches): Effective Priority DESC -> Tightness ASC -> Score ASC -> A-Z
-  //   Pool 1 (Fuzzy/Mid-word): Score Bucket ASC -> Effective Priority DESC -> A-Z
+  // Sort across 5 pools:
+  //   Pools 0-3: Pool ASC -> Address over Office -> Priority DESC -> Tightness ASC -> Coverage DESC -> A-Z
+  //   Pool 4 (Mid-word & fuzzy): Score Bucket ASC -> Address over Office -> Priority DESC -> Mid Position ASC -> A-Z
   return Array.from(rankedMap.values())
     .sort((a, b) => {
       const ra = a.rank;
@@ -749,22 +966,31 @@ function runFastTextSearch(
 
       if (ra.pool !== rb.pool) return ra.pool - rb.pool;
 
-      if (ra.pool === 0) {
+      if (ra.pool <= 3) {
+        if (ra.fieldPenalty !== rb.fieldPenalty) {
+          return ra.fieldPenalty - rb.fieldPenalty;
+        }
         if (rb.effectivePriority !== ra.effectivePriority) {
           return rb.effectivePriority - ra.effectivePriority;
         }
         if (ra.tightness !== rb.tightness) return ra.tightness - rb.tightness;
-        if (Math.abs(ra.fuseScore - rb.fuseScore) > 0.02) {
-          return ra.fuseScore - rb.fuseScore;
+        if (Math.abs(rb.coverage - ra.coverage) > 0.08) {
+          return rb.coverage - ra.coverage;
         }
         return ra.addrLower.localeCompare(rb.addrLower);
       }
 
-      const bucketA = Math.round(ra.fuseScore * 20);
-      const bucketB = Math.round(rb.fuseScore * 20);
+      const bucketA = Math.round(ra.fuseScore * 15);
+      const bucketB = Math.round(rb.fuseScore * 15);
       if (bucketA !== bucketB) return bucketA - bucketB;
+      if (ra.fieldPenalty !== rb.fieldPenalty) {
+        return ra.fieldPenalty - rb.fieldPenalty;
+      }
       if (rb.effectivePriority !== ra.effectivePriority) {
         return rb.effectivePriority - ra.effectivePriority;
+      }
+      if (Math.abs(ra.midPos - rb.midPos) > 0.05) {
+        return ra.midPos - rb.midPos;
       }
       return ra.addrLower.localeCompare(rb.addrLower);
     })
