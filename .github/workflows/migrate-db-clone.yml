@@ -42,7 +42,8 @@ jobs:
             --no-privileges \
             -f /tmp/public_schema.sql
 
-          psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -f /tmp/public_schema.sql
+            sed -i '/^CREATE SCHEMA public;/d' /tmp/public_schema.sql
+            psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -f /tmp/public_schema.sql
 
       - name: Clone auth.users & auth.identities safely
         env:
