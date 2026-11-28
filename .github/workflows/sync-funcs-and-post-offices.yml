@@ -1,0 +1,139 @@
+name: Sync Public Functions & Post Offices
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_targeted_sync:
+        description: "Type SYNC_TARGETED to sync public functions, post_offices, and post_offices_history"
+        required: true
+        type: string
+
+jobs:
+  targeted_sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Guard accidental run
+        if: ${{ inputs.confirm_targeted_sync != 'SYNC_TARGETED' }}
+        run: |
+          echo "Set confirm_targeted_sync to SYNC_TARGETED to execute."
+          exit 1
+
+      - name: Install postgresql-client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Sync all public functions from France to Mumbai
+        env:
+          OLD_DB_URL: ${{ secrets.OLD_DB_URL }}
+          NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
+        run: |
+          set -e
+          pg_dump "$OLD_DB_URL" \
+            --schema=public \
+            --section=pre-data \
+            --no-owner \
+            --no-privileges \
+            -f /tmp/pre_data.sql
+
+          python3 - <<'PY'
+          with open("/tmp/pre_data.sql", "r", encoding="utf-8") as f:
+              sql = f.read()
+
+          # Extract blocks starting with CREATE [OR REPLACE] FUNCTION ... up to the language/body semicolon
+          lines = sql.splitlines()
+          out = []
+          capturing = False
+          brace_or_dollar = None
+
+          for line in lines:
+              stripped = line.lstrip()
+              if not capturing and (stripped.startswith("CREATE FUNCTION ") or stripped.startswith("CREATE OR REPLACE FUNCTION ")):
+                  capturing = True
+                  brace_or_dollar = None
+                  if stripped.startswith("CREATE FUNCTION "):
+                      idx = line.find("CREATE FUNCTION ")
+                      line = line[:idx] + "CREATE OR REPLACE FUNCTION " + line[idx + len("CREATE FUNCTION "):]
+                  out.append(line)
+                  # Check if single-line function ending with ;
+                  if line.rstrip().endswith(";"):
+                      capturing = False
+                      out.append("")
+              elif capturing:
+                  out.append(line)
+                  if line.rstrip().endswith(";"):
+                      capturing = False
+                      out.append("")
+
+          with open("/tmp/only_functions.sql", "w", encoding="utf-8") as f:
+              f.write("\n".join(out) + "\n")
+          PY
+
+          psql "$NEW_DB_URL" -v ON_ERROR_STOP=0 -f /tmp/only_functions.sql > /tmp/func_errors.log 2>&1 || true
+          echo "=== FUNCTION ERRORS (IF ANY) ==="
+          grep -E "^(ERROR|psql:)" /tmp/func_errors.log || echo "Zero function errors"
+
+      - name: Re-sync post_offices and post_offices_history only
+        env:
+          OLD_DB_URL: ${{ secrets.OLD_DB_URL }}
+          NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
+        run: |
+          set -e
+          pg_dump "$OLD_DB_URL" \
+            --table=public.post_offices \
+            --table=public.post_offices_history \
+            --data-only \
+            --inserts \
+            --rows-per-insert=200 \
+            --no-owner \
+            --no-privileges \
+            -f /tmp/po_data.sql
+
+          sed -i '/^SET /d' /tmp/po_data.sql
+
+          {
+            echo "SET session_replication_role = 'replica';"
+            echo "TRUNCATE TABLE public.post_offices, public.post_offices_history RESTART IDENTITY CASCADE;"
+            cat /tmp/po_data.sql
+            echo "SET session_replication_role = 'origin';"
+          } | psql "$NEW_DB_URL" -v ON_ERROR_STOP=1
+
+          psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "
+            DO \$\$
+            DECLARE
+              seq_po text := pg_get_serial_sequence('public.post_offices', 'id');
+              seq_hist text := pg_get_serial_sequence('public.post_offices_history', 'id');
+              max_po bigint;
+              max_hist bigint;
+            BEGIN
+              IF seq_po IS NOT NULL THEN
+                SELECT COALESCE(MAX(id), 0) INTO max_po FROM public.post_offices;
+                PERFORM setval(seq_po, GREATEST(max_po, 1), max_po > 0);
+              END IF;
+              IF seq_hist IS NOT NULL THEN
+                SELECT COALESCE(MAX(id), 0) INTO max_hist FROM public.post_offices_history;
+                PERFORM setval(seq_hist, GREATEST(max_hist, 1), max_hist > 0);
+              END IF;
+            END
+            \$\$;
+          "
+
+      - name: Re-apply grants & verify counts
+        env:
+          NEW_DB_URL: ${{ secrets.NEW_DB_URL }}
+        run: |
+          set -e
+          psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "
+            GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+            GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+            GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+          "
+
+          psql "$NEW_DB_URL" -c "
+            SELECT
+              (SELECT count(*) FROM public.post_offices) AS post_offices_rows,
+              (SELECT count(*) FROM public.post_offices_history) AS post_offices_history_rows,
+              (SELECT count(*) FROM public.superadmin_audit_logs) AS audit_logs_preserved,
+              (SELECT count(*) FROM auth.users) AS auth_users_preserved,
+              (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public') AS public_funcs;
+          "
