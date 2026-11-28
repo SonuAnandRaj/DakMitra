@@ -11,8 +11,8 @@ const SPLASH_START_TIME = performance.now();
 const SPLASH_MIN_DURATION_MS = 280; // Prevents harsh 1-frame flicker on fast cache loads
 
 // --- SUPABASE CONFIGURATION ---
-const SUPABASE_URL = "https://nvviolzdujgwkmnrnaww.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_vwlbAzFCF0zMMqeiPWyu7Q_ruSZ1WwM";
+const SUPABASE_URL = "https://mbaxhhpktidwkxvnvcgx.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_BAmx46NCBnGpIVwOVSzwLw_7pMjreDF";
 let supabaseClient = null;
 
 function initSupabaseClient() {

@@ -461,13 +461,26 @@ async function exportFullTableToExcel(includeDeleted = true) {
 // --- 0ms INSTANT BOOT & SESSION SYNC ---
 function getInstantLocalSession() {
   try {
+    const activeRef = (() => {
+      try {
+        return new URL(SUPABASE_URL).hostname.split(".")[0];
+      } catch (_) {
+        return "";
+      }
+    })();
+    const expectedKey = activeRef ? `sb-${activeRef}-auth-token` : null;
+
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
-        const raw = JSON.parse(localStorage.getItem(key));
-        const session = raw?.session || raw;
-        if (session && session.user) return session;
+      if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) {
+        continue;
       }
+      if (expectedKey && key !== expectedKey) {
+        continue;
+      }
+      const raw = JSON.parse(localStorage.getItem(key));
+      const session = raw?.session || raw;
+      if (session && session.user) return session;
     }
   } catch (e) {}
   return null;
