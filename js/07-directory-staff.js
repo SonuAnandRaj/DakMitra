@@ -1443,14 +1443,26 @@ function showParentOfficeDetailsModal(officeName, pinNumber = "") {
       ? normalizeOfficeKey(cleanOffice)
       : cleanOffice.toLowerCase();
 
-  const officeType = detectOfficeType(cleanOffice) === "HO" ? "HO" : "SO";
   const existing =
-    typeof getOfficeStaffByName === "function"
+    typeof getDeliveryOfficeByName === "function"
+      ? getDeliveryOfficeByName(cleanOffice)
+      : typeof getOfficeStaffByName === "function"
       ? getOfficeStaffByName(cleanOffice)
       : null;
 
-  let resolvedPin =
-    pinNumber && pinNumber !== "N/A" ? String(pinNumber).trim() : "";
+  const officeType =
+    existing?.office_type ||
+    (detectOfficeType(cleanOffice) === "HO"
+      ? "HO"
+      : /\bNSH\b/i.test(cleanOffice.replace(/\./g, ""))
+      ? "NSH"
+      : "SO");
+
+  let resolvedPin = existing?.pin
+    ? String(existing.pin).trim()
+    : pinNumber && pinNumber !== "N/A"
+    ? String(pinNumber).trim()
+    : "";
   if (!resolvedPin && typeof cachedPostOffices !== "undefined") {
     const match = cachedPostOffices.find(
       (r) =>
@@ -1464,11 +1476,17 @@ function showParentOfficeDetailsModal(officeName, pinNumber = "") {
   activeOfficeMode = "parent";
   activeOfficeKey = key;
   activeOfficeType = officeType;
-  activeParentOfficeMeta = { office: cleanOffice, pin: resolvedPin };
+  activeParentOfficeMeta = {
+    id: existing?.id ?? null,
+    office: existing?.office_name || cleanOffice,
+    pin: resolvedPin,
+  };
   activeOfficeRecord = existing || {
+    id: null,
     office_name: cleanOffice,
     office_key: key,
     office_type: officeType,
+    pin: resolvedPin ? Number(resolvedPin) : null,
     pm_name: null,
     pm_contact: null,
     spm_name: null,
@@ -1480,6 +1498,7 @@ function showParentOfficeDetailsModal(officeName, pinNumber = "") {
   const badgeLabels = {
     SO: "Sub Office (SO)",
     HO: "Head Office (HO)",
+    NSH: "National Sorting Hub (NSH)",
   };
 
   document.getElementById("office-modal-badge").textContent =
@@ -1615,9 +1634,26 @@ function showOfficeDetailsModal(addressName, parentOfficeName) {
     return showToast("⚠️ Office record not found in local database.");
   }
 
+  const staffRec =
+    typeof getBranchOfficeStaffByPoId === "function"
+      ? getBranchOfficeStaffByPoId(record.id)
+      : null;
+
   activeOfficeMode = "child";
   activeOfficeKey = null;
-  activeOfficeRecord = record;
+  activeOfficeRecord = {
+    ...record,
+    bpm_name: staffRec?.bpm_name ?? null,
+    bpm_contact: staffRec?.bpm_contact ?? null,
+    abpm_name: staffRec?.abpm_name ?? null,
+    abpm_contact: staffRec?.abpm_contact ?? null,
+    spm_name: staffRec?.spm_name ?? null,
+    spm_contact: staffRec?.spm_contact ?? null,
+    pm_name: staffRec?.pm_name ?? null,
+    pm_contact: staffRec?.pm_contact ?? null,
+    pa_list: staffRec?.pa_list ?? [],
+    mts_list: staffRec?.mts_list ?? [],
+  };
   activeOfficeType = officeType;
 
   const badgeLabels = {
@@ -1661,10 +1697,16 @@ function renderOfficeStaffViewMode() {
       record.abpm_name,
       record.abpm_contact
     );
-  } else if (officeType === "SO" || officeType === "HO") {
-    if (officeType === "SO") {
+  } else if (
+    officeType === "SO" ||
+    officeType === "HO" ||
+    officeType === "NSH"
+  ) {
+    if (officeType === "SO" || officeType === "NSH") {
       cardsHtml += buildStaffCardHTML(
-        "Sub Post Master (SPM)",
+        officeType === "NSH"
+          ? "Hub Manager / In-Charge"
+          : "Sub Post Master (SPM)",
         record.spm_name,
         record.spm_contact
       );
@@ -1760,22 +1802,32 @@ function openOfficeStaffEditor() {
         </div>
       `;
     bodyEl.innerHTML = formHtml;
-  } else if (officeType === "SO" || officeType === "HO") {
+  } else if (
+    officeType === "SO" ||
+    officeType === "HO" ||
+    officeType === "NSH"
+  ) {
     const existingPAs = parsePaList(record);
     const existingMTS = parseMtsList(record);
+    const spmLabel =
+      officeType === "NSH"
+        ? "Hub Manager / In-Charge"
+        : "Sub Post Master (SPM)";
+    const spmPlaceholder =
+      officeType === "NSH" ? "In-Charge Full Name" : "SPM Full Name";
 
     const headRoleHtml =
-      officeType === "SO"
+      officeType === "SO" || officeType === "NSH"
         ? `
         <div class="staff-edit-group">
           <div class="staff-edit-header">
-            <span class="staff-role-label" style="margin:0;">Sub Post Master (SPM)</span>
+            <span class="staff-role-label" style="margin:0;">${spmLabel}</span>
             <button type="button" class="staff-remove-btn" onclick="clearStaffFieldGroup('crud-spm-name', 'crud-spm-contact')">Clear</button>
           </div>
           <div class="staff-edit-inputs">
-            <input type="text" id="crud-spm-name" placeholder="SPM Full Name" value="${escapeHTML(
-              record.spm_name || ""
-            )}" />
+            <input type="text" id="crud-spm-name" placeholder="${spmPlaceholder}" value="${escapeHTML(
+            record.spm_name || ""
+          )}" />
             <input type="tel" inputmode="numeric" id="crud-spm-contact" placeholder="Contact Number" maxlength="15" value="${escapeHTML(
               record.spm_contact || ""
             )}" />
@@ -1911,7 +1963,11 @@ async function saveOfficeStaffDetails() {
       abpm_name: abpmName || null,
       abpm_contact: abpmContact || null,
     };
-  } else if (activeOfficeType === "SO" || activeOfficeType === "HO") {
+  } else if (
+    activeOfficeType === "SO" ||
+    activeOfficeType === "HO" ||
+    activeOfficeType === "NSH"
+  ) {
     const paRows = document.querySelectorAll(".pa-crud-row");
     const paList = [];
     paRows.forEach((row) => {
@@ -1928,7 +1984,7 @@ async function saveOfficeStaffDetails() {
       if (n || c) mtsList.push({ name: n, contact: c });
     });
 
-    if (activeOfficeType === "SO") {
+    if (activeOfficeType === "SO" || activeOfficeType === "NSH") {
       const spmName = document.getElementById("crud-spm-name")?.value.trim();
       const spmContact = document
         .getElementById("crud-spm-contact")
@@ -1963,28 +2019,26 @@ async function saveOfficeStaffDetails() {
         (typeof normalizeOfficeKey === "function"
           ? normalizeOfficeKey(officeName)
           : officeName.toLowerCase());
+      const targetId = activeOfficeRecord?.id ?? activeParentOfficeMeta?.id;
 
-      const upsertPayload = {
-        office_name: officeName,
-        office_key: officeKey,
-        office_type: activeOfficeType === "HO" ? "HO" : "SO",
-        ...updatePayload,
-      };
+      let query = supabaseClient.from("delivery_offices").update(updatePayload);
+      query =
+        targetId !== undefined && targetId !== null
+          ? query.eq("id", targetId)
+          : query.eq("office_key", officeKey);
 
-      const { data: savedRow, error } = await supabaseClient
-        .from("office_staff")
-        .upsert(upsertPayload, { onConflict: "office_key" })
-        .select()
+      const { data: savedRow, error } = await query
+        .select(DELIVERY_OFFICES_SELECT_COLUMNS)
         .single();
 
       if (error) throw error;
 
       activeOfficeRecord = savedRow || {
         ...activeOfficeRecord,
-        ...upsertPayload,
+        ...updatePayload,
       };
-      if (typeof upsertLocalOfficeStaff === "function") {
-        upsertLocalOfficeStaff(activeOfficeRecord);
+      if (typeof upsertLocalDeliveryOffice === "function") {
+        upsertLocalDeliveryOffice(activeOfficeRecord);
       }
     } else {
       const { error } = await supabaseClient.rpc(
@@ -1999,10 +2053,33 @@ async function saveOfficeStaffDetails() {
       if (error) throw error;
 
       Object.assign(activeOfficeRecord, updatePayload);
-      localStorage.setItem(
-        "dakmitra_offline_db",
-        JSON.stringify(cachedPostOffices)
-      );
+      const isNowEmpty =
+        activeOfficeType === "BO"
+          ? !updatePayload.bpm_name &&
+            !updatePayload.bpm_contact &&
+            !updatePayload.abpm_name &&
+            !updatePayload.abpm_contact
+          : activeOfficeType === "SO"
+          ? !updatePayload.spm_name &&
+            !updatePayload.spm_contact &&
+            (!updatePayload.pa_list || updatePayload.pa_list.length === 0) &&
+            (!updatePayload.mts_list || updatePayload.mts_list.length === 0)
+          : !updatePayload.pm_name &&
+            !updatePayload.pm_contact &&
+            (!updatePayload.pa_list || updatePayload.pa_list.length === 0) &&
+            (!updatePayload.mts_list || updatePayload.mts_list.length === 0);
+
+      if (isNowEmpty) {
+        if (typeof removeLocalBranchOfficeStaff === "function") {
+          removeLocalBranchOfficeStaff(activeOfficeRecord.id);
+        }
+      } else if (typeof upsertLocalBranchOfficeStaff === "function") {
+        upsertLocalBranchOfficeStaff({
+          post_office_id: activeOfficeRecord.id,
+          office_type: activeOfficeType,
+          ...updatePayload,
+        });
+      }
     }
 
     showToast("✅ Office details updated!");
@@ -2189,12 +2266,23 @@ async function submitQuickAddModal() {
       userId: session.user.id,
     });
 
+    const officeRec =
+      typeof getDeliveryOfficeByName === "function"
+        ? getDeliveryOfficeByName(activeQuickAddOffice.office)
+        : null;
+    if (!officeRec) {
+      throw new Error(
+        `Unknown Delivery Office "${activeQuickAddOffice.office}". Please sync and try again.`
+      );
+    }
+
     const payloads = addresses.map((addr) => ({
       action_type: "ADD",
       proposed_data: {
         Address: addr,
-        Office: activeQuickAddOffice.office,
-        Pin: activeQuickAddOffice.pin || null,
+        office_id: officeRec.id,
+        Office: officeRec.office_name,
+        Pin: officeRec.pin,
         priority: activeQuickAddPriority,
         upload_method: "quick_add",
         batch_id: batch.id,

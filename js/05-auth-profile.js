@@ -478,11 +478,18 @@ async function forceLogoutBlockedUser(reasonMsg, alertMeta = null) {
 
   clearSessionCachesAndState();
   localStorage.removeItem("dakmitra_offline_db");
-  localStorage.removeItem(OFFICE_STAFF_CACHE_KEY);
+  localStorage.removeItem(DELIVERY_OFFICES_CACHE_KEY);
+  localStorage.removeItem(BRANCH_OFFICE_STAFF_CACHE_KEY);
+  localStorage.removeItem("dakmitra_offline_office_staff");
   localStorage.removeItem("dakmitra_sync_meta");
   cachedPostOffices = [];
-  cachedOfficeStaff = [];
-  officeStaffByKeyMap.clear();
+  cachedDeliveryOffices = [];
+  cachedBranchOfficeStaff = [];
+  deliveryOfficeByIdMap.clear();
+  deliveryOfficeByKeyMap.clear();
+  branchOfficeStaffByPoIdMap.clear();
+  cachedOfficeStaff = cachedDeliveryOffices;
+  officeStaffByKeyMap = deliveryOfficeByKeyMap;
 
   document.getElementById("dashboard-view")?.classList.add("hidden");
   document.getElementById("auth-view")?.classList.remove("hidden");

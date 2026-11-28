@@ -1545,7 +1545,17 @@ function buildSearchDeliveryOfficeCardsHTML(matchedOffices, silent = false) {
 
   const cardsHtml = matchedOffices
     .map((item) => {
-      const officeType = detectOfficeType(item.office) === "HO" ? "HO" : "SO";
+      const officeRec =
+        typeof getDeliveryOfficeByName === "function"
+          ? getDeliveryOfficeByName(item.office)
+          : null;
+      const officeType =
+        officeRec?.office_type ||
+        (detectOfficeType(item.office) === "HO"
+          ? "HO"
+          : /\bNSH\b/i.test(String(item.office || "").replace(/\./g, ""))
+          ? "NSH"
+          : "SO");
       const staffCount =
         typeof getOfficeStaffCount === "function"
           ? getOfficeStaffCount(item.office)

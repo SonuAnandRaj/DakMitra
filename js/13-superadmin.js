@@ -981,10 +981,16 @@ async function saveSuperadminDbRow() {
     await loadSuperadminTableRows(false);
     if (tMeta.table_name === "post_offices") fetchAllPostOffices(true);
     if (
-      tMeta.table_name === "office_staff" &&
-      typeof fetchOfficeStaffBackground === "function"
+      tMeta.table_name === "delivery_offices" &&
+      typeof fetchDeliveryOfficesBackground === "function"
     ) {
-      fetchOfficeStaffBackground();
+      fetchDeliveryOfficesBackground(true);
+    }
+    if (
+      tMeta.table_name === "branch_office_staff" &&
+      typeof fetchBranchOfficeStaffBackground === "function"
+    ) {
+      fetchBranchOfficeStaffBackground();
     }
     if (tMeta.table_name === "app_settings") fetchAndApplyAppConfig();
   } catch (err) {
@@ -1019,6 +1025,18 @@ function deleteSuperadminDbRow() {
         showToast("🗑️ Row deleted.", "success");
         await loadSuperadminTableRows(false);
         if (tMeta.table_name === "post_offices") fetchAllPostOffices(true);
+        if (
+          tMeta.table_name === "delivery_offices" &&
+          typeof fetchDeliveryOfficesBackground === "function"
+        ) {
+          fetchDeliveryOfficesBackground(true);
+        }
+        if (
+          tMeta.table_name === "branch_office_staff" &&
+          typeof fetchBranchOfficeStaffBackground === "function"
+        ) {
+          fetchBranchOfficeStaffBackground();
+        }
       } catch (err) {
         showToast("❌ " + err.message, "error");
       }

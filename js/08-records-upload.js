@@ -62,12 +62,13 @@ function updateRecord(id, currentAddress, currentOffice, currentPin) {
   setTimeout(() => addrInput.focus(), 140);
 }
 
-function applyLocalRecordEdit(id, newAddress, newOffice, newPin) {
+function applyLocalRecordEdit(id, newAddress, officeRec) {
   upsertLocalPostOffice({
     id: id,
     Address: newAddress,
-    Office: newOffice,
-    Pin: newPin || null,
+    office_id: officeRec.id,
+    Office: officeRec.office_name,
+    Pin: officeRec.pin,
   });
 }
 
@@ -78,12 +79,28 @@ async function saveInlineEditRecord() {
   const newAddress = document
     .getElementById("inline-edit-address")
     .value.trim();
-  const newOffice = document.getElementById("inline-edit-office").value.trim();
-  const newPin = document.getElementById("inline-edit-pin").value.trim();
+  const newOfficeInput = document
+    .getElementById("inline-edit-office")
+    .value.trim();
 
-  if (!newAddress || !newOffice) {
+  if (!newAddress || !newOfficeInput) {
     return showToast("⚠️ Address and Office are required.");
   }
+
+  const officeRec =
+    typeof getDeliveryOfficeByName === "function"
+      ? getDeliveryOfficeByName(newOfficeInput)
+      : null;
+  if (!officeRec) {
+    return showToast(
+      `⚠️ Unknown Delivery Office "${newOfficeInput}". Please select an existing office.`,
+      "warning"
+    );
+  }
+
+  const newOffice = officeRec.office_name;
+  const newPin = String(officeRec.pin ?? "");
+
   if (isSelfParentOfficeRow(newAddress, newOffice)) {
     return showToast(
       "ℹ️ Parent HO/SO is already shown as the office header. Tap 👥 Staff there instead."
@@ -127,8 +144,9 @@ async function saveInlineEditRecord() {
     action_type: "EDIT",
     proposed_data: {
       Address: newAddress,
+      office_id: officeRec.id,
       Office: newOffice,
-      Pin: newPin || null,
+      Pin: officeRec.pin,
     },
     original_data: {
       Address: activeInlineEditRecord.oldAddress,
@@ -145,7 +163,7 @@ async function saveInlineEditRecord() {
       });
       if (error) throw error;
 
-      applyLocalRecordEdit(editedId, newAddress, newOffice, newPin);
+      applyLocalRecordEdit(editedId, newAddress, officeRec);
       invalidateApprovalsCache();
 
       saveBtn.classList.remove("is-loading");
@@ -783,14 +801,22 @@ async function submitMultipleRecords() {
   }
 
   let skippedParentOffice = 0;
+  const unknownOffices = [];
 
   rows.forEach((row) => {
     const address = row.querySelector(".manual-address").value.trim();
     const office = row.querySelector(".manual-office").value.trim();
-    const Pin = row.querySelector(".manual-Pin").value.trim();
 
     if (address && office) {
-      if (isSelfParentOfficeRow(address, office)) {
+      const officeRec =
+        typeof getDeliveryOfficeByName === "function"
+          ? getDeliveryOfficeByName(office)
+          : null;
+      if (!officeRec) {
+        if (!unknownOffices.includes(office)) unknownOffices.push(office);
+        return;
+      }
+      if (isSelfParentOfficeRow(address, officeRec.office_name)) {
         skippedParentOffice++;
         return;
       }
@@ -798,8 +824,9 @@ async function submitMultipleRecords() {
         action_type: "ADD",
         proposed_data: {
           Address: address,
-          Office: office,
-          Pin: Pin || null,
+          office_id: officeRec.id,
+          Office: officeRec.office_name,
+          Pin: officeRec.pin,
         },
         requested_by: session.user.id,
       };
@@ -808,6 +835,15 @@ async function submitMultipleRecords() {
       else requests.push(reqData);
     }
   });
+
+  if (unknownOffices.length > 0) {
+    return showToast(
+      `⚠️ Unknown Delivery Office: ${unknownOffices.join(
+        ", "
+      )}. Select from the list.`,
+      "warning"
+    );
+  }
 
   if (requests.length === 0 && adminDirectEdits.length === 0) {
     return showToast(
@@ -992,11 +1028,27 @@ function clearBulkAddresses() {
 async function submitBulkSameOffice() {
   if (!(await ensureOnline("Connect to internet to save changes."))) return;
 
-  const office = document.getElementById("bulk-office-input")?.value.trim();
-  const pin = document.getElementById("bulk-pin-input")?.value.trim();
+  const officeInput = document
+    .getElementById("bulk-office-input")
+    ?.value.trim();
   const rawAddresses = parseBulkAddresses();
 
-  if (!office) return showToast("⚠️ Please select or enter an Office first.");
+  if (!officeInput) {
+    return showToast("⚠️ Please select an Office first.");
+  }
+
+  const officeRec =
+    typeof getDeliveryOfficeByName === "function"
+      ? getDeliveryOfficeByName(officeInput)
+      : null;
+  if (!officeRec) {
+    return showToast(
+      `⚠️ Unknown Delivery Office "${officeInput}". Please select an existing office.`,
+      "warning"
+    );
+  }
+
+  const office = officeRec.office_name;
   if (rawAddresses.length === 0) {
     return showToast("⚠️ Please enter at least one address.");
   }
@@ -1039,8 +1091,9 @@ async function submitBulkSameOffice() {
       action_type: "ADD",
       proposed_data: {
         Address: addr,
+        office_id: officeRec.id,
         Office: office,
-        Pin: pin || null,
+        Pin: officeRec.pin,
         priority: bulkAddPriority,
         upload_method: "bulk_same_office",
         batch_id: batch.id,
@@ -1105,7 +1158,16 @@ function buildOfficeOptionHTML(office, pin, mode) {
 
 function getOfficePinMap() {
   const officeMap = new Map();
-  if (cachedPostOffices) {
+  if (
+    Array.isArray(cachedDeliveryOffices) &&
+    cachedDeliveryOffices.length > 0
+  ) {
+    cachedDeliveryOffices.forEach((row) => {
+      if (row.office_name && !officeMap.has(row.office_name)) {
+        officeMap.set(row.office_name, row.pin ? String(row.pin) : "");
+      }
+    });
+  } else if (cachedPostOffices) {
     cachedPostOffices.forEach((row) => {
       if (row.Office && !officeMap.has(row.Office)) {
         officeMap.set(row.Office, row.Pin || "");
@@ -1388,12 +1450,23 @@ async function uploadExcel() {
         document.getElementById("excel-batch-description")?.value.trim() || "";
 
       const formattedData = [];
+      const unknownOffices = new Set();
+
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i];
         const address = String(row["Address"] ?? "").trim();
         const office = String(row["Office"] ?? "").trim();
         if (!address || !office) continue;
-        if (isSelfParentOfficeRow(address, office)) continue;
+
+        const officeRec =
+          typeof getDeliveryOfficeByName === "function"
+            ? getDeliveryOfficeByName(office)
+            : null;
+        if (!officeRec) {
+          unknownOffices.add(office);
+          continue;
+        }
+        if (isSelfParentOfficeRow(address, officeRec.office_name)) continue;
 
         const rawPrio = String(row["Priority"] ?? "")
           .trim()
@@ -1415,13 +1488,9 @@ async function uploadExcel() {
           priorityVal = -1;
         }
 
-        const pinStr = String(row["Pin"] ?? "").trim();
-        const parsedPin = pinStr ? parseInt(pinStr, 10) || null : null;
-
         formattedData.push({
           Address: address,
-          Office: office,
-          Pin: parsedPin,
+          office_id: officeRec.id,
           priority: priorityVal,
           user_id: session.user.id,
           last_modified_by: session.user.id,
@@ -1429,6 +1498,15 @@ async function uploadExcel() {
           upload_method: "excel_bulk",
           is_deleted: false,
         });
+      }
+
+      if (unknownOffices.size > 0) {
+        const list = Array.from(unknownOffices).slice(0, 8).join(", ");
+        alert(
+          `Upload blocked: Unknown Delivery Office(s) found in sheet:\n${list}\n\nPlease fix the office names (or add the office in delivery_offices first) and retry.`
+        );
+        setButtonState(uploadBtn, "idle");
+        return;
       }
 
       if (formattedData.length === 0) {

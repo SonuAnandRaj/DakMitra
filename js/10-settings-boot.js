@@ -77,10 +77,17 @@ function clearAppCache() {
       localStorage.removeItem(HISTORY_KEY);
       localStorage.removeItem("dakmitra_default_view");
       localStorage.removeItem("dakmitra_offline_db");
-      localStorage.removeItem(OFFICE_STAFF_CACHE_KEY);
+      localStorage.removeItem(DELIVERY_OFFICES_CACHE_KEY);
+      localStorage.removeItem(BRANCH_OFFICE_STAFF_CACHE_KEY);
+      localStorage.removeItem("dakmitra_offline_office_staff");
       localStorage.removeItem("dakmitra_sync_meta");
-      cachedOfficeStaff = [];
-      officeStaffByKeyMap.clear();
+      cachedDeliveryOffices = [];
+      cachedBranchOfficeStaff = [];
+      deliveryOfficeByIdMap.clear();
+      deliveryOfficeByKeyMap.clear();
+      branchOfficeStaffByPoIdMap.clear();
+      cachedOfficeStaff = cachedDeliveryOffices;
+      officeStaffByKeyMap = deliveryOfficeByKeyMap;
       localStorage.removeItem("dakmitra_members_cache");
       localStorage.removeItem("dakmitra_feedback_cache");
       localStorage.removeItem("dakmitra_learning_leaderboard_cache");
@@ -385,8 +392,11 @@ async function exportFullTableToExcel(includeDeleted = true) {
     while (true) {
       let query = supabaseClient
         .from("post_offices")
-        .select("Address, Office, Pin, priority, is_deleted, batch_id")
-        .order("Office", { ascending: true })
+        .select(
+          "Address, office_id, priority, is_deleted, batch_id, delivery_offices(office_name, pin)"
+        )
+        .order("office_id", { ascending: true })
+        .order("Address", { ascending: true })
         .range(from, from + batchSize - 1);
 
       if (!includeDeleted) {
@@ -407,15 +417,30 @@ async function exportFullTableToExcel(includeDeleted = true) {
       return;
     }
 
-    const formattedRows = allRows.map((row) => ({
-      Address: row.Address,
-      Office: row.Office,
-      Pin: row.Pin ?? "",
-      Priority: Number(row.priority) >= 1 ? 1 : 0,
-      Verification: isUnverifiedRecord(row) ? "Unverified" : "Verified",
-      BatchID: row.batch_id || "",
-      Status: row.is_deleted ? "Deleted" : "Active",
-    }));
+    const formattedRows = allRows
+      .map((row) => {
+        const joinedOff = Array.isArray(row.delivery_offices)
+          ? row.delivery_offices[0]
+          : row.delivery_offices;
+        const fallbackOff =
+          typeof getDeliveryOfficeById === "function"
+            ? getDeliveryOfficeById(row.office_id)
+            : null;
+        return {
+          Address: row.Address,
+          Office: joinedOff?.office_name || fallbackOff?.office_name || "",
+          Pin: joinedOff?.pin ?? fallbackOff?.pin ?? "",
+          Priority: Number(row.priority) >= 1 ? 1 : 0,
+          Verification: isUnverifiedRecord(row) ? "Unverified" : "Verified",
+          BatchID: row.batch_id || "",
+          Status: row.is_deleted ? "Deleted" : "Active",
+        };
+      })
+      .sort(
+        (a, b) =>
+          String(a.Office).localeCompare(String(b.Office)) ||
+          String(a.Address).localeCompare(String(b.Address))
+      );
 
     const worksheet = XLSX.utils.json_to_sheet(formattedRows);
     worksheet["!cols"] = [
@@ -526,6 +551,9 @@ function bootAppInstantly() {
     if (cachedDataString) {
       try {
         cachedPostOffices = JSON.parse(cachedDataString);
+        if (typeof hydrateAllCachedPostOffices === "function") {
+          hydrateAllCachedPostOffices();
+        }
         document.getElementById("stat-addresses").textContent =
           cachedPostOffices.length;
         document.getElementById("stat-offices").textContent = new Set(

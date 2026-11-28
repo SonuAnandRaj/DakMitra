@@ -2,7 +2,7 @@
 // 04-DATA-SYNC.JS — Data Fetching, Caching & Realtime Sync
 // =========================================================
 
-// --- PARENT OFFICE STAFF CACHE & SYNC (public.office_staff) ---
+// --- DELIVERY OFFICES & SPARSE BRANCH STAFF CACHES (public.delivery_offices, public.branch_office_staff) ---
 function normalizeOfficeKey(name) {
   return String(name || "")
     .replace(/\./g, "")
@@ -11,54 +11,163 @@ function normalizeOfficeKey(name) {
     .toLowerCase();
 }
 
-function rebuildOfficeStaffMap() {
-  officeStaffByKeyMap.clear();
-  if (!Array.isArray(cachedOfficeStaff)) return;
-  for (let i = 0; i < cachedOfficeStaff.length; i++) {
-    const row = cachedOfficeStaff[i];
+function rebuildDeliveryOfficesMaps() {
+  deliveryOfficeByIdMap.clear();
+  deliveryOfficeByKeyMap.clear();
+  cachedOfficeStaff = cachedDeliveryOffices;
+  officeStaffByKeyMap = deliveryOfficeByKeyMap;
+
+  if (!Array.isArray(cachedDeliveryOffices)) return;
+  for (let i = 0; i < cachedDeliveryOffices.length; i++) {
+    const row = cachedDeliveryOffices[i];
     if (!row) continue;
+    if (row.id !== undefined && row.id !== null) {
+      deliveryOfficeByIdMap.set(Number(row.id), row);
+    }
     const key = row.office_key || normalizeOfficeKey(row.office_name);
-    if (key) officeStaffByKeyMap.set(key, row);
+    if (key) deliveryOfficeByKeyMap.set(key, row);
   }
+}
+
+function getDeliveryOfficeById(officeId) {
+  if (officeId === undefined || officeId === null || officeId === "")
+    return null;
+  return deliveryOfficeByIdMap.get(Number(officeId)) || null;
+}
+
+function getDeliveryOfficeByName(officeName) {
+  const key = normalizeOfficeKey(officeName);
+  return key ? deliveryOfficeByKeyMap.get(key) || null : null;
 }
 
 function getOfficeStaffByName(officeName) {
-  const key = normalizeOfficeKey(officeName);
-  return key ? officeStaffByKeyMap.get(key) || null : null;
+  return getDeliveryOfficeByName(officeName);
 }
 
-function persistOfficeStaffCache() {
+function persistDeliveryOfficesCache() {
   try {
     localStorage.setItem(
-      OFFICE_STAFF_CACHE_KEY,
-      JSON.stringify(cachedOfficeStaff)
+      DELIVERY_OFFICES_CACHE_KEY,
+      JSON.stringify(cachedDeliveryOffices)
     );
   } catch (e) {
-    console.warn("Failed to persist office staff cache:", e);
+    console.warn("Failed to persist delivery offices cache:", e);
   }
 }
 
-function loadOfficeStaffFromCache() {
+function loadDeliveryOfficesFromCache() {
   try {
-    const raw = localStorage.getItem(OFFICE_STAFF_CACHE_KEY);
+    const raw = localStorage.getItem(DELIVERY_OFFICES_CACHE_KEY);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      cachedOfficeStaff = parsed;
-      rebuildOfficeStaffMap();
+      cachedDeliveryOffices = parsed;
+      rebuildDeliveryOfficesMaps();
       return true;
     }
   } catch (e) {
-    console.warn("Office staff cache corrupted, will refetch.");
+    console.warn("Delivery offices cache corrupted, will refetch.");
   }
   return false;
 }
 
+function rebuildBranchOfficeStaffMap() {
+  branchOfficeStaffByPoIdMap.clear();
+  if (!Array.isArray(cachedBranchOfficeStaff)) return;
+  for (let i = 0; i < cachedBranchOfficeStaff.length; i++) {
+    const row = cachedBranchOfficeStaff[i];
+    if (
+      row &&
+      row.post_office_id !== undefined &&
+      row.post_office_id !== null
+    ) {
+      branchOfficeStaffByPoIdMap.set(String(row.post_office_id), row);
+    }
+  }
+}
+
+function getBranchOfficeStaffByPoId(postOfficeId) {
+  if (postOfficeId === undefined || postOfficeId === null) return null;
+  return branchOfficeStaffByPoIdMap.get(String(postOfficeId)) || null;
+}
+
+function persistBranchOfficeStaffCache() {
+  try {
+    localStorage.setItem(
+      BRANCH_OFFICE_STAFF_CACHE_KEY,
+      JSON.stringify(cachedBranchOfficeStaff)
+    );
+  } catch (e) {
+    console.warn("Failed to persist branch staff cache:", e);
+  }
+}
+
+function loadBranchOfficeStaffFromCache() {
+  try {
+    const raw = localStorage.getItem(BRANCH_OFFICE_STAFF_CACHE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      cachedBranchOfficeStaff = parsed;
+      rebuildBranchOfficeStaffMap();
+      return true;
+    }
+  } catch (e) {
+    console.warn("Branch staff cache corrupted, will refetch.");
+  }
+  return false;
+}
+
+function loadOfficeStaffFromCache() {
+  const loadedOffices = loadDeliveryOfficesFromCache();
+  loadBranchOfficeStaffFromCache();
+  return loadedOffices;
+}
+
+// Slim serialization (localStorage) & O(1) in-memory hydration (Office + Pin)
+function serializePostOfficeRow(row) {
+  return {
+    id: row.id,
+    Address: row.Address,
+    office_id: row.office_id,
+    priority: row.priority,
+    inserted_at: row.inserted_at ?? null,
+    address_updated_at: row.address_updated_at ?? null,
+  };
+}
+
+function hydratePostOfficeRow(row) {
+  if (!row || typeof row !== "object") return row;
+  let officeRec = getDeliveryOfficeById(row.office_id);
+  if (!officeRec && row.Office) {
+    officeRec = getDeliveryOfficeByName(row.Office);
+    if (officeRec) row.office_id = officeRec.id;
+  }
+  if (officeRec) {
+    row.office_id = officeRec.id;
+    row.Office = officeRec.office_name;
+    row.Pin = officeRec.pin;
+  } else {
+    if (row.Office === undefined) row.Office = "";
+    if (row.Pin === undefined) row.Pin = null;
+  }
+  return row;
+}
+
+function hydrateAllCachedPostOffices() {
+  if (!Array.isArray(cachedPostOffices)) return;
+  for (let i = 0; i < cachedPostOffices.length; i++) {
+    hydratePostOfficeRow(cachedPostOffices[i]);
+  }
+}
+
 const SYNC_META_CACHE_KEY = "dakmitra_sync_meta";
 const POST_OFFICE_SELECT_COLUMNS =
-  "id, Address, Office, Pin, priority, inserted_at, address_updated_at, bpm_name, bpm_contact, abpm_name, abpm_contact, spm_name, spm_contact, pm_name, pm_contact, pa_list, mts_list";
-const OFFICE_STAFF_SELECT_COLUMNS =
-  "id, office_name, office_key, office_type, pm_name, pm_contact, spm_name, spm_contact, pa_list, mts_list";
+  "id, Address, office_id, priority, inserted_at, address_updated_at";
+const DELIVERY_OFFICES_SELECT_COLUMNS =
+  "id, office_name, office_key, office_type, pin, pm_name, pm_contact, spm_name, spm_contact, pa_list, mts_list";
+const BRANCH_OFFICE_STAFF_SELECT_COLUMNS =
+  "post_office_id, office_type, bpm_name, bpm_contact, abpm_name, abpm_contact, spm_name, spm_contact, pm_name, pm_contact, pa_list, mts_list";
 
 let lastServerSyncCheckAt = 0;
 let _syncInFlightPromise = null;
@@ -98,56 +207,96 @@ async function fetchServerSyncMeta() {
   }
 }
 
-async function fetchOfficeStaffBackground() {
+async function fetchDeliveryOfficesBackground(triggerRefresh = true) {
   if (!navigator.onLine || !supabaseClient) return false;
   try {
     const { data, error } = await supabaseClient
-      .from("office_staff")
-      .select(OFFICE_STAFF_SELECT_COLUMNS)
+      .from("delivery_offices")
+      .select(DELIVERY_OFFICES_SELECT_COLUMNS)
       .order("office_name", { ascending: true });
 
     if (error) throw error;
     const rows = Array.isArray(data) ? data : [];
     const newJson = JSON.stringify(rows);
-    const oldJson = localStorage.getItem(OFFICE_STAFF_CACHE_KEY);
+    const oldJson = localStorage.getItem(DELIVERY_OFFICES_CACHE_KEY);
 
-    if (newJson !== oldJson || cachedOfficeStaff.length !== rows.length) {
-      cachedOfficeStaff = rows;
-      rebuildOfficeStaffMap();
-      persistOfficeStaffCache();
-      refreshDirectoryInPlace();
-      if (
-        document.getElementById("view-search")?.classList.contains("active")
-      ) {
-        refreshSearchInPlace(true);
+    if (newJson !== oldJson || cachedDeliveryOffices.length !== rows.length) {
+      cachedDeliveryOffices = rows;
+      rebuildDeliveryOfficesMaps();
+      persistDeliveryOfficesCache();
+      hydrateAllCachedPostOffices();
+      if (triggerRefresh && cachedPostOffices.length > 0) {
+        initializeSearchAndRender(true);
       }
     }
     return true;
   } catch (err) {
-    console.warn("Office staff background sync failed:", err?.message || err);
+    console.warn("Delivery offices sync failed:", err?.message || err);
     return false;
   }
 }
-function upsertLocalOfficeStaff(row) {
+
+async function fetchBranchOfficeStaffBackground() {
+  if (!navigator.onLine || !supabaseClient) return false;
+  try {
+    const { data, error } = await supabaseClient
+      .from("branch_office_staff")
+      .select(BRANCH_OFFICE_STAFF_SELECT_COLUMNS)
+      .order("post_office_id", { ascending: true });
+
+    if (error) throw error;
+    const rows = Array.isArray(data) ? data : [];
+    const newJson = JSON.stringify(rows);
+    const oldJson = localStorage.getItem(BRANCH_OFFICE_STAFF_CACHE_KEY);
+
+    if (newJson !== oldJson || cachedBranchOfficeStaff.length !== rows.length) {
+      cachedBranchOfficeStaff = rows;
+      rebuildBranchOfficeStaffMap();
+      persistBranchOfficeStaffCache();
+    }
+    return true;
+  } catch (err) {
+    console.warn("Branch office staff sync failed:", err?.message || err);
+    return false;
+  }
+}
+
+async function fetchOfficeStaffBackground() {
+  return await fetchDeliveryOfficesBackground(true);
+}
+
+function upsertLocalDeliveryOffice(row) {
   if (!row) return;
   const key = row.office_key || normalizeOfficeKey(row.office_name);
   if (!key) return;
 
-  const idx = cachedOfficeStaff.findIndex(
+  const idx = cachedDeliveryOffices.findIndex(
     (r) =>
-      (row.id && String(r.id) === String(row.id)) ||
+      (row.id !== undefined &&
+        row.id !== null &&
+        Number(r.id) === Number(row.id)) ||
       (r.office_key || normalizeOfficeKey(r.office_name)) === key
   );
 
+  let identityChanged = false;
   if (idx > -1) {
-    if (isRowDataUnchanged(cachedOfficeStaff[idx], row)) return;
-    cachedOfficeStaff[idx] = { ...cachedOfficeStaff[idx], ...row };
+    if (isRowDataUnchanged(cachedDeliveryOffices[idx], row)) return;
+    const prev = cachedDeliveryOffices[idx];
+    identityChanged =
+      prev.office_name !== row.office_name ||
+      Number(prev.pin) !== Number(row.pin);
+    cachedDeliveryOffices[idx] = { ...prev, ...row };
   } else {
-    cachedOfficeStaff.push(row);
+    cachedDeliveryOffices.push(row);
+    identityChanged = true;
   }
 
-  rebuildOfficeStaffMap();
-  persistOfficeStaffCache();
+  rebuildDeliveryOfficesMaps();
+  persistDeliveryOfficesCache();
+
+  if (identityChanged) {
+    hydrateAllCachedPostOffices();
+  }
 
   // Live-update open modal if user is viewing this parent office
   if (
@@ -156,7 +305,7 @@ function upsertLocalOfficeStaff(row) {
     typeof activeOfficeKey !== "undefined" &&
     activeOfficeKey === key
   ) {
-    activeOfficeRecord = officeStaffByKeyMap.get(key) || row;
+    activeOfficeRecord = deliveryOfficeByKeyMap.get(key) || row;
     const isModalOpen = document
       .getElementById("office-details-modal-overlay")
       ?.classList.contains("show");
@@ -172,32 +321,139 @@ function upsertLocalOfficeStaff(row) {
     }
   }
 
-  refreshDirectoryInPlace();
-  if (document.getElementById("view-search")?.classList.contains("active")) {
-    refreshSearchInPlace(true);
+  if (identityChanged) {
+    scheduleLocalUiRefresh();
+  } else {
+    refreshDirectoryInPlace();
+    if (document.getElementById("view-search")?.classList.contains("active")) {
+      refreshSearchInPlace(true);
+    }
   }
 }
 
-function removeLocalOfficeStaff(rowOrId) {
+function removeLocalDeliveryOffice(rowOrId) {
   const id = typeof rowOrId === "object" ? rowOrId?.id : rowOrId;
   const key =
     typeof rowOrId === "object"
       ? rowOrId?.office_key || normalizeOfficeKey(rowOrId?.office_name)
       : null;
 
-  const beforeLen = cachedOfficeStaff.length;
-  cachedOfficeStaff = cachedOfficeStaff.filter((r) => {
-    if (id && String(r.id) === String(id)) return false;
+  const beforeLen = cachedDeliveryOffices.length;
+  cachedDeliveryOffices = cachedDeliveryOffices.filter((r) => {
+    if (id !== undefined && id !== null && Number(r.id) === Number(id))
+      return false;
     if (key && (r.office_key || normalizeOfficeKey(r.office_name)) === key) {
       return false;
     }
     return true;
   });
 
-  if (cachedOfficeStaff.length === beforeLen) return;
-  rebuildOfficeStaffMap();
-  persistOfficeStaffCache();
-  refreshDirectoryInPlace();
+  if (cachedDeliveryOffices.length === beforeLen) return;
+  rebuildDeliveryOfficesMaps();
+  persistDeliveryOfficesCache();
+  hydrateAllCachedPostOffices();
+  scheduleLocalUiRefresh();
+}
+
+function upsertLocalBranchOfficeStaff(row) {
+  if (!row || row.post_office_id === undefined || row.post_office_id === null) {
+    return;
+  }
+  const poIdStr = String(row.post_office_id);
+  const idx = cachedBranchOfficeStaff.findIndex(
+    (r) => String(r.post_office_id) === poIdStr
+  );
+
+  if (idx > -1) {
+    if (isRowDataUnchanged(cachedBranchOfficeStaff[idx], row)) return;
+    cachedBranchOfficeStaff[idx] = { ...cachedBranchOfficeStaff[idx], ...row };
+  } else {
+    cachedBranchOfficeStaff.push(row);
+  }
+
+  rebuildBranchOfficeStaffMap();
+  persistBranchOfficeStaffCache();
+
+  if (
+    typeof activeOfficeMode !== "undefined" &&
+    activeOfficeMode === "child" &&
+    typeof activeOfficeRecord !== "undefined" &&
+    activeOfficeRecord &&
+    String(activeOfficeRecord.id) === poIdStr
+  ) {
+    Object.assign(activeOfficeRecord, row);
+    const isModalOpen = document
+      .getElementById("office-details-modal-overlay")
+      ?.classList.contains("show");
+    const isViewMode = !document
+      .getElementById("office-modal-view-actions")
+      ?.classList.contains("hidden");
+    if (
+      isModalOpen &&
+      isViewMode &&
+      typeof renderOfficeStaffViewMode === "function"
+    ) {
+      renderOfficeStaffViewMode();
+    }
+  }
+}
+
+function removeLocalBranchOfficeStaff(rowOrPoId) {
+  const poId =
+    typeof rowOrPoId === "object" ? rowOrPoId?.post_office_id : rowOrPoId;
+  if (poId === undefined || poId === null) return;
+
+  const poIdStr = String(poId);
+  const beforeLen = cachedBranchOfficeStaff.length;
+  cachedBranchOfficeStaff = cachedBranchOfficeStaff.filter(
+    (r) => String(r.post_office_id) !== poIdStr
+  );
+
+  if (cachedBranchOfficeStaff.length === beforeLen) return;
+  rebuildBranchOfficeStaffMap();
+  persistBranchOfficeStaffCache();
+
+  if (
+    typeof activeOfficeMode !== "undefined" &&
+    activeOfficeMode === "child" &&
+    typeof activeOfficeRecord !== "undefined" &&
+    activeOfficeRecord &&
+    String(activeOfficeRecord.id) === poIdStr
+  ) {
+    Object.assign(activeOfficeRecord, {
+      bpm_name: null,
+      bpm_contact: null,
+      abpm_name: null,
+      abpm_contact: null,
+      spm_name: null,
+      spm_contact: null,
+      pm_name: null,
+      pm_contact: null,
+      pa_list: [],
+      mts_list: [],
+    });
+    const isModalOpen = document
+      .getElementById("office-details-modal-overlay")
+      ?.classList.contains("show");
+    const isViewMode = !document
+      .getElementById("office-modal-view-actions")
+      ?.classList.contains("hidden");
+    if (
+      isModalOpen &&
+      isViewMode &&
+      typeof renderOfficeStaffViewMode === "function"
+    ) {
+      renderOfficeStaffViewMode();
+    }
+  }
+}
+
+function upsertLocalOfficeStaff(row) {
+  upsertLocalDeliveryOffice(row);
+}
+
+function removeLocalOfficeStaff(rowOrId) {
+  removeLocalDeliveryOffice(rowOrId);
 }
 
 // --- DATA FETCHING & STATS ---
@@ -218,6 +474,7 @@ async function fetchAllPostOffices(forceSync = false) {
     if (cachedDataString) {
       try {
         cachedPostOffices = JSON.parse(cachedDataString);
+        hydrateAllCachedPostOffices();
         initializeSearchAndRender();
 
         const runInBg =
@@ -259,19 +516,32 @@ async function fetchFromServerBackground(force = false) {
       const localMeta = getLocalSyncMeta();
       const serverMeta = await fetchServerSyncMeta();
 
-      const hasPoTimestamps =
+      const hasNormalizedPoCache =
         cachedPostOffices.length > 0 &&
         cachedPostOffices.every(
           (row) =>
             row &&
+            row.office_id !== undefined &&
+            row.office_id !== null &&
             Object.prototype.hasOwnProperty.call(row, "inserted_at") &&
             Object.prototype.hasOwnProperty.call(row, "address_updated_at")
         );
 
       const hasLocalPoCache =
-        Boolean(localStorage.getItem("dakmitra_offline_db")) && hasPoTimestamps;
-      const hasLocalStaffCache =
-        localStorage.getItem(OFFICE_STAFF_CACHE_KEY) !== null;
+        Boolean(localStorage.getItem("dakmitra_offline_db")) &&
+        hasNormalizedPoCache;
+      const hasLocalOfficesCache =
+        localStorage.getItem(DELIVERY_OFFICES_CACHE_KEY) !== null &&
+        cachedDeliveryOffices.length > 0;
+      const hasLocalBranchStaffCache =
+        localStorage.getItem(BRANCH_OFFICE_STAFF_CACHE_KEY) !== null;
+
+      const needDeliveryOffices =
+        force ||
+        !hasLocalOfficesCache ||
+        !serverMeta ||
+        serverMeta.delivery_offices === undefined ||
+        localMeta.delivery_offices !== serverMeta.delivery_offices;
 
       const needPostOffices =
         force ||
@@ -280,15 +550,30 @@ async function fetchFromServerBackground(force = false) {
         serverMeta.post_offices === undefined ||
         localMeta.post_offices !== serverMeta.post_offices;
 
-      const needOfficeStaff =
+      const needBranchStaff =
         force ||
-        !hasLocalStaffCache ||
+        !hasLocalBranchStaffCache ||
         !serverMeta ||
-        serverMeta.office_staff === undefined ||
-        localMeta.office_staff !== serverMeta.office_staff;
+        serverMeta.branch_office_staff === undefined ||
+        localMeta.branch_office_staff !== serverMeta.branch_office_staff;
 
       const updatedMeta = { ...localMeta };
 
+      // 1. Always sync delivery_offices BEFORE post_offices so office_id hydration has fresh Office/Pin
+      if (needDeliveryOffices) {
+        const officesOk = await fetchDeliveryOfficesBackground(
+          !needPostOffices
+        );
+        if (
+          officesOk &&
+          serverMeta &&
+          serverMeta.delivery_offices !== undefined
+        ) {
+          updatedMeta.delivery_offices = serverMeta.delivery_offices;
+        }
+      }
+
+      // 2. Sync slim post_offices rows & hydrate Office/Pin in memory
       if (needPostOffices) {
         let allRows = [];
         let from = 0;
@@ -318,11 +603,13 @@ async function fetchFromServerBackground(force = false) {
           }
         }
 
-        const newJson = JSON.stringify(allRows);
+        const slimRows = allRows.map(serializePostOfficeRow);
+        const newJson = JSON.stringify(slimRows);
         const oldJson = localStorage.getItem("dakmitra_offline_db");
 
-        if (newJson !== oldJson) {
-          cachedPostOffices = allRows;
+        if (newJson !== oldJson || !hasNormalizedPoCache) {
+          cachedPostOffices = slimRows;
+          hydrateAllCachedPostOffices();
           localStorage.setItem("dakmitra_offline_db", newJson);
           initializeSearchAndRender(true);
         }
@@ -332,10 +619,15 @@ async function fetchFromServerBackground(force = false) {
         }
       }
 
-      if (needOfficeStaff) {
-        const staffOk = await fetchOfficeStaffBackground();
-        if (staffOk && serverMeta && serverMeta.office_staff !== undefined) {
-          updatedMeta.office_staff = serverMeta.office_staff;
+      // 3. Sync sparse branch_office_staff (~293 rows instead of 4,556)
+      if (needBranchStaff) {
+        const branchOk = await fetchBranchOfficeStaffBackground();
+        if (
+          branchOk &&
+          serverMeta &&
+          serverMeta.branch_office_staff !== undefined
+        ) {
+          updatedMeta.branch_office_staff = serverMeta.branch_office_staff;
         }
       }
 
@@ -768,10 +1060,8 @@ let uiRefreshTimer = null;
 
 function persistPostOfficeCache() {
   try {
-    localStorage.setItem(
-      "dakmitra_offline_db",
-      JSON.stringify(cachedPostOffices)
-    );
+    const slimRows = cachedPostOffices.map(serializePostOfficeRow);
+    localStorage.setItem("dakmitra_offline_db", JSON.stringify(slimRows));
   } catch (e) {
     console.warn("Failed to persist offline DB:", e);
   }
@@ -848,65 +1138,60 @@ function upsertLocalPostOffice(row) {
     return;
   }
 
+  const incoming = hydratePostOfficeRow({ ...row });
+  const slimIncoming = serializePostOfficeRow(incoming);
+  hydratePostOfficeRow(slimIncoming);
+
   const idx = cachedPostOffices.findIndex(
-    (r) => String(r.id) === String(row.id)
+    (r) => String(r.id) === String(slimIncoming.id)
   );
   if (idx > -1) {
-    if (isRowDataUnchanged(cachedPostOffices[idx], row)) {
+    const prevRow = cachedPostOffices[idx];
+    const mergedRow = {
+      ...prevRow,
+      ...slimIncoming,
+      inserted_at:
+        "inserted_at" in row ? slimIncoming.inserted_at : prevRow.inserted_at,
+      address_updated_at:
+        "address_updated_at" in row
+          ? slimIncoming.address_updated_at
+          : prevRow.address_updated_at,
+      priority: "priority" in row ? slimIncoming.priority : prevRow.priority,
+    };
+    hydratePostOfficeRow(mergedRow);
+
+    if (isRowDataUnchanged(prevRow, mergedRow)) {
       return;
     }
-    const prevRow = cachedPostOffices[idx];
+
     const coreAddressChanged =
-      ("Address" in row && row.Address !== prevRow.Address) ||
-      ("Office" in row && row.Office !== prevRow.Office) ||
-      ("Pin" in row && String(row.Pin ?? "") !== String(prevRow.Pin ?? ""));
-    const nextRow = { ...prevRow, ...row };
+      mergedRow.Address !== prevRow.Address ||
+      Number(mergedRow.office_id) !== Number(prevRow.office_id) ||
+      mergedRow.Office !== prevRow.Office;
+
     if (coreAddressChanged && !("address_updated_at" in row)) {
-      nextRow.address_updated_at = new Date().toISOString();
+      mergedRow.address_updated_at = new Date().toISOString();
     }
     if (
       (coreAddressChanged &&
         !("priority" in row) &&
         Number(prevRow.priority) === -1) ||
-      (detectOfficeType(nextRow.Address) && Number(nextRow.priority) === -1)
+      (detectOfficeType(mergedRow.Address) && Number(mergedRow.priority) === -1)
     ) {
-      nextRow.priority = 0;
+      mergedRow.priority = 0;
     }
-    cachedPostOffices[idx] = nextRow;
+    cachedPostOffices[idx] = mergedRow;
     updateSearchIndexRow(cachedPostOffices[idx]);
   } else {
-    const newRow = {
-      ...row,
-      inserted_at: row.inserted_at ?? new Date().toISOString(),
+    const newRow = hydratePostOfficeRow({
+      ...slimIncoming,
+      priority: "priority" in row ? slimIncoming.priority : 0,
+      inserted_at: slimIncoming.inserted_at ?? new Date().toISOString(),
       address_updated_at:
-        "address_updated_at" in row ? row.address_updated_at : null,
-    };
+        "address_updated_at" in row ? slimIncoming.address_updated_at : null,
+    });
     cachedPostOffices.push(newRow);
     updateSearchIndexRow(newRow);
-  }
-
-  if (
-    (typeof activeOfficeMode === "undefined" ||
-      activeOfficeMode !== "parent") &&
-    typeof activeOfficeRecord !== "undefined" &&
-    activeOfficeRecord &&
-    String(activeOfficeRecord.id) === String(row.id)
-  ) {
-    activeOfficeRecord =
-      cachedPostOffices[idx > -1 ? idx : cachedPostOffices.length - 1];
-    const isModalOpen = document
-      .getElementById("office-details-modal-overlay")
-      ?.classList.contains("show");
-    const isViewMode = !document
-      .getElementById("office-modal-view-actions")
-      ?.classList.contains("hidden");
-    if (
-      isModalOpen &&
-      isViewMode &&
-      typeof renderOfficeStaffViewMode === "function"
-    ) {
-      renderOfficeStaffViewMode();
-    }
   }
 
   persistPostOfficeCache();
@@ -1029,23 +1314,44 @@ function initRealtimeSync() {
     )
     .on(
       "postgres_changes",
-      { event: "INSERT", schema: "public", table: "office_staff" },
+      { event: "INSERT", schema: "public", table: "delivery_offices" },
       (payload) => {
-        upsertLocalOfficeStaff(payload.new);
+        upsertLocalDeliveryOffice(payload.new);
       }
     )
     .on(
       "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "office_staff" },
+      { event: "UPDATE", schema: "public", table: "delivery_offices" },
       (payload) => {
-        upsertLocalOfficeStaff(payload.new);
+        upsertLocalDeliveryOffice(payload.new);
       }
     )
     .on(
       "postgres_changes",
-      { event: "DELETE", schema: "public", table: "office_staff" },
+      { event: "DELETE", schema: "public", table: "delivery_offices" },
       (payload) => {
-        if (payload.old) removeLocalOfficeStaff(payload.old);
+        if (payload.old) removeLocalDeliveryOffice(payload.old);
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "branch_office_staff" },
+      (payload) => {
+        upsertLocalBranchOfficeStaff(payload.new);
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "branch_office_staff" },
+      (payload) => {
+        upsertLocalBranchOfficeStaff(payload.new);
+      }
+    )
+    .on(
+      "postgres_changes",
+      { event: "DELETE", schema: "public", table: "branch_office_staff" },
+      (payload) => {
+        if (payload.old) removeLocalBranchOfficeStaff(payload.old);
       }
     )
     .on(
